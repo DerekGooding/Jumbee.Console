@@ -23,14 +23,54 @@ public enum BorderStyle
 }
 
 /// <summary>
+/// Horizontal alignment of a <see cref="ControlFrame"/> title within the top border.
+/// </summary>
+public enum TitleAlign
+{
+    Left,
+    Right,
+    Centre
+}
+
+/// <summary>
+/// The way a <see cref="ControlFrame"/> title is drawn relative to the top border.
+/// </summary>
+public enum TitleBorderStyle
+{
+    /// <summary>Title is drawn inside the single top border row, replacing some of the border line characters.</summary>
+    Inline,
+
+    /// <summary>Title is drawn on its own row between a top border line and a separator line.</summary>
+    Double
+}
+
+/// <summary>
+/// Describes how a <see cref="ControlFrame"/> title is aligned and bordered.
+/// </summary>
+public readonly struct TitleStyle
+{
+    public TitleStyle(TitleAlign align = TitleAlign.Left, TitleBorderStyle borderStyle = TitleBorderStyle.Double)
+    {
+        Align = align;
+        BorderStyle = borderStyle;
+    }
+
+    public TitleAlign Align { get; init; }
+    public TitleBorderStyle BorderStyle { get; init; }
+
+    /// <summary>The default title style (left-aligned, double border), matching the original behavior.</summary>
+    public static TitleStyle Default { get; } = new TitleStyle(TitleAlign.Left, TitleBorderStyle.Double);
+}
+
+/// <summary>
 /// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
 /// </summary>
 public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 {
     #region Constructors
-    public ControlFrame(Control control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title=null, Color? borderFgColor = null, Color? borderBgColor = null)
+    public ControlFrame(Control control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title=null, Color? borderFgColor = null, Color? borderBgColor = null, TitleStyle? titleStyle = null)
     {
-        _borderStyle = borderStyle ?? BorderStyle.None; 
+        _borderStyle = borderStyle ?? BorderStyle.None;
         _boxBorder = GetSpectreBoxBorder(_borderStyle);
         _margin = margin ?? DefaultMargin;
         _foreground = fgColor;
@@ -38,6 +78,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         _borderFgColor = borderFgColor;
         _borderBgColor = borderBgColor;
         _title = title;
+        _titleStyle = titleStyle ?? TitleStyle.Default;
         _control = control;
         _control.Frame = this;
         BindControl();
@@ -135,6 +176,14 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             var right = Size.Width - 1 - Margin.Right;
             var bottom = Size.Height - 1 - Margin.Bottom;
 
+            // Inline title: drawn within the single top border row, replacing some border line characters.
+            if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top)
+                && _titleStyle.BorderStyle == TitleBorderStyle.Inline && position.Y == top)
+            {
+                if (GetTitleCell(position.X, left, right) is { } inlineTitleCell)
+                    return inlineTitleCell;
+            }
+
             if (position.X == left && position.Y == top && BorderPlacement.HasBorder(BorderPlacement.Top | BorderPlacement.Left))
                 return GetBorderCell(BoxBorderPart.TopLeft);
 
@@ -159,20 +208,13 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             if (position.Y == bottom && position.X >= left && position.X <= right && BorderPlacement.HasBorder(BorderPlacement.Bottom))
                 return GetBorderCell(BoxBorderPart.Bottom);
 
-            if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top))
+            if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top)
+                && _titleStyle.BorderStyle == TitleBorderStyle.Double)
             {
                 if (position.Y == top + 1)
                 {
-                    var startX = BorderPlacement.HasBorder(BorderPlacement.Left) ? left + 1 : left;
-                    var titleIndex = position.X - startX;
-
-                    if (titleIndex >= 0 && titleIndex < Title.Length)
-                    {
-                        var character = new Character(Title[titleIndex]);
-                        if (_foreground.HasValue) character = character.WithForeground(_foreground.Value);
-                        if (_background.HasValue) character = character.WithBackground(_background.Value);
-                        return new Cell(character);
-                    }
+                    if (GetTitleCell(position.X, left, right) is { } titleCell)
+                        return titleCell;
                 }
                 else if (position.Y == top + 2)
                 {
@@ -233,6 +275,20 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             {
                 if (_title == value) return;
                 _title = value;
+                Initialize();
+            });
+        }
+    }
+
+    public TitleStyle TitleStyle
+    {
+        get => _titleStyle;
+        set
+        {
+            UI.Invoke(() =>
+            {
+                if (_titleStyle.Equals(value)) return;
+                _titleStyle = value;
                 Initialize();
             });
         }
@@ -563,7 +619,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     {
         var borderOffset = BorderPlacement.AsOffset();
 
-        if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top))
+        // The Double title style reserves two extra top rows (title row + separator row).
+        // The Inline style draws the title within the existing single top border row, so needs no extra space.
+        if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top)
+            && _titleStyle.BorderStyle == TitleBorderStyle.Double)
             borderOffset = new Offset(borderOffset.Left, borderOffset.Top + 2, borderOffset.Right, borderOffset.Bottom);
 
         return new Offset(
@@ -615,6 +674,41 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
         return new Cell(character);
     }
+    /// <summary>
+    /// Returns the title <see cref="Cell"/> for column <paramref name="x"/> on the title row, or
+    /// <c>null</c> when the column falls outside the (aligned) title span. <paramref name="left"/> and
+    /// <paramref name="right"/> are the frame's left/right edge columns (including any borders).
+    /// </summary>
+    private Cell? GetTitleCell(int x, int left, int right)
+    {
+        if (string.IsNullOrEmpty(Title)) return null;
+
+        // Inline titles are padded with a space on each side so they read clearly against the border line.
+        var display = _titleStyle.BorderStyle == TitleBorderStyle.Inline ? $" {Title} " : Title;
+
+        // The title is laid out within the columns between the vertical borders (when present).
+        var innerLeft = BorderPlacement.HasBorder(BorderPlacement.Left) ? left + 1 : left;
+        var innerRight = BorderPlacement.HasBorder(BorderPlacement.Right) ? right - 1 : right;
+        var innerWidth = innerRight - innerLeft + 1;
+        if (innerWidth <= 0) return null;
+
+        var length = Math.Min(display.Length, innerWidth);
+        var start = _titleStyle.Align switch
+        {
+            TitleAlign.Right => innerRight - length + 1,
+            TitleAlign.Centre => innerLeft + (innerWidth - length) / 2,
+            _ => innerLeft
+        };
+
+        var index = x - start;
+        if (index < 0 || index >= length) return null;
+
+        var character = new Character(display[index]);
+        if (_foreground.HasValue) character = character.WithForeground(_foreground.Value);
+        if (_background.HasValue) character = character.WithBackground(_background.Value);
+        return new Cell(character);
+    }
+
     private void _Redraw() => UI.Invoke(Redraw);
 
     private void BindControl()
@@ -645,6 +739,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private Color? _borderBgColor;
     private DrawingContext _controlContext = DrawingContext.Dummy;
     private string? _title;
+    private TitleStyle _titleStyle = TitleStyle.Default;
     private int _top;
     
     private Character _scrollBarForeground = new Character('#', foreground: new Color(100, 100, 255));

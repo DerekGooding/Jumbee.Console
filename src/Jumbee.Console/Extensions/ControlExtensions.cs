@@ -98,6 +98,14 @@ public static class ControlExtensions
         return control;
     }
 
+    public static T WithTitle<T>(this T control, string title, TitleStyle titleStyle) where T : Control
+    {
+        var frame = control.Frame ??= new ControlFrame(control);
+        frame.Title = title;
+        frame.TitleStyle = titleStyle;
+        return control;
+    }
+
     public static T WithNoBorder<T>(this T control) where T : Control =>
         control.WithBorder(BorderStyle.None);
 

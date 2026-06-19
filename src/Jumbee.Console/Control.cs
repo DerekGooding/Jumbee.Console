@@ -229,7 +229,8 @@ public abstract class Control : CControl, IFocusable, IDisposable
     #endregion
 
     #region Fields
-    protected static readonly Cell emptyCell = new Cell(Character.Empty);
+    public static Character emptyChar = new Character();
+    protected static readonly Cell emptyCell = new Cell(Character.Empty);    
     protected internal uint paintRequests;
     protected readonly ConsoleBuffer consoleBuffer;
     protected readonly AnsiConsoleBuffer ansiConsole;

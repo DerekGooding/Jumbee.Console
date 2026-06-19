@@ -23,7 +23,8 @@ public class Program
         //GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
-        DockPanelTest(args);
+        //DockPanelTest(args);
+        TitleStyleTest(args);
         //SpectreControlTests.ProgressTests();
         Console.Clear();
         Console.WriteLine("Average UI draw time: {0}ms. Average UI paint time: {1}ms.", UI.AverageDrawTime, UI.AveragePaintTime);
@@ -222,6 +223,33 @@ public class Program
         t.Wait();
     }
     
+    static void TitleStyleTest(string[] args)
+    {
+        // Builds a framed label demonstrating one TitleStyle combination.
+        Control Box(string content, BorderStyle border, TitleAlign align, TitleBorderStyle titleBorder, Color color) =>
+            new TextLabel(TextLabelOrientation.Horizontal, content, Color.White)
+                .WithWidth(26)
+                .WithHeight(1)
+                .WithBorder(border, color)
+                .WithTitle("Title", new TitleStyle(align, titleBorder));
+
+        // Columns: Inline title vs. Double title. Rows: Left, Centre, Right alignment.
+        var grid = new Jumbee.Console.Grid(
+            [6, 6, 6],
+            [30, 30],
+            [
+                [Box("inline left",   BorderStyle.Rounded, TitleAlign.Left,   TitleBorderStyle.Inline, Green),
+                 Box("double left",   BorderStyle.Double,  TitleAlign.Left,   TitleBorderStyle.Double, Red)],
+                [Box("inline centre", BorderStyle.Heavy,   TitleAlign.Centre, TitleBorderStyle.Inline, Cyan1),
+                 Box("double centre", BorderStyle.Double,  TitleAlign.Centre, TitleBorderStyle.Double, Magenta1)],
+                [Box("inline right",  BorderStyle.Square,  TitleAlign.Right,  TitleBorderStyle.Inline, Yellow),
+                 Box("double right",  BorderStyle.Double,  TitleAlign.Right,  TitleBorderStyle.Double, Blue)],
+            ]);
+
+        var t = UI.Start(grid, 64, 20);
+        t.Wait();
+    }
+
     static void DockPanelTest(string[] args)
     {
         var p = new TextEditor(TextEditor.Language.Markdown, blinkCursor: true)
