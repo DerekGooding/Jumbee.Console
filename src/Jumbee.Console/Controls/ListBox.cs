@@ -157,6 +157,7 @@ public partial class ListBox : RenderableControl
             if (count > 0)
             {
                 _selectionIndex = (_selectionIndex - 1 + count) % count;
+                AutoScroll();
                 Invalidate();
             }
             inputEvent.Handled = true;
@@ -167,9 +168,33 @@ public partial class ListBox : RenderableControl
             if (count > 0)
             {
                 _selectionIndex = (_selectionIndex + 1) % count;
+                AutoScroll();
                 Invalidate();
             }
             inputEvent.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the selected item stays within
+    /// the viewport. Each item occupies one row, so the selected row's Y position is its index.
+    /// </summary>
+    private void AutoScroll()
+    {
+        if (Frame == null) return;
+
+        var y = _selectionIndex;
+        var top = Frame.Top;
+        var viewportHeight = Frame.ViewportSize.Height;
+        if (viewportHeight <= 0) return;
+
+        if (y < top)
+        {
+            Frame.Top = y;
+        }
+        else if (y >= top + viewportHeight)
+        {
+            Frame.Top = y - viewportHeight + 1;
         }
     }
 

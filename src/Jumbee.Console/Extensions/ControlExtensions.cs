@@ -108,6 +108,13 @@ public static class ControlExtensions
         return control;
     }
 
+    public static T WithScrollBarStyle<T>(this T control, ScrollBarStyle style) where T : Control
+    {
+        var frame = control.Frame ??= new ControlFrame(control);
+        frame.ScrollBarStyle = style;
+        return control;
+    }
+
     public static T WithNoBorder<T>(this T control) where T : Control =>
         control.WithBorder(BorderStyle.None);
 

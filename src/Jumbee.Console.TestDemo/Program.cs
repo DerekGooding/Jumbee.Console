@@ -24,7 +24,8 @@ public class Program
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
         //DockPanelTest(args);
-        TitleStyleTest(args);
+        //TitleStyleTest(args);
+        ScrollBarStyleTest(args);
         //SpectreControlTests.ProgressTests();
         Console.Clear();
         Console.WriteLine("Average UI draw time: {0}ms. Average UI paint time: {1}ms.", UI.AverageDrawTime, UI.AveragePaintTime);
@@ -248,6 +249,42 @@ public class Program
             ]);
 
         var t = UI.Start(grid, 64, 20);
+        t.Wait();
+    }
+
+    static void ScrollBarStyleTest(string[] args)
+    {
+        // A list long enough to overflow its frame so the vertical scrollbar is shown.
+        ListBox MakeList(Color selectColor)
+        {
+            var lb = new ListBox { SelectedForegroundColor = Color.White, SelectedBackgroundColor = selectColor };
+            for (int i = 1; i <= 40; i++) lb.AddItem($"Item {i}");
+            return lb;
+        }
+
+        var blockList  = MakeList(Blue);
+        var shadedList = MakeList(Purple);
+        var lineList   = MakeList(Green);
+
+        blockList
+            .WithRoundedBorder(Blue).WithTitle("Block")
+            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Cyan1, arrows: White));
+        shadedList
+            .WithRoundedBorder(Purple).WithTitle("Shaded")
+            .WithScrollBarStyle(ScrollBarStyle.Shaded.WithColors(thumb: Magenta1, track: Silver, arrows: Red));
+        lineList
+            .WithRoundedBorder(Green).WithTitle("Line")
+            .WithScrollBarStyle(ScrollBarStyle.Line.WithColors(thumb: Yellow, arrows: Green));
+
+        var grid = new Jumbee.Console.Grid(
+            [20],
+            [26, 26, 26],
+            [[blockList, shadedList, lineList]]);
+
+        // Focus one so Alt+Up / Alt+Down scrolls it and moves the thumb.
+        blockList.IsFocused = true;
+
+        var t = UI.Start(grid, 84, 24,25);
         t.Wait();
     }
 

@@ -81,6 +81,73 @@ public readonly struct TitleStyle
 }
 
 /// <summary>
+/// Describes the glyphs and colors used to draw a <see cref="ControlFrame"/> vertical scrollbar:
+/// the up/down end arrows, the moving thumb, and the track behind it. Each part is a
+/// <see cref="Character"/> carrying its own glyph and (optional) foreground/background colors.
+/// </summary>
+public readonly struct ScrollBarStyle
+{
+    public ScrollBarStyle(Character thumb, Character track, Character upArrow, Character downArrow)
+    {
+        Thumb = thumb;
+        Track = track;
+        UpArrow = upArrow;
+        DownArrow = downArrow;
+    }
+
+    /// <summary>The glyph drawn for the part of the track currently in view (the draggable handle).</summary>
+    public Character Thumb { get; init; }
+
+    /// <summary>The glyph drawn for the track behind the thumb.</summary>
+    public Character Track { get; init; }
+
+    /// <summary>The glyph drawn at the top end of the scrollbar.</summary>
+    public Character UpArrow { get; init; }
+
+    /// <summary>The glyph drawn at the bottom end of the scrollbar.</summary>
+    public Character DownArrow { get; init; }
+
+    /// <summary>
+    /// Returns a copy with the foreground colors overridden. A <c>null</c> argument leaves that
+    /// part's existing color unchanged; <paramref name="arrows"/> recolors both end arrows.
+    /// </summary>
+    public ScrollBarStyle WithColors(Color? thumb = null, Color? track = null, Color? arrows = null) =>
+        new ScrollBarStyle(
+            thumb is { } t ? Thumb.WithForeground(t) : Thumb,
+            track is { } r ? Track.WithForeground(r) : Track,
+            arrows is { } a ? UpArrow.WithForeground(a) : UpArrow,
+            arrows is { } d ? DownArrow.WithForeground(d) : DownArrow);
+
+    /// <summary>The original default style: a '#' thumb on a '|' track with triangle arrows.</summary>
+    public static ScrollBarStyle Default { get; } = new(
+        new Character('#', foreground: new Color(100, 100, 255)),
+        new Character('|', foreground: new Color(100, 100, 100)),
+        new Character('▲'),
+        new Character('▼'));
+
+    /// <summary>A solid block thumb on a light vertical-line track with triangle arrows.</summary>
+    public static ScrollBarStyle Block { get; } = new(
+        new Character('█'),
+        new Character('│'),
+        new Character('▲'),
+        new Character('▼'));
+
+    /// <summary>A shaded (dithered) thumb on a light vertical-line track with thin line arrows.</summary>
+    public static ScrollBarStyle Shaded { get; } = new(
+        new Character('▒'),
+        new Character('│'),
+        new Character('↑'),
+        new Character('↓'));
+
+    /// <summary>A heavy vertical-line thumb on a light vertical-line track with triangle arrows.</summary>
+    public static ScrollBarStyle Line { get; } = new(
+        new Character('┃'),
+        new Character('│'),
+        new Character('▲'),
+        new Character('▼'));
+}
+
+/// <summary>
 /// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
 /// </summary>
 public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
@@ -459,8 +526,27 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>
+    /// Gets or sets all four scrollbar parts (thumb, track, up/down arrows) at once.
+    /// </summary>
+    public ScrollBarStyle ScrollBarStyle
+    {
+        get => new ScrollBarStyle(_scrollBarForeground, _scrollBarBackground, _scrollBarUpArrow, _scrollBarDownArrow);
+        set
+        {
+            UI.Invoke(() =>
+            {
+                _scrollBarForeground = value.Thumb;
+                _scrollBarBackground = value.Track;
+                _scrollBarUpArrow = value.UpArrow;
+                _scrollBarDownArrow = value.DownArrow;
+                Redraw();
+            });
+        }
+    }
+
     public ConsoleKeyInfo ScrollUpKey { get; set; } = UI.HotKeys.AltUp;
-    
+
     public ConsoleKeyInfo ScrollDownKey { get; set; } = UI.HotKeys.AltDown;
    
     public bool Focusable { get; set; } = true;
