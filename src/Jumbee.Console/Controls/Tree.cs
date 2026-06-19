@@ -276,6 +276,30 @@ public partial class Tree : RenderableControl
         }
 
         nodes[nextIndex].Selected = true;
+        AutoScroll(nextIndex);
+    }
+
+    /// <summary>
+    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the row at <paramref name="y"/>
+    /// (the selected node's position in the flattened, visible tree) stays within the viewport.
+    /// Each visible node occupies one row.
+    /// </summary>
+    private void AutoScroll(int y)
+    {
+        if (Frame == null) return;
+
+        var top = Frame.Top;
+        var viewportHeight = Frame.ViewportSize.Height;
+        if (viewportHeight <= 0) return;
+
+        if (y < top)
+        {
+            Frame.Top = y;
+        }
+        else if (y >= top + viewportHeight)
+        {
+            Frame.Top = y - viewportHeight + 1;
+        }
     }
 
     private IEnumerable<TreeNode> Flatten(TreeNode node)

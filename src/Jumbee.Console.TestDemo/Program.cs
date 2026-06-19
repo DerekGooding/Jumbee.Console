@@ -25,7 +25,8 @@ public class Program
         //SpectreControlTests.LiveDisplayTests();
         //DockPanelTest(args);
         //TitleStyleTest(args);
-        ScrollBarStyleTest(args);
+        //ScrollBarStyleTest(args);
+        TreeAutoScrollTest(args);
         //SpectreControlTests.ProgressTests();
         Console.Clear();
         Console.WriteLine("Average UI draw time: {0}ms. Average UI paint time: {1}ms.", UI.AverageDrawTime, UI.AveragePaintTime);
@@ -284,7 +285,37 @@ public class Program
         // Focus one so Alt+Up / Alt+Down scrolls it and moves the thumb.
         blockList.IsFocused = true;
 
-        var t = UI.Start(grid, 84, 24,25);
+        var t = UI.Start(grid, 84, 24);
+        t.Wait();
+    }
+
+    static void TreeAutoScrollTest(string[] args)
+    {
+        var tree = new Tree("Project", TreeGuide.BoldLine, Green | Dim)
+        {
+            SelectedForegroundColor = Color.White,
+            SelectedBackgroundColor = Color.Blue
+        };
+
+        // Build a tree tall enough to overflow its frame so navigating scrolls the view.
+        for (int i = 1; i <= 8; i++)
+        {
+            var folder = tree.AddNode($"Folder {i}");
+            folder.AddChildren($"file{i}a.cs", $"file{i}b.cs", $"file{i}c.cs");
+        }
+
+        tree.WithRoundedBorder(Purple)
+            .WithTitle("Tree (Up/Down to navigate)")
+            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Cyan1, arrows: Yellow));
+
+        tree.IsFocused = true;
+
+        var grid = new Jumbee.Console.Grid(
+            [16],
+            [44],
+            [[tree]]);
+
+        var t = UI.Start(grid, 60, 20);
         t.Wait();
     }
 
