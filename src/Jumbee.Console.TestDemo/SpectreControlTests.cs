@@ -50,12 +50,13 @@ internal class SpectreControlTests
 
     public static void ProgressTests()
     {
+        /*
         var progress = new SpectreTaskProgress();
         var grid = new Grid([30], [90], [
            [progress.WithFrame(title: "Progress").WithMargin(0,0,1,0)]
        ]);
         var t = UI.Start(grid);
-        var t2 = progress.AddColumns(
+        progress.AddColumns(
             new TaskDescriptionColumn(),
             new ProgressBarColumn(),
             new DownloadedColumn(),
@@ -78,5 +79,6 @@ internal class SpectreControlTests
         });
         
         System.Threading.Tasks.Task.WaitAll(t, t2);
+        */
     }
 }

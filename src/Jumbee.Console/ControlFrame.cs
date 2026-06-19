@@ -23,13 +23,17 @@ public enum BorderStyle
 }
 
 /// <summary>
-/// Horizontal alignment of a <see cref="ControlFrame"/> title within the top border.
+/// Position of a <see cref="ControlFrame"/> title: which border (top or bottom) it is drawn in,
+/// and its horizontal alignment within that border.
 /// </summary>
-public enum TitleAlign
+public enum TitlePos
 {
-    Left,
-    Right,
-    Centre
+    TopLeft,
+    TopCenter,
+    TopRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight
 }
 
 /// <summary>
@@ -61,19 +65,19 @@ public enum TitleColorStyle
 /// </summary>
 public readonly struct TitleStyle
 {
-    public TitleStyle(TitleAlign align = TitleAlign.Left, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
+    public TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
     {
-        Align = align;
+        Pos = pos;
         BorderStyle = borderStyle;
         Color = color;
     }
 
-    public TitleAlign Align { get; init; }
+    public TitlePos Pos { get; init; }
     public TitleBorderStyle BorderStyle { get; init; }
     public TitleColorStyle Color { get; init; }
 
-    /// <summary>The default title style (left-aligned, double border, normal colors), matching the original behavior.</summary>
-    public static TitleStyle Default { get; } = new TitleStyle(TitleAlign.Left, TitleBorderStyle.Double, TitleColorStyle.Normal);
+    /// <summary>The default title style (top-left, double border, normal colors), matching the original behavior.</summary>
+    public static TitleStyle Default { get; } = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Double, TitleColorStyle.Normal);
 }
 
 /// <summary>
@@ -190,9 +194,13 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             var right = Size.Width - 1 - Margin.Right;
             var bottom = Size.Height - 1 - Margin.Bottom;
 
-            // Inline title: drawn within the single top border row, replacing some border line characters.
-            if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top)
-                && _titleStyle.BorderStyle == TitleBorderStyle.Inline && position.Y == top)
+            // The title is drawn in either the top or bottom border, depending on its position.
+            var titleEdge = TitleAtTop ? top : bottom;
+            var titleEdgeBorder = TitleAtTop ? BorderPlacement.Top : BorderPlacement.Bottom;
+            var hasTitle = !string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(titleEdgeBorder);
+
+            // Inline title: drawn within the single (top or bottom) border row, replacing some border line characters.
+            if (hasTitle && _titleStyle.BorderStyle == TitleBorderStyle.Inline && position.Y == titleEdge)
             {
                 if (GetTitleCell(position.X, left, right) is { } inlineTitleCell)
                     return inlineTitleCell;
@@ -222,28 +230,22 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             if (position.Y == bottom && position.X >= left && position.X <= right && BorderPlacement.HasBorder(BorderPlacement.Bottom))
                 return GetBorderCell(BoxBorderPart.Bottom);
 
-            if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top)
-                && _titleStyle.BorderStyle == TitleBorderStyle.Double)
+            if (hasTitle && _titleStyle.BorderStyle == TitleBorderStyle.Double)
             {
-                if (position.Y == top + 1)
+                // The Double style reserves a title row and a separator row just inside the title's border.
+                var titleRow = TitleAtTop ? top + 1 : bottom - 1;
+                var separatorRow = TitleAtTop ? top + 2 : bottom - 2;
+                var separatorPart = TitleAtTop ? BoxBorderPart.Top : BoxBorderPart.Bottom;
+
+                if (position.Y == titleRow)
                 {
                     if (GetTitleCell(position.X, left, right) is { } titleCell)
                         return titleCell;
                 }
-                else if (position.Y == top + 2)
+                else if (position.Y == separatorRow && position.X > left && position.X < right)
                 {
-                    if (position.X == left) // Start character for separator
-                    {
-                        return GetBorderCell(BoxBorderPart.TopLeft);
-                    }
-                    else if (position.X == right) // End character for separator
-                    {
-                        return GetBorderCell(BoxBorderPart.TopRight);
-                    }
-                    else if (position.X > left && position.X < right) // Middle characters for separator
-                    {
-                        return GetBorderCell(BoxBorderPart.Top);
-                    }
+                    // The separator's left/right edges are drawn by the vertical-border checks above.
+                    return GetBorderCell(separatorPart);
                 }
             }
 
@@ -629,15 +631,22 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         });        
     }
 
+    private bool TitleAtTop => _titleStyle.Pos is TitlePos.TopLeft or TitlePos.TopCenter or TitlePos.TopRight;
+
     private Offset GetBorderOffset()
     {
         var borderOffset = BorderPlacement.AsOffset();
 
-        // The Double title style reserves two extra top rows (title row + separator row).
-        // The Inline style draws the title within the existing single top border row, so needs no extra space.
-        if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(BorderPlacement.Top)
+        // The Double title style reserves two extra rows (title row + separator row) inside the title's
+        // border. The Inline style draws the title within the existing single border row, so needs no extra space.
+        var titleEdgeBorder = TitleAtTop ? BorderPlacement.Top : BorderPlacement.Bottom;
+        if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(titleEdgeBorder)
             && _titleStyle.BorderStyle == TitleBorderStyle.Double)
-            borderOffset = new Offset(borderOffset.Left, borderOffset.Top + 2, borderOffset.Right, borderOffset.Bottom);
+        {
+            borderOffset = TitleAtTop
+                ? new Offset(borderOffset.Left, borderOffset.Top + 2, borderOffset.Right, borderOffset.Bottom)
+                : new Offset(borderOffset.Left, borderOffset.Top, borderOffset.Right, borderOffset.Bottom + 2);
+        }
 
         return new Offset(
             borderOffset.Left + Margin.Left,
@@ -707,11 +716,11 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         if (innerWidth <= 0) return null;
 
         var length = Math.Min(display.Length, innerWidth);
-        var start = _titleStyle.Align switch
+        var start = _titleStyle.Pos switch
         {
-            TitleAlign.Right => innerRight - length + 1,
-            TitleAlign.Centre => innerLeft + (innerWidth - length) / 2,
-            _ => innerLeft
+            TitlePos.TopRight or TitlePos.BottomRight => innerRight - length + 1,
+            TitlePos.TopCenter or TitlePos.BottomCenter => innerLeft + (innerWidth - length) / 2,
+            _ => innerLeft // TopLeft, BottomLeft
         };
 
         var index = x - start;
