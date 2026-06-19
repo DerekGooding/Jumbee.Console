@@ -226,24 +226,24 @@ public class Program
     static void TitleStyleTest(string[] args)
     {
         // Builds a framed label demonstrating one TitleStyle combination.
-        Control Box(string content, BorderStyle border, TitleAlign align, TitleBorderStyle titleBorder, Color color) =>
+        Control Box(string content, BorderStyle border, TitleAlign align, TitleBorderStyle titleBorder, TitleColorStyle titleColor, Color color) =>
             new TextLabel(TextLabelOrientation.Horizontal, content, Color.White)
                 .WithWidth(26)
                 .WithHeight(1)
                 .WithBorder(border, color)
-                .WithTitle("Title", new TitleStyle(align, titleBorder));
+                .WithTitle("Title", new TitleStyle(align, titleBorder, titleColor));
 
-        // Columns: Inline title vs. Double title. Rows: Left, Centre, Right alignment.
+        // Columns: Inline title (Reverse colors) vs. Double title (Normal colors). Rows: Left, Centre, Right alignment.
         var grid = new Jumbee.Console.Grid(
             [6, 6, 6],
             [30, 30],
             [
-                [Box("inline left",   BorderStyle.Rounded, TitleAlign.Left,   TitleBorderStyle.Inline, Green),
-                 Box("double left",   BorderStyle.Double,  TitleAlign.Left,   TitleBorderStyle.Double, Red)],
-                [Box("inline centre", BorderStyle.Heavy,   TitleAlign.Centre, TitleBorderStyle.Inline, Cyan1),
-                 Box("double centre", BorderStyle.Double,  TitleAlign.Centre, TitleBorderStyle.Double, Magenta1)],
-                [Box("inline right",  BorderStyle.Square,  TitleAlign.Right,  TitleBorderStyle.Inline, Yellow),
-                 Box("double right",  BorderStyle.Double,  TitleAlign.Right,  TitleBorderStyle.Double, Blue)],
+                [Box("inline left",   BorderStyle.Rounded, TitleAlign.Left,   TitleBorderStyle.Inline, TitleColorStyle.Reverse, Green),
+                 Box("double left",   BorderStyle.Double,  TitleAlign.Left,   TitleBorderStyle.Double, TitleColorStyle.Normal,  Red)],
+                [Box("inline centre", BorderStyle.Heavy,   TitleAlign.Centre, TitleBorderStyle.Inline, TitleColorStyle.Reverse, Cyan1),
+                 Box("double centre", BorderStyle.Double,  TitleAlign.Centre, TitleBorderStyle.Double, TitleColorStyle.Reverse, Magenta1)],
+                [Box("inline right",  BorderStyle.Square,  TitleAlign.Right,  TitleBorderStyle.Inline, TitleColorStyle.Reverse, Yellow),
+                 Box("double right",  BorderStyle.Double,  TitleAlign.Right,  TitleBorderStyle.Double, TitleColorStyle.Normal,  Blue)],
             ]);
 
         var t = UI.Start(grid, 64, 20);

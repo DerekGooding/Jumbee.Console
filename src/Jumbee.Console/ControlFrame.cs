@@ -45,21 +45,35 @@ public enum TitleBorderStyle
 }
 
 /// <summary>
-/// Describes how a <see cref="ControlFrame"/> title is aligned and bordered.
+/// The way a <see cref="ControlFrame"/> title is colored relative to the border color.
+/// </summary>
+public enum TitleColorStyle
+{
+    /// <summary>Title is drawn in the frame's foreground/background colors.</summary>
+    Normal,
+
+    /// <summary>Title foreground and background are swapped with the border color.</summary>
+    Reverse
+}
+
+/// <summary>
+/// Describes how a <see cref="ControlFrame"/> title is aligned, bordered, and colored.
 /// </summary>
 public readonly struct TitleStyle
 {
-    public TitleStyle(TitleAlign align = TitleAlign.Left, TitleBorderStyle borderStyle = TitleBorderStyle.Double)
+    public TitleStyle(TitleAlign align = TitleAlign.Left, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
     {
         Align = align;
         BorderStyle = borderStyle;
+        Color = color;
     }
 
     public TitleAlign Align { get; init; }
     public TitleBorderStyle BorderStyle { get; init; }
+    public TitleColorStyle Color { get; init; }
 
-    /// <summary>The default title style (left-aligned, double border), matching the original behavior.</summary>
-    public static TitleStyle Default { get; } = new TitleStyle(TitleAlign.Left, TitleBorderStyle.Double);
+    /// <summary>The default title style (left-aligned, double border, normal colors), matching the original behavior.</summary>
+    public static TitleStyle Default { get; } = new TitleStyle(TitleAlign.Left, TitleBorderStyle.Double, TitleColorStyle.Normal);
 }
 
 /// <summary>
@@ -704,8 +718,19 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         if (index < 0 || index >= length) return null;
 
         var character = new Character(display[index]);
-        if (_foreground.HasValue) character = character.WithForeground(_foreground.Value);
-        if (_background.HasValue) character = character.WithBackground(_background.Value);
+        if (_titleStyle.Color == TitleColorStyle.Reverse)
+        {
+            // Swap the border colors: the title foreground takes the border background and vice versa.
+            var borderFg = _borderFgColor ?? _foreground;
+            var borderBg = _borderBgColor ?? _background;
+            if (borderBg.HasValue) character = character.WithForeground(borderBg.Value);
+            if (borderFg.HasValue) character = character.WithBackground(borderFg.Value);
+        }
+        else
+        {
+            if (_foreground.HasValue) character = character.WithForeground(_foreground.Value);
+            if (_background.HasValue) character = character.WithBackground(_background.Value);
+        }
         return new Cell(character);
     }
 
