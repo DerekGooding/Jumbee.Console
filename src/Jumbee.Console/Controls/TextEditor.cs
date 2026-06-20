@@ -31,22 +31,12 @@ public class TextEditor : Control
     public bool ShowCursor
     {
         get => _showCursor;
-        set
-        {
-            _showCursor = value;
-            Invalidate();
-        }
-
+        set => SetAtomicProperty(ref _showCursor, value);
     }
     public bool BlinkCursor
     {
         get => _blinkCursor;
-
-        set
-        {
-            _blinkCursor = value;
-            Invalidate();
-        }
+        set => SetAtomicProperty(ref _blinkCursor, value);
     }
     
     public int CursorX

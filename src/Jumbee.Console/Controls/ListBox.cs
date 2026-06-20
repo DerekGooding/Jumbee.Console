@@ -36,13 +36,13 @@ public partial class ListBox : RenderableControl
     public Color? SelectedForegroundColor
     {
         get => _selectedForegroundColor;
-        set => SetProperty(ref _selectedForegroundColor, value);
+        set => SetAtomicProperty(ref _selectedForegroundColor, value);
     }
 
     public Color? SelectedBackgroundColor
     {
         get => _selectedBackgroundColor;
-        set => SetProperty(ref _selectedBackgroundColor, value);
+        set => SetAtomicProperty(ref _selectedBackgroundColor, value);
     }
 
     public override bool HandlesInput => true;

@@ -4,10 +4,10 @@ using Jumbee.Console;
 
 using Xunit;
 
-public class SetPropertyTests
+public class SetAtomicPropertyTests
 {
     /// <summary>
-    /// Minimal control exposing properties backed by <c>SetProperty</c>, with counters for the
+    /// Minimal control exposing properties backed by <c>SetAtomicProperty</c>, with counters for the
     /// invalidate/initialize/onChanged paths. <c>Initialize</c> is stubbed (no base call) so the
     /// "updates layout" path is observable without running real layout.
     /// </summary>
@@ -18,13 +18,13 @@ public class SetPropertyTests
         public int OnChangedRuns;
 
         private int _value;
-        public int Value { get => _value; set => SetProperty(ref _value, value); }
+        public int Value { get => _value; set => SetAtomicProperty(ref _value, value); }
 
         private int _layoutValue;
-        public int LayoutValue { get => _layoutValue; set => SetProperty(ref _layoutValue, value, updatesLayout: true); }
+        public int LayoutValue { get => _layoutValue; set => SetAtomicProperty(ref _layoutValue, value, updatesLayout: true); }
 
         private int _custom;
-        public int Custom { get => _custom; set => SetProperty(ref _custom, value, onChanged: () => OnChangedRuns++); }
+        public int Custom { get => _custom; set => SetAtomicProperty(ref _custom, value, onChanged: () => OnChangedRuns++); }
 
         protected override void Render() { }
         protected override void Invalidate() { InvalidateCount++; base.Invalidate(); }
@@ -32,7 +32,7 @@ public class SetPropertyTests
     }
 
     [Fact]
-    public void SetProperty_WhenValueChanges_AssignsAndInvalidates()
+    public void SetAtomicProperty_WhenValueChanges_AssignsAndInvalidates()
     {
         var c = new TestControl();
 
@@ -43,7 +43,7 @@ public class SetPropertyTests
     }
 
     [Fact]
-    public void SetProperty_WhenValueUnchanged_DoesNothing()
+    public void SetAtomicProperty_WhenValueUnchanged_DoesNothing()
     {
         var c = new TestControl();
         c.Value = 5;                 // InvalidateCount -> 1
@@ -56,7 +56,7 @@ public class SetPropertyTests
     }
 
     [Fact]
-    public void SetProperty_WhenUpdatesLayout_CallsInitializeNotInvalidate()
+    public void SetAtomicProperty_WhenUpdatesLayout_CallsInitializeNotInvalidate()
     {
         var c = new TestControl();
 
@@ -67,7 +67,7 @@ public class SetPropertyTests
     }
 
     [Fact]
-    public void SetProperty_OnChanged_RunsOnlyWhenValueChanges()
+    public void SetAtomicProperty_OnChanged_RunsOnlyWhenValueChanges()
     {
         var c = new TestControl();
 
@@ -81,7 +81,7 @@ public class SetPropertyTests
     }
 
     [Fact]
-    public void SetProperty_OnChanged_RunsBeforeInvalidate()
+    public void SetAtomicProperty_OnChanged_RunsBeforeInvalidate()
     {
         var c = new TestControl();
 

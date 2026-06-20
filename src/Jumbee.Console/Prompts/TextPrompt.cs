@@ -35,25 +35,15 @@ public class TextPrompt : Prompt
 
     }
     
-    public bool ShowCursor 
-    { 
-        get => _showCursor; 
-        set
-        {
-            _showCursor = value;
-            Invalidate();
-        } 
-    
+    public bool ShowCursor
+    {
+        get => _showCursor;
+        set => SetAtomicProperty(ref _showCursor, value);
     }
-    public bool BlinkCursor 
-    { 
+    public bool BlinkCursor
+    {
         get => _blinkCursor;
-
-        set
-        {
-            _blinkCursor = value;
-            Invalidate();  
-        }
+        set => SetAtomicProperty(ref _blinkCursor, value);
     }
 
     public int CaretPosition

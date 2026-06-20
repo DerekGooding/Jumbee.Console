@@ -102,15 +102,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     public double? MaxValue
     {
         get => _maxValue;
-        set
-        {
-            if (_maxValue != value)
-            {
-                _maxValue = value;
-                UpdateAllBars();
-                Invalidate();
-            }
-        }
+        set => SetAtomicProperty(ref _maxValue, value, onChanged: UpdateAllBars);
     }
 
     public Func<double, CultureInfo, string>? ValueFormatter { get; set; }

@@ -186,10 +186,10 @@ public abstract class Control : CControl, IFocusable, IDisposable
     /// re-lays-out under the UI lock and invalidates). Otherwise <see cref="Invalidate"/> is called.
     /// </param>
     /// <param name="onChanged">Optional custom action run after assignment and before the invalidate/initialize.</param>
-    /// <returns><see langword="true"/> if the value changed; otherwise <see langword="false"/>.</returns>
-    protected bool SetProperty<T>(ref T field, T value, bool updatesLayout = false, Action? onChanged = null)
+    /// <returns>The resulting field value (the new value when changed, otherwise the existing one).</returns>
+    protected T SetAtomicProperty<T>(ref T field, T value, bool updatesLayout = false, Action? onChanged = null)
     {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        if (EqualityComparer<T>.Default.Equals(field, value)) return field;
 
         field = value;
         onChanged?.Invoke();
@@ -199,7 +199,7 @@ public abstract class Control : CControl, IFocusable, IDisposable
         else
             Invalidate();
 
-        return true;
+        return field;
     }
 
     /// <summary>
