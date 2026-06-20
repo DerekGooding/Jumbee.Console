@@ -106,12 +106,10 @@ public abstract class Control : CControl, IFocusable, IDisposable
     
     public void OnInput(UI.InputEventArgs inputEventArgs)
     {
+        // Input is dispatched on the UI thread (the input reader posts it there), so no lock is needed.
         if (HandlesInput)
         {
-            lock(inputEventArgs.Lock)
-            {
-                this.OnInput(inputEventArgs.InputEvent!);
-            }
+            this.OnInput(inputEventArgs.InputEvent!);
         }
     }
 
@@ -235,29 +233,25 @@ public abstract class Control : CControl, IFocusable, IDisposable
     /// Handles the paint event triggered by the UI timer. If one or more paint requests are pending, it runs the painting process and resets the paint request count.
     /// </summary>
     /// <remarks>
-    /// This method tries to implement thread-safe painting by always running inside a lock on the provided synchronization object.
+    /// Painting runs on the UI thread (driven by the dispatcher's frame), so no lock is required.
     /// </remarks>
     private void OnPaint(object? sender, UI.PaintEventArgs e)
     {
         if (paintRequests > 0)
         {
-            lock (e.Lock)
-            {
-                var timer = UI.controlPaintTimers[this];
-                timer.Restart();
-                Paint();
-                Validate();
-                timer.Stop();
-                UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.ElapsedMilliseconds;
-            }
-            // New content was rendered into the buffer this tick; ensure the next tick draws it.
+            var timer = UI.controlPaintTimers[this];
+            timer.Restart();
+            Paint();
+            Validate();
+            timer.Stop();
+            UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.ElapsedMilliseconds;            
             UI.MarkDirty();
         }
         else
         {
             UI.controlPaintTimes[this][UI.paintTimeIndex] = null;
         }
-    }    
+    }
     #endregion
 
     #region Events

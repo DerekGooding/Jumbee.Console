@@ -11,11 +11,6 @@ using System.Threading.Tasks;
 /// run on this thread; other threads marshal work onto it via <see cref="Post"/>, <see cref="Invoke"/>,
 /// or <see cref="InvokeAsync(Action)"/>.
 /// </summary>
-/// <remarks>
-/// Phase A introduces this infrastructure and moves the render loop and input dispatch onto the UI thread,
-/// but the existing UI lock still guards concurrent mutation from background threads. Later phases will
-/// make mutation single-threaded (auto-marshal) and remove the lock.
-/// </remarks>
 public sealed class Dispatcher
 {
     #region Properties
@@ -55,8 +50,13 @@ public sealed class Dispatcher
         _frame = frame;
         _frameIntervalMs = frameIntervalMs;
         _running = true;
-        _thread = new Thread(Loop) { IsBackground = true, Name = "Jumbee.UI" };
+        using var ready = new ManualResetEventSlim(false);
+        _ready = ready;
+        _thread = new Thread(UIFrameLoop) { IsBackground = true, Name = "Jumbee.UI" };
         _thread.Start();
+        // Block until the loop has recorded its thread id, so CheckAccess() is correct the moment Start returns.
+        ready.Wait();
+        _ready = null;
     }
 
     /// <summary>Signals the UI thread to stop, waits briefly for it to exit, and clears any pending work.</summary>
@@ -147,9 +147,10 @@ public sealed class Dispatcher
         return tcs.Task;
     }
 
-    private void Loop()
+    private void UIFrameLoop()
     {
         _uiThreadId = Environment.CurrentManagedThreadId;
+        _ready?.Set();
         while (_running)
         {
             _wake.WaitOne(_frameIntervalMs);
@@ -176,6 +177,7 @@ public sealed class Dispatcher
     private const int NoThread = -1;
     private readonly ConcurrentQueue<Action> _queue = new();
     private readonly AutoResetEvent _wake = new(false);
+    private ManualResetEventSlim? _ready;
     private Thread? _thread;
     private Action? _frame;
     private int _frameIntervalMs = 100;

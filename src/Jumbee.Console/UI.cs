@@ -144,13 +144,13 @@ public static class UI
     /// Sends a key (with optional modifiers) to a focusable..
     /// </summary>
     public static void SendInput(IFocusable target, ConsoleKeyInfo key)
-        => target.FocusableControl.OnInput(new InputEventArgs(_lock, new InputEvent(key)));
+        => target.FocusableControl.OnInput(new InputEventArgs(new InputEvent(key)));
 
     /// <summary>
     /// Sends a key (with optional modifiers) to a focusable..
     /// </summary>
     public static void SendInput(IFocusable target, ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
-        => target.FocusableControl.OnInput(new InputEventArgs(_lock, new InputEvent(new ConsoleKeyInfo('\0', key, shift, alt, control))));
+        => target.FocusableControl.OnInput(new InputEventArgs(new InputEvent(new ConsoleKeyInfo('\0', key, shift, alt, control))));
 
     /// <summary>
     /// Runs once per frame on the UI thread: redraws the UI and invokes the <see cref="Paint"/> event,
@@ -158,30 +158,27 @@ public static class UI
     /// </summary>
     private static void OnFrame()
     {
-        if (_lock.TryEnter())
+        // Runs on the UI thread after the dispatcher queue (mutations + input) has been drained, so all
+        // layout/geometry changes for this frame have already been applied on this same thread.
+        if (needsDraw)
         {
-            if (needsDraw)
-            {
-                // Something changed: full draw (handles terminal resize, redraw, and draw timers).
-                needsDraw = false;
-                ConsoleManager.Draw();
-
-            }
-            else
-            {
-                // Idle: skip the full-screen scan but still detect a terminal resize cheaply
-                // (AdjustBufferSize only redraws when the size actually changed).
-                ConsoleManager.AdjustBufferSize();
-            }
-            _lock.Exit();
-
-            // Invoke control paint events
-            paintTimer.Restart();
-            _Paint?.Invoke(null, paintEventArgs);
-            paintTimer.Stop();
-            paintTimes[paintTimeIndex] = paintTimer.ElapsedMilliseconds;
-            paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
+            // Something changed: full draw (handles terminal resize, redraw, and draw timers).
+            needsDraw = false;
+            ConsoleManager.Draw();
         }
+        else
+        {
+            // Idle: skip the full-screen scan but still detect a terminal resize cheaply
+            // (AdjustBufferSize only redraws when the size actually changed).
+            ConsoleManager.AdjustBufferSize();
+        }
+
+        // Invoke control paint events
+        paintTimer.Restart();
+        _Paint?.Invoke(null, paintEventArgs);
+        paintTimer.Stop();
+        paintTimes[paintTimeIndex] = paintTimer.ElapsedMilliseconds;
+        paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
     }
        
     /// <summary>
@@ -190,20 +187,20 @@ public static class UI
     /// <param name="action">The action to execute.</param>
     internal static void Invoke(Action action)
     {
-        if (_lock.IsHeldByCurrentThread)
+        // Auto-marshal: run inline when already on the UI thread (or when no UI thread is running, e.g.
+        // headless/initialization), otherwise post the mutation to the UI thread. Layout/geometry changes
+        // therefore always run on the UI thread, serialized with rendering — no lock required.
+        if (CheckAccess())
         {
             action();
         }
         else
         {
-            lock (_lock)
-            {
-                action();
-            }
+            dispatcher.Post(action);
         }
         // Invoke is only called when control/layout state actually changes, so request a redraw.
         needsDraw = true;
-    }      
+    }
     #endregion
 
     #region Properties
@@ -287,9 +284,8 @@ public static class UI
 
     #region Fields   
     public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics(300);
-    private static readonly Lock _lock = new Lock();
-    private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs(_lock);
-    private static readonly InputEventArgs inputEventArgs = new InputEventArgs(_lock);
+    private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
+    private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
     private static readonly Dispatcher dispatcher = new Dispatcher();
     private static Thread? inputThread;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -316,28 +312,18 @@ public static class UI
     #region Types
     public class PaintEventArgs : EventArgs
     {
-        public readonly Lock Lock;
-
-        public PaintEventArgs(Lock lockObject)
-        {
-            Lock = lockObject;
-        }
     }
 
     public class InputEventArgs : EventArgs
     {
-        public readonly Lock Lock;
-
         public InputEvent? InputEvent { get; internal set; }
 
-        public InputEventArgs(Lock lockObject)
+        public InputEventArgs()
         {
-            Lock = lockObject;
         }
 
-        public InputEventArgs(Lock lockObject, InputEvent? inputEvent)
+        public InputEventArgs(InputEvent? inputEvent)
         {
-            Lock = lockObject;
             InputEvent = inputEvent;
         }
     }
