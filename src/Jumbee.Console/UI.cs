@@ -20,14 +20,19 @@ public static class UI
     /// <summary>
     /// Initializes the console and starts the UI.
     /// </summary>
-    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isTrueColorTerminal = true)
+    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isTrueColorTerminal = true, IConsole? console = null, IInputSource? input = null)
     {
         if (isRunning) return runCompletion.Task;
-        ProcessMetrics.Start();        
-        if (!isTrueColorTerminal)
+        ProcessMetrics.Start();
+        if (console != null)
         {
-            ConsoleManager.Console = new SimplifiedConsole(); ;
+            ConsoleManager.Console = console;
         }
+        else if (!isTrueColorTerminal)
+        {
+            ConsoleManager.Console = new SimplifiedConsole();
+        }
+        inputSource = input ?? new ConsoleInputSource();
         ConsoleManager.Setup();
         ConsoleManager.Resize(new Size(width, height));
         ConsoleManager.Content = layout.CControl;
@@ -60,22 +65,13 @@ public static class UI
     {
         while (isRunning && !cancellationToken.IsCancellationRequested)
         {
-            try
+            if (inputSource.TryReadKey(out var key))
             {
-                if (Console.KeyAvailable)
-                {
-                    var key = Console.ReadKey(true);
-                    dispatcher.Post(() => OnInput(key));
-                }
-                else
-                {
-                    Thread.Sleep(interval / 4);
-                }
+                dispatcher.Post(() => OnInput(key));
             }
-            catch (InvalidOperationException)
+            else
             {
-                // Console input is redirected/unavailable; back off and keep the loop alive.
-                Thread.Sleep(interval);
+                Thread.Sleep(interval / 4);
             }
         }
     }
@@ -287,6 +283,7 @@ public static class UI
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
     private static readonly Dispatcher dispatcher = new Dispatcher();
+    private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     private static CancellationTokenSource cts = new CancellationTokenSource();
