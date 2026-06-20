@@ -91,6 +91,12 @@ public static class UI
     }
 
     /// <summary>
+    /// Marks the UI as needing a redraw on the next timer tick. Called whenever control content or
+    /// layout changes; idle ticks skip the redraw until this is set.
+    /// </summary>
+    public static void MarkDirty() => needsDraw = true;
+
+    /// <summary>
     /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
     /// into its buffer. Intended for headless/snapshot rendering when the UI timer loop is not running.
     /// </summary>
@@ -119,17 +125,30 @@ public static class UI
     {
         if (_lock.TryEnter())
         {
-            // Draw UI on screen            
-            ConsoleManager.Draw();
+            if (needsDraw)
+            {
+                // Something changed: full draw (handles terminal resize, redraw, and draw timers).
+                needsDraw = false;
+                ConsoleManager.Draw();
+
+            }
+            else
+            {
+                // Idle: skip the full-screen scan but still detect a terminal resize cheaply
+                // (AdjustBufferSize only redraws when the size actually changed).
+                ConsoleManager.AdjustBufferSize();
+            }
             _lock.Exit();
 
             // Invoke control paint events
-            StartPaintTimer();
+            paintTimer.Restart();
             _Paint?.Invoke(null, paintEventArgs);
-            StopPaintTimer();
-        }        
+            paintTimer.Stop();
+            paintTimes[paintTimeIndex] = paintTimer.ElapsedMilliseconds;
+            paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
+        }
     }
-
+       
     /// <summary>
     /// Executes an action within the UI lock, ensuring thread safety for UI updates.
     /// </summary>
@@ -147,18 +166,9 @@ public static class UI
                 action();
             }
         }
-    }
-
-    internal static void StartPaintTimer() => paintTimer.Restart();
-
-    internal static void StopPaintTimer()
-    {
-        paintTimer.Stop();
-        paintTimes[paintTimeIndex] = paintTimer.ElapsedMilliseconds;
-        paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
-    }
-   
-   
+        // Invoke is only called when control/layout state actually changes, so request a redraw.
+        needsDraw = true;
+    }      
     #endregion
 
     #region Properties
@@ -251,6 +261,7 @@ public static class UI
     private static CancellationToken cancellationToken = cts.Token;
     private static int interval = 100;
     private static bool isRunning;
+    private static volatile bool needsDraw = true;
     private static ILayout? layout;
     private static readonly List<IFocusable> controls = new List<IFocusable>();
     private static readonly GlobalInputListener globalInputListener = new GlobalInputListener();

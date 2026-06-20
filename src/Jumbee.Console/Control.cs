@@ -163,8 +163,12 @@ public abstract class Control : CControl, IFocusable, IDisposable
 
     /// <summary>
     /// Indicates the control should be repainted on the next UI update tick.
-    /// </summary>    
-    protected virtual void Invalidate() => Interlocked.Increment(ref paintRequests);
+    /// </summary>
+    protected virtual void Invalidate()
+    {
+        Interlocked.Increment(ref paintRequests);
+        UI.MarkDirty();
+    }
 
     /// <summary>
     /// Indicates that any pending paint requests have been handled and the control does not need re-painting.
@@ -212,8 +216,10 @@ public abstract class Control : CControl, IFocusable, IDisposable
                 Paint();
                 Validate();
                 timer.Stop();
-                UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.ElapsedMilliseconds;               
+                UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.ElapsedMilliseconds;
             }
+            // New content was rendered into the buffer this tick; ensure the next tick draws it.
+            UI.MarkDirty();
         }
         else
         {
