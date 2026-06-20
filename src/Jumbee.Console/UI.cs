@@ -126,6 +126,12 @@ public static class UI
     /// <summary>Runs a function on the UI thread and returns a task with its result.</summary>
     public static Task<T> InvokeAsync<T>(Func<T> func) => dispatcher.InvokeAsync(func);
 
+    /// <summary>Runs an async delegate on the UI thread and returns a task that completes (unwrapped) when it finishes.</summary>
+    public static Task InvokeAsync(Func<Task> func) => dispatcher.InvokeAsync(func);
+
+    /// <summary>Runs an async function on the UI thread and returns a task with its (unwrapped) result.</summary>
+    public static Task<T> InvokeAsync<T>(Func<Task<T>> func) => dispatcher.InvokeAsync(func);
+
     /// <summary>
     /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
     /// into its buffer. Intended for headless/snapshot rendering when the UI timer loop is not running.

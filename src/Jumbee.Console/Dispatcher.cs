@@ -147,9 +147,56 @@ public sealed class Dispatcher
         return tcs.Task;
     }
 
+    /// <summary>
+    /// Runs an async delegate on the UI thread and returns a task that completes when the delegate's task
+    /// completes (unwrapped), so awaiting it waits for the whole operation and propagates its exceptions.
+    /// </summary>
+    public Task InvokeAsync(Func<Task> func)
+    {
+        ArgumentNullException.ThrowIfNull(func);
+
+        if (CheckAccess())
+        {
+            try { return func(); }
+            catch (Exception ex) { return Task.FromException(ex); }
+        }
+
+        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Post(async () =>
+        {
+            try { await func(); tcs.SetResult(); }
+            catch (Exception ex) { tcs.SetException(ex); }
+        });
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// Runs an async function on the UI thread and returns a task with its (unwrapped) result.
+    /// </summary>
+    public Task<T> InvokeAsync<T>(Func<Task<T>> func)
+    {
+        ArgumentNullException.ThrowIfNull(func);
+
+        if (CheckAccess())
+        {
+            try { return func(); }
+            catch (Exception ex) { return Task.FromException<T>(ex); }
+        }
+
+        var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Post(async () =>
+        {
+            try { tcs.SetResult(await func()); }
+            catch (Exception ex) { tcs.SetException(ex); }
+        });
+        return tcs.Task;
+    }
+
     private void UIFrameLoop()
     {
         _uiThreadId = Environment.CurrentManagedThreadId;
+        // Install a SynchronizationContext so `await` in code running on the UI thread resumes on the UI thread.
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(this));
         _ready?.Set();
         while (_running)
         {
@@ -184,4 +231,21 @@ public sealed class Dispatcher
     private volatile int _uiThreadId = NoThread;
     private volatile bool _running;
     #endregion
+}
+
+/// <summary>
+/// A <see cref="SynchronizationContext"/> that marshals continuations onto a <see cref="Dispatcher"/>'s UI
+/// thread, so <c>await</c> in code running on the UI thread resumes on the UI thread (the WPF/Avalonia model).
+/// </summary>
+internal sealed class DispatcherSynchronizationContext : SynchronizationContext
+{
+    private readonly Dispatcher _dispatcher;
+
+    public DispatcherSynchronizationContext(Dispatcher dispatcher) => _dispatcher = dispatcher;
+
+    public override void Post(SendOrPostCallback d, object? state) => _dispatcher.Post(() => d(state));
+
+    public override void Send(SendOrPostCallback d, object? state) => _dispatcher.Invoke(() => d(state));
+
+    public override SynchronizationContext CreateCopy() => new DispatcherSynchronizationContext(_dispatcher);
 }

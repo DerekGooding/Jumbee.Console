@@ -180,4 +180,105 @@ public class DispatcherTests
         }
         finally { d.Stop(); }
     }
+
+    [Fact]
+    public void UiThread_HasSynchronizationContext_ThatMarshalsToUiThread()
+    {
+        StartIdle(out var d);
+        try
+        {
+            SynchronizationContext? ctx = null;
+            d.Invoke(() => ctx = SynchronizationContext.Current);
+            Assert.NotNull(ctx);
+
+            // Posting through that context must run on the UI thread.
+            var ranThreadId = -1;
+            using var done = new ManualResetEventSlim(false);
+            ctx!.Post(_ => { ranThreadId = Environment.CurrentManagedThreadId; done.Set(); }, null);
+
+            Assert.True(done.Wait(2000), "Context post did not run.");
+            Assert.Equal(d.ThreadId, ranThreadId);
+        }
+        finally { d.Stop(); }
+    }
+
+    [Fact]
+    public void AwaitContinuation_OnUiThread_ResumesOnUiThread()
+    {
+        StartIdle(out var d);
+        try
+        {
+            var continuationThreadId = -1;
+            using var done = new ManualResetEventSlim(false);
+
+            // Runs on the UI thread; the await captures the dispatcher's SynchronizationContext, so the
+            // continuation must resume on the UI thread.
+            d.Post(async () =>
+            {
+                await Task.Delay(20);
+                continuationThreadId = Environment.CurrentManagedThreadId;
+                done.Set();
+            });
+
+            Assert.True(done.Wait(3000), "Continuation did not run.");
+            Assert.Equal(d.ThreadId, continuationThreadId);
+        }
+        finally { d.Stop(); }
+    }
+
+    [Fact]
+    public async Task InvokeAsync_FuncTask_AwaitsInnerWork_OnUiThread()
+    {
+        StartIdle(out var d);
+        try
+        {
+            var completed = false;
+            var continuationThreadId = -1;
+
+            // Binds to InvokeAsync(Func<Task>) (preferred over Action for async lambdas), so the returned
+            // task only completes after the inner await finishes.
+            await d.InvokeAsync(async () =>
+            {
+                await Task.Delay(30);
+                continuationThreadId = Environment.CurrentManagedThreadId;
+                completed = true;
+            });
+
+            Assert.True(completed, "InvokeAsync should await the inner work, not complete at the first await.");
+            Assert.Equal(d.ThreadId, continuationThreadId);
+        }
+        finally { d.Stop(); }
+    }
+
+    [Fact]
+    public async Task InvokeAsync_FuncTask_PropagatesExceptionAfterAwait()
+    {
+        StartIdle(out var d);
+        try
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => d.InvokeAsync(async () =>
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("after await");
+            }));
+        }
+        finally { d.Stop(); }
+    }
+
+    [Fact]
+    public async Task InvokeAsync_FuncTaskT_ReturnsUnwrappedResult()
+    {
+        StartIdle(out var d);
+        try
+        {
+            var result = await d.InvokeAsync(async () =>
+            {
+                await Task.Delay(10);
+                return 123;
+            });
+
+            Assert.Equal(123, result);
+        }
+        finally { d.Stop(); }
+    }
 }
