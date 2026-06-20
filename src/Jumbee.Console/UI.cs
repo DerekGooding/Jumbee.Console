@@ -89,7 +89,29 @@ public static class UI
         cts.Cancel();   
         ProcessMetrics.Stop();
     }
-    
+
+    /// <summary>
+    /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
+    /// into its buffer. Intended for headless/snapshot rendering when the UI timer loop is not running.
+    /// </summary>
+    /// <remarks>
+    /// This does not draw to a real console; callers compose the painted control buffers themselves
+    /// (for example via a <see cref="ConsoleGUI.Common.DrawingContext"/>).
+    /// </remarks>
+    public static void PaintFrame() => _Paint?.Invoke(null, paintEventArgs);
+
+    /// <summary>
+    /// Sends a key (with optional modifiers) to a focusable..
+    /// </summary>
+    public static void SendInput(IFocusable target, ConsoleKeyInfo key)
+        => target.FocusableControl.OnInput(new InputEventArgs(_lock, new InputEvent(key)));
+
+    /// <summary>
+    /// Sends a key (with optional modifiers) to a focusable..
+    /// </summary>
+    public static void SendInput(IFocusable target, ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
+        => target.FocusableControl.OnInput(new InputEventArgs(_lock, new InputEvent(new ConsoleKeyInfo('\0', key, shift, alt, control))));
+
     /// <summary>
     /// Handles periodic timer ticks by redrawing the UI and invoking the <see cref="Paint"/> event, if the lock is available.
     /// </summary>
@@ -106,16 +128,7 @@ public static class UI
             _Paint?.Invoke(null, paintEventArgs);
             StopPaintTimer();
         }        
-    }   
-    /// <summary>
-    /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
-    /// into its buffer. Intended for headless/snapshot rendering when the UI timer loop is not running.
-    /// </summary>
-    /// <remarks>
-    /// This does not draw to a real console; callers compose the painted control buffers themselves
-    /// (for example via a <see cref="ConsoleGUI.Common.DrawingContext"/>).
-    /// </remarks>
-    public static void PaintFrame() => _Paint?.Invoke(null, paintEventArgs);
+    }
 
     /// <summary>
     /// Executes an action within the UI lock, ensuring thread safety for UI updates.
@@ -135,15 +148,17 @@ public static class UI
             }
         }
     }
-    
-    public static void StartPaintTimer() => paintTimer.Restart();
 
-    public static void StopPaintTimer()
+    internal static void StartPaintTimer() => paintTimer.Restart();
+
+    internal static void StopPaintTimer()
     {
         paintTimer.Stop();
         paintTimes[paintTimeIndex] = paintTimer.ElapsedMilliseconds;
         paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
     }
+   
+   
     #endregion
 
     #region Properties

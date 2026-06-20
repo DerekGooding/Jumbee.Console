@@ -61,6 +61,33 @@ public static class ConsoleSnapshot
     /// <summary>Composes a layout into a buffer.</summary>
     public static ConsoleBuffer Render(ILayout layout, int width, int height)
         => Render(layout.CControl, width, height);
+
+    /// <summary>
+    /// Renders <paramref name="control"/> once to establish layout, sends the given keys to it (routed via
+    /// <see cref="UI.SendInput(IFocusable, ConsoleKey, bool, bool, bool)"/>), then renders and returns the result.
+    /// Handy for snapshotting a control after navigation/editing.
+    /// </summary>
+    public static ConsoleBuffer RenderAfter(JControl control, int width, int height, params ConsoleKey[] keys)
+        => RenderAfterCore(control, width, height, keys.Select(k => Key(k)));
+
+    /// <summary>
+    /// As <see cref="RenderAfter(JControl, int, int, ConsoleKey[])"/> but accepts full key info, so modifier
+    /// keys (e.g. <c>Alt+Down</c> via <see cref="Key"/>) can be sent.
+    /// </summary>
+    public static ConsoleBuffer RenderAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys)
+        => RenderAfterCore(control, width, height, keys);
+
+    /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a key with optional modifiers.</summary>
+    public static ConsoleKeyInfo Key(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
+        => new('\0', key, shift, alt, control);
+
+    private static ConsoleBuffer RenderAfterCore(JControl control, int width, int height, IEnumerable<ConsoleKeyInfo> keys)
+    {
+        // Establish sizing first so input-driven behavior (e.g. auto-scroll) has a viewport to work against.
+        Render(control, width, height);
+        foreach (var key in keys) UI.SendInput(control, key);
+        return Render(control, width, height);
+    }
     #endregion
 
     #region Text snapshot
@@ -87,6 +114,14 @@ public static class ConsoleSnapshot
 
     /// <summary>Renders a layout and returns its text snapshot.</summary>
     public static string ToText(ILayout layout, int width, int height) => ToText(Render(layout, width, height));
+
+    /// <summary>Renders a control after sending the given keys and returns its text snapshot.</summary>
+    public static string ToTextAfter(JControl control, int width, int height, params ConsoleKey[] keys)
+        => ToText(RenderAfter(control, width, height, keys));
+
+    /// <summary>Renders a control after sending the given keys (with modifiers) and returns its text snapshot.</summary>
+    public static string ToTextAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys)
+        => ToText(RenderAfter(control, width, height, keys));
     #endregion
 
     #region Image snapshot
@@ -185,6 +220,14 @@ public static class ConsoleSnapshot
     /// <summary>Renders a layout and saves it to a PNG file.</summary>
     public static void SavePng(ILayout layout, int width, int height, string path, SnapshotImageOptions? options = null)
         => SavePng(Render(layout, width, height), path, options);
+
+    /// <summary>Renders a control after sending the given keys and saves it to a PNG file.</summary>
+    public static void SavePngAfter(JControl control, int width, int height, string path, params ConsoleKey[] keys)
+        => SavePng(RenderAfter(control, width, height, keys), path);
+
+    /// <summary>Renders a control after sending the given keys (with modifiers) and saves it to a PNG file.</summary>
+    public static void SavePngAfter(JControl control, int width, int height, string path, IReadOnlyList<ConsoleKeyInfo> keys)
+        => SavePng(RenderAfter(control, width, height, keys), path);
     #endregion
 
     #region Helpers

@@ -13,13 +13,7 @@ using Xunit;
 public class ConsoleSnapshotTests
 {
     #region Helpers
-    private static void Press(Control control, ConsoleKey key)
-    {
-        var args = new UI.InputEventArgs(
-            new Lock(),
-            new InputEvent(new ConsoleKeyInfo('\0', key, shift: false, alt: false, control: false)));
-        control.OnInput(args);
-    }
+    private static void Press(Control control, ConsoleKey key) => UI.SendInput(control, key);
     #endregion
 
     [Fact]
@@ -86,6 +80,48 @@ public class ConsoleSnapshotTests
 
         Assert.True(list.Frame!.Top > 0, "Frame should have scrolled.");
         Assert.Contains("Item 26", after);   // only visible after auto-scrolling
+    }
+
+    [Fact]
+    public void Tree_Navigation_ScrollsAndSelects_WithSnapshots()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "snapshots");
+
+        var tree = new Tree("Project", TreeGuide.BoldLine)
+        {
+            SelectedForegroundColor = Color.White,
+            SelectedBackgroundColor = Color.Blue
+        };
+        for (var i = 1; i <= 8; i++)
+            tree.AddNode($"Folder {i}").AddChildren($"file{i}a.cs", $"file{i}b.cs");
+        tree.WithRoundedBorder(Color.Purple).WithTitle("Tree");
+
+        // Snapshot the initial state (selection at the root, top of the view).
+        ConsoleSnapshot.SavePng(tree, 30, 12, Path.Combine(dir, "nav_tree_step0.png"));
+
+        // Drive the tree down past the viewport with a single call, then snapshot the result.
+        var down = Enumerable.Repeat(ConsoleKey.DownArrow, 14).ToArray();
+        ConsoleSnapshot.SavePngAfter(tree, 30, 12, Path.Combine(dir, "nav_tree_step1.png"), down);
+
+        var after = ConsoleSnapshot.ToText(tree, 30, 12);
+
+        Assert.True(tree.Frame!.Top > 0, "Tree should have scrolled after navigating down.");
+        Assert.DoesNotContain("Project", after);   // root scrolled out of view
+    }
+
+    [Fact]
+    public void ListBox_AltScroll_UsesModifierKeys()
+    {
+        var list = new ListBox();
+        for (var i = 1; i <= 40; i++) list.AddItem($"Item {i}");
+        list.WithRoundedBorder(Color.Teal).WithTitle("AltScroll");
+
+        // Frame-level scroll (Alt+Down) moves the view without changing the ListBox selection.
+        var altDown = Enumerable.Repeat(ConsoleSnapshot.Key(ConsoleKey.DownArrow, alt: true), 6).ToArray();
+        var text = ConsoleSnapshot.ToTextAfter(list, 24, 8, altDown);
+
+        Assert.Equal(6, list.Frame!.Top);          // six Alt+Down scrolls
+        Assert.Contains("Item 7", text);           // only visible after scrolling
     }
 
     [Fact]
