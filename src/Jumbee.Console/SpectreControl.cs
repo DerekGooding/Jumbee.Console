@@ -10,7 +10,8 @@ using Spectre.Console.Rendering;
 /// <remarks>
 /// Uses an <see cref="AnsiConsoleBuffer"/> to render the control to a buffer.
 /// Public property setters and methods that change a control's visual state should call <see cref="Invalidate"/> to request a re-render on the next UI update tick.
-/// Non thread-safe changes should use CloneContent to create a copy of the IRenderable content and modify that before replacing the control's content with the modified copy.
+/// Non-atomic changes to the wrapped content (e.g. mutating its collections) should go through <see cref="UpdateContent"/>,
+/// which applies the change on the UI thread so it never races with rendering.
 /// </remarks>
 /// <typeparam name="T"></typeparam>
 public class SpectreControl<T> : RenderableControl where T : IRenderable
@@ -34,28 +35,22 @@ public class SpectreControl<T> : RenderableControl where T : IRenderable
     }
     #endregion
 
-    #region Methods           
+    #region Methods
     /// <summary>
-    /// Creates a copy of the current instance's control content.
-    /// </summary>
-    /// <remarks>This method is intended to be overridden in a derived class to clone the content of the current instance including all properties that can be modified by the user. 
-    /// By default, it throws a <see /// cref="NotImplementedException"/>.
-    /// </remarks>
-    /// <returns>A new instance of type <typeparamref name="T"/> that is a copy of the current instance's content.</returns>
-    /// <exception cref="NotImplementedException">Thrown if the method is not overridden in a derived class.</exception>
-    protected virtual T CloneContent() => throw new NotImplementedException($"Cloning not implemented for type {typeof(T).Name}. Override CloneContent() in derived class.");
-
-    /// <summary>
-    /// Provides a thread-safe but much more expensive way of updating the control content.
+    /// Applies a mutation to the wrapped content on the UI thread (inline when already there, otherwise
+    /// marshaled), so a non-atomic change never races with rendering. Replaces the former copy-on-write
+    /// approach now that all mutation is serialized onto the UI thread.
     /// </summary>
     /// <param name="update">The update operation.</param>
     protected void UpdateContent(Action<T> update)
     {
-        var buffer = CloneContent();
-        update(buffer);
-        Content = buffer;
+        UI.Invoke(() =>
+        {
+            update(_content);
+            Invalidate();
+        });
     }
-    
+
     protected override Measurement Measure(RenderOptions options, int maxWidth) => _content.Measure(options, maxWidth);
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth) => _content.Render(options, maxWidth);  

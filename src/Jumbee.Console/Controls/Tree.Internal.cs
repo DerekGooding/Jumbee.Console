@@ -2,7 +2,6 @@ namespace Jumbee.Console;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 
@@ -93,15 +92,14 @@ public partial class Tree
         #region Methods
         public TreeNode AddChild(IRenderable label, string? text = null)
         {
-            TreeNode c;
-            bool complete = false;
-            do
+            // Create the node (with an atomic index) on the calling thread so we can return it immediately;
+            // marshal the dictionary mutation onto the UI thread.
+            var c = new TreeNode(this.Tree, Interlocked.Increment(ref childIndex), label, this, text);
+            UI.Invoke(() =>
             {
-                c = new TreeNode(this.Tree, Interlocked.Increment(ref childIndex), label, this, text);
-                complete = this._children.TryAdd(c.Index, c);
-            }
-            while (!complete);
-            UpdateTree();
+                _children[c.Index] = c;
+                UpdateTree();
+            });
             return c;
         }
 
@@ -125,17 +123,19 @@ public partial class Tree
 
         public bool RemoveChild(uint id)
         {
-            if (_children.TryRemove(id, out var c))
+            // Reliable only when called on the UI thread; off-thread the removal is marshaled and deferred.
+            var removed = false;
+            UI.Invoke(() =>
             {
-                c.Parent = null;
-                c.IsRemoved = true;
-                UpdateTree();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+                if (_children.Remove(id, out var c))
+                {
+                    c.Parent = null;
+                    c.IsRemoved = true;
+                    UpdateTree();
+                    removed = true;
+                }
+            });
+            return removed;
         }
 
         protected void UpdateTree()
@@ -145,7 +145,7 @@ public partial class Tree
         #endregion
 
         #region Fields
-        private ConcurrentDictionary<uint, TreeNode> _children = new();
+        private Dictionary<uint, TreeNode> _children = new();
         private uint childIndex = 0;
         private bool _selected;
         #endregion

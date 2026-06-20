@@ -1,7 +1,6 @@
 namespace Jumbee.Console;
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -49,94 +48,88 @@ public partial class ListBox : RenderableControl
     #endregion
 
     #region Methods        
+    // Item creation (and the atomic index) happens on the calling thread so AddItem can return immediately;
+    // the dictionary mutation is marshaled to the UI thread (inline when already there) so reads during
+    // rendering never see a concurrent write.
     public void AddItems(params IEnumerable<IRenderable> items)
     {
-        foreach (var item in items)
-        {            
-            var complete = false;
-            while (!complete)
-            {
-                int index = Interlocked.Increment(ref _itemIndex);                
-                complete = _items.TryAdd(index, new ListBoxItem(this, index, item));
-            }                   
-        }
-        Invalidate();
+        var added = items.Select(i => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), i)).ToArray();
+        UI.Invoke(() =>
+        {
+            foreach (var item in added) _items[item.Index] = item;
+            Invalidate();
+        });
     }
 
     public void AddItems(params IEnumerable<string> items)
     {
-        foreach (var item in items)
+        var added = items.Select(s => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), s)).ToArray();
+        UI.Invoke(() =>
         {
-            var complete = false;
-            while (!complete)
-            {
-                int index = Interlocked.Increment(ref _itemIndex);
-                complete = _items.TryAdd(index, new ListBoxItem(this, index, item));
-            }
-
-        }
-        Invalidate();
+            foreach (var item in added) _items[item.Index] = item;
+            Invalidate();
+        });
     }
 
     public void AddItems(params (string text, Color? fgColor, Color? bgColor)[] items)
     {
-        foreach (var item in items)
+        var added = items.Select(t => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), t.text, t.fgColor, t.bgColor)).ToArray();
+        UI.Invoke(() =>
         {
-            var complete = false;
-            while (!complete)
-            {
-                int index = Interlocked.Increment(ref _itemIndex);
-                complete = _items.TryAdd(index, new ListBoxItem(this, index, item.text, item.fgColor, item.bgColor));
-            }
-        }
-        Invalidate();
+            foreach (var item in added) _items[item.Index] = item;
+            Invalidate();
+        });
     }
 
     public ListBoxItem AddItem(IRenderable item)
     {
-        ListBoxItem _item;
-        bool complete = false;
-        do
-        {            
-            _item = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), item);            
-            complete = _items.TryAdd(_item.Index, _item);
-        }
-        while (!complete);        
-        return _item;
-    }
-  
-    public ListBoxItem AddItem(string text, Color? foreground = null, Color? background = null)
-    {
-        ListBoxItem _item;
-        bool complete = false;
-        do
-        {            
-            _item = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), text, foreground, background);
-            complete = _items.TryAdd(_item.Index, _item);      
-        }
-        while (!complete);
-        return _item;
+        var listItem = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), item);
+        UI.Invoke(() =>
+        {
+            _items[listItem.Index] = listItem;
+            Invalidate();
+        });
+        return listItem;
     }
 
+    public ListBoxItem AddItem(string text, Color? foreground = null, Color? background = null)
+    {
+        var item = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), text, foreground, background);
+        UI.Invoke(() =>
+        {
+            _items[item.Index] = item;
+            Invalidate();
+        });
+        return item;
+    }
+
+    /// <summary>
+    /// Removes an item. The result is reliable only when called on the UI thread; off-thread callers should
+    /// not rely on it (the removal is marshaled and applied on the next pump).
+    /// </summary>
     public bool RemoveItem(ListBoxItem item)
     {
-        if (_items.TryRemove(item.Index, out var removed))
+        var removed = false;
+        UI.Invoke(() =>
         {
-            removed.Detach();
-            Invalidate();
-            return true;
-        }
-        return false;
+            if (_items.Remove(item.Index, out var r))
+            {
+                r.Detach();
+                removed = true;
+                Invalidate();
+            }
+        });
+        return removed;
     }
 
     public void Clear()
     {
-        foreach (var item in _items.Values)
+        UI.Invoke(() =>
         {
-            item.Detach();
-        }
-        _items.Clear();
-        Invalidate();
+            foreach (var item in _items.Values) item.Detach();
+            _items.Clear();
+            Invalidate();
+        });
     }
 
     public void Update() => Invalidate();
@@ -219,7 +212,7 @@ public partial class ListBox : RenderableControl
     #endregion
 
     #region Fields
-    private readonly ConcurrentDictionary<int, ListBoxItem> _items = new();
+    private readonly Dictionary<int, ListBoxItem> _items = new();
     private int _itemIndex = 0;
     private int _selectionIndex = 0;
     private Color? _selectedBackgroundColor;

@@ -181,7 +181,7 @@ public abstract class Control : CControl, IFocusable, IDisposable
     /// <param name="value">The new value.</param>
     /// <param name="updatesLayout">
     /// When <see langword="true"/>, the change affects layout and <see cref="Initialize"/> is called (which
-    /// re-lays-out under the UI lock and invalidates). Otherwise <see cref="Invalidate"/> is called.
+    /// re-lays-out on the UI thread and invalidates). Otherwise <see cref="Invalidate"/> is called.
     /// </param>
     /// <param name="onChanged">Optional custom action run after assignment and before the invalidate/initialize.</param>
     /// <returns>The resulting field value (the new value when changed, otherwise the existing one).</returns>

@@ -7,11 +7,7 @@ The initial plan created a bridge between the two libraries by implementing `IAn
 and a `SpectreControl` class for wrapping Spectre.Console controls as ConsoleGUI `IControl` to be used with ConsoleGUI control and layout classes.
 
 `SpectreConsole` now inherits from the base `Jumbee.Console.Control` class that provides the base functionality for all Jumbee.Console controls that display output and recieve user input.
-Support for updating and animating controls was added by using a single background thread started by the UI class running a timer that redraws the UI and fires Paint events at regular intervals that controls use to update
-their state. Concurrent drawing conflicts are mitigated by using a single lock object that is acquired by each control derived from Control in Paint and OnInput events to synchronize access to their internal state
-so that they can safely handle user input and be properly rendered. UI redraws and paint events only occur in the UI class when the lock is not held by any control. Concurrent updates to control state by multiple threads
-are handled using .NET types designed for concurrent access like ConcurrentDictionary to store collections, or by using a copy-on-write strategy using the `CloneContent` and `UpdateContent` methods in the `Control` class, and by using the UI.Invoke method to acquire the UI lock when changes that affect
-the global UI state and layout, like setting a Control's size, are performed.
+Support for updating and animating controls is provided by the `UI` class, which runs a single dedicated UI thread via the `Dispatcher`. Each frame the dispatcher drains a work queue, dispatches input, and redraws the UI, firing Paint events that controls use to render their state. All UI state mutation and rendering happen on this one UI thread, so there is no shared lock. Code on other threads marshals work onto the UI thread via `UI.Invoke` (runs inline when already on the UI thread, otherwise posts to the dispatcher queue), `UI.Post`, or `UI.InvokeAsync`. Atomic scalar property changes (via `SetAtomicProperty`) are written directly and may briefly tear for multi-field structs (a self-correcting one-frame risk that is accepted); non-atomic changes (collections, or mutating a wrapped Spectre control) are marshaled onto the UI thread via `UI.Invoke` so they never race with rendering. Layout/geometry changes (such as setting a Control's size) also go through `UI.Invoke` so they run on the UI thread before the next redraw.
 
 Control layout is handled using `Jumbee.Console.Layout` derived classes that wrap ConsoleGUI layout classes. Drawing conflicts from concurrent updates in ConsoleGUI layout classes are mitigated using the UI.Invoke method 
 to synchronize concurrent requests for changes to a layout control before redrawing and propagating the changes upward to parent containers.
@@ -40,10 +36,10 @@ The SpectreControl class is a generic class that wraps an existing Spectre.Conso
 ### Control implementation considerations
 Note the following important considerations when deriving from these classes:
 
-- Any public properties or methods that change the visual state of a control must call the Invalidate() method to indicate that the control needs to be re-rendered and re-drawn by parent containers. 
-- *Do not acquire the UI lock in publicly visible properties or methods of a control* as this will inevitably lead to deadlocks. Instead, call `Invalidate()` to signal that a control needs to be redrawn in the next Paint event.
-- When modifying control state stored in collections, use .NET types designed for concurrent access like ConcurrentDictionary. For wrapping existing Spectre.Console controls, use a copy-on-write strategy using the `UpdateContent` method which invokes `CloneContent()`, to avoid modifying collections while they might be enumerated during rendering.
-- Since each state change must trigger invalidation, try to batch multiple changes to control state collections into a single property or index setter with one call to Invalidate() when possible.
+- Any public property or method that changes the visual state of a control must request a redraw: use `SetAtomicProperty` for simple scalar properties (it does the equality check, assign, and invalidate), or call `Invalidate()` directly. `Invalidate()` marks the control dirty so it is re-rendered on the next frame.
+- All UI state and rendering live on the single UI thread; there is no UI lock. Do not add locks for UI state. To mutate a control from a background thread, marshal the change onto the UI thread with `UI.Invoke` (inline if already on the UI thread, else posted), `UI.Post`, or `UI.InvokeAsync`.
+- Atomic scalar properties may be written directly (via `SetAtomicProperty`), accepting the rare one-frame tear for multi-field structs. Non-atomic mutations (collections, or mutating a wrapped Spectre control via `UpdateContent`) must be marshaled onto the UI thread with `UI.Invoke`; this is what lets controls use a plain `Dictionary`/`List` instead of concurrent collections. Reads of collection state should likewise happen on the UI thread.
+- Batch multiple state changes into a single property or index setter with one invalidation when possible.
 
 ## Project coding instructions:
 - When generating new C# code, please follow the existing coding style.
