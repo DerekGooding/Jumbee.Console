@@ -22,9 +22,8 @@ public static class UI
     /// </summary>
     public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isTrueColorTerminal = true)
     {
-        if (isRunning) return task;
-        ProcessMetrics.Start();
-        
+        if (isRunning) return runCompletion.Task;
+        ProcessMetrics.Start();        
         if (!isTrueColorTerminal)
         {
             ConsoleManager.Console = new SimplifiedConsole(); ;
@@ -41,40 +40,56 @@ public static class UI
             }               
         }
         interval = paintInterval;
+        cts = new CancellationTokenSource();
+        cancellationToken = cts.Token;
+        runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        isRunning = true;
+        // Start the single UI thread (drains the dispatcher queue, then renders, each frame).
+        dispatcher.Start(OnFrame, interval);
+        // Start the input thread which blocks on the console and marshals each key onto the UI thread.
+        inputThread = new Thread(InputLoop) { IsBackground = true, Name = "Jumbee.Console.Input" };
+        inputThread.Start();
+        return runCompletion.Task;
+    }
 
-        // Start UI draw thread
-        timer = new Timer(OnTick, null, interval, interval);
-        
-        // Start user input thread
-        task = Task.Run(() =>
+    /// <summary>
+    /// Reads console keys on a dedicated thread and posts their dispatch onto the UI thread so input is
+    /// handled on the same thread as rendering.
+    /// </summary>
+    private static void InputLoop()
+    {
+        while (isRunning && !cancellationToken.IsCancellationRequested)
         {
-            // Main input loop
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
                 if (Console.KeyAvailable)
-                {                                       
-                    if (_lock.TryEnter())
-                    {
-                        var inputEvent = new InputEvent(Console.ReadKey(true));
-                        // Invoke global input event
-                        globalInputListener.OnInput(inputEvent);
-                        _lock.Exit();
-                        if (!inputEvent.Handled)
-                        {
-                            // Invoke control input events
-                            inputEventArgs.InputEvent = inputEvent;
-                            layout.OnInput(inputEventArgs);
-                        }                        
-                    }
+                {
+                    var key = Console.ReadKey(true);
+                    dispatcher.Post(() => OnInput(key));
                 }
                 else
                 {
                     Thread.Sleep(interval / 4);
-                }                    
+                }
             }
-        });
-        isRunning = true;
-        return task;
+            catch (InvalidOperationException)
+            {
+                // Console input is redirected/unavailable; back off and keep the loop alive.
+                Thread.Sleep(interval);
+            }
+        }
+    }
+
+    /// <summary>Dispatches a key event on the UI thread: global hotkeys first, then the focused control.</summary>
+    private static void OnInput(ConsoleKeyInfo key)
+    {
+        var inputEvent = new InputEvent(key);
+        globalInputListener.OnInput(inputEvent);
+        if (!inputEvent.Handled)
+        {
+            inputEventArgs.InputEvent = inputEvent;
+            layout?.OnInput(inputEventArgs);
+        }
     }
     /// <summary>
     /// Stops the UI update loop and disposes of the timer. 
@@ -83,18 +98,37 @@ public static class UI
     {
         if (!isRunning) return;
         isRunning = false;
-        timer?.Dispose();
-        timer = null;
+        cts.Cancel();
+        dispatcher.Stop();
+        inputThread = null;
         controls.Clear();
-        cts.Cancel();   
         ProcessMetrics.Stop();
+        runCompletion.TrySetResult();
     }
 
     /// <summary>
-    /// Marks the UI as needing a redraw on the next timer tick. Called whenever control content or
-    /// layout changes; idle ticks skip the redraw until this is set.
+    /// Marks the UI as needing a redraw on the next frame. Called whenever control content or
+    /// layout changes; idle frames skip the redraw until this is set.
     /// </summary>
     public static void MarkDirty() => needsDraw = true;
+
+    /// <summary>The UI thread dispatcher.</summary>
+    public static Dispatcher Dispatcher => dispatcher;
+
+    /// <summary>Returns <see langword="true"/> when the caller is on the UI thread (or none is running).</summary>
+    public static bool CheckAccess() => dispatcher.CheckAccess();
+
+    /// <summary>Throws when the caller is not on the UI thread.</summary>
+    public static void VerifyAccess() => dispatcher.VerifyAccess();
+
+    /// <summary>Queues an action to run on the UI thread.</summary>
+    public static void Post(Action action) => dispatcher.Post(action);
+
+    /// <summary>Runs an action on the UI thread and returns a task that completes when it finishes.</summary>
+    public static Task InvokeAsync(Action action) => dispatcher.InvokeAsync(action);
+
+    /// <summary>Runs a function on the UI thread and returns a task with its result.</summary>
+    public static Task<T> InvokeAsync<T>(Func<T> func) => dispatcher.InvokeAsync(func);
 
     /// <summary>
     /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
@@ -119,9 +153,10 @@ public static class UI
         => target.FocusableControl.OnInput(new InputEventArgs(_lock, new InputEvent(new ConsoleKeyInfo('\0', key, shift, alt, control))));
 
     /// <summary>
-    /// Handles periodic timer ticks by redrawing the UI and invoking the <see cref="Paint"/> event, if the lock is available.
+    /// Runs once per frame on the UI thread: redraws the UI and invokes the <see cref="Paint"/> event,
+    /// if the lock is available. (The lock still guards against concurrent background-thread mutation.)
     /// </summary>
-    private static void OnTick(object? state)
+    private static void OnFrame()
     {
         if (_lock.TryEnter())
         {
@@ -255,8 +290,9 @@ public static class UI
     private static readonly Lock _lock = new Lock();
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs(_lock);
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs(_lock);
-    private static Timer? timer;
-    private static Task task = Task.CompletedTask;
+    private static readonly Dispatcher dispatcher = new Dispatcher();
+    private static Thread? inputThread;
+    private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     private static CancellationTokenSource cts = new CancellationTokenSource();
     private static CancellationToken cancellationToken = cts.Token;
     private static int interval = 100;
