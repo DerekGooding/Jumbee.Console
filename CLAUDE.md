@@ -36,21 +36,26 @@ The SpectreControl class is a generic class that wraps an existing Spectre.Conso
 ### Control implementation considerations
 Note the following important considerations when deriving from these classes:
 
-- Any public property or method that changes the visual state of a control must request a redraw: use `SetAtomicProperty` for simple scalar properties (it does the equality check, assign, and invalidate), or call `Invalidate()` directly. `Invalidate()` marks the control dirty so it is re-rendered on the next frame.
+- Any public property or method that changes the visual state of a control must request a redraw: use `SetAtomicProperty` for simple scalar properties (it does the equality check, assign, and invalidate), 
+- or call `Invalidate()` directly. `Invalidate()` marks the control dirty so it is re-rendered on the next frame.
 - All UI state and rendering live on the single UI thread; there is no UI lock. Do not add locks for UI state. To mutate a control from a background thread, marshal the change onto the UI thread with `UI.Invoke` (inline if already on the UI thread, else posted), `UI.Post`, or `UI.InvokeAsync`.
 - Atomic scalar properties may be written directly (via `SetAtomicProperty`), accepting the rare one-frame tear for multi-field structs. Non-atomic mutations (collections, or mutating a wrapped Spectre control via `UpdateContent`) must be marshaled onto the UI thread with `UI.Invoke`; this is what lets controls use a plain `Dictionary`/`List` instead of concurrent collections. Reads of collection state should likewise happen on the UI thread.
 - Batch multiple state changes into a single property or index setter with one invalidation when possible.
 
 ## Project coding instructions:
 - When generating new C# code, please follow the existing coding style.
-- All code should be compatible with C# 14.0.
+- All code should be compatible with .NET 10.0 / C# 14.0.
 - Prefer new C# 14.0 features and syntax where applicable.
 - Prefer functional programming paradigms and constructs where appropriate.
 - Prefer concise code over more verbose constructs.
 - Avoid modifying external library code located in the @ext directory. Changes should be limited to the code in the @src directory only whenever possible.
 
-## Project coding Style:
+## Project coding style:
 - Use the existing #regions in a file to organize class constructors, indexers, events, properties, methods, fields, and child types.
 - Use 4 spaces for indentation.
 - Use camel-case for method and property names. Method and property names should begin with a capital letter.
 - Use camel-case for class fields. Field names should begin with lower-case letters unless they are backing fields for properties which should begin with an underscore.
+- Group members with the same visibility together. The reading order should be public -> internal -> protected -> private.
+
+## Project documentation style
+- Avoid verbose documentation on members. Try to be as terse as possible while giving all relevant information about usage.

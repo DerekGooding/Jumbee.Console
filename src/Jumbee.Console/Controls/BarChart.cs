@@ -23,7 +23,8 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             var index = Interlocked.Increment(ref itemIndex);
             data[index] = new BarChartItem(this, index, item.label, item.value, item.color);
         }
-        CreateChartElements();
+        // Defer the first build to the next render on the UI thread.
+        _structureDirty = true;
     }
 
     public BarChart(params (string label, double value, Color color)[] items) : this(ChartOrientation.Horizontal, items) {}
@@ -43,7 +44,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             if (field != value)
             {
                 field = value;
-                UI.Invoke(CreateChartElements);
+                MarkStructureDirty();
             }
         }
     }
@@ -59,7 +60,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             if (field != value)
             {
                 field = value;
-                UI.Invoke(CreateChartLabel);
+                MarkStructureDirty();
             }
         }
     }
@@ -75,7 +76,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             if (field != value)
             {
                 field = value;
-                UI.Invoke(CreateChartLabel);
+                MarkStructureDirty();
             }
         }
     }
@@ -89,7 +90,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             if (_showValues != value)
             {
                 _showValues = value;
-                UI.Invoke(CreateChartElements);
+                MarkStructureDirty();
             }
         }
     }
@@ -128,7 +129,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         {
             if (value)
             {
-                LabelAlignment = Justify.Center;   // its setter marshals CreateChartLabel
+                LabelAlignment = Justify.Center;   // its setter marks the structure dirty
             }
         }
     }
@@ -172,7 +173,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         UI.Invoke(() =>
         {
             data[index] = item;
-            CreateChartElements();
+            MarkStructureDirty();
         });
         return item;
     }
@@ -186,7 +187,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             {
                 data[index] = new BarChartItem(this, index, i.label, i.value, i.color);
             }
-            CreateChartElements();
+            MarkStructureDirty();
         });
         return this;
     }
@@ -201,7 +202,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         {
             if (data.Remove(index, out var item))
             {
-                CreateChartElements();
+                MarkStructureDirty();
                 item.Detach();
                 removed = true;
             }
@@ -301,12 +302,11 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             _containerGrid.AddRow(new Markup(Label).Justify(LabelAlignment.HasValue ? (Spectre.Console.Justify)LabelAlignment.Value : Spectre.Console.Justify.Center));
             _containerGrid.AddRow(_grid);
         }
-        Invalidate();
     }
 
     protected void CreateChartElements()
     {
-        _grid = new Spectre.Console.Grid();
+        _grid = new Spectre.Console.Grid();        
         _grid.Collapse();
         _bars.Clear();
         var sortedData = data.Values.OrderBy(x => x.Index).ToList();
@@ -390,11 +390,28 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             }
         }
         CreateChartLabel();
+    }
+
+    /// <summary>
+    /// Marks the chart's structure (bars, rows/columns, label) as needing a rebuild on the next render and
+    /// requests a redraw. The rebuild itself happens lazily inside <see cref="Render"/> on the UI thread, so
+    /// multiple structural changes within a frame coalesce into a single <see cref="CreateChartElements"/> call.
+    /// </summary>
+    private void MarkStructureDirty()
+    {
+        _structureDirty = true;
         Invalidate();
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
+        // Rebuild structure lazily on the UI thread, coalescing any structural changes since the last render.
+        if (_structureDirty)
+        {
+            CreateChartElements();
+            _structureDirty = false;
+        }
+
         var width = Math.Min(Width, maxWidth);
         var grid = _containerGrid ?? _grid;
         grid.Width = width;
@@ -412,5 +429,9 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     protected Spectre.Console.Grid _grid = new();
     protected Spectre.Console.Grid? _containerGrid = new();
     protected List<IBarControl> _bars = new();
+
+    // Set when a structural change (items, orientation, value display, label) needs the grid rebuilt; consumed
+    // on the UI thread in Render. Volatile so a write from a background-thread setter is seen by the UI thread.
+    private volatile bool _structureDirty;
     #endregion
 }

@@ -21,9 +21,9 @@ public class Program
     static async Task Main(string[] args)
     {
         //GridTest(args);
-        //GridTest(args);
+        GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
-        DockPanelTest(args);
+        //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
