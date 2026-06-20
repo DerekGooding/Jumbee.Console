@@ -108,6 +108,16 @@ public static class UI
         }        
     }   
     /// <summary>
+    /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
+    /// into its buffer. Intended for headless/snapshot rendering when the UI timer loop is not running.
+    /// </summary>
+    /// <remarks>
+    /// This does not draw to a real console; callers compose the painted control buffers themselves
+    /// (for example via a <see cref="ConsoleGUI.Common.DrawingContext"/>).
+    /// </remarks>
+    public static void PaintFrame() => _Paint?.Invoke(null, paintEventArgs);
+
+    /// <summary>
     /// Executes an action within the UI lock, ensuring thread safety for UI updates.
     /// </summary>
     /// <param name="action">The action to execute.</param>
@@ -261,6 +271,12 @@ public static class UI
         public InputEventArgs(Lock lockObject)
         {
             Lock = lockObject;
+        }
+
+        public InputEventArgs(Lock lockObject, InputEvent? inputEvent)
+        {
+            Lock = lockObject;
+            InputEvent = inputEvent;
         }
     }
 

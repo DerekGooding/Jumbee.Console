@@ -1,0 +1,270 @@
+namespace Jumbee.Console.Snapshot;
+
+using System.Text;
+
+using ConsoleGUI;
+using ConsoleGUI.Common;
+using ConsoleGUI.Data;
+using ConsoleGUI.Space;
+
+using SixLabors.Fonts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+using CColor = ConsoleGUI.Data.Color;
+using Color = SixLabors.ImageSharp.Color;
+using Size = ConsoleGUI.Space.Size;
+using JControl = Jumbee.Console.Control;
+
+/// <summary>
+/// Renders Jumbee.Console controls headlessly (without a real terminal) to a <see cref="ConsoleBuffer"/>,
+/// and converts that buffer to a text or PNG snapshot. Intended for tests and visual verification.
+/// </summary>
+public static class ConsoleSnapshot
+{
+    #region Render (headless compose)
+    /// <summary>
+    /// Composes a control tree into a <see cref="ConsoleBuffer"/> at the given size, without a real console.
+    /// </summary>
+    public static ConsoleBuffer Render(IControl content, int width, int height)
+    {
+        // Drive layout: assigning a context + limits initializes the tree (sizes propagate down).
+        using var ctx = new DrawingContext(NoopListener.Instance, content);
+        ctx.SetLimits(new Size(width, height), new Size(width, height));
+
+        // Paint once so every control renders into its own buffer.
+        UI.PaintFrame();
+
+        var size = ctx.Size;
+        var w = size.Width > 0 ? size.Width : width;
+        var h = size.Height > 0 ? size.Height : height;
+
+        var buffer = new ConsoleBuffer { Size = new Size(w, h) };
+        for (var y = 0; y < h; y++)
+        {
+            for (var x = 0; x < w; x++)
+            {
+                var pos = new Position(x, y);
+                buffer.Write(pos, ctx.Contains(pos) ? ctx[pos] : EmptyCell);
+            }
+        }
+
+        return buffer;
+    }
+
+    /// <summary>Composes a single control (using its frame when present) into a buffer.</summary>
+    public static ConsoleBuffer Render(JControl control, int width, int height)
+        => Render((IControl)control.FocusableControl, width, height);
+
+    /// <summary>Composes a layout into a buffer.</summary>
+    public static ConsoleBuffer Render(ILayout layout, int width, int height)
+        => Render(layout.CControl, width, height);
+    #endregion
+
+    #region Text snapshot
+    /// <summary>Converts a buffer to a plain-text snapshot (glyphs only, one line per row).</summary>
+    public static string ToText(ConsoleBuffer buffer)
+    {
+        var sb = new StringBuilder();
+        for (var y = 0; y < buffer.Size.Height; y++)
+        {
+            for (var x = 0; x < buffer.Size.Width; x++)
+            {
+                var ch = buffer[x, y].Content;
+                sb.Append(ch is null or '\0' ? ' ' : ch.Value);
+            }
+            // Trim trailing spaces so snapshots are stable regardless of right-padding.
+            while (sb.Length > 0 && sb[^1] == ' ') sb.Length--;
+            sb.Append('\n');
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Renders a control and returns its text snapshot.</summary>
+    public static string ToText(JControl control, int width, int height) => ToText(Render(control, width, height));
+
+    /// <summary>Renders a layout and returns its text snapshot.</summary>
+    public static string ToText(ILayout layout, int width, int height) => ToText(Render(layout, width, height));
+    #endregion
+
+    #region Image snapshot
+    /// <summary>Renders a buffer to an image, drawing each cell's glyph and colors.</summary>
+    public static Image<Rgba32> ToImage(ConsoleBuffer buffer, SnapshotImageOptions? options = null)
+    {
+        options ??= new SnapshotImageOptions();
+        var family = ResolveFontFamily(options);
+        var fontCache = new Dictionary<FontStyle, Font>();
+
+        var cols = buffer.Size.Width;
+        var rows = buffer.Size.Height;
+        var imgW = Math.Max(1, options.Padding * 2 + cols * options.CellWidth);
+        var imgH = Math.Max(1, options.Padding * 2 + rows * options.CellHeight);
+
+        var image = new Image<Rgba32>(imgW, imgH);
+        image.Mutate(ctx =>
+        {
+            ctx.Fill(options.DefaultBackground);
+
+            for (var y = 0; y < rows; y++)
+            {
+                for (var x = 0; x < cols; x++)
+                {
+                    var cell = buffer[x, y];
+                    var px = options.Padding + x * options.CellWidth;
+                    var py = options.Padding + y * options.CellHeight;
+
+                    var decoration = cell.Character.Decoration ?? Decoration.None;
+
+                    // Resolve effective colors, honoring Invert (swap fg/bg) and Dim (blend fg toward bg).
+                    var hasBackground = cell.Background is not null;
+                    var fg = cell.Foreground is { } f ? ToColor(f) : options.DefaultForeground;
+                    var bg = cell.Background is { } b ? ToColor(b) : options.DefaultBackground;
+
+                    if ((decoration & Decoration.Invert) != 0)
+                    {
+                        (fg, bg) = (bg, fg);
+                        hasBackground = true; // an inverted cell always paints a background
+                    }
+
+                    if (hasBackground)
+                    {
+                        ctx.Fill(bg, new RectangleF(px, py, options.CellWidth, options.CellHeight));
+                    }
+
+                    if ((decoration & Decoration.Dim) != 0)
+                    {
+                        fg = Blend(fg, bg, 0.5f);
+                    }
+
+                    // Note: blink decorations (SlowBlink/RapidBlink) cannot be represented in a static image.
+                    var ch = cell.Content;
+                    var concealed = (decoration & Decoration.Conceal) != 0;
+                    if (!concealed && ch is { } c && c != ' ' && c != '\0')
+                    {
+                        var glyphFont = GetStyledFont(family, options.FontSize, MapFontStyle(decoration), fontCache);
+                        var text = c.ToString();
+
+                        var textOptions = new RichTextOptions(glyphFont)
+                        {
+                            Origin = new PointF(px, py + (options.CellHeight - options.FontSize) / 2f),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top,
+                        };
+
+                        var textDecorations = MapTextDecorations(decoration);
+                        if (textDecorations != TextDecorations.None)
+                        {
+                            textOptions.TextRuns = [new RichTextRun { Start = 0, End = text.Length, TextDecorations = textDecorations }];
+                        }
+
+                        ctx.DrawText(textOptions, text, fg);
+                    }
+                }
+            }
+        });
+
+        return image;
+    }
+
+    /// <summary>Renders a buffer to a PNG file.</summary>
+    public static void SavePng(ConsoleBuffer buffer, string path, SnapshotImageOptions? options = null)
+    {
+        var dir = Path.GetDirectoryName(Path.GetFullPath(path));
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+        using var image = ToImage(buffer, options);
+        image.SaveAsPng(path);
+    }
+
+    /// <summary>Renders a control and saves it to a PNG file.</summary>
+    public static void SavePng(JControl control, int width, int height, string path, SnapshotImageOptions? options = null)
+        => SavePng(Render(control, width, height), path, options);
+
+    /// <summary>Renders a layout and saves it to a PNG file.</summary>
+    public static void SavePng(ILayout layout, int width, int height, string path, SnapshotImageOptions? options = null)
+        => SavePng(Render(layout, width, height), path, options);
+    #endregion
+
+    #region Helpers
+    private static Color ToColor(CColor c) => Color.FromRgb(c.Red, c.Green, c.Blue);
+
+    /// <summary>Linearly blends <paramref name="a"/> toward <paramref name="b"/> by <paramref name="t"/> (0..1).</summary>
+    private static Color Blend(Color a, Color b, float t)
+    {
+        var pa = a.ToPixel<Rgba32>();
+        var pb = b.ToPixel<Rgba32>();
+        static byte Lerp(byte x, byte y, float t) => (byte)Math.Clamp(x + (y - x) * t, 0, 255);
+        return Color.FromRgb(Lerp(pa.R, pb.R, t), Lerp(pa.G, pb.G, t), Lerp(pa.B, pb.B, t));
+    }
+
+    private static FontStyle MapFontStyle(Decoration decoration)
+    {
+        var bold = (decoration & Decoration.Bold) != 0;
+        var italic = (decoration & Decoration.Italic) != 0;
+        return (bold, italic) switch
+        {
+            (true, true) => FontStyle.BoldItalic,
+            (true, false) => FontStyle.Bold,
+            (false, true) => FontStyle.Italic,
+            _ => FontStyle.Regular
+        };
+    }
+
+    private static TextDecorations MapTextDecorations(Decoration decoration)
+    {
+        var result = TextDecorations.None;
+        if ((decoration & Decoration.Underline) != 0) result |= TextDecorations.Underline;
+        if ((decoration & Decoration.Strikethrough) != 0) result |= TextDecorations.Strikeout;
+        return result;
+    }
+
+    /// <summary>Creates (and caches) a font in the requested style, degrading gracefully when the family lacks it.</summary>
+    private static Font GetStyledFont(FontFamily family, float size, FontStyle style, Dictionary<FontStyle, Font> cache)
+    {
+        if (cache.TryGetValue(style, out var cached)) return cached;
+
+        var available = family.GetAvailableStyles().ToHashSet();
+        var resolved = style switch
+        {
+            _ when available.Contains(style) => style,
+            FontStyle.BoldItalic when available.Contains(FontStyle.Bold) => FontStyle.Bold,
+            FontStyle.BoldItalic when available.Contains(FontStyle.Italic) => FontStyle.Italic,
+            _ => FontStyle.Regular
+        };
+
+        var font = family.CreateFont(size, resolved);
+        cache[style] = font;
+        return font;
+    }
+
+    private static FontFamily ResolveFontFamily(SnapshotImageOptions options)
+    {
+        if (TryGetFamily(options.FontFamily, out var family) ||
+            options.FallbackFontFamilies.Any(name => TryGetFamily(name, out family)))
+        {
+            return family;
+        }
+
+        // Last resort: first installed family (may not be monospace, but avoids a hard failure).
+        var any = SystemFonts.Families.FirstOrDefault();
+        if (any == default)
+        {
+            throw new InvalidOperationException("No system fonts are available to render the snapshot image.");
+        }
+        return any;
+    }
+
+    private static bool TryGetFamily(string name, out FontFamily family) => SystemFonts.TryGet(name, out family);
+
+    private static readonly Cell EmptyCell = new Cell(' ');
+
+    private sealed class NoopListener : IDrawingContextListener
+    {
+        public static readonly NoopListener Instance = new();
+        public void OnRedraw(DrawingContext drawingContext) { }
+        public void OnUpdate(DrawingContext drawingContext, Rect rect) { }
+    }
+    #endregion
+}
