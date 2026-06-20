@@ -63,11 +63,7 @@ public partial class Tree : RenderableControl
     public Style Style
     {
         get => _style;
-        set
-        {
-            _style = value;
-            Invalidate();
-        }
+        set => SetProperty(ref _style, value);
     }
     /// <summary>
     /// Gets or sets the tree guide lines.
@@ -75,25 +71,16 @@ public partial class Tree : RenderableControl
     public TreeGuide Guide
     {
         get => _guide;
-        set
-        {
-            _guide = value;
-            scguide = GetSpectreConsoleTreeGuide(_guide);
-            Invalidate();
-        }
+        set => SetProperty(ref _guide, value, onChanged: () => scguide = GetSpectreConsoleTreeGuide(_guide));
     }
-    
+
     /// <summary>
     /// Gets or sets a value indicating whether or not the tree is expanded or not.
     /// </summary>
     public bool Expanded
     {
         get => _expanded;
-        set
-        {
-            _expanded = value;
-            Invalidate();
-        }
+        set => SetProperty(ref _expanded, value);
     }
 
     internal ICollection<TreeNode> Nodes => _root.Children;
@@ -102,21 +89,13 @@ public partial class Tree : RenderableControl
     public Color? SelectedForegroundColor
     {
         get => _selectedForegroundColor;
-        set
-        {
-            _selectedForegroundColor = value;
-            Invalidate();
-        }
+        set => SetProperty(ref _selectedForegroundColor, value);
     }
 
     public Color? SelectedBackgroundColor
     {
         get => _selectedBackgroundColor;
-        set
-        {
-            _selectedBackgroundColor = value;
-            Invalidate();
-        }
+        set => SetProperty(ref _selectedBackgroundColor, value);
     }
 
     public override bool HandlesInput => true;

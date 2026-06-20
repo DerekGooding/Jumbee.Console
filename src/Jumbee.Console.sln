@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleGUI", "..\ext\C-shar
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectre.Console", "..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj", "{5D091ADC-734A-965F-1D1B-E1B33540D2D6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.TestDemo", "Jumbee.Console.TestDemo\Jumbee.Console.TestDemo.csproj", "{6FE2DE0E-97C9-4486-B664-90E8B45BC4CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.TestDemo", "..\tests\Jumbee.Console.TestDemo\Jumbee.Console.TestDemo.csproj", "{6FE2DE0E-97C9-4486-B664-90E8B45BC4CD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{C9B2828B-DAC4-4D99-B75E-890596A0B988}"
 	ProjectSection(SolutionItems) = preProject
@@ -41,7 +41,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorConsole.Core.Syntax", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Snapshot", "Jumbee.Console.Snapshot\Jumbee.Console.Snapshot.csproj", "{398DEAA0-9E0F-4671-B497-61BE1B85763E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Tests", "Jumbee.Console.Tests\Jumbee.Console.Tests.csproj", "{5EF25934-E5E3-46A1-B942-165DD7A2F6A5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Tests", "..\tests\Jumbee.Console.Tests\Jumbee.Console.Tests.csproj", "{5EF25934-E5E3-46A1-B942-165DD7A2F6A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

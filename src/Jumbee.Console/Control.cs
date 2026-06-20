@@ -1,6 +1,7 @@
 ﻿namespace Jumbee.Console;
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 using ConsoleGUI.Data;
@@ -168,6 +169,37 @@ public abstract class Control : CControl, IFocusable, IDisposable
     {
         Interlocked.Increment(ref paintRequests);
         UI.MarkDirty();
+    }
+
+    /// <summary>
+    /// Assigns a backing field and requests a redraw, but only when the value actually changes.
+    /// Centralizes the equality-check + assign + invalidate pattern required of visual property setters.
+    /// </summary>
+    /// <remarks>
+    /// Only valid for atomically-assignable fields (a single value or reference store). State that cannot be
+    /// written atomically (e.g. collections inside a wrapped control) must use a copy-on-write update instead.
+    /// </remarks>
+    /// <param name="field">The backing field to assign.</param>
+    /// <param name="value">The new value.</param>
+    /// <param name="updatesLayout">
+    /// When <see langword="true"/>, the change affects layout and <see cref="Initialize"/> is called (which
+    /// re-lays-out under the UI lock and invalidates). Otherwise <see cref="Invalidate"/> is called.
+    /// </param>
+    /// <param name="onChanged">Optional custom action run after assignment and before the invalidate/initialize.</param>
+    /// <returns><see langword="true"/> if the value changed; otherwise <see langword="false"/>.</returns>
+    protected bool SetProperty<T>(ref T field, T value, bool updatesLayout = false, Action? onChanged = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+
+        field = value;
+        onChanged?.Invoke();
+
+        if (updatesLayout)
+            Initialize();
+        else
+            Invalidate();
+
+        return true;
     }
 
     /// <summary>

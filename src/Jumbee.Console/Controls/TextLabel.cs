@@ -33,34 +33,24 @@ public class TextLabel : Control
     public Color FgColor
     {
         get => _fgcolor;
-        set
-        {
-            _fgcolor = value;
-            Invalidate();
-        }
+        set => SetProperty(ref _fgcolor, value);
     }
 
     public Color BgColor
     {
         get => _bgcolor;
-        set
-        {
-            _bgcolor = value;
-            Invalidate();
-        }
+        set => SetProperty(ref _bgcolor, value);
     }
 
     public string Text
     {
         get => _text;
-        set
+        set => SetProperty(ref _text, value, onChanged: () =>
         {
-            _text = value;
             chars = new Cell[_text.Length];
             size = _orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) : new Size(1, _text.Length);
             Resize(size);
-            Invalidate();
-        }
+        });
     }
     #endregion
 

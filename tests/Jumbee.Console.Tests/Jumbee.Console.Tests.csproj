@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Jumbee.Console\Jumbee.Console.csproj" />
-    <ProjectReference Include="..\Jumbee.Console.Snapshot\Jumbee.Console.Snapshot.csproj" />
+    <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
+    <ProjectReference Include="..\..\src\Jumbee.Console.Snapshot\Jumbee.Console.Snapshot.csproj" />
   </ItemGroup>
 
   <ItemGroup>
