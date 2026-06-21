@@ -18,21 +18,21 @@ public class SpectreLiveDisplay : Control
         // LiveDisplay refreshes the buffer from a background thread; marshal those writes onto the UI thread.
         ansiConsole.marshal = true;
         this.target = target;
-        Display = ansiConsole.Live(target);
+        display = ansiConsole.Live(target);
     }
     #endregion
 
     #region Fields
-    public readonly LiveDisplay Display;
+    protected readonly LiveDisplay display;
     protected IRenderable target;
     #endregion
 
     #region Methods
-    public Task Start(Action<LiveDisplayContext> action) => Task.Run(() => Display.Start(action));
+    public Task Start(Action<LiveDisplayContext> action) => Task.Run(() => display.Start(action));
 
-    public Task StartAsync(Func<LiveDisplayContext, Task> action) => Display.StartAsync(action);
+    public Task StartAsync(Func<LiveDisplayContext, Task> action) => display.StartAsync(action);
 
-    public Task<T> StartAsync<T>(Func<LiveDisplayContext, Task<T>> action) => Display.StartAsync(action);
+    public Task<T> StartAsync<T>(Func<LiveDisplayContext, Task<T>> action) => display.StartAsync(action);
 
     // LiveDisplay will update console buffer
     protected override void Render() {}
