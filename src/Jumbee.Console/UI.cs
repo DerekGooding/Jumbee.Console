@@ -65,9 +65,10 @@ public static class UI
     {
         while (isRunning && !cancellationToken.IsCancellationRequested)
         {
-            if (inputSource.TryReadKey(out var key))
+            if (inputSource.TryRead(out var evt))
             {
-                dispatcher.Post(() => OnInput(key));
+                var e = evt;
+                dispatcher.Post(() => OnInput(e));
             }
             else
             {
@@ -76,8 +77,21 @@ public static class UI
         }
     }
 
-    /// <summary>Dispatches a key event on the UI thread: global hotkeys first, then the focused control.</summary>
-    private static void OnInput(ConsoleKeyInfo key)
+    /// <summary>Dispatches a terminal input event on the UI thread, routing by kind.</summary>
+    private static void OnInput(TerminalInputEvent? evt)
+    {
+        switch (evt)
+        {
+            case KeyInputEvent k: DispatchKey(k.ToConsoleKeyInfo()); break;
+            case MouseInputEvent m: DispatchMouse(m); break;
+            case PasteInputEvent p: layout?.OnPaste(p.Text); break;
+            case FocusInputEvent f: HasFocus = f.HasFocus; break;
+            // ResizeInputEvent is handled by the render loop's terminal-size check, not here.
+        }
+    }
+
+    /// <summary>Dispatches a key: global hotkeys first, then the focused control.</summary>
+    private static void DispatchKey(ConsoleKeyInfo key)
     {
         var inputEvent = new InputEvent(key);
         globalInputListener.OnInput(inputEvent);
@@ -85,6 +99,18 @@ public static class UI
         {
             inputEventArgs.InputEvent = inputEvent;
             layout?.OnInput(inputEventArgs);
+        }
+    }
+
+    /// <summary>Feeds a mouse event into ConsoleGUI's mouse routing (hit-test + enter/leave/move/down/up).</summary>
+    private static void DispatchMouse(MouseInputEvent m)
+    {
+        ConsoleManager.MousePosition = new Position(m.X, m.Y);
+        switch (m.Kind)
+        {
+            case TerminalMouseKind.Down: ConsoleManager.MouseDown = true; break;
+            case TerminalMouseKind.Up: ConsoleManager.MouseDown = false; break;
+            // Move/Drag only need the updated position above. Wheel has no ConsoleGUI equivalent yet (deferred).
         }
     }
     /// <summary>
@@ -211,6 +237,10 @@ public static class UI
     /// <summary>True while the UI loop is running. Background work (e.g. a Spectre progress/live loop) can poll
     /// this to exit when the UI stops.</summary>
     public static bool IsRunning => isRunning;
+
+    /// <summary>Whether the terminal window currently has focus (DEC mode 1004). Defaults to <see langword="true"/>;
+    /// updated from <see cref="FocusInputEvent"/>s once focus reporting is enabled by the raw input source.</summary>
+    public static bool HasFocus { get; private set; } = true;
 
     /// <summary>A token that is cancelled when the UI stops. Background work started alongside the UI (e.g. a
     /// Spectre progress/live loop) should observe this so it terminates on shutdown instead of running on.</summary>

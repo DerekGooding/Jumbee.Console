@@ -24,6 +24,9 @@ public interface IFocusable : IControl
     bool HandlesInput { get; }
 
     void OnInput(UI.InputEventArgs inputEventArgs);
-    
+
+    /// <summary>Delivers a bracketed-paste payload as a single unit. Default no-op; overridden by text controls.</summary>
+    void OnPaste(string text) {}
+
     IFocusable? FocusedControl => Focusable && IsFocused ? FocusableControl : null;
 }

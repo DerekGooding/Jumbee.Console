@@ -87,6 +87,17 @@ public class TextEditor : Control
     }
     
     
+    // Insert a whole paste at the caret in one shot (no per-key re-interpretation; newlines kept verbatim).
+    public override void OnPaste(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        input = input.Insert(caretPosition, text);
+        caretPosition += text.Length;
+        newInput = true;
+        AutoScroll();
+        Invalidate();
+    }
+
     protected override void OnInput(InputEvent inputEvent)
     {
         switch (inputEvent.Key.Key)

@@ -117,7 +117,9 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
 
     public void OnUpdate(DrawingContext drawingContext, Rect rect) => control.OnUpdate(drawingContext, rect);
 
-    public void OnInput(UI.InputEventArgs inputEventArgs) => Controls.ForEach(f => f.FocusedControl?.OnInput(inputEventArgs));           
+    public void OnInput(UI.InputEventArgs inputEventArgs) => Controls.ForEach(f => f.FocusedControl?.OnInput(inputEventArgs));
+
+    public void OnPaste(string text) => Controls.ForEach(f => f.FocusedControl?.OnPaste(text));
     #endregion
 
     #region Fields

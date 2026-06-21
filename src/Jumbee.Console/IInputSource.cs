@@ -3,31 +3,32 @@ namespace Jumbee.Console;
 using System;
 
 /// <summary>
-/// Supplies key events to the UI input loop. The default reads the real console; tests (or scripted/headless
-/// scenarios) can supply their own to inject keys deterministically.
+/// Supplies <see cref="TerminalInputEvent"/>s (keys, mouse, paste, focus) to the UI input loop. The default reads
+/// the real console; tests (or scripted/headless scenarios) can supply their own to inject events deterministically.
 /// </summary>
 public interface IInputSource
 {
     /// <summary>
-    /// Returns the next available key without blocking. Returns <see langword="false"/> when no key is ready.
+    /// Returns the next available input event without blocking. Returns <see langword="false"/> when none is ready.
     /// </summary>
-    bool TryReadKey(out ConsoleKeyInfo key);
+    bool TryRead(out TerminalInputEvent? evt);
 }
 
 /// <summary>
-/// The default <see cref="IInputSource"/>, reading from <see cref="Console"/>. Returns no key when console
-/// input is redirected or unavailable.
+/// The default <see cref="IInputSource"/>, reading keys from <see cref="Console"/> and wrapping them as
+/// <see cref="KeyInputEvent"/>s. Returns no event when console input is redirected or unavailable. (Mouse/paste/
+/// focus require the raw VT input source — a later step; this keyboard-only source keeps existing behavior.)
 /// </summary>
 public sealed class ConsoleInputSource : IInputSource
 {
     /// <inheritdoc/>
-    public bool TryReadKey(out ConsoleKeyInfo key)
+    public bool TryRead(out TerminalInputEvent? evt)
     {
         try
         {
             if (Console.KeyAvailable)
             {
-                key = Console.ReadKey(intercept: true);
+                evt = KeyInputEvent.From(Console.ReadKey(intercept: true));
                 return true;
             }
         }
@@ -36,7 +37,7 @@ public sealed class ConsoleInputSource : IInputSource
             // Console input is redirected/unavailable.
         }
 
-        key = default;
+        evt = null;
         return false;
     }
 }

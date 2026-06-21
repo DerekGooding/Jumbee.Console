@@ -117,6 +117,17 @@ public abstract class Control : CControl, IFocusable, IDisposable
     }
 
     protected virtual void OnInput(InputEvent inputEvent) {}
+
+    /// <summary>
+    /// Handles a bracketed-paste payload. Default replays it as character key events so existing text controls
+    /// receive it; controls that can insert text in bulk (e.g. <see cref="TextEditor"/>) should override this.
+    /// </summary>
+    public virtual void OnPaste(string text)
+    {
+        if (!HandlesInput) return;
+        foreach (var c in text)
+            OnInput(new InputEvent(new ConsoleKeyInfo(c, (ConsoleKey)0, shift: false, alt: false, control: false)));
+    }
     #endregion
 
     #region Methods
