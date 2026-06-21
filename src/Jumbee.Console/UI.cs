@@ -82,37 +82,33 @@ public static class UI
     {
         switch (evt)
         {
-            case KeyInputEvent k: DispatchKey(k.ToConsoleKeyInfo()); break;
-            case MouseInputEvent m: DispatchMouse(m); break;
-            case PasteInputEvent p: layout?.OnPaste(p.Text); break;
-            case FocusInputEvent f: HasFocus = f.HasFocus; break;
+            case KeyInputEvent k:
+                var inputEvent = new InputEvent(k.ToConsoleKeyInfo());
+                globalInputListener.OnInput(inputEvent);
+                if (!inputEvent.Handled)
+                {
+                    inputEventArgs.InputEvent = inputEvent;
+                    layout?.OnInput(inputEventArgs);
+                }
+                break;
+            case MouseInputEvent m:
+                ConsoleManager.MousePosition = new Position(m.X, m.Y);
+                switch (m.Kind)
+                {
+                    case TerminalMouseKind.Down: ConsoleManager.MouseDown = true; break;
+                    case TerminalMouseKind.Up: ConsoleManager.MouseDown = false; break;
+                        // Move/Drag only need the updated position above. Wheel has no ConsoleGUI equivalent yet (deferred).
+                }
+                break;
+            case PasteInputEvent p: 
+                layout?.OnPaste(p.Text); 
+                break;
+            case FocusInputEvent f: 
+                HasFocus = f.HasFocus; 
+                break;
             // ResizeInputEvent is handled by the render loop's terminal-size check, not here.
         }
-    }
-
-    /// <summary>Dispatches a key: global hotkeys first, then the focused control.</summary>
-    private static void DispatchKey(ConsoleKeyInfo key)
-    {
-        var inputEvent = new InputEvent(key);
-        globalInputListener.OnInput(inputEvent);
-        if (!inputEvent.Handled)
-        {
-            inputEventArgs.InputEvent = inputEvent;
-            layout?.OnInput(inputEventArgs);
-        }
-    }
-
-    /// <summary>Feeds a mouse event into ConsoleGUI's mouse routing (hit-test + enter/leave/move/down/up).</summary>
-    private static void DispatchMouse(MouseInputEvent m)
-    {
-        ConsoleManager.MousePosition = new Position(m.X, m.Y);
-        switch (m.Kind)
-        {
-            case TerminalMouseKind.Down: ConsoleManager.MouseDown = true; break;
-            case TerminalMouseKind.Up: ConsoleManager.MouseDown = false; break;
-            // Move/Drag only need the updated position above. Wheel has no ConsoleGUI equivalent yet (deferred).
-        }
-    }
+    }    
     /// <summary>
     /// Stops the UI update loop and disposes of the timer. 
     /// </summary>
@@ -121,11 +117,28 @@ public static class UI
         if (!isRunning) return;
         isRunning = false;
         cts.Cancel();
+        (inputSource as IDisposable)?.Dispose();   // restores terminal mode for a VtInputSource
         dispatcher.Stop();
         inputThread = null;
         controls.Clear();
         ProcessMetrics.Stop();
         runCompletion.TrySetResult();
+    }
+
+    /// <summary>Moves keyboard focus to <paramref name="target"/>, clearing focus on all other registered
+    /// controls (single-focus). Used by click-to-focus; runs on the UI thread.</summary>
+    public static void SetFocus(IFocusable target)
+    {
+        Invoke(() =>
+        {
+            var keep = target.FocusableControl;
+            foreach (var c in controls)
+            {
+                if (c.IsFocused && !ReferenceEquals(c, target) && !ReferenceEquals(c, keep))
+                    c.IsFocused = false;
+            }
+            if (target.Focusable) target.IsFocused = true;
+        });
     }
 
     /// <summary>

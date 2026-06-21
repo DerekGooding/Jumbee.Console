@@ -23,7 +23,8 @@ public class Program
         //GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
-        DockPanelTest(args);
+        InputDemo(args);
+        //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
@@ -47,6 +48,25 @@ public class Program
         Console.WriteLine($"GC Fragmentation: {UI.ProcessMetrics.GcFragmentation}");
         Console.WriteLine($"Average ThreadPool Threads: {UI.ProcessMetrics.ThreadPoolThreads:F2}");
         Console.WriteLine($"Total Lock Contentions: {UI.ProcessMetrics.TotalLockContentions}");
+    }
+
+    // Step C demo: the VT input pipeline end-to-end. Click an editor to focus it (mouse), type, and paste
+    // (bracketed paste arrives as one chunk via TextEditor.OnPaste). Ctrl+Q quits.
+    static void InputDemo(string[] args)
+    {
+        var editor1 = new TextEditor();
+        var editor2 = new TextEditor();
+        var grid = new Grid(
+            [10, 10],
+            [70],
+            [
+                [editor1.WithFrame(title: "Editor 1 — click to focus, type, paste (Ctrl+Q quits)")],
+                [editor2.WithFrame(title: "Editor 2 — click to focus")],
+            ]);
+
+        var run = UI.Start(grid, width: 72, height: 22, input: new VtInputSource());
+        UI.SetFocus(editor1);
+        run.Wait();
     }
 
     static void GridTest(string[] args)

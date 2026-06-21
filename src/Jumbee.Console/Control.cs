@@ -11,7 +11,7 @@ using ConsoleGUI.Space;
 /// <summary>
 /// Base class for all Jumbee.Console controls.
 /// </summary>
-public abstract class Control : CControl, IFocusable, IDisposable    
+public abstract class Control : CControl, IFocusable, IDisposable, IMouseListener
 {
     #region Constructors
     public Control() : base()
@@ -38,8 +38,11 @@ public abstract class Control : CControl, IFocusable, IDisposable
             }
             else
             {
-                return consoleBuffer[position];
-            }            
+                var cell = consoleBuffer[position];
+                // Attach this control as the cell's mouse listener so a click inside it is routed here for
+                // click-to-focus (ConsoleGUI's mouse system hit-tests via the cell's listener).
+                return Focusable ? cell.WithMouseListener(this, position) : cell;
+            }
         }
     }
     #endregion
@@ -117,6 +120,17 @@ public abstract class Control : CControl, IFocusable, IDisposable
     }
 
     protected virtual void OnInput(InputEvent inputEvent) {}
+
+    #region IMouseListener
+    void IMouseListener.OnMouseEnter() {}
+    void IMouseListener.OnMouseLeave() {}
+    void IMouseListener.OnMouseMove(Position position) {}
+    void IMouseListener.OnMouseUp(Position position) {}
+    void IMouseListener.OnMouseDown(Position position)
+    {
+        if (Focusable) UI.SetFocus(this);
+    }
+    #endregion
 
     /// <summary>
     /// Handles a bracketed-paste payload. Default replays it as character key events so existing text controls
