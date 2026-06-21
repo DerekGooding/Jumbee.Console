@@ -87,11 +87,6 @@ public class TextEditor : Control
     }
     
     
-    protected override void Validate()
-    {
-        if (!_blinkCursor) base.Validate();
-    }
-    
     protected override void OnInput(InputEvent inputEvent)
     {
         switch (inputEvent.Key.Key)
@@ -174,9 +169,8 @@ public class TextEditor : Control
         ansiConsole.SetCursorPosition(pos.x, pos.y);
         if (IsFocused && _showCursor)
         {
-            
+            ansiConsole.BufferCursor.Style = _blinkCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock;
             ansiConsole.Cursor.Show();
-            
         }
         else
         {
@@ -328,7 +322,6 @@ public class TextEditor : Control
     private Language _language;
     private bool _showCursor;
     private bool _blinkCursor;
-    private bool blinkState;
     private string input = string.Empty;
     private bool newInput;
     private int caretPosition = 0;

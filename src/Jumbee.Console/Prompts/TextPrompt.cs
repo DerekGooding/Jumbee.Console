@@ -108,6 +108,8 @@ public class TextPrompt : Prompt
         // Only the focused control may own the terminal cursor; otherwise clear it so it doesn't linger.
         if (IsValidCursorPosition && IsFocused && _showCursor)
         {
+            // Blinking is now the terminal's job (DECSCUSR), not a forced repaint.
+            ansiConsole.BufferCursor.Style = _blinkCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock;
             ansiConsole.Cursor.Show(true);
         }
         else
@@ -115,12 +117,7 @@ public class TextPrompt : Prompt
             ansiConsole.Cursor.Hide();
         }
     }
-   
-    protected override void Validate()
-    {
-        if (!_blinkCursor) base.Validate();
-    }
-  
+
     protected override void OnInput(InputEvent inputEvent)
     {        
         switch (inputEvent.Key.Key)
@@ -196,8 +193,7 @@ public class TextPrompt : Prompt
     #region Fields
     private string _prompt;
     private bool _showCursor;
-    private bool _blinkCursor;    
-    private bool blinkState;
+    private bool _blinkCursor;
     private string input = string.Empty;
     private bool newInput;
     private int _caretPosition = 0;

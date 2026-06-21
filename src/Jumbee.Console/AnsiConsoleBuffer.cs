@@ -40,6 +40,8 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     #region Properties
     public Profile Profile => _profile;
     public IAnsiConsoleCursor Cursor => _cursor;
+    /// <summary>The concrete buffer cursor, exposing Jumbee-specific <see cref="AnsiConsoleBufferCursor.Style"/>/<see cref="AnsiConsoleBufferCursor.Color"/>.</summary>
+    internal AnsiConsoleBufferCursor BufferCursor => _cursor;
     public IAnsiConsoleInput Input => _input;
     public IExclusivityMode ExclusivityMode => _exclusivityMode;
     public RenderPipeline Pipeline => _pipeline;
@@ -288,6 +290,34 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
     #region Properties
     internal bool IsVisible => _isVisible;
+
+    /// <summary>The cursor shape/blink, emitted by the renderer as DECSCUSR. Re-applies live if visible.</summary>
+    public CursorStyle Style
+    {
+        get => _style;
+        set
+        {
+            if (_style != value)
+            {
+                _style = value;
+                if (_isVisible) { HideCursor(); ShowCursor(); }
+            }
+        }
+    }
+
+    /// <summary>Cursor colour (OSC 12), or <see langword="null"/> for the terminal default. Re-applies live if visible.</summary>
+    public Color? Color
+    {
+        get => _color;
+        set
+        {
+            if (!Nullable.Equals(_color, value))
+            {
+                _color = value;
+                if (_isVisible) { HideCursor(); ShowCursor(); }
+            }
+        }
+    }
     #endregion
 
     #region Methods
@@ -331,10 +361,13 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
     {
         _isVisible = false;
         _savedPosition = null;
+        _savedCell = default;
     }
 
     // Marks the cell at the cursor position so the renderer (ConsoleManager) positions the terminal's native
-    // cursor there. We only flip the IsCursor flag; the cell's content/colors are left untouched.
+    // cursor there. The IsCursor flag plus the encoded Style (in the Decoration high bits) and optional Color
+    // (in the cell's Foreground) ride the composited cell up to the renderer. The original cell is saved so
+    // HideCursor can restore the glyph's real colour/decoration.
     private void ShowCursor()
     {
         var x = _parent.CursorX;
@@ -342,8 +375,16 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
         if (x < 0 || y < 0 || x >= _parent._console.Size.Width || y >= _parent._console.Size.Height)
             return;
+        var cell = _parent._console[x, y];
+        _savedCell = cell;
         _savedPosition = new Position(x, y);
-        _parent._console.Write(x, y, _parent._console[x, y].WithIsCursor(true));
+
+        var c = cell.Character;
+        var decoration = CursorEncoding.WithColorFlag(
+            CursorEncoding.EncodeStyle(c.Decoration ?? ConsoleGUI.Data.Decoration.None, (int)_style),
+            _color.HasValue);
+        var cursorChar = new Character(c.Content, _color ?? c.Foreground, c.Background, decoration, isCursor: true);
+        _parent._console.Write(x, y, new Cell(cursorChar, cell.MouseListener));
         _isVisible = true;
     }
 
@@ -354,7 +395,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
             var pos = _savedPosition.Value;
             if (pos.X >= 0 && pos.Y >= 0 && pos.X < _parent._console.Size.Width && pos.Y < _parent._console.Size.Height)
             {
-                _parent._console.Write(pos, _parent._console[pos].WithIsCursor(false));
+                _parent._console.Write(pos, _savedCell);
             }
         }
         _isVisible = false;
@@ -393,6 +434,9 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
     #region Fields
     private readonly AnsiConsoleBuffer _parent;
     private Position? _savedPosition;
+    private Cell _savedCell;
     private bool _isVisible;
+    private CursorStyle _style = CursorStyle.Default;
+    private Color? _color;
     #endregion
 }

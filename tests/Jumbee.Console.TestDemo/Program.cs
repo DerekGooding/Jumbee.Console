@@ -321,7 +321,7 @@ public class Program
 
     static void DockPanelTest(string[] args)
     {
-        var p = new TextEditor(TextEditor.Language.Markdown, blinkCursor: true)
+        var p = new TextEditor(TextEditor.Language.Markdown, blinkCursor: false)
            .WithRoundedBorder(Purple)
            .WithTitle("Editor");
         var tree = new Tree("tree", TreeGuide.Line, Green | Dim) { Width = 20, Height=10 };

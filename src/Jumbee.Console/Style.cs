@@ -15,7 +15,22 @@ public enum ChartOrientation
 {
     Horizontal,
     Vertical,
-    
+
+}
+
+/// <summary>
+/// Terminal cursor shapes/blink, mapping to DECSCUSR (CSI Ps SP q) values. <see cref="Default"/> (0) leaves
+/// the terminal's configured cursor.
+/// </summary>
+public enum CursorStyle
+{
+    Default = 0,
+    BlinkingBlock = 1,
+    SteadyBlock = 2,
+    BlinkingUnderline = 3,
+    SteadyUnderline = 4,
+    BlinkingBar = 5,
+    SteadyBar = 6,
 }
 public readonly struct Style
 {    
