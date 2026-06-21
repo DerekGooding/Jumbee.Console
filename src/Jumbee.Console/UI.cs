@@ -49,7 +49,7 @@ public static class UI
         cancellationToken = cts.Token;
         runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         isRunning = true;
-        // Start the single UI thread (drains the dispatcher queue, then renders, each frame).
+        // Start the single UI thread (reads the dispatcher queue, then renders each frame).
         dispatcher.Start(OnFrame, interval);
         // Start the input thread which blocks on the console and marshals each key onto the UI thread.
         inputThread = new Thread(InputLoop) { IsBackground = true, Name = "Jumbee.Console.Input" };
