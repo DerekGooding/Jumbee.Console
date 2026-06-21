@@ -207,6 +207,14 @@ public static class UI
 
     #region Properties
     public static ILayout Layout => layout!;
+
+    /// <summary>True while the UI loop is running. Background work (e.g. a Spectre progress/live loop) can poll
+    /// this to exit when the UI stops.</summary>
+    public static bool IsRunning => isRunning;
+
+    /// <summary>A token that is cancelled when the UI stops. Background work started alongside the UI (e.g. a
+    /// Spectre progress/live loop) should observe this so it terminates on shutdown instead of running on.</summary>
+    public static CancellationToken CancellationToken => cancellationToken;
     
     public static double AveragePaintTime
     {

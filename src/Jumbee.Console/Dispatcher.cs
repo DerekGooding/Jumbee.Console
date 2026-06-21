@@ -60,15 +60,25 @@ public sealed class Dispatcher
     }
 
     /// <summary>Signals the UI thread to stop, waits briefly for it to exit, and clears any pending work.</summary>
+    /// <remarks>
+    /// Safe to call from the UI thread itself (e.g. a hotkey handler): in that case the loop is signalled and
+    /// unwinds when control returns to it, so we must not <see cref="Thread.Join(int)"/> (a thread cannot join
+    /// itself). Only a caller on another thread waits for the UI thread to exit.
+    /// </remarks>
     public void Stop()
     {
         if (!_running) return;
 
+        var onUiThread = Environment.CurrentManagedThreadId == _uiThreadId;
+
         _running = false;
         _wake.Set();
-        _thread?.Join(1000);
-        _thread = null;
-        _uiThreadId = NoThread;
+        if (!onUiThread)
+        {
+            _thread?.Join(1000);
+            _thread = null;
+            _uiThreadId = NoThread;
+        }
 
         while (_queue.TryDequeue(out _)) { }
     }
@@ -208,6 +218,9 @@ public sealed class Dispatcher
             catch { /* a frame error must not kill the UI thread */ }
         }
         ProcessQueue();
+        // Runs as the UI thread exits (covers Stop() called from the UI thread, which can't clear this itself).
+        _uiThreadId = NoThread;
+        _thread = null;
     }
 
     private void ProcessQueue()

@@ -1,6 +1,7 @@
 namespace Jumbee.Console;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -48,7 +49,19 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
 
     #region Methods
     public void Clear(bool home)
-    {        
+    {
+        if (marshal)
+        {
+            UI.Invoke(() => _Clear(home));
+        }
+        else
+        {
+            _Clear(home);
+        }
+    }
+
+    private void _Clear(bool home)
+    {
         bool wasVisible = _cursor.IsVisible;
         _cursor.Forget();
         _console.Initialize();
@@ -66,10 +79,25 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     }
 
     public void Write(IRenderable renderable)
-    {        
+    {
+        // Render to segments on the calling thread (which owns/mutates the renderable), then apply them to the
+        // buffer. When marshaling, only the apply runs on the UI thread — so the UI thread never enumerates a
+        // renderable the producer is concurrently mutating (e.g. a LiveDisplay Table rebuilt each tick).
+        var segments = new List<Segment>(renderable.GetSegments(this));
+        if (marshal)
+        {
+            UI.Invoke(() => _Write(segments));
+        }
+        else
+        {
+            _Write(segments);
+        }
+    }
+
+    private void _Write(IReadOnlyList<Segment> segments)
+    {
         bool wasVisible = _cursor.Hide();
 
-        var segments = renderable.GetSegments(this);
         foreach (var segment in segments)
         {
             if (segment.IsControlCode)
@@ -232,6 +260,14 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     #endregion
 
     #region Fields
+    /// <summary>
+    /// When <see langword="true"/>, <see cref="Write"/> and <see cref="Clear"/> are marshaled onto the UI thread
+    /// via <see cref="UI.Invoke"/> so their buffer mutations are serialized with rendering and resizing. Set this
+    /// for controls whose wrapped Spectre widget refreshes from its own thread (e.g. <see cref="SpectreLiveDisplay"/>,
+    /// <see cref="SpectreTaskProgress"/>). Defaults to <see langword="false"/> to preserve the original
+    /// synchronous IAnsiConsole behavior for existing Spectre.Console controls.
+    /// </summary>
+    public bool marshal;
     internal readonly ConsoleBuffer _console;
     internal readonly AnsiConsoleBufferCursor _cursor;
     private readonly IAnsiConsoleInput _input;

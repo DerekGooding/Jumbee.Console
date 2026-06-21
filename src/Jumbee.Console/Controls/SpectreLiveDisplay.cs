@@ -15,6 +15,8 @@ public class SpectreLiveDisplay : Control
     #region Constructors
     public SpectreLiveDisplay(IRenderable target)
     {
+        // LiveDisplay refreshes the buffer from a background thread; marshal those writes onto the UI thread.
+        ansiConsole.marshal = true;
         this.target = target;
         Display = ansiConsole.Live(target);
     }

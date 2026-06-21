@@ -21,13 +21,13 @@ public class Program
     static async Task Main(string[] args)
     {
         //GridTest(args);
-        GridTest(args);
+        //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
         //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
-        //SpectreControlTests.ProgressTests();
+        SpectreControlTests.ProgressTests();
         Console.Clear();
         Console.WriteLine("Average UI draw time: {0}ms. Average UI paint time: {1}ms.", UI.AverageDrawTime, UI.AveragePaintTime);
         Console.WriteLine("Average control paint times:");

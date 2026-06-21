@@ -15,6 +15,8 @@ public class SpectreTaskProgress : Control
     #region Constructors
     public SpectreTaskProgress()
     {
+        // Progress auto-refreshes the buffer from a background thread; marshal those writes onto the UI thread.
+        ansiConsole.marshal = true;
         Progress = new Progress(ansiConsole);
     }
     #endregion
@@ -31,18 +33,14 @@ public class SpectreTaskProgress : Control
 
     public Task<T> StartAsync<T>(Func<ProgressContext, Task<T>> action) => Progress.StartAsync(action);
 
-    public Progress AddColumns(params ProgressColumn[] columns) => Progress.Columns(columns);
-
-    // Add a right margin to console if frame present
-    protected override void Control_OnInitialization()
+    // Returns this wrapper (not the inner Spectre Progress) so a fluent .Start(...) resolves to the wrapper's
+    // non-blocking Task.Run overload rather than Spectre's blocking Progress.Start, which would block the caller.
+    public SpectreTaskProgress AddColumns(params ProgressColumn[] columns)
     {
-        if (HasLayout && HasFrame)
-        {
-            // Accomodate the frame
-            //consoleBuffer.Size = consoleBuffer.Size.SubtractWidth(2); 
-        }
+        Progress.Columns(columns);
+        return this;
     }
-    
+       
     // Progress control will update console buffer
     protected override void Render() {}
 

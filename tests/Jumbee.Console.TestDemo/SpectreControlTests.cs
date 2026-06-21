@@ -32,7 +32,8 @@ internal class SpectreControlTests
         var t = UI.Start(grid);
         liveDisplay.Start(ctx =>
         {
-            for (int i = 0; i < 10; i++)
+            // Observe UI shutdown (e.g. Ctrl-Q) so this background loop stops instead of running on.
+            for (int i = 0; i < 100 && UI.IsRunning; i++)
             {
                 table.Rows.Clear();
                 table.AddRow("CPU Usage", $"{Random.Shared.Next(10, 80)}%");
@@ -41,7 +42,7 @@ internal class SpectreControlTests
                 table.AddRow("Uptime", $"{i + 1} seconds");
 
                 ctx.Refresh();
-                Thread.Sleep(1000);
+                Thread.Sleep(200);
             }
         });
 
@@ -50,7 +51,7 @@ internal class SpectreControlTests
 
     public static void ProgressTests()
     {
-        /*
+        
         var progress = new SpectreTaskProgress();
         var grid = new Grid([30], [90], [
            [progress.WithFrame(title: "Progress").WithMargin(0,0,1,0)]
@@ -69,7 +70,8 @@ internal class SpectreControlTests
             var task2 = ctx.AddTask("Processing documents", maxValue: 1550);
             var task3 = ctx.AddTask("Compiling code", maxValue:1000); // maxValue defaults to 100
 
-            while (!ctx.IsFinished)
+            // Observe UI shutdown (e.g. Ctrl-Q) so this background loop stops instead of running on.
+            while (!ctx.IsFinished && UI.IsRunning)
             {
                 task1.Increment(1.5);
                 task2.Increment(0.8);
@@ -78,7 +80,7 @@ internal class SpectreControlTests
             }
         });
         
-        System.Threading.Tasks.Task.WaitAll(t, t2);
-        */
+        System.Threading.Tasks.Task.WaitAll(t);
+        
     }
 }

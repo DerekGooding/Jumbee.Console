@@ -85,4 +85,36 @@ public class UiStartTests
 
         Assert.True(run.Wait(2000), "Stop() should complete the run task.");
     }
+
+    [Fact]
+    public void Stop_InvokedOnUiThread_DoesNotSelfJoinHang_AndCompletesRunTask()
+    {
+        var originalOut = Console.Out;
+        Console.SetOut(TextWriter.Null);
+
+        var control = new KeyRecorderControl();
+        var grid = new Grid([5], [20], [[control]]);
+        Task run;
+
+        try
+        {
+            run = UI.Start(
+                grid, width: 20, height: 5, paintInterval: 20,
+                console: new ConsoleBuffer { Size = new Size(20, 5) },
+                input: new FakeInputSource());
+
+            // Simulate the Ctrl-Q hotkey path: Stop runs on the UI thread. The dispatcher must not try to
+            // Join its own thread (which would block for the full timeout).
+            UI.Post(() => UI.Stop());
+
+            Assert.True(run.Wait(2000), "Stop() from the UI thread should complete the run task promptly.");
+            Assert.True(WaitUntil(() => !UI.Dispatcher.IsRunning, 2000), "Dispatcher should have stopped.");
+            Assert.False(UI.IsRunning);
+        }
+        finally
+        {
+            UI.Stop();
+            Console.SetOut(originalOut);
+        }
+    }
 }
