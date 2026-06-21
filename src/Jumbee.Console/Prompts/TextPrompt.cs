@@ -105,16 +105,14 @@ public class TextPrompt : Prompt
 
     protected void RenderCursor()
     {
-        if (IsValidCursorPosition && IsFocused)
+        // Only the focused control may own the terminal cursor; otherwise clear it so it doesn't linger.
+        if (IsValidCursorPosition && IsFocused && _showCursor)
         {
-            if (_showCursor)
-            {
-                ansiConsole.Cursor.Show(true);
-            }
-            else
-            {                
-                ansiConsole.Cursor.Show(true);                
-            }
+            ansiConsole.Cursor.Show(true);
+        }
+        else
+        {
+            ansiConsole.Cursor.Hide();
         }
     }
    

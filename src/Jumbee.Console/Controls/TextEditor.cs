@@ -174,14 +174,9 @@ public class TextEditor : Control
         ansiConsole.SetCursorPosition(pos.x, pos.y);
         if (IsFocused && _showCursor)
         {
-            if (_blinkCursor)
-            {
-                ansiConsole.Cursor.Show(blinkState = !blinkState);
-            }
-            else
-            {
-                ansiConsole.Cursor.Show();
-            }
+            
+            ansiConsole.Cursor.Show();
+            
         }
         else
         {

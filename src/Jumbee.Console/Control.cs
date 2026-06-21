@@ -91,11 +91,14 @@ public abstract class Control : CControl, IFocusable, IDisposable
             if (field != value)
             {
                 field = value;
-                Frame?.IsFocused = value;   
+                Frame?.IsFocused = value;
                 if (value)
                     OnFocus?.Invoke();
                 else
                     OnLostFocus?.Invoke();
+                // Repaint so RenderCursor runs for both the old and new focus: only the focused control owns the
+                // terminal cursor, so the defocused one must clear its IsCursor cell.
+                Invalidate();
             }
         }
     }

@@ -23,11 +23,11 @@ public class Program
         //GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
-        //DockPanelTest(args);
+        DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
-        SpectreControlTests.ProgressTests();
+        //SpectreControlTests.ProgressTests();
         Console.Clear();
         Console.WriteLine("Average UI draw time: {0}ms. Average UI paint time: {1}ms.", UI.AverageDrawTime, UI.AveragePaintTime);
         Console.WriteLine("Average control paint times:");
@@ -78,7 +78,7 @@ public class Program
         var table3 = new Spectre.Console.Table()
                 .AddColumn(new Spectre.Console.TableColumn("Line"));
         var disp = new SpectreLiveDisplay(table3);
-        disp.Display.Overflow = Spectre.Console.VerticalOverflow.Ellipsis;
+        //disp.Display.Overflow = Spectre.Console.VerticalOverflow.Ellipsis;
         
         // 3. Tree
         var treeControl = new Tree("Root", guide: TreeGuide.BoldLine)

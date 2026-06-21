@@ -331,9 +331,10 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
     {
         _isVisible = false;
         _savedPosition = null;
-        _savedCell = default;
     }
 
+    // Marks the cell at the cursor position so the renderer (ConsoleManager) positions the terminal's native
+    // cursor there. We only flip the IsCursor flag; the cell's content/colors are left untouched.
     private void ShowCursor()
     {
         var x = _parent.CursorX;
@@ -341,18 +342,8 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
         if (x < 0 || y < 0 || x >= _parent._console.Size.Width || y >= _parent._console.Size.Height)
             return;
-        var currentCell = _parent._console[x, y];
-        _savedCell = currentCell;
         _savedPosition = new Position(x, y);
-        if (currentCell.Content == null || currentCell.Content == '\0' || currentCell.Content == ' ')
-        {
-            _parent._console.Write(x, y, cursorEmptyCell);
-
-        }
-        else
-        {
-            _parent._console.Write(x, y, currentCell.WithBackground(_cursorBackgroundColor));
-        }
+        _parent._console.Write(x, y, _parent._console[x, y].WithIsCursor(true));
         _isVisible = true;
     }
 
@@ -363,14 +354,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
             var pos = _savedPosition.Value;
             if (pos.X >= 0 && pos.Y >= 0 && pos.X < _parent._console.Size.Width && pos.Y < _parent._console.Size.Height)
             {
-                if (_parent._console[pos].Equals(cursorEmptyCell))
-                {
-                    _parent._console.Write(pos, emptyCell);
-                }
-                else
-                {
-                    _parent._console.Write(pos, _savedCell);
-                }
+                _parent._console.Write(pos, _parent._console[pos].WithIsCursor(false));
             }
         }
         _isVisible = false;
@@ -409,10 +393,6 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
     #region Fields
     private readonly AnsiConsoleBuffer _parent;
     private Position? _savedPosition;
-    private Cell _savedCell;
     private bool _isVisible;
-    private static readonly ConsoleGUI.Data.Color _cursorBackgroundColor = new ConsoleGUI.Data.Color(100, 100, 100);
-    private static readonly Cell emptyCell = new Cell(' ');
-    private static readonly Cell cursorEmptyCell = emptyCell.WithBackground(_cursorBackgroundColor);
     #endregion
 }
