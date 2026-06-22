@@ -20,10 +20,10 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        //GridTest(args);
+        GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
-        InputDemo(args);
+        //InputDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
@@ -132,7 +132,7 @@ public class Program
         spinner.Start();
 
         // The TextPrompt control
-        var prompt = new TextPrompt("[yellow]What is your name?[/]", blinkCursor: false) { Width = 20};
+        var prompt = new TextPrompt("[yellow]What is your name?[/]", blinkCursor: true) { Width = 20};
         prompt.Committed += (sender, name) =>
         {
             spinner.Text = $"Hello, [blue]{name}[/]!";
@@ -149,7 +149,7 @@ public class Program
         //treeControl.IsFocused = true;
         // Start the user interface
         p.Focus();
-        var t = UI.Start(grid, 130, 40);
+        var t = UI.Start(grid, 130, 40, isAnsiTerminal: false);
         disp.Start((ctx) =>
         {
             for (int i = 1; i <= 100; i++)

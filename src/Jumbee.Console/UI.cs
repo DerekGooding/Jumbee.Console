@@ -20,16 +20,20 @@ public static class UI
     /// <summary>
     /// Initializes the console and starts the UI.
     /// </summary>
-    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isTrueColorTerminal = true, IConsole? console = null, IInputSource? input = null)
+    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null)
     {
         if (isRunning) return runCompletion.Task;
         ProcessMetrics.Start();
+        // Drives the renderer: ANSI escape sequences when true, IConsole.Write (16-colour System.Console) when false.
+        ConsoleManager.AnsiEnabled = isAnsiTerminal;
         if (console != null)
         {
             ConsoleManager.Console = console;
         }
-        else if (!isTrueColorTerminal)
+        else if (!isAnsiTerminal)
         {
+            // Legacy terminal: 16-colour System.Console output. Input stays keyboard-only (ConsoleInputSource
+            // below) since VT mouse/paste/focus aren't available.
             ConsoleManager.Console = new SimplifiedConsole();
         }
         inputSource = input ?? new ConsoleInputSource();
