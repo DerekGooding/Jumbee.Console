@@ -20,9 +20,10 @@ public class Program
 {
     static async Task Main(string[] args)
     {
+        ConsoleManager.EmulateBlinkingCursor = true;
+        GridTest(args);
         //GridTest(args);
-        //GridTest(args);
-        SpectreControlTests.LiveDisplayTests();
+        //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);

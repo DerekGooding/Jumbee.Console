@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Microsoft.Win32.SafeHandles;
+
 /// <summary>
 /// An <see cref="IInputSource"/> that puts the terminal into VT input mode and enables mouse, bracketed-paste, and
 /// focus reporting, then reads the raw stdin byte stream, decodes it (UTF-8) and runs it through
@@ -26,7 +28,12 @@ public sealed class VtInputSource : IInputSource, IDisposable
     {
         _idleFlushMs = idleFlushMs;
         _mode = TerminalInputMode.Enable();
-        _stdin = Console.OpenStandardInput();
+        // When stdin is redirected, the mode opened /dev/tty for raw input — read from that fd so keyboard input
+        // still flows (the `myapp < file` / `echo x | myapp` case). Otherwise read stdin as usual. ownsHandle:false
+        // because TerminalInputMode owns the fd and closes it on dispose.
+        _stdin = _mode.OwnsInputFd
+            ? new FileStream(new SafeFileHandle(new IntPtr(_mode.InputFd), ownsHandle: false), FileAccess.Read)
+            : Console.OpenStandardInput();
         _reader = new Thread(ReaderLoop) { IsBackground = true, Name = "Jumbee.VtInput" };
         _reader.Start();
     }
@@ -136,15 +143,22 @@ internal sealed class TerminalInputMode : IDisposable
         }
         else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsFreeBSD())
         {
-            // Save the current tty settings, then switch to raw mode. tcgetattr fails (returns non-zero) when
-            // stdin isn't a tty (redirected / CI) — leave the terminal untouched in that case. cfmakeraw also
-            // sets VMIN=1/VTIME=0, which is exactly what the byte-at-a-time ReaderLoop wants.
-            _savedTermios = new byte[TermiosSize];
-            if (tcgetattr(STDIN_FILENO, _savedTermios) == 0)
+            // Resolve the controlling terminal: use stdin when it's a tty, else open /dev/tty so the app still
+            // gets raw keyboard input when stdin is redirected (`myapp < file`, `echo x | myapp`) — the same trick
+            // fzf/gum use to keep working in a pipeline. _inputFd < 0 (no controlling terminal, e.g. CI) → skip.
+            _inputFd = isatty(STDIN_FILENO) == 1 ? STDIN_FILENO : open(DevTty, O_RDWR);
+            if (_inputFd >= 0)
             {
-                var raw = (byte[])_savedTermios.Clone();
-                cfmakeraw(raw);
-                _termiosChanged = tcsetattr(STDIN_FILENO, TCSANOW, raw) == 0;
+                _ownsInputFd = _inputFd != STDIN_FILENO; // opened /dev/tty ourselves → must close it on dispose
+                // Save current settings, then switch to raw mode. cfmakeraw also sets VMIN=1/VTIME=0, which is
+                // exactly what the byte-at-a-time ReaderLoop wants.
+                _savedTermios = new byte[TermiosSize];
+                if (tcgetattr(_inputFd, _savedTermios) == 0)
+                {
+                    var raw = (byte[])_savedTermios.Clone();
+                    cfmakeraw(raw);
+                    _termiosChanged = tcsetattr(_inputFd, TCSANOW, raw) == 0;
+                }
             }
         }
 
@@ -168,8 +182,15 @@ internal sealed class TerminalInputMode : IDisposable
         catch { /* best effort */ }
 
         if (_modeChanged) SetConsoleMode(_stdinHandle, _originalMode);
-        if (_termiosChanged) tcsetattr(STDIN_FILENO, TCSANOW, _savedTermios!);
+        if (_termiosChanged) tcsetattr(_inputFd, TCSANOW, _savedTermios!);
+        if (_ownsInputFd) close(_inputFd);
     }
+
+    /// <summary>The terminal input fd raw mode was applied to — stdin, or a /dev/tty we opened; -1 if none.</summary>
+    public int InputFd => _inputFd;
+
+    /// <summary><see langword="true"/> when <see cref="InputFd"/> is a /dev/tty we opened (read from it, not stdin).</summary>
+    public bool OwnsInputFd => _ownsInputFd;
 
     #region Win32
     private const int STD_INPUT_HANDLE = -10;
@@ -197,12 +218,25 @@ internal sealed class TerminalInputMode : IDisposable
     #region Posix
     private const int STDIN_FILENO = 0;
     private const int TCSANOW = 0;          // apply termios change immediately (same value on Linux/macOS/BSD)
+    private const int O_RDWR = 2;           // open() flags — value is identical on Linux/macOS/BSD
+    private const string DevTty = "/dev/tty";
     // struct termios is at most ~72 bytes (macOS); over-allocate so tcgetattr's write always fits. The blob is
     // opaque — cfmakeraw does all the field/flag manipulation, so we never depend on the per-platform layout.
     private const int TermiosSize = 128;
 
     private readonly byte[]? _savedTermios;
     private readonly bool _termiosChanged;
+    private readonly int _inputFd = -1;     // stdin or an opened /dev/tty; -1 = not resolved (Windows / no tty)
+    private readonly bool _ownsInputFd;     // we opened /dev/tty and must close it
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int isatty(int fd);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int open([MarshalAs(UnmanagedType.LPUTF8Str)] string path, int flags);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int close(int fd);
 
     [DllImport("libc", SetLastError = true)]
     private static extern int tcgetattr(int fd, [Out] byte[] termios);

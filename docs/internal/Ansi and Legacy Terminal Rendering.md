@@ -73,7 +73,8 @@ The ANSI path builds one batch of escape sequences per frame with an `AnsiContro
   optional OSC 12 colour (see §5) are emitted *only on change*, so the terminal's native blink phase
   isn't reset every frame. When no cursor cell is present on a full scan, the cursor is hidden.
 
-Because the hardware cursor blinks itself, the ANSI path needs no blink timer.
+How the *blink* is produced depends on `EmulateBlinkingCursor` (see §4.1). In the default (native)
+mode the real DECSCUSR style is emitted and the terminal blinks the cursor itself — no blink timer.
 
 ## 4. The legacy path: `UpdateLegacy`
 
@@ -96,9 +97,10 @@ quantized to the nearest of the 16 console colours.
 
 ### The software cursor
 
-There is no usable hardware cursor here — we can't reposition it per-cell without it visibly jumping,
-and we can't drive a consistent blink. So the hardware cursor is kept hidden and the cursor is drawn
-as a **cell**:
+By default the cursor here is a **software cursor** — the hardware cursor can't be repositioned
+per-cell without visibly jumping, so it's kept hidden and the cursor is drawn as a cell. (The one
+exception is the native-blink mode in §4.1, where the `System.Console` hardware cursor is shown for
+*blinking* styles.) The cursor cell is skipped in the draw loop and rendered separately afterwards:
 
 ```csharp
 if (cell.Character.IsCursor) continue;   // drawn as the software cursor below, not as a raw glyph
@@ -124,13 +126,35 @@ Blinking is done by us, off a wall-clock derived phase so the rate is independen
 
 ```csharp
 private const long BlinkHalfPeriodMs = 530;          // ~1Hz
-private static bool LegacyBlinkOn() => (Environment.TickCount64 / BlinkHalfPeriodMs) % 2 == 0;
+private static bool CursorBlinkOn() => (Environment.TickCount64 / BlinkHalfPeriodMs) % 2 == 0;
 ```
 
 `TickLegacyCursorBlink` is called once per frame from `AdjustBufferSize` (on the UI thread), so the
 cursor keeps blinking even on otherwise-idle frames without an extra timer or thread. It re-renders
-the cursor cell only when the blink phase actually flips (`on != _legacyCursorShown`). DECSCUSR
-styles `0/1/3/5` blink; `2/4/6` are steady (`style == 0 || style % 2 == 1`).
+the cursor cell only when the blink phase actually flips (`on != _legacyCursorShown`). `IsBlinkingStyle`
+decides which styles blink: DECSCUSR `0/1/3/5` blink; `2/4/6` are steady. (This software blink runs
+only in emulated mode — see §4.1.)
+
+## 4.1 Cursor blink: native vs emulated (`EmulateBlinkingCursor`)
+
+A blinking cursor and a continuously-animating UI are in tension: writing characters anywhere moves
+the terminal's one-and-only cursor, so each animated frame forces a reposition (`MoveCursorTo` on
+ANSI; `SetCursorPosition` on legacy) back to the logical cursor — and most terminals **reset the
+cursor's blink phase on a reposition**. With animation at ~20fps the native blink never completes a
+cycle, so it stutters or appears solid. `ConsoleManager.EmulateBlinkingCursor` (default `false`) picks
+the trade-off; it only affects *blinking* styles (steady styles are unaffected):
+
+* **`false` — native blink (default).** The real blinking style is used and the terminal blinks the
+  cursor: on ANSI the blinking DECSCUSR style is emitted; on legacy the `System.Console` hardware
+  cursor is shown over the plain glyph and left to blink. Cheapest (no per-blink work) and friendliest
+  to screen readers, but the blink goes erratic under continuous animation. Best when nothing animates.
+* **`true` — emulated blink.** We blink the cursor ourselves: the **steady** DECSCUSR variant
+  (`SteadyCursorStyle`, ANSI) or the steady software cell (legacy) is rendered, and its visibility is
+  toggled on/off at the `CursorBlinkOn()` wall-clock rate. A per-frame reposition then only moves a
+  *steady* cursor, so the blink stays constant regardless of animation. The constant rate costs: under
+  animation it rides the redraw that's happening anyway; when idle, ANSI emits just the `DECTCEM`
+  visibility toggle via `ConsoleManager.TickCursorBlink` (a few bytes, no buffer scan) and legacy flips
+  the software cell via `TickLegacyCursorBlink`.
 
 ### "Cursor gone" detection
 
@@ -163,8 +187,8 @@ render path — the same `IsCursor` cell drives both.
 |---|---|---|
 | Output | Batched VT escape sequences, written off-thread | `IConsole.Write` per cell (`SimplifiedConsole`) |
 | Colour | Truecolor SGR | Nearest of 16 `System.Console` colours |
-| Cursor | Terminal hardware cursor (DECSCUSR + OSC 12) | Software cursor drawn as a cell |
-| Blink | Terminal-native | Wall-clock tick (`TickLegacyCursorBlink`) |
+| Cursor | Terminal hardware cursor (DECSCUSR + OSC 12) | Software cell cursor (hardware cursor for native-blink) |
+| Blink | Native, or emulated — see §4.1 (`EmulateBlinkingCursor`) | Native, or emulated — see §4.1 (`EmulateBlinkingCursor`) |
 | Input | VT input (mouse/paste/focus available) | Keyboard-only (`ConsoleInputSource`) |
 
 Default is ANSI. Pass `isAnsiTerminal: false` to `UI.Start` for terminals that don't interpret

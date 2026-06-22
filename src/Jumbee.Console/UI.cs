@@ -216,6 +216,10 @@ public static class UI
             // Idle: skip the full-screen scan but still detect a terminal resize cheaply
             // (AdjustBufferSize only redraws when the size actually changed).
             ConsoleManager.AdjustBufferSize();
+            // Keep a self-blinking ANSI cursor ticking even with no input/animation. Cheap: emits only the cursor
+            // visibility toggle when the blink phase flips (≈twice a second), not a full-screen redraw. Safe to call
+            // only here (the idle branch) — on drawn frames Update handles the cursor inline.
+            ConsoleManager.TickCursorBlink();
         }
 
         // Invoke control paint events
