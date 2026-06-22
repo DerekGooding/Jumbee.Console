@@ -20,9 +20,9 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        GridTest(args);
         //GridTest(args);
-        //SpectreControlTests.LiveDisplayTests();
+        //GridTest(args);
+        SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
@@ -64,7 +64,7 @@ public class Program
                 [editor2.WithFrame(title: "Editor 2 — click to focus")],
             ]);
 
-        var run = UI.Start(grid, width: 72, height: 22, input: new VtInputSource());
+        var run = UI.Start(grid, width: 72, height: 22, isAnsiTerminal: false);
         UI.SetFocus(editor1);
         run.Wait();
     }

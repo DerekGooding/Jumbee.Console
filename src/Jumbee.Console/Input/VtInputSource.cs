@@ -104,9 +104,15 @@ public sealed class VtInputSource : IInputSource, IDisposable
 
 /// <summary>
 /// Enables VT input mode + mouse/bracketed-paste/focus reporting and restores the prior state on dispose.
-/// On Windows this also adjusts the console input mode via the Win32 API; the DEC private-mode toggles are
-/// emitted as ANSI on all platforms.
+/// On Windows this adjusts the console input mode via the Win32 API; on Unix it puts the tty into raw mode via
+/// libc <c>cfmakeraw</c> (so reads are byte-at-a-time, unbuffered, and not echoed). The DEC private-mode toggles
+/// are emitted as ANSI on all platforms.
 /// </summary>
+/// <remarks>
+/// Unix raw mode disables <c>ISIG</c>, so Ctrl+C arrives as the byte <c>0x03</c> (a key event) rather than raising
+/// SIGINT — the application is responsible for its own quit affordance on Unix (this differs from Windows, which
+/// leaves Ctrl+C signalling intact).
+/// </remarks>
 internal sealed class TerminalInputMode : IDisposable
 {
     // SGR mouse (1006) + button/drag tracking (1002) + bracketed paste (2004) + focus (1004).
@@ -126,6 +132,19 @@ internal sealed class TerminalInputMode : IDisposable
                 mode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_QUICK_EDIT_MODE);
                 mode |= ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS;
                 _modeChanged = SetConsoleMode(_stdinHandle, mode);
+            }
+        }
+        else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsFreeBSD())
+        {
+            // Save the current tty settings, then switch to raw mode. tcgetattr fails (returns non-zero) when
+            // stdin isn't a tty (redirected / CI) — leave the terminal untouched in that case. cfmakeraw also
+            // sets VMIN=1/VTIME=0, which is exactly what the byte-at-a-time ReaderLoop wants.
+            _savedTermios = new byte[TermiosSize];
+            if (tcgetattr(STDIN_FILENO, _savedTermios) == 0)
+            {
+                var raw = (byte[])_savedTermios.Clone();
+                cfmakeraw(raw);
+                _termiosChanged = tcsetattr(STDIN_FILENO, TCSANOW, raw) == 0;
             }
         }
 
@@ -149,6 +168,7 @@ internal sealed class TerminalInputMode : IDisposable
         catch { /* best effort */ }
 
         if (_modeChanged) SetConsoleMode(_stdinHandle, _originalMode);
+        if (_termiosChanged) tcsetattr(STDIN_FILENO, TCSANOW, _savedTermios!);
     }
 
     #region Win32
@@ -172,5 +192,25 @@ internal sealed class TerminalInputMode : IDisposable
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+    #endregion
+
+    #region Posix
+    private const int STDIN_FILENO = 0;
+    private const int TCSANOW = 0;          // apply termios change immediately (same value on Linux/macOS/BSD)
+    // struct termios is at most ~72 bytes (macOS); over-allocate so tcgetattr's write always fits. The blob is
+    // opaque — cfmakeraw does all the field/flag manipulation, so we never depend on the per-platform layout.
+    private const int TermiosSize = 128;
+
+    private readonly byte[]? _savedTermios;
+    private readonly bool _termiosChanged;
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int tcgetattr(int fd, [Out] byte[] termios);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int tcsetattr(int fd, int optionalActions, [In] byte[] termios);
+
+    [DllImport("libc")]
+    private static extern void cfmakeraw([In, Out] byte[] termios);
     #endregion
 }
