@@ -3,36 +3,57 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ConsoleGUI;
-using ConsoleGUI.Common;
-using ConsoleGUI.Controls;
 
+using ConsoleGUI;
+
+/// <summary>
+///  A grid layout with controls arranged in rows and columns.
+/// </summary>
 public class Grid : Layout<ConsoleGUI.Controls.Grid>
 {
-    public Grid(ConsoleGUI.Controls.Grid layout) : base(layout) {}
-
-    public Grid() : this(new ConsoleGUI.Controls.Grid()) {}   
-
-    public Grid(IControl[][] controls) : this(new ConsoleGUI.Controls.Grid()
-    {
-        Rows = controls.Select((row, _) => new ConsoleGUI.Controls.Grid.RowDefinition(row.Select(r => r.Size.Height).Max())).ToArray(),  
-        Columns = controls.Transpose().Select((col, _) => new ConsoleGUI.Controls.Grid.ColumnDefinition(col.Select(c => c.Size.Width).Max())).ToArray(), 
-    })
-    {
+    #region Constructors
+    /// <summary>
+    /// Creates a grid layout with the specified row heights, column heights, and arrays of controls.
+    /// </summary>
+    /// <param name="rowHeights"></param>
+    /// <param name="columnWidths"></param>
+    /// <param name="controls"></param>
+    /// <exception cref="ArgumentException"></exception>
+    public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls ) : base(new ConsoleGUI.Controls.Grid())
+    {                
+        control.Rows = rowHeights.Select(h => new ConsoleGUI.Controls.Grid.RowDefinition(h)).ToArray();
+        control.Columns = columnWidths.Select(w => new ConsoleGUI.Controls.Grid.ColumnDefinition(w)).ToArray();
+        
+        if (controls.Length != rowHeights.Length)
+        {
+            throw new ArgumentException($"The number of control rows: {controls.Length} must match the number of row heights: {rowHeights.Length}.");
+        }
+        if (controls.Any(r => r.Length != columnWidths.Length))
+        {
+            var c = controls.First(r => r.Length != columnWidths.Length);
+            var index = Array.IndexOf(controls, c);
+            throw new ArgumentException($"The number of control columns in row {index}: {c.Length} must match the number of column widths: {columnWidths.Length}.");
+        }   
         for (int r = 0; r < controls.Length; r++)
         {
             for (int c = 0; c < controls[r].Length; c++)
             {
-                this.control.AddChild(c, r, controls[r][c]);    
+                control.AddChild(c, r, controls[r][c].FocusableControl);
             }
-        }
+        }       
     }
+    #endregion
 
+    #region Methods
+    public void SetChild(int row, int column, IFocusable child)
+    {
+        control.AddChild(column, row, child.FocusableControl);        
+    }
+        
     public override int Rows => control.Rows.Length;
 
     public override int Columns => control.Columns.Length;
 
-    public override IControl this[int row, int column] => control.GetChild(column, row);
+    public override IFocusable this[int row, int column] => (IFocusable) control.GetChild(column, row);
+    #endregion   
 }

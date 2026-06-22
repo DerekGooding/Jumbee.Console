@@ -1,6 +1,7 @@
 ﻿namespace Jumbee.Console;
 
 using System;
+using System.Linq;
 
 using Spectre.Console;
 
@@ -14,7 +15,9 @@ public class Spinner : AnimatedControl
         {
             _spinner = value;
             frameCount = _spinner.Frames.Count;
-            interval = _spinner.Interval;
+            interval = _spinner.Interval.Ticks;
+            spinnerFrames = _spinner.Frames.Select(Style.EscapeMarkup).ToArray();
+            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
         }
     }
 
@@ -24,6 +27,8 @@ public class Spinner : AnimatedControl
         set
         {
             _style = value;
+            styleMarkup = _style;
+            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
         }
     }
 
@@ -32,33 +37,26 @@ public class Spinner : AnimatedControl
         get => _text;
         set
         {
-            _text = value;
+            _text = Markup.Escape(value);
+            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
         }
     }
     #endregion
 
     #region Methods
-    protected override void Render()
+    protected sealed override void Render()
     {
-        if (Size.Width <= 0 || Size.Height <= 0) return;
-
-        _ansiConsole.Clear(true);
-
-        var frame = _spinner.Frames[frameIndex % _spinner.Frames.Count];
-        var frameMarkup = $"[{_style.ToMarkup()}]{Markup.Escape(frame)}[/]";
-        _ansiConsole.Markup(frameMarkup);
-
-        if (!string.IsNullOrEmpty(_text))
-        {
-            _ansiConsole.Write(" ");
-            _ansiConsole.Markup(_text);
-        }   
+        ansiConsole.Clear(true);        
+        ansiConsole.Markup(spinnerFramesMarkup[frameIndex % spinnerFrames.Length]);        
     }
     #endregion
 
     #region Fields
     private Spectre.Console.Spinner _spinner = Spectre.Console.Spinner.Known.Default;
     private Style _style = Style.Plain;
+    private string styleMarkup = Style.Plain;
+    private string[] spinnerFrames = Spectre.Console.Spinner.Known.Default.Frames.Select(Markup.Escape).ToArray();
+    private string[] spinnerFramesMarkup = Spectre.Console.Spinner.Known.Default.Frames.Select(f => $"[{Style.Plain}]{f}[/]").ToArray();
     private string _text = string.Empty;
     #endregion
 }

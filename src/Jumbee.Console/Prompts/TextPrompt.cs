@@ -1,313 +1,204 @@
 namespace Jumbee.Console;
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
 
-using ConsoleGUI.Api;
-using ConsoleGUI.Common;
-using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using ConsoleGUI.Utils;
-
 using Spectre.Console;
-using ConsoleGuiSize = ConsoleGUI.Space.Size;
-using Jumbee.Console;
 
-public class TextPrompt<T> : Control, IInputListener, IDisposable where T : IConvertible
+public class TextPrompt : Prompt
 {
     #region Constructors
-    public TextPrompt(string prompt, bool enableCursorBlink = false, StringComparer ? comparer = null)
+    public TextPrompt(string prompt, bool showCursor = true, bool blinkCursor = false) : base()
     {
-        _prompt = prompt;
-        _comparer = comparer;
-        _bufferConsole = new ConsoleBuffer();
-        _ansiConsole = new AnsiConsoleBuffer(_bufferConsole);
-        if (enableCursorBlink)
-        {
-            UI.Paint += OnCursorBlink;
-        }
+        this._prompt = prompt;
+        this._showCursor = showCursor;
+        this._blinkCursor = blinkCursor;
     }
-    #endregion
-
-    #region Properties
-    public Style? PromptStyle { get; set; }
-    public CultureInfo? Culture { get; set; }
-    public bool IsSecret { get; set; }
-    public char? Mask { get; set; } = '*';
-    public bool AllowEmpty { get; set; }
-    public Func<T, ValidationResult>? Validator { get; set; }
-    public string ValidationErrorMessage { get; set; } = "Invalid input.";  
-    public Style? DefaultValueStyle { get; set; }
-
-    public bool ShowCursor { get; set; } = true;
-
-    internal DefaultPromptValue<T>? DefaultValue { get; set; }
-    #endregion
-
-    #region Methods
-    public void SetDefaultValue(T value)
-    {
-        DefaultValue = new DefaultPromptValue<T>(value);
-    }
-
-    private void OnCursorBlink(object? sender, UI.PaintEventArgs e)
-    {
-        lock (e.Lock)
-        {
-            _blinkState = !_blinkState;
-            if (ShowCursor)
-            {
-                Redraw();
-            }
-        }
-    }
-
-    public void Dispose()
-    {
-        UI.Paint -= OnCursorBlink;
-    }
-
-    public override Cell this[Position position]
-    {
-        get
-        {
-            lock (UI.Lock)
-            {
-                Cell cell = _emptyCell;
-                if (_bufferConsole.Buffer != null &&
-                    position.X >= 0 && position.X < Size.Width &&
-                    position.Y >= 0 && position.Y < Size.Height)
-                {
-                    cell = _bufferConsole.Buffer[position.X, position.Y];
-                }
-
-                // Render Cursor
-                if (ShowCursor && _blinkState &&
-                    position.X == _inputStartX + _caretPosition &&
-                    position.Y == _inputStartY)
-                {
-                    if (cell.Content == null || cell.Content == '\0')
-                    {
-                        return _cursorEmptyCell;
-                    }
-                    return cell.WithBackground(_cursorBackgroundColor);
-                }
-
-                return cell;
-            }
-        }
-    }
-
-    protected override void Initialize()
-    {
-        lock (UI.Lock)
-        {
-            var targetSize = MaxSize;
-            targetSize = new ConsoleGuiSize(Math.Max(0, targetSize.Width), Math.Max(0, targetSize.Height));
-
-            if (targetSize.Width > 1000) targetSize = new ConsoleGuiSize(1000, targetSize.Height);
-            if (targetSize.Height > 1000) targetSize = new ConsoleGuiSize(targetSize.Width, 1000);
-
-            Resize(targetSize);
-            _bufferConsole.Resize(new ConsoleGuiSize(Math.Max(0, Size.Width), Math.Max(0, Size.Height)));
-            Paint(); 
-        }
-    }
-
-    private void Render()
-    {
-        // Assumes lock is held by caller (Initialize or OnInput)
-        if (Size.Width <= 0 || Size.Height <= 0) return;
-
-        _ansiConsole.Clear(true);
-
-        // 1. Build Prompt Markup
-        var builder = new StringBuilder();
-        builder.Append(_prompt.TrimEnd());
-
-        var appendSuffix = false;           
-        var markup = builder.ToString().Trim();
-        if (appendSuffix)
-        {
-            markup += ":";
-        }
-
-        _ansiConsole.Markup(markup + " ");
-
-        _inputStartX = _ansiConsole.CursorX;
-        _inputStartY = _ansiConsole.CursorY;
-
-        // 2. Render Input
-        string displayInput = _input;
-        if (IsSecret && Mask.HasValue)
-        {
-            displayInput = new string(Mask.Value, _input.Length);
-        }
-
-        _ansiConsole.Write(displayInput);
-
-        // 3. Render Error (if any)
-        if (_validationError != null)
-        {
-            _ansiConsole.WriteLine();
-            _ansiConsole.MarkupLine(_validationError);
-        }
-
-        
-    }
-
-    private void Paint()
-    {
-        Render();
-        Redraw();
-    }
-
-    void IInputListener.OnInput(InputEvent inputEvent)
-    {
-        lock (UI.Lock)
-        {
-            bool handled = false;
-            string? newInput = null;
-
-            _blinkState = true;
-
-            switch (inputEvent.Key.Key)
-            {
-                case ConsoleKey.LeftArrow:
-                    _caretPosition = Math.Max(0, _caretPosition - 1);
-                    handled = true;
-                    break;
-                case ConsoleKey.RightArrow:
-                    _caretPosition = Math.Min(_input.Length, _caretPosition + 1);
-                    handled = true;
-                    break;
-                case ConsoleKey.Home:
-                    _caretPosition = 0;
-                    handled = true;
-                    break;
-                case ConsoleKey.End:
-                    _caretPosition = _input.Length;
-                    handled = true;
-                    break;
-                case ConsoleKey.Backspace:
-                    if (_caretPosition > 0)
-                    {
-                        newInput = _input.Remove(_caretPosition - 1, 1);
-                        _caretPosition--;
-                        handled = true;
-                    }
-                    break;
-                case ConsoleKey.Delete:
-                    if (_caretPosition < _input.Length)
-                    {
-                        newInput = _input.Remove(_caretPosition, 1);
-                        handled = true;
-                    }
-                    break;
-                case ConsoleKey.Enter:
-                    AttemptCommit();
-                    handled = true;
-                    break;
-                default:
-                    if (!char.IsControl(inputEvent.Key.KeyChar))
-                    {
-                        newInput = _input.Insert(_caretPosition, inputEvent.Key.KeyChar.ToString());
-                        _caretPosition++;
-                        handled = true;
-                    }
-                    break;
-            }
-
-            if (newInput != null)
-            {
-                _input = newInput;
-            }
-
-            if (handled)
-            {
-                inputEvent.Handled = true;
-                Paint();
-            }
-        }
-    }
-
-    private void AttemptCommit()
-    {
-        var result = (T) Convert.ChangeType(_input, typeof(T));
-        if (string.IsNullOrWhiteSpace(_input))
-        {
-            if (DefaultValue != null)
-            {
-                Committed?.Invoke(this, DefaultValue.Value.Value);
-                return;
-            }
-
-            if (AllowEmpty)
-            {                
-                Committed?.Invoke(this, default);
-                return;
-                
-            }
-            return;
-        }
-
-       
-        if (result == null)
-        {                        
-            _validationError = ValidationErrorMessage;
-            Paint();
-            return;
-            
-        }
-
-        if (Validator != null)
-        {
-            var validationResult = Validator(result);
-            if (!validationResult.Successful)
-            {
-                _validationError = validationResult.Message ?? ValidationErrorMessage;
-                Paint();    
-                return;
-            }
-        }
-
-        _validationError = null;
-        Committed?.Invoke(this, result);
-    }
-    #endregion
-
-    #region Fields
-    private readonly string _prompt;
-    private readonly StringComparer? _comparer;
-    private readonly ConsoleBuffer _bufferConsole;
-    private readonly AnsiConsoleBuffer _ansiConsole;
-
-    private string _input = string.Empty;
-    private int _caretPosition = 0;
-    private string? _validationError = null;
-    private int _inputStartX = 0;
-    private int _inputStartY = 0;
-
-    private bool _blinkState = true;
-    private static readonly Cell _emptyCell = new Cell(Character.Empty);
-    private static readonly ConsoleGUI.Data.Color _cursorBackgroundColor = new ConsoleGUI.Data.Color(100, 100, 100);
-    private static readonly Cell _cursorEmptyCell = new Cell(' ').WithBackground(_cursorBackgroundColor);
     #endregion
 
     #region Events
-    public event EventHandler<T?>? Committed;
+    public event EventHandler<string>? Committed;
     #endregion
+
+    #region Properties
+    public override bool HandlesInput => true;
+
+    public string Prompt
+    {
+        get => _prompt;
+        set
+        {
+            _prompt = string.IsNullOrEmpty(value) ? "" : value + " ";
+            Invalidate();
+        }
+
+    }
+    
+    public bool ShowCursor
+    {
+        get => _showCursor;
+        set => SetAtomicProperty(ref _showCursor, value);
+    }
+    public bool BlinkCursor
+    {
+        get => _blinkCursor;
+        set => SetAtomicProperty(ref _blinkCursor, value);
+    }
+
+    public int CaretPosition
+    {
+        get => _caretPosition;
+        set
+        {
+            _caretPosition = value;
+            RenderCursor();
+        }
+    }
+
+    public int CursorX
+    {
+        get => ansiConsole.CursorX;
+        set
+        {
+            var dx = value - ansiConsole.CursorX;
+            ansiConsole.Cursor.MoveRight(dx);
+            RenderCursor();
+        }
+    }
+
+    public int CursorY
+    {
+        get => ansiConsole.CursorY;
+        set
+        {
+            var dy = value - ansiConsole.CursorY;
+            ansiConsole.Cursor.MoveRight(dy);
+            RenderCursor();
+        }
+    }
+    #endregion
+
+    #region Methods       
+    protected override void Control_OnInitialization()
+    {
+        RenderPrompt();
+    }   
+    
+    protected override void Render()
+    {
+        if (newInput)
+        {
+            RenderPrompt();
+            ansiConsole.Write(Markup.Escape(input));          
+            newInput = false;
+        }
+        RenderCursor();
+    }
+
+    protected void RenderPrompt()
+    {
+        ansiConsole.Clear(true);
+        ansiConsole.Markup(_prompt);
+        inputStart = new Position(ansiConsole.CursorX, ansiConsole.CursorY);
+    }
+
+    protected void RenderCursor()
+    {
+        // Only the focused control may own the terminal cursor; otherwise clear it so it doesn't linger.
+        if (IsValidCursorPosition && IsFocused && _showCursor)
+        {
+            // Blinking is now the terminal's job (DECSCUSR), not a forced repaint.
+            ansiConsole.BufferCursor.Style = _blinkCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock;
+            ansiConsole.Cursor.Show(true);
+        }
+        else
+        {
+            ansiConsole.Cursor.Hide();
+        }
+    }
+
+    protected override void OnInput(InputEvent inputEvent)
+    {        
+        switch (inputEvent.Key.Key)
+        {
+            case ConsoleKey.LeftArrow:
+                var c = _caretPosition;
+                _caretPosition = Math.Max(0, _caretPosition - 1);
+                if (c != _caretPosition)
+                {
+                    --CursorX;
+                }
+                inputEvent.Handled = true; 
+                break;
+            case ConsoleKey.RightArrow:
+                c = _caretPosition;
+                _caretPosition = Math.Min(input.Length, _caretPosition + 1);
+                if (c != _caretPosition)
+                {
+                    ++CursorX;
+                }
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.Home:
+                _caretPosition = 0;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.End:
+                _caretPosition = input.Length;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.Backspace:
+                if (_caretPosition > 0)
+                {
+                    input = input.Remove(--_caretPosition, 1);
+                    newInput = true;    
+                    inputEvent.Handled = true;
+                }
+                break;
+            case ConsoleKey.Delete:
+                if (_caretPosition < input.Length)
+                {
+                    input = input.Remove(_caretPosition--, 1);
+                    newInput = true;
+
+                    inputEvent.Handled = true;
+                }
+                break;
+            case ConsoleKey.Enter:
+                AttemptCommit();
+                inputEvent.Handled = true;
+                break;
+            default:
+                if (!char.IsControl(inputEvent.Key.KeyChar))
+                {
+                    input = input.Insert(_caretPosition++, inputEvent.Key.KeyChar.ToString());
+                    newInput = true;
+                    inputEvent.Handled = true;
+                }
+                break;
+        }
+        Invalidate();
+    }
+
+    protected bool IsValidCursorPosition => CursorX < Size.Width && CursorY < Size.Height;
+
+    private void AttemptCommit()
+    {                      
+
+        Committed?.Invoke(this, input);
+    }    
+    #endregion
+
+    #region Fields
+    private string _prompt;
+    private bool _showCursor;
+    private bool _blinkCursor;
+    private string input = string.Empty;
+    private bool newInput;
+    private int _caretPosition = 0;
+    private Position inputStart = default;
+    #endregion    
 }
 
-internal struct DefaultPromptValue<T>
-{
-    public T Value { get; }
-    public DefaultPromptValue(T value) => Value = value;
-}
 

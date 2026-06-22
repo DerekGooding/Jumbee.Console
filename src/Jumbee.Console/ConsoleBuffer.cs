@@ -1,11 +1,10 @@
 namespace Jumbee.Console;
 
 using System;
-using ConsoleGUI.Api;
 
+using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-using ConsoleGuiSize = ConsoleGUI.Space.Size;
 
 /// <summary>
 /// A ConsoleGUI.IConsole implementation that writes to a buffer.
@@ -13,45 +12,102 @@ using ConsoleGuiSize = ConsoleGUI.Space.Size;
 public class ConsoleBuffer : IConsole
 {
     #region Properties
-    public Cell[,]? Buffer { get; private set; }
-    public ConsoleGuiSize Size { get; set; }
+    public Size Size 
+    {
+        get => field;
+        set
+        {
+            Resize(value);
+            field = value;  
+        }
+    }
     public bool KeyAvailable => false;
     #endregion
 
+    #region Indexers
+    public Cell this[Position position] => buffer[position.Y][position.X];
+    
+    public Cell this[int x, int y] => buffer[y][x];
+    #endregion
+
     #region Methods
+    /// <summary>
+    /// Fill buffer with empty/transparent cells.
+    /// </summary>
     public void Initialize()
-    {
-        if (Buffer != null)
+    {    
+        for (int y = 0; y < Size.Height; y++)
         {
-            // Fill with empty/transparent cells
-            for (int x = 0; x < Size.Width; x++)
-            {
-                for (int y = 0; y < Size.Height; y++)
-                {
-                    Buffer[x, y] = new Cell(Character.Empty);
-                }
-            }
-        }
+            Array.Fill(buffer[y], emptyCell);
+        }        
     }
 
     public void OnRefresh() { }
 
-    public void Write(Position position, in Character character)
+    /// <summary>
+    /// Sets the console buffer cell character.
+    /// </summary>
+    /// <param name="position"></param>
+    /// <param name="character"></param>
+    public void Write(Position position, in Character character) => buffer[position.Y][position.X] = new Cell(character);
+        
+    
+    /// <summary>
+    /// Sets the console buffer cell character.
+    /// </summary>
+    public void Write(in int X, in int Y, in Cell cell) => buffer[Y][X] = cell;
+
+    /// <summary>
+    /// Sets the console buffer cell character.
+    /// </summary>
+    public void Write(Position position, in Cell cell) => buffer[position.Y][position.X] = cell;
+
+    /// <summary>
+    /// Will be handled by IInputListeners.
+    /// </summary>
+    /// <returns></returns>
+    public ConsoleKeyInfo ReadKey() => throw new NotImplementedException();
+    
+    public Position GetPosition(int distance)
     {
-        if (Buffer == null) return;
-        if (position.X >= 0 && position.X < Size.Width && position.Y >= 0 && position.Y < Size.Height)
+        if (Size.Width == 0)
         {
-            Buffer[position.X, position.Y] = new Cell(character);
+            return new Position(0, 0);
         }
+        int x = distance % Size.Width;
+        int y = distance / Size.Width;
+        return new Position(x, y);
     }
 
-    public ConsoleKeyInfo ReadKey() => default;
-    
-    public void Resize(ConsoleGuiSize size)
+    public Position AddX(Position pos1, int x)
     {
-        Size = size;
-        Buffer = new Cell[size.Width, size.Height];
-        Initialize();
+        if (Size.Width == 0)
+        {
+            return new Position(0, 0);
+        }
+
+        int linear_pos1 = pos1.Y * Size.Width + pos1.X;
+        int total_linear_distance = linear_pos1 + x;
+
+        return GetPosition(total_linear_distance);
     }
+
+    /// <summary>
+    /// Resizing the control dimensions resizes the console buffer.
+    /// </summary>
+    /// <param name="size"></param>
+    protected void Resize(Size size)
+    {
+        Array.Resize(ref buffer, size.Height);                
+        for (int i = 0; i < size.Height; i++)
+        {
+            Array.Resize(ref buffer[i], size.Width);
+        }       
+    }
+    #endregion
+
+    #region Fields
+    private static readonly Cell emptyCell = new Cell(' ');
+    private Cell[][] buffer = [];
     #endregion
 }

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>True</PublishAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ext\Vezel.Cathode.AnsiControlSequenceBuilder\Vezel.Cathode.AnsiControlSequenceBuilder.csproj" />
+    <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
+  </ItemGroup>
+
+
+
+</Project>

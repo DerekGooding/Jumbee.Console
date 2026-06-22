@@ -1,0 +1,221 @@
+namespace Jumbee.Console;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using ConsoleGUI.Input;
+
+/// <summary>
+/// Displays a flat list of items and allows user input navigation and selection.
+/// </summary>
+public partial class ListBox : RenderableControl
+{
+    #region Constructors
+    public ListBox() {}
+
+    public ListBox(params IRenderable[] items) 
+    {
+        AddItems(items);
+    }
+
+    public ListBox(params string[] items )
+    {
+        AddItems(items);
+    }
+
+    #endregion
+
+    #region Properties
+    public ICollection<ListBoxItem> Items => _items.Values;
+
+    public Color? SelectedForegroundColor
+    {
+        get => _selectedForegroundColor;
+        set => SetAtomicProperty(ref _selectedForegroundColor, value);
+    }
+
+    public Color? SelectedBackgroundColor
+    {
+        get => _selectedBackgroundColor;
+        set => SetAtomicProperty(ref _selectedBackgroundColor, value);
+    }
+
+    public override bool HandlesInput => true;
+    #endregion
+
+    #region Methods        
+    // Item creation (and the atomic index) happens on the calling thread so AddItem can return immediately;
+    // the dictionary mutation is marshaled to the UI thread (inline when already there) so reads during
+    // rendering never see a concurrent write.
+    public void AddItems(params IEnumerable<IRenderable> items)
+    {
+        var added = items.Select(i => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), i)).ToArray();
+        UI.Invoke(() =>
+        {
+            foreach (var item in added) _items[item.Index] = item;
+            Invalidate();
+        });
+    }
+
+    public void AddItems(params IEnumerable<string> items)
+    {
+        var added = items.Select(s => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), s)).ToArray();
+        UI.Invoke(() =>
+        {
+            foreach (var item in added) _items[item.Index] = item;
+            Invalidate();
+        });
+    }
+
+    public void AddItems(params (string text, Color? fgColor, Color? bgColor)[] items)
+    {
+        var added = items.Select(t => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), t.text, t.fgColor, t.bgColor)).ToArray();
+        UI.Invoke(() =>
+        {
+            foreach (var item in added) _items[item.Index] = item;
+            Invalidate();
+        });
+    }
+
+    public ListBoxItem AddItem(IRenderable item)
+    {
+        var listItem = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), item);
+        UI.Invoke(() =>
+        {
+            _items[listItem.Index] = listItem;
+            Invalidate();
+        });
+        return listItem;
+    }
+
+    public ListBoxItem AddItem(string text, Color? foreground = null, Color? background = null)
+    {
+        var item = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), text, foreground, background);
+        UI.Invoke(() =>
+        {
+            _items[item.Index] = item;
+            Invalidate();
+        });
+        return item;
+    }
+
+    /// <summary>
+    /// Removes an item. The result is reliable only when called on the UI thread; off-thread callers should
+    /// not rely on it (the removal is marshaled and applied on the next pump).
+    /// </summary>
+    public bool RemoveItem(ListBoxItem item)
+    {
+        var removed = false;
+        UI.Invoke(() =>
+        {
+            if (_items.Remove(item.Index, out var r))
+            {
+                r.Detach();
+                removed = true;
+                Invalidate();
+            }
+        });
+        return removed;
+    }
+
+    public void Clear()
+    {
+        UI.Invoke(() =>
+        {
+            foreach (var item in _items.Values) item.Detach();
+            _items.Clear();
+            Invalidate();
+        });
+    }
+
+    public void Update() => Invalidate();
+
+    protected override void OnInput(InputEvent inputEvent)
+    {
+        if (inputEvent.Key.Key == ConsoleKey.UpArrow)
+        {
+            var count = _items.Count;
+            if (count > 0)
+            {
+                _selectionIndex = (_selectionIndex - 1 + count) % count;
+                AutoScroll();
+                Invalidate();
+            }
+            inputEvent.Handled = true;
+        }
+        else if (inputEvent.Key.Key == ConsoleKey.DownArrow)
+        {
+            var count = _items.Count;
+            if (count > 0)
+            {
+                _selectionIndex = (_selectionIndex + 1) % count;
+                AutoScroll();
+                Invalidate();
+            }
+            inputEvent.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the selected item stays within
+    /// the viewport. Each item occupies one row, so the selected row's Y position is its index.
+    /// </summary>
+    private void AutoScroll()
+    {
+        if (Frame == null) return;
+
+        var y = _selectionIndex;
+        var top = Frame.Top;
+        var viewportHeight = Frame.ViewportSize.Height;
+        if (viewportHeight <= 0) return;
+
+        if (y < top)
+        {
+            Frame.Top = y;
+        }
+        else if (y >= top + viewportHeight)
+        {
+            Frame.Top = y - viewportHeight + 1;
+        }
+    }
+
+    protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
+    {
+        var items = _items.Values.OrderBy(i => i.Index).ToArray();
+        
+        // Ensure selection index is valid
+        if (_selectionIndex >= items.Length) _selectionIndex = Math.Max(0, items.Length - 1);
+        if (_selectionIndex < 0 && items.Length > 0) _selectionIndex = 0;
+
+        var renderables = new IRenderable[items.Length];
+
+        for (int i = 0; i < items.Length; i++)
+        {
+            var item = items[i];
+            if (i == _selectionIndex && item.Text != null && (_selectedForegroundColor.HasValue || _selectedBackgroundColor.HasValue))
+            {
+                renderables[i] = new Markup(item.Text, new Spectre.Console.Style(_selectedForegroundColor, _selectedBackgroundColor));
+            }
+            else
+            {
+                renderables[i] = item.Content;
+            }
+        }
+
+        var rows = new Rows(renderables);
+        return ((IRenderable)rows).Render(options, maxWidth);
+    }
+    #endregion
+
+    #region Fields
+    private readonly Dictionary<int, ListBoxItem> _items = new();
+    private int _itemIndex = 0;
+    private int _selectionIndex = 0;
+    private Color? _selectedBackgroundColor;
+    private Color? _selectedForegroundColor;
+    #endregion
+}

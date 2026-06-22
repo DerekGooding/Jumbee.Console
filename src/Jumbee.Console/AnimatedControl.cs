@@ -2,46 +2,22 @@
 
 using System;
 
-using ConsoleGUI.Common;
-using ConsoleGUI.Data;
-using ConsoleGUI.Space;
-using Spectre.Console;
-
-using ConsoleGuiSize = ConsoleGUI.Space.Size;
-
-public abstract class AnimatedControl : Control, IDisposable
+public abstract class AnimatedControl : Control
 {
     #region Constructors
-    public AnimatedControl()
+    public AnimatedControl() : base() 
     {
-        _bufferConsole = new ConsoleBuffer();
-        _ansiConsole = new AnsiConsoleBuffer(_bufferConsole);
-        UI.Paint += OnPaint;
+        Invalidate();
     }
     #endregion
-
-    #region Indexers
-    public sealed override Cell this[Position position]
-    {
-        get
-        {
-            lock (UI.Lock)
-            {
-                if (_bufferConsole.Buffer == null) return _emptyCell;
-                if (position.X < 0 || position.X >= Size.Width || position.Y < 0 || position.Y >= Size.Height) return _emptyCell;
-                return _bufferConsole.Buffer[position.X, position.Y];
-            }
-        }
-    }
-    #endregion
-
+   
     #region Methods
     public void Start()
     {
         if (isRunning) return;
         isRunning = true;
-        lastUpdate = DateTime.UtcNow;
-        accumulated = TimeSpan.Zero;
+        lastUpdate = DateTime.Now.Ticks;
+        accumulated = 0L;
     }
 
     public void Stop()
@@ -50,60 +26,37 @@ public abstract class AnimatedControl : Control, IDisposable
         isRunning = false;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
-        UI.Paint -= OnPaint;
         Stop();
+        base.Dispose();        
     }
-    
-    protected sealed override void Initialize()
-    {
-        lock (UI.Lock)
+        
+    protected override void Paint()
+    {        
+        if (!isRunning) return;
+        var now = DateTime.Now.Ticks;
+        var delta = now - lastUpdate;
+        lastUpdate = now;
+        accumulated += delta;
+        if (accumulated >= interval)
         {
-            var targetSize = MaxSize;
-            targetSize = new ConsoleGuiSize(Math.Max(0, targetSize.Width), Math.Max(0, targetSize.Height));
-
-            if (targetSize.Width > 1000) targetSize = new ConsoleGuiSize(1000, targetSize.Height);
-            if (targetSize.Height > 1000) targetSize = new ConsoleGuiSize(targetSize.Width, 1000);
-            Resize(targetSize);
-            _bufferConsole.Resize(new ConsoleGuiSize(Math.Max(0, Size.Width), Math.Max(0, Size.Height)));
+            accumulated = 0L;
+            frameIndex = (frameIndex + 1) % frameCount;
             Render();
-            Redraw();
-        }
+        }        
     }
 
-    protected abstract void Render();
-
-    private void OnPaint(object? sender, UI.PaintEventArgs e)
-    {
-        lock (e.Lock)
-        {
-            if (!isRunning) return;
-
-            var now = DateTime.UtcNow;
-            var delta = now - lastUpdate;
-            lastUpdate = now;
-            accumulated += delta;
-            if (accumulated >= interval)
-            {
-                accumulated = TimeSpan.Zero;
-                frameIndex = (frameIndex + 1) % frameCount;
-                Render();
-                Redraw();
-            }
-        }
-    }
+    // Control should always repaint itself
+    protected override void Validate() {}
     #endregion
 
     #region Fields
-    protected static readonly Cell _emptyCell = new Cell(Character.Empty);
-    protected readonly ConsoleBuffer _bufferConsole;
-    protected readonly AnsiConsoleBuffer _ansiConsole;
     protected int frameCount = 0;
     protected int frameIndex = 0;    
-    protected DateTime lastUpdate;
-    protected TimeSpan accumulated;
-    protected TimeSpan interval;
+    protected long lastUpdate;
+    protected long accumulated;
+    protected long interval;
     protected bool isRunning = false;
     #endregion
 }

@@ -1,24 +1,128 @@
-﻿
+﻿namespace Jumbee.Console;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+
 using ConsoleGUI;
-using ConsoleGUI.Api;
 using ConsoleGUI.Common;
+using ConsoleGUI.Data;
 using ConsoleGUI.Input;
-using System.Runtime.CompilerServices;
+using ConsoleGUI.Space;
+using Spectre.Console.Interop;
 
-namespace Jumbee.Console;
-
-public abstract class Layout<T> where T:Control, IDrawingContextListener
+public enum LayoutKeyboardNavigation
 {
-    public Layout(T control)
+    Up,
+    Down,
+    Left,
+    Right
+}
+
+public interface ILayout : IFocusable, IDrawingContextListener
+{
+    int Rows { get; }
+    
+    int Columns { get; }    
+    
+    IControl CControl { get; }
+
+    IFocusable this[int row, int column] { get; }
+
+    IEnumerable<IFocusable> Controls { get; }
+
+    Dictionary <ConsoleKeyInfo, LayoutKeyboardNavigation> NavigationKeys { get; }
+}   
+
+public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListener
+{
+    #region Constructors
+    protected Layout(T control)
     {
         this.control = control;
     }
+    #endregion
 
+    #region Indexers
+    public abstract IFocusable this[int row, int column] { get; }
+    #endregion
+
+    #region Properties
     public abstract int Rows { get; }
 
     public abstract int Columns { get; }    
+        
+    public Dictionary<ConsoleKeyInfo, LayoutKeyboardNavigation> NavigationKeys { get; } = new Dictionary<ConsoleKeyInfo, LayoutKeyboardNavigation>();
+   
+    public Cell this[Position position] => control[position];   
 
-    public abstract IControl this[int row, int column] { get; }  
+    public Size Size => control.Size;   
 
+    public IControl CControl => control;
+    
+    public IDrawingContext Context
+    {
+        get => ((IControl) control).Context;
+        set => ((IControl)control).Context = value;
+    }
+
+    public IEnumerable<IFocusable> Controls
+    {
+        get
+        {
+            for (int r = 0; r < Rows; r++)
+            {
+                for (int c = 0; c < Columns; c++)
+                {
+                    yield return this[r, c];
+                }
+            }
+        }
+    }
+
+    public bool Focusable { get; set; } = true;
+
+    public IFocusable FocusableControl => this;
+
+    public bool IsFocused
+    {
+        get => field;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                if (value)
+                    OnFocus?.Invoke();
+                else
+                    OnLostFocus?.Invoke();
+            }
+        }
+    }
+
+    public bool HandlesInput => true;
+
+    public virtual void OnInput(InputEvent inputEvent) {}
+    #endregion
+
+    #region Events
+    public event FocusableEventHandler? OnFocus;
+
+    public event FocusableEventHandler? OnLostFocus;
+    #endregion
+
+    #region Methods
+    public void OnRedraw(DrawingContext drawingContext) => control.OnRedraw(drawingContext);
+
+    public void OnUpdate(DrawingContext drawingContext, Rect rect) => control.OnUpdate(drawingContext, rect);
+
+    public void OnInput(UI.InputEventArgs inputEventArgs) => Controls.ForEach(f => f.FocusedControl?.OnInput(inputEventArgs));
+
+    public void OnPaste(string text) => Controls.ForEach(f => f.FocusedControl?.OnPaste(text));
+    #endregion
+
+    #region Fields
     public readonly T control;
+    #endregion
 }

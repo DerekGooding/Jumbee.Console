@@ -2,7 +2,7 @@
 
 using ConsoleGUIColor = ConsoleGUI.Data.Color;
 using SpectreColor = Spectre.Console.Color;
-
+using SystemDrawingColor = System.Drawing.Color;
 public readonly struct Color 
 {
     #region Constructors
@@ -11,13 +11,13 @@ public readonly struct Color
         R = r;
         G = g;
         B = b;
+        SystemColor = SystemDrawingColor.FromArgb(r, g, b);
     }
     #endregion
 
     #region Properties
-    public byte R { get; }
-    public byte G { get; }
-    public byte B { get; }
+    
+    public SystemDrawingColor SystemColor { get; }
     #endregion
     
     #region Methods
@@ -51,9 +51,15 @@ public readonly struct Color
     public static implicit operator ConsoleGUIColor(Color color) => color.ToConsoleGUIColor();
 
     public static implicit operator Color(ConsoleGUIColor color) => FromConsoleGUIColor(color);
+
+    public static implicit operator SystemDrawingColor(Color color) => color.SystemColor;
     #endregion
 
     #region Fields
+    public readonly byte R;
+    public readonly byte G;
+    public readonly byte B;
+
     // The following color names are imported from the Spectre.Console definitions.
 
     public static readonly Color Black = FromSpectreColor(SpectreColor.Black);

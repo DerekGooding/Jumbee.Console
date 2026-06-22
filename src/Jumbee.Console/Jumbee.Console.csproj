@@ -1,14 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <ItemGroup>
     <ProjectReference Include="..\..\ext\C-sharp-console-gui-framework\ConsoleGUI\ConsoleGUI.csproj" />
+    <ProjectReference Include="..\..\ext\NTokenizers.Extensions.Spectre.Console\src\NTokenizers.Extensions.Spectre.Console\NTokenizers.Extensions.Spectre.Console.csproj" />
+    <ProjectReference Include="..\..\ext\RazorConsole.Core.Syntax\RazorConsole.Core.Syntax.csproj" />
     <ProjectReference Include="..\..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

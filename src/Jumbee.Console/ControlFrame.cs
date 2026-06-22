@@ -1,0 +1,871 @@
+namespace Jumbee.Console;
+
+using System;
+
+using ConsoleGUI.Common;
+using ConsoleGUI.Data;
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+
+using Spectre.Console.Rendering;
+
+using SpectreBoxBorder = Spectre.Console.BoxBorder;
+using SpectreBoxBorderPart = Spectre.Console.Rendering.BoxBorderPart;
+
+public enum BorderStyle
+{
+    None,
+    Ascii,
+    Double,
+    Heavy,
+    Rounded,
+    Square
+}
+
+/// <summary>
+/// Position of a <see cref="ControlFrame"/> title: which border (top or bottom) it is drawn in,
+/// and its horizontal alignment within that border.
+/// </summary>
+public enum TitlePos
+{
+    TopLeft,
+    TopCenter,
+    TopRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight
+}
+
+/// <summary>
+/// The way a <see cref="ControlFrame"/> title is drawn relative to the top border.
+/// </summary>
+public enum TitleBorderStyle
+{
+    /// <summary>Title is drawn inside the single top border row, replacing some of the border line characters.</summary>
+    Inline,
+
+    /// <summary>Title is drawn on its own row between a top border line and a separator line.</summary>
+    Double
+}
+
+/// <summary>
+/// The way a <see cref="ControlFrame"/> title is colored relative to the border color.
+/// </summary>
+public enum TitleColorStyle
+{
+    /// <summary>Title is drawn in the frame's foreground/background colors.</summary>
+    Normal,
+
+    /// <summary>Title foreground and background are swapped with the border color.</summary>
+    Reverse
+}
+
+/// <summary>
+/// Describes how a <see cref="ControlFrame"/> title is aligned, bordered, and colored.
+/// </summary>
+public readonly struct TitleStyle
+{
+    public TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
+    {
+        Pos = pos;
+        BorderStyle = borderStyle;
+        Color = color;
+    }
+
+    public TitlePos Pos { get; init; }
+    public TitleBorderStyle BorderStyle { get; init; }
+    public TitleColorStyle Color { get; init; }
+
+    /// <summary>The default title style (top-left, double border, normal colors), matching the original behavior.</summary>
+    public static TitleStyle Default { get; } = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Double, TitleColorStyle.Normal);
+}
+
+/// <summary>
+/// Describes the glyphs and colors used to draw a <see cref="ControlFrame"/> vertical scrollbar:
+/// the up/down end arrows, the moving thumb, and the track behind it. Each part is a
+/// <see cref="Character"/> carrying its own glyph and (optional) foreground/background colors.
+/// </summary>
+public readonly struct ScrollBarStyle
+{
+    public ScrollBarStyle(Character thumb, Character track, Character upArrow, Character downArrow)
+    {
+        Thumb = thumb;
+        Track = track;
+        UpArrow = upArrow;
+        DownArrow = downArrow;
+    }
+
+    /// <summary>The glyph drawn for the part of the track currently in view (the draggable handle).</summary>
+    public Character Thumb { get; init; }
+
+    /// <summary>The glyph drawn for the track behind the thumb.</summary>
+    public Character Track { get; init; }
+
+    /// <summary>The glyph drawn at the top end of the scrollbar.</summary>
+    public Character UpArrow { get; init; }
+
+    /// <summary>The glyph drawn at the bottom end of the scrollbar.</summary>
+    public Character DownArrow { get; init; }
+
+    /// <summary>
+    /// Returns a copy with the foreground colors overridden. A <c>null</c> argument leaves that
+    /// part's existing color unchanged; <paramref name="arrows"/> recolors both end arrows.
+    /// </summary>
+    public ScrollBarStyle WithColors(Color? thumb = null, Color? track = null, Color? arrows = null) =>
+        new ScrollBarStyle(
+            thumb is { } t ? Thumb.WithForeground(t) : Thumb,
+            track is { } r ? Track.WithForeground(r) : Track,
+            arrows is { } a ? UpArrow.WithForeground(a) : UpArrow,
+            arrows is { } d ? DownArrow.WithForeground(d) : DownArrow);
+
+    /// <summary>The original default style: a '#' thumb on a '|' track with triangle arrows.</summary>
+    public static ScrollBarStyle Default { get; } = new(
+        new Character('#', foreground: new Color(100, 100, 255)),
+        new Character('|', foreground: new Color(100, 100, 100)),
+        new Character('▲'),
+        new Character('▼'));
+
+    /// <summary>A solid block thumb on a light vertical-line track with triangle arrows.</summary>
+    public static ScrollBarStyle Block { get; } = new(
+        new Character('█'),
+        new Character('│'),
+        new Character('▲'),
+        new Character('▼'));
+
+    /// <summary>A shaded (dithered) thumb on a light vertical-line track with thin line arrows.</summary>
+    public static ScrollBarStyle Shaded { get; } = new(
+        new Character('▒'),
+        new Character('│'),
+        new Character('↑'),
+        new Character('↓'));
+
+    /// <summary>A heavy vertical-line thumb on a light vertical-line track with triangle arrows.</summary>
+    public static ScrollBarStyle Line { get; } = new(
+        new Character('┃'),
+        new Character('│'),
+        new Character('▲'),
+        new Character('▼'));
+}
+
+/// <summary>
+/// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
+/// </summary>
+public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
+{
+    #region Constructors
+    public ControlFrame(Control control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title=null, Color? borderFgColor = null, Color? borderBgColor = null, TitleStyle? titleStyle = null)
+    {
+        _borderStyle = borderStyle ?? BorderStyle.None;
+        _boxBorder = GetSpectreBoxBorder(_borderStyle);
+        _margin = margin ?? DefaultMargin;
+        _foreground = fgColor;
+        _background = bgColor;
+        _borderFgColor = borderFgColor;
+        _borderBgColor = borderBgColor;
+        _title = title;
+        _titleStyle = titleStyle ?? TitleStyle.Default;
+        _control = control;
+        _control.Frame = this;
+        BindControl();
+    }
+    #endregion
+
+    #region Indexers
+    public override Cell this[Position position]
+    {
+        get
+        {            
+            // 1. Calculate Offsets & Viewport
+            // We replicate Initialize logic to ensure consistency
+            var totalOffset = borderOffset;
+
+            var controlLeft = totalOffset.Left;
+            var controlTop = totalOffset.Top;
+            var controlRight = Size.Width - 1 - totalOffset.Right;
+            var controlBottom = Size.Height - 1 - totalOffset.Bottom;
+
+            // 2. Control & Scrollbar (Inside Viewport)
+            if (position.X >= controlLeft && position.X <= controlRight &&
+                position.Y >= controlTop && position.Y <= controlBottom)
+            {
+                // Scrollbar logic: always at the right edge of valid control area
+                if (position.X == controlRight)
+                {
+                    if (Control == null) return ScrollBarForeground;
+
+                    var viewportHeight = controlBottom - controlTop + 1;
+                    var controlHeight = ControlContext.Size.Height;
+
+                    // Only draw scrollbar if control is larger than viewport
+                    if (controlHeight > viewportHeight)
+                    {
+                        // Calculate thumb position
+                        // Relative Y in viewport
+                        var relY = position.Y - controlTop;
+
+                        if (relY == 0)
+                        {
+                            return ScrollBarUpArrow;
+                        }
+                        else if (relY == viewportHeight - 1)
+                        {
+                            return ScrollBarDownArrow;
+                        }
+
+                        var trackHeight = viewportHeight - 2;
+                        if (trackHeight > 0)
+                        {
+                            var maxScroll = controlHeight - viewportHeight;
+                            var currentScroll = Math.Clamp(_top, 0, maxScroll);
+
+                            // Calculate thumb size based on visible proportion
+                            var thumbSize = Math.Max(1, (int)((long)trackHeight * viewportHeight / controlHeight));
+                            thumbSize = Math.Max(1, thumbSize);
+
+                            var availableTrack = trackHeight - thumbSize;
+
+                            // Calculate thumb position based on scroll proportion                      
+                            var thumbOffset = (int)((long)currentScroll * availableTrack / maxScroll);
+                            var thumbStart = 1 + thumbOffset;
+
+                            if (relY >= thumbStart && relY < thumbStart + thumbSize)
+                            {
+                                return ScrollBarForeground;
+                            }
+                        }
+                        return ScrollBarBackground;
+                    }
+                    else
+                    {
+                        // No scrollbar needed -> allow control to draw here?
+                        // Current design reserves the column. 
+                        // If we reserved the column in Initialize (limitWidth), control shouldn't be here.
+                        // But for aesthetic, maybe draw empty or background?
+                        // If we return Character.Empty, we see background.
+                        // Let's return Character.Empty so control *could* extend if we changed limits,
+                        // but currently it acts as padding.
+                        // Actually, if we don't return here, it falls through to ControlContext.Contains
+                        // which might return true if we didn't limit width
+                    }
+                }
+
+                if (ControlContext.Contains(position))
+                    return ControlContext[position];
+
+                return Character.Empty;
+            }
+
+            // 3. Borders & Title (Outside Viewport)
+            var left = Margin.Left;
+            var top = Margin.Top;
+            var right = Size.Width - 1 - Margin.Right;
+            var bottom = Size.Height - 1 - Margin.Bottom;
+
+            // The title is drawn in either the top or bottom border, depending on its position.
+            var titleEdge = TitleAtTop ? top : bottom;
+            var titleEdgeBorder = TitleAtTop ? BorderPlacement.Top : BorderPlacement.Bottom;
+            var hasTitle = !string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(titleEdgeBorder);
+
+            // Inline title: drawn within the single (top or bottom) border row, replacing some border line characters.
+            if (hasTitle && _titleStyle.BorderStyle == TitleBorderStyle.Inline && position.Y == titleEdge)
+            {
+                if (GetTitleCell(position.X, left, right) is { } inlineTitleCell)
+                    return inlineTitleCell;
+            }
+
+            if (position.X == left && position.Y == top && BorderPlacement.HasBorder(BorderPlacement.Top | BorderPlacement.Left))
+                return GetBorderCell(BoxBorderPart.TopLeft);
+
+            if (position.X == right && position.Y == top && BorderPlacement.HasBorder(BorderPlacement.Top | BorderPlacement.Right))
+                return GetBorderCell(BoxBorderPart.TopRight);
+
+            if (position.X == left && position.Y == bottom && BorderPlacement.HasBorder(BorderPlacement.Bottom | BorderPlacement.Left))
+                return GetBorderCell(BoxBorderPart.BottomLeft);
+
+            if (position.X == right && position.Y == bottom && BorderPlacement.HasBorder(BorderPlacement.Bottom | BorderPlacement.Right))
+                return GetBorderCell(BoxBorderPart.BottomRight);
+
+            if (position.X == left && position.Y >= top && position.Y <= bottom && BorderPlacement.HasBorder(BorderPlacement.Left))
+                return GetBorderCell(BoxBorderPart.Left);
+
+            if (position.X == right && position.Y >= top && position.Y <= bottom && BorderPlacement.HasBorder(BorderPlacement.Right))
+                return GetBorderCell(BoxBorderPart.Right);
+
+            if (position.Y == top && position.X >= left && position.X <= right && BorderPlacement.HasBorder(BorderPlacement.Top))
+                return GetBorderCell(BoxBorderPart.Top);
+
+            if (position.Y == bottom && position.X >= left && position.X <= right && BorderPlacement.HasBorder(BorderPlacement.Bottom))
+                return GetBorderCell(BoxBorderPart.Bottom);
+
+            if (hasTitle && _titleStyle.BorderStyle == TitleBorderStyle.Double)
+            {
+                // The Double style reserves a title row and a separator row just inside the title's border.
+                var titleRow = TitleAtTop ? top + 1 : bottom - 1;
+                var separatorRow = TitleAtTop ? top + 2 : bottom - 2;
+                var separatorPart = TitleAtTop ? BoxBorderPart.Top : BoxBorderPart.Bottom;
+
+                if (position.Y == titleRow)
+                {
+                    if (GetTitleCell(position.X, left, right) is { } titleCell)
+                        return titleCell;
+                }
+                else if (position.Y == separatorRow && position.X > left && position.X < right)
+                {
+                    // The separator's left/right edges are drawn by the vertical-border checks above.
+                    return GetBorderCell(separatorPart);
+                }
+            }
+
+            return Character.Empty;
+        }
+    }
+    
+    #endregion
+
+    #region Properties
+    public Control Control
+    {
+        get => _control;
+        set
+        {            
+            _control = value;
+            _control.Frame = this;  
+            BindControl();
+        }
+    }
+
+    public BorderStyle BorderStyle
+    {
+        get => _borderStyle;
+        set
+        {
+            UI.Invoke(() => 
+            {
+                if (_borderStyle == value) return;
+                _borderStyle = value;
+                _boxBorder = GetSpectreBoxBorder(_borderStyle);               
+                Initialize();
+            });
+        }
+    }
+
+    public string? Title
+    {
+        get => _title;
+        set
+        {
+            UI.Invoke(() => 
+            {
+                if (_title == value) return;
+                _title = value;
+                Initialize();
+            });
+        }
+    }
+
+    public TitleStyle TitleStyle
+    {
+        get => _titleStyle;
+        set
+        {
+            UI.Invoke(() =>
+            {
+                if (_titleStyle.Equals(value)) return;
+                _titleStyle = value;
+                Initialize();
+            });
+        }
+    }
+
+    public BorderPlacement BorderPlacement
+    {
+        get => _borderPlacement;
+        set
+        {
+            UI.Invoke(() => 
+            {
+                if (_borderPlacement == value) return;
+                _borderPlacement = value;              
+                Initialize();
+            });
+        }
+    }
+
+    public Offset Margin
+    {
+        get => _margin;
+        set
+        {
+            UI.Invoke(() => 
+            {
+                if (_margin.Equals(value)) return;
+                _margin = value;
+                Initialize();
+            });
+        }
+    }
+
+    public Color? Foreground
+    {
+        get => _foreground;
+        set
+        {
+            if (Equals(_foreground, value)) return;
+            _foreground = value;
+            _Redraw();
+        }
+    }
+
+    public Color? Background
+    {
+        get => _background;
+        set
+        {
+            if (Equals(_background, value)) return;
+            _background = value;
+            _Redraw();
+        }
+    }
+
+    public Color? BorderFgColor
+    {
+        get => _borderFgColor;
+        set
+        {
+            if (Equals(_borderFgColor, value)) return;
+            _borderFgColor = value;
+            _Redraw();
+        }
+    }
+
+    public Color? BorderBgColor
+    {
+        get => _borderBgColor;
+        set
+        {
+            if (Equals(_borderBgColor, value)) return;
+            _borderBgColor = value;
+            _Redraw();
+        }
+    }
+   
+    public int Top
+    {
+        get => _top;
+        set
+        {
+            UI.Invoke(() =>
+            {
+                using (Freeze())
+                {
+                    _top = value;
+
+                    var viewportHeight = Math.Max(0, Size.Height - borderOffset.Top - borderOffset.Bottom);
+                    if (ControlContext?.Size.Height > viewportHeight)
+                    {
+                        _top = Math.Min(ControlContext.Size.Height - viewportHeight, Math.Max(0, _top));
+                        ControlContext.SetOffset(new Vector(borderOffset.Left, borderOffset.Top - _top));
+                    }
+                    else
+                    {
+                        _top = 0;
+                        ControlContext?.SetOffset(new Vector(borderOffset.Left, borderOffset.Top));
+                    }
+                }
+            });
+        }
+    }
+  
+    public Character ScrollBarForeground
+    {
+        get => _scrollBarForeground;
+        set
+        {
+            if (_scrollBarForeground.Equals(value)) return;
+            _scrollBarForeground = value;
+            _Redraw(); // Just redraw scrollbar? Or full? Full is easier.
+        }
+    }
+  
+    public Character ScrollBarBackground
+    {
+        get => _scrollBarBackground;
+        set
+        {
+            if (_scrollBarBackground.Equals(value)) return;
+            _scrollBarBackground = value;
+            _Redraw();
+        }
+    }
+
+    public Character ScrollBarUpArrow
+    {
+        get => _scrollBarUpArrow;
+        set
+        {
+            UI.Invoke(() => 
+            {
+                if (_scrollBarUpArrow.Equals(value)) return;
+                _scrollBarUpArrow = value;
+                Redraw();
+            });
+        }
+    }
+
+    public Character ScrollBarDownArrow
+    {
+        get => _scrollBarDownArrow;
+        set
+        {
+            UI.Invoke(() => 
+            {
+                if (_scrollBarDownArrow.Equals(value)) return;
+                _scrollBarDownArrow = value;
+                Redraw();
+            });
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets all four scrollbar parts (thumb, track, up/down arrows) at once.
+    /// </summary>
+    public ScrollBarStyle ScrollBarStyle
+    {
+        get => new ScrollBarStyle(_scrollBarForeground, _scrollBarBackground, _scrollBarUpArrow, _scrollBarDownArrow);
+        set
+        {
+            UI.Invoke(() =>
+            {
+                _scrollBarForeground = value.Thumb;
+                _scrollBarBackground = value.Track;
+                _scrollBarUpArrow = value.UpArrow;
+                _scrollBarDownArrow = value.DownArrow;
+                Redraw();
+            });
+        }
+    }
+
+    public ConsoleKeyInfo ScrollUpKey { get; set; } = UI.HotKeys.AltUp;
+
+    public ConsoleKeyInfo ScrollDownKey { get; set; } = UI.HotKeys.AltDown;
+   
+    public bool Focusable { get; set; } = true;
+
+    public bool IsFocused
+    {
+        get => field;
+        set
+        {
+            var old = field;
+            field = value;
+            if (field && !old)
+            {
+                OnFocus?.Invoke();    
+            }
+            else if (!field && old)
+            {
+                OnLostFocus?.Invoke();
+            }
+            _control.IsFocused = field;
+        }
+    }
+
+    public IFocusable FocusableControl => this;
+
+    public bool HandlesInput => true;
+
+    private DrawingContext ControlContext
+    {
+        get => _controlContext;
+        set
+        {
+            if (_controlContext == value) return;
+            _controlContext?.Dispose();
+            _controlContext = value;
+            Initialize();
+        }
+    }
+
+    public Size ViewportSize => GetViewportSize();
+    #endregion
+
+    #region Methods    
+    void IDrawingContextListener.OnRedraw(DrawingContext drawingContext)
+    {
+        Initialize();
+    }
+
+    void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect)
+    {
+        UI.Invoke(() => Update(rect));
+    }
+
+    public void OnInput(UI.InputEventArgs inputEventArgs)
+    {
+        var inputEvent = inputEventArgs.InputEvent!;
+        this.OnInput(inputEvent);
+        if (!inputEvent.Handled)
+        {
+            Control.OnInput(inputEventArgs);
+        }
+    }
+
+    public void OnInput(InputEvent inputEvent)
+    {
+        if (inputEvent.Key == ScrollUpKey)
+        {
+            Top -= 1;
+            inputEvent.Handled = true;
+        }
+        else if (inputEvent.Key == ScrollDownKey)
+        {
+            Top += 1;
+            inputEvent.Handled = true;
+        }
+    }
+
+    public void Scroll(int n) => Top += n;
+    
+    protected override void Initialize()
+    {       
+        UI.Invoke(() => 
+        {
+            UpdateBorderOffsetField();
+            using (Freeze())
+            {
+                var totalOffset = borderOffset;
+
+                // Available space for control (excluding scrollbar for now)
+                // We reserve 1 column for scrollbar at the right of control
+                var controlLimitsMin = MinSize.AsRect().Remove(totalOffset).Size;
+                var controlLimitsMax = MaxSize.AsRect().Remove(totalOffset).Size;
+                       
+                // Allow infinite height for scrolling, but constrain width to make space for scrollbar
+                // If MaxSize.Width is infinite, we don't constrain width (except by MinSize/Control)
+                // But we generally want to fit in MaxSize.                        
+                var limitWidth = Math.Max(0, controlLimitsMax.Width - 1);
+
+                ControlContext?.SetLimits(
+                    new Size(Math.Max(0, controlLimitsMin.Width - 1), Math.Max(0, controlLimitsMin.Height)), 
+                    new Size(limitWidth, int.MaxValue)
+                );
+
+                // Clamp Top
+                var viewportHeight = Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom);
+
+                // Note: Size.Height is current size. During Resize sequence, this might be stale?
+                // VerticalScrollPanel uses Size.Height (which is current).
+                // But here we are about to Resize.
+                // If we are about to Resize to MaxSize (if control is large), then viewport will be larger.
+                // Let's rely on Redraw loop?
+                // Actually, we should probably use 'controlLimitsMax.Height' as the viewport constraint if we are expanding?
+                // But MaxSize might be infinite.
+                // Let's stick to simple clamping against current control size vs current viewport estimate?
+                // Or just allow Top to be set, and Resize will clip?
+                if (ControlContext != null)
+                {
+                    var controlHeight = ControlContext.Size.Height;
+                    
+                    // If we expand to MaxSize, the viewport height will be at most MaxSize - Offsets.
+                    var maxViewportHeight = Math.Max(0, MaxSize.Height - totalOffset.Top - totalOffset.Bottom);
+
+                    // If MaxSize is infinite, maxViewportHeight is infinite?
+                    if (MaxSize.Height == int.MaxValue) maxViewportHeight = int.MaxValue;
+                            
+                    // Actual viewport height used for clamping depends on what size we WILL be.
+                    // But we don't know yet.
+                    // However, 'Top' only matters if we are scrolling.
+                    // We scroll if ControlHeight > ViewportHeight.
+                            
+                    _top = Math.Max(0, Math.Min(_top, controlHeight - 1)); // Ensure at least within control? 
+
+                    // Better: _top = Math.Max(0, Math.Min(_top, controlHeight - (currentViewportHeight)));
+                    // But we don't know currentViewportHeight easily before Resize.
+                }
+                        
+                ControlContext?.SetOffset(new Vector(totalOffset.Left, totalOffset.Top - _top));    
+                var controlSize = ControlContext?.Size ?? Size.Empty;
+
+                        
+                // Calculate desired size including margins, borders, and scrollbar (1 extra width)
+                var desiredControlSize = controlSize.Expand(1, 0); // +1 Width for scrollbar
+                var sizeRect = desiredControlSize.AsRect().Add(totalOffset);    
+                Resize(Size.Clip(MinSize, sizeRect.Size, MaxSize));
+                        
+                // Re-clamp Top after resize? 
+                // If we resized, Size.Height is now updated (if Resize is immediate? No, Resize schedules/updates Size property).
+                // Actually 'Control.Resize' updates 'Size' immediately in ConsoleGUI?
+                // Checking ConsoleGUI source (mental): Resize usually updates Size.
+                        
+                // Post-Resize Clamping:
+                if (ControlContext != null)
+                {
+                        viewportHeight = Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom);
+                        if (ControlContext.Size.Height > viewportHeight)
+                        {
+                            _top = Math.Min(ControlContext.Size.Height - viewportHeight, Math.Max(0, _top));
+                            // Update offset again with clamped Top?
+                            ControlContext.SetOffset(new Vector(totalOffset.Left, totalOffset.Top - _top));
+                        }
+                        else
+                        {
+                            _top = 0;
+                            ControlContext.SetOffset(new Vector(totalOffset.Left, totalOffset.Top));
+                        }
+                }
+            }            
+        });        
+    }
+
+    private bool TitleAtTop => _titleStyle.Pos is TitlePos.TopLeft or TitlePos.TopCenter or TitlePos.TopRight;
+
+    private Offset GetBorderOffset()
+    {
+        var borderOffset = BorderPlacement.AsOffset();
+
+        // The Double title style reserves two extra rows (title row + separator row) inside the title's
+        // border. The Inline style draws the title within the existing single border row, so needs no extra space.
+        var titleEdgeBorder = TitleAtTop ? BorderPlacement.Top : BorderPlacement.Bottom;
+        if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(titleEdgeBorder)
+            && _titleStyle.BorderStyle == TitleBorderStyle.Double)
+        {
+            borderOffset = TitleAtTop
+                ? new Offset(borderOffset.Left, borderOffset.Top + 2, borderOffset.Right, borderOffset.Bottom)
+                : new Offset(borderOffset.Left, borderOffset.Top, borderOffset.Right, borderOffset.Bottom + 2);
+        }
+
+        return new Offset(
+            borderOffset.Left + Margin.Left,
+            borderOffset.Top + Margin.Top,
+            borderOffset.Right + Margin.Right,
+            borderOffset.Bottom + Margin.Bottom);
+    }
+
+   
+
+    private void UpdateBorderOffsetField() => borderOffset = GetBorderOffset();
+
+    private Size GetViewportSize()
+    {
+        var totalOffset = borderOffset;
+        return new Size(
+            Math.Max(0, Size.Width - totalOffset.Left - totalOffset.Right),
+            Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom));
+    }
+
+
+    private static SpectreBoxBorder GetSpectreBoxBorder(BorderStyle style)
+    {
+        return style switch
+        {
+            BorderStyle.Ascii => SpectreBoxBorder.Ascii,
+            BorderStyle.Double => SpectreBoxBorder.Double,
+            BorderStyle.Heavy => SpectreBoxBorder.Heavy,
+            BorderStyle.Rounded => SpectreBoxBorder.Rounded,
+            BorderStyle.Square => SpectreBoxBorder.Square,
+            BorderStyle.None => SpectreBoxBorder.None,
+            _ => throw new ArgumentOutOfRangeException(nameof(style), style, null)
+        };
+    }
+
+    private Cell GetBorderCell(BoxBorderPart part)
+    {
+        var str = _boxBorder.GetPart(part);
+        var ch = string.IsNullOrEmpty(str) ? ' ' : str[0];
+
+        var character = new Character(ch);
+
+        var fg = _borderFgColor ?? _foreground;
+        if (fg.HasValue) character = character.WithForeground(fg.Value);
+
+        var bg = _borderBgColor ?? _background;
+        if (bg.HasValue) character = character.WithBackground(bg.Value);
+
+        return new Cell(character);
+    }
+    /// <summary>
+    /// Returns the title <see cref="Cell"/> for column <paramref name="x"/> on the title row, or
+    /// <c>null</c> when the column falls outside the (aligned) title span. <paramref name="left"/> and
+    /// <paramref name="right"/> are the frame's left/right edge columns (including any borders).
+    /// </summary>
+    private Cell? GetTitleCell(int x, int left, int right)
+    {
+        if (string.IsNullOrEmpty(Title)) return null;
+
+        // Inline titles are padded with a space on each side so they read clearly against the border line.
+        var display = _titleStyle.BorderStyle == TitleBorderStyle.Inline ? $" {Title} " : Title;
+
+        // The title is laid out within the columns between the vertical borders (when present).
+        var innerLeft = BorderPlacement.HasBorder(BorderPlacement.Left) ? left + 1 : left;
+        var innerRight = BorderPlacement.HasBorder(BorderPlacement.Right) ? right - 1 : right;
+        var innerWidth = innerRight - innerLeft + 1;
+        if (innerWidth <= 0) return null;
+
+        var length = Math.Min(display.Length, innerWidth);
+        var start = _titleStyle.Pos switch
+        {
+            TitlePos.TopRight or TitlePos.BottomRight => innerRight - length + 1,
+            TitlePos.TopCenter or TitlePos.BottomCenter => innerLeft + (innerWidth - length) / 2,
+            _ => innerLeft // TopLeft, BottomLeft
+        };
+
+        var index = x - start;
+        if (index < 0 || index >= length) return null;
+
+        var character = new Character(display[index]);
+        if (_titleStyle.Color == TitleColorStyle.Reverse)
+        {
+            // Swap the border colors: the title foreground takes the border background and vice versa.
+            var borderFg = _borderFgColor ?? _foreground;
+            var borderBg = _borderBgColor ?? _background;
+            if (borderBg.HasValue) character = character.WithForeground(borderBg.Value);
+            if (borderFg.HasValue) character = character.WithBackground(borderFg.Value);
+        }
+        else
+        {
+            if (_foreground.HasValue) character = character.WithForeground(_foreground.Value);
+            if (_background.HasValue) character = character.WithBackground(_background.Value);
+        }
+        return new Cell(character);
+    }
+
+    private void _Redraw() => UI.Invoke(Redraw);
+
+    private void BindControl()
+    {
+        if (Control != null)
+            ControlContext = new DrawingContext(this, Control);
+        else
+            ControlContext = DrawingContext.Dummy;
+    }    
+    #endregion
+
+    #region Events
+    public event FocusableEventHandler? OnFocus;
+    public event FocusableEventHandler? OnLostFocus;
+    #endregion
+
+    #region Fields
+    public static Offset DefaultMargin { get; } = new Offset(0, 0, 0, 0);   
+    private SpectreBoxBorder _boxBorder;
+    private BorderStyle _borderStyle;
+    private Control _control;
+    private BorderPlacement _borderPlacement = BorderPlacement.All;
+    private Offset borderOffset;
+    private Offset _margin;
+    private Color? _foreground;
+    private Color? _background;
+    private Color? _borderFgColor;
+    private Color? _borderBgColor;
+    private DrawingContext _controlContext = DrawingContext.Dummy;
+    private string? _title;
+    private TitleStyle _titleStyle = TitleStyle.Default;
+    private int _top;
+    
+    private Character _scrollBarForeground = new Character('#', foreground: new Color(100, 100, 255));
+    private Character _scrollBarBackground = new Character('|', foreground: new Color(100, 100, 100));
+    private Character _scrollBarUpArrow = new Character('▲'); 
+    private Character _scrollBarDownArrow = new Character('▼'); 
+    #endregion
+
+}
