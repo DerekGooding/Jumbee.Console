@@ -24,10 +24,15 @@ using Microsoft.Win32.SafeHandles;
 public sealed class VtInputSource : IInputSource, IDisposable
 {
     #region Constructors
-    public VtInputSource(int idleFlushMs = 40)
+    /// <param name="idleFlushMs">Idle timeout before flushing a dangling escape sequence.</param>
+    /// <param name="anyMotion">
+    /// When <see langword="true"/>, request any-motion mouse tracking (DEC 1003) so the pointer is reported on
+    /// every move (enabling hover), instead of only while a button is held (DEC 1002). Costs more input traffic.
+    /// </param>
+    public VtInputSource(int idleFlushMs = 40, bool anyMotion = false)
     {
         _idleFlushMs = idleFlushMs;
-        _mode = TerminalInputMode.Enable();
+        _mode = TerminalInputMode.Enable(anyMotion);
         // When stdin is redirected, the mode opened /dev/tty for raw input — read from that fd so keyboard input
         // still flows (the `myapp < file` / `echo x | myapp` case). Otherwise read stdin as usual. ownsHandle:false
         // because TerminalInputMode owns the fd and closes it on dispose.
@@ -122,14 +127,17 @@ public sealed class VtInputSource : IInputSource, IDisposable
 /// </remarks>
 internal sealed class TerminalInputMode : IDisposable
 {
-    // SGR mouse (1006) + button/drag tracking (1002) + bracketed paste (2004) + focus (1004).
-    private const string EnableSeq = "\x1b[?1002h\x1b[?1006h\x1b[?2004h\x1b[?1004h";
-    private const string DisableSeq = "\x1b[?1004l\x1b[?2004l\x1b[?1006l\x1b[?1002l";
+    // SGR mouse (1006) + mouse motion tracking + bracketed paste (2004) + focus (1004). Motion is either
+    // 1002 (report only while a button is held) or, when anyMotion is requested, 1003 (report every move, so
+    // hover works at the cost of more input traffic).
+    public static TerminalInputMode Enable(bool anyMotion = false) => new(anyMotion);
 
-    public static TerminalInputMode Enable() => new();
-
-    private TerminalInputMode()
+    private TerminalInputMode(bool anyMotion)
     {
+        var motion = anyMotion ? "1003" : "1002";
+        var enableSeq = $"\x1b[?{motion}h\x1b[?1006h\x1b[?2004h\x1b[?1004h";
+        _disableSeq = $"\x1b[?1004l\x1b[?2004l\x1b[?1006l\x1b[?{motion}l";
+
         if (OperatingSystem.IsWindows())
         {
             _stdinHandle = GetStdHandle(STD_INPUT_HANDLE);
@@ -162,7 +170,7 @@ internal sealed class TerminalInputMode : IDisposable
             }
         }
 
-        Console.Out.Write(EnableSeq);
+        Console.Out.Write(enableSeq);
         Console.Out.Flush();
 
         // Safety net: restore the terminal even on an abrupt exit (e.g. Ctrl+C ends the process before Stop runs),
@@ -178,7 +186,7 @@ internal sealed class TerminalInputMode : IDisposable
         _disposed = true;
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
-        try { Console.Out.Write(DisableSeq); Console.Out.Flush(); }
+        try { Console.Out.Write(_disableSeq); Console.Out.Flush(); }
         catch { /* best effort */ }
 
         if (_modeChanged) SetConsoleMode(_stdinHandle, _originalMode);
@@ -203,6 +211,7 @@ internal sealed class TerminalInputMode : IDisposable
     private readonly IntPtr _stdinHandle;
     private readonly uint _originalMode;
     private readonly bool _modeChanged;
+    private readonly string _disableSeq;
     private bool _disposed;
 
     [DllImport("kernel32.dll", SetLastError = true)]

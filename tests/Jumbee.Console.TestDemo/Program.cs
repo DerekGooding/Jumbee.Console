@@ -102,7 +102,8 @@ public class Program
             ]);
 
         // Focus a button so Enter/Space works immediately; clicks work regardless of focus.
-        var run = UI.Start(grid, width: 44, height: 16, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource());
+        // anyMotion: true → DEC 1003 so hover (mouse-over without a button held) updates the button background.
+        var run = UI.Start(grid, width: 44, height: 16, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(inc);
         run.Wait();
     }
