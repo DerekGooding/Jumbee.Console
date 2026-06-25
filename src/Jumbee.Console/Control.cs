@@ -39,9 +39,9 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             else
             {
                 var cell = consoleBuffer[position];
-                // Attach this control as the cell's mouse listener so a click inside it is routed here for
-                // click-to-focus (ConsoleGUI's mouse system hit-tests via the cell's listener).
-                return Focusable ? cell.WithMouseListener(this, position) : cell;
+                // Attach this control as the cell's mouse listener so mouse events inside it are routed here
+                // (click-to-focus, hover, click). ConsoleGUI's mouse system hit-tests via the cell's listener.
+                return Focusable || WantsMouse ? cell.WithMouseListener(this, position) : cell;
             }
         }
     }
@@ -121,14 +121,85 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     protected virtual void OnInput(InputEvent inputEvent) {}
 
-    #region IMouseListener
-    void IMouseListener.OnMouseEnter() {}
-    void IMouseListener.OnMouseLeave() {}
-    void IMouseListener.OnMouseMove(Position position) {}
-    void IMouseListener.OnMouseUp(Position position) {}
+    /// <summary><see langword="true"/> while the pointer is over this control (between enter and leave).</summary>
+    protected bool IsMouseOver { get; private set; }
+
+    /// <summary><see langword="true"/> while a press started on this control and has not yet been released.</summary>
+    protected bool IsMousePressed { get; private set; }
+
+    /// <summary>
+    /// When <see langword="true"/>, the control's cells are tagged with a mouse listener even if it is not
+    /// <see cref="Focusable"/>, so it still receives hover/click (e.g. a non-focusable clickable Link).
+    /// </summary>
+    protected virtual bool WantsMouse => false;
+
+    #region Mouse hooks (override to react; defaults are no-ops)
+    protected virtual void OnMouseEnter() {}
+    protected virtual void OnMouseLeave() {}
+    protected virtual void OnMouseMove(Position position) {}
+    protected virtual void OnMousePress(Position position) {}
+    protected virtual void OnMouseRelease(Position position) {}
+    protected virtual void OnClick(Position position) {}
+    protected virtual void OnDoubleClick(Position position) {}
+    #endregion
+
+    #region IMouseListener (dispatch sink: ConsoleManager calls these on the UI thread)
+    void IMouseListener.OnMouseEnter()
+    {
+        IsMouseOver = true;
+        OnMouseEnter();
+        MouseEntered?.Invoke(this, EventArgs.Empty);
+        Invalidate();
+    }
+
+    void IMouseListener.OnMouseLeave()
+    {
+        IsMouseOver = false;
+        IsMousePressed = false;
+        OnMouseLeave();
+        MouseLeft?.Invoke(this, EventArgs.Empty);
+        Invalidate();
+    }
+
+    void IMouseListener.OnMouseMove(Position position)
+    {
+        OnMouseMove(position);
+        MouseMoved?.Invoke(this, position);
+    }
+
     void IMouseListener.OnMouseDown(Position position)
     {
+        IsMousePressed = true;
         if (Focusable) UI.SetFocus(this);
+        OnMousePress(position);
+        MousePressed?.Invoke(this, position);
+        Invalidate();
+    }
+
+    void IMouseListener.OnMouseUp(Position position)
+    {
+        OnMouseRelease(position);
+        MouseReleased?.Invoke(this, position);
+        if (!IsMousePressed) return;   // released without a matching press on us -> not a click
+        IsMousePressed = false;
+
+        var now = Environment.TickCount64;
+        bool isDouble = now - _lastClickMs <= DoubleClickMs
+            && _lastClickPos.X == position.X && _lastClickPos.Y == position.Y;
+        _lastClickMs = isDouble ? 0 : now;   // reset so a triple-click isn't read as a second double
+        _lastClickPos = position;
+
+        if (isDouble)
+        {
+            OnDoubleClick(position);
+            DoubleClicked?.Invoke(this, position);
+        }
+        else
+        {
+            OnClick(position);
+            Clicked?.Invoke(this, position);
+        }
+        Invalidate();
     }
     #endregion
 
@@ -292,6 +363,21 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     public event InitializationHandler OnInitialization;
     public event FocusableEventHandler? OnFocus;
     public event FocusableEventHandler? OnLostFocus;
+
+    /// <summary>Raised when the pointer enters the control.</summary>
+    public event EventHandler? MouseEntered;
+    /// <summary>Raised when the pointer leaves the control.</summary>
+    public event EventHandler? MouseLeft;
+    /// <summary>Raised as the pointer moves within the control (relative position).</summary>
+    public event EventHandler<Position>? MouseMoved;
+    /// <summary>Raised when a button is pressed over the control (relative position).</summary>
+    public event EventHandler<Position>? MousePressed;
+    /// <summary>Raised when a button is released over the control (relative position).</summary>
+    public event EventHandler<Position>? MouseReleased;
+    /// <summary>Raised on a press+release on this control (relative position).</summary>
+    public event EventHandler<Position>? Clicked;
+    /// <summary>Raised on two clicks within <see cref="DoubleClickMs"/> at the same position.</summary>
+    public event EventHandler<Position>? DoubleClicked;
     #endregion
 
     #region Fields
@@ -300,6 +386,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected internal uint paintRequests;
     protected readonly ConsoleBuffer consoleBuffer;
     protected readonly AnsiConsoleBuffer ansiConsole;
+
+    /// <summary>Maximum gap (ms) between two clicks for them to register as a double-click.</summary>
+    protected const long DoubleClickMs = 400;
+    private long _lastClickMs;
+    private Position _lastClickPos;
     #endregion
 
     #region Types

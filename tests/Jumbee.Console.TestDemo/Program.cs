@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        GridTest(args);
+        ButtonDemo(args);
+        //GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
@@ -67,6 +68,42 @@ public class Program
 
         var run = UI.Start(grid, width: 72, height: 22, isAnsiTerminal: false);
         UI.SetFocus(editor1);
+        run.Wait();
+    }
+
+    // Interactive Button demo. Click the buttons with the mouse (needs a VT terminal, e.g. Windows Terminal),
+    // or focus one and press Enter/Space. Pressing a button tints its background; the status line updates.
+    static void ButtonDemo(string[] args)
+    {
+        var count = 0;
+
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0".PadRight(38), Color.White);
+        void SetStatus(string last) => status.Text = $"Count: {count}   (last: {last})".PadRight(38);
+
+        var inc = new Button("Increment (+1)") { Background = new Color(30, 90, 50), HoverBackground = new Color(45, 120, 70), PressBackground = new Color(70, 170, 100) };
+        var dec = new Button("Decrement (-1)") { Background = new Color(110, 70, 30), HoverBackground = new Color(150, 95, 45), PressBackground = new Color(200, 130, 70) };
+        var reset = new Button("Reset") { Background = new Color(60, 60, 110), HoverBackground = new Color(85, 85, 150), PressBackground = new Color(120, 120, 200) };
+        var quit = new Button("Quit") { Background = new Color(110, 40, 40), HoverBackground = new Color(150, 55, 55), PressBackground = new Color(200, 80, 80) };
+
+        inc.Activated += (_, _) => { count++; SetStatus("Increment"); };
+        dec.Activated += (_, _) => { count--; SetStatus("Decrement"); };
+        reset.Activated += (_, _) => { count = 0; SetStatus("Reset"); };
+        quit.Activated += (_, _) => Environment.Exit(0);
+
+        var grid = new Jumbee.Console.Grid(
+            [2, 3, 3, 3, 3],
+            [40],
+            [
+                [status],
+                [inc],
+                [dec],
+                [reset],
+                [quit],
+            ]);
+
+        // Focus a button so Enter/Space works immediately; clicks work regardless of focus.
+        var run = UI.Start(grid, width: 44, height: 16, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource());
+        UI.SetFocus(inc);
         run.Wait();
     }
 
