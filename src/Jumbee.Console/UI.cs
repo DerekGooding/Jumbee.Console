@@ -149,6 +149,9 @@ public static class UI
         });
     }
 
+    /// <summary>The currently focused registered control, or <see langword="null"/> if none.</summary>
+    public static IFocusable? Focused => controls.FirstOrDefault(c => c.IsFocused);
+
     /// <summary>
     /// Marks the UI as needing a redraw on the next frame. Called whenever control content or
     /// layout changes; idle frames skip the redraw until this is set.

@@ -21,14 +21,15 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        WheelDemo(args);
+        //OverlayDemo(args);
+        //WheelDemo(args);
         //ButtonDemo(args);
         //GridTest(args);
         //GridTest(args);
-        //SpectreControlTests.LiveDisplayTests();
+        SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //DockPanelTest(args);
-        //TitleStyleTest(args);
+        TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
         //SpectreControlTests.ProgressTests();
@@ -69,6 +70,27 @@ public class Program
 
         var run = UI.Start(grid, width: 72, height: 22, isAnsiTerminal: false);
         UI.SetFocus(editor1);
+        run.Wait();
+    }
+
+    // Interactive overlay/popup demo. Click "Open dialog" to float a framed popup over the UI; close it with its
+    // button or by clicking outside it (CloseOnFocusLost). Needs a VT terminal (e.g. Windows Terminal).
+    static void OverlayDemo(string[] args)
+    {
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Click 'Open dialog' to pop a window.".PadRight(40), Color.White);
+        var openBtn = new Button("Open dialog") { Background = new Color(40, 70, 120), HoverBackground = new Color(60, 90, 150), PressBackground = new Color(90, 130, 200) };
+
+        var bottom = new Jumbee.Console.Grid([2, 3], [44], [[status], [openBtn]]);
+        var overlay = new Overlay(bottom);
+
+        var closeBtn = new Button("Close (or click outside)") { Background = new Color(110, 40, 40), HoverBackground = new Color(150, 55, 55), PressBackground = new Color(200, 80, 80) };
+        closeBtn.WithRoundedBorder(Yellow).WithTitle("Dialog");
+
+        openBtn.Activated += (_, _) => { status.Text = "Dialog open — Close or click outside.".PadRight(40); overlay.Show(closeBtn); };
+        closeBtn.Activated += (_, _) => { overlay.Hide(); status.Text = "Dialog closed.".PadRight(40); };
+
+        var run = UI.Start(overlay, width: 48, height: 14, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(openBtn);
         run.Wait();
     }
 
