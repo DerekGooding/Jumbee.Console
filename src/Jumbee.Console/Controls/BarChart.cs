@@ -101,7 +101,9 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     public double? MaxValue
     {
         get => _maxValue;
-        set => SetAtomicProperty(ref _maxValue, value, onChanged: () => UI.Invoke(UpdateAllBars));
+        set => SetAtomicProperty(ref _maxValue, value,
+            validate: v => v < 0d ? 0d : v,                // a chart axis max can't be negative
+            watch: (_, _) => UI.Invoke(UpdateAllBars));
     }
 
     public Func<double, CultureInfo, string>? ValueFormatter { get; set; }

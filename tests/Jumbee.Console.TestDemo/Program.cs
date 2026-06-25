@@ -20,7 +20,7 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        ConsoleManager.EmulateBlinkingCursor = true;
+        //ConsoleManager.EmulateBlinkingCursor = true;
         GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
@@ -150,7 +150,7 @@ public class Program
         //treeControl.IsFocused = true;
         // Start the user interface
         p.Focus();
-        var t = UI.Start(grid, 130, 40, isAnsiTerminal: false);
+        var t = UI.Start(grid, 130, 40);
         disp.Start((ctx) =>
         {
             for (int i = 1; i <= 100; i++)

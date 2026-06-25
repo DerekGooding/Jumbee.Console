@@ -71,7 +71,7 @@ public partial class Tree : RenderableControl
     public TreeGuide Guide
     {
         get => _guide;
-        set => SetAtomicProperty(ref _guide, value, onChanged: () => scguide = GetSpectreConsoleTreeGuide(_guide));
+        set => SetAtomicProperty(ref _guide, value, watch: (_, _) => scguide = GetSpectreConsoleTreeGuide(_guide));
     }
 
     /// <summary>

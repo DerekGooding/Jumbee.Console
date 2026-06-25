@@ -199,11 +199,14 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// Assigns a backing field and requests a redraw, but only when the value actually changes.
-    /// Centralizes the equality-check + assign + invalidate pattern required of visual property setters.
+    /// Centralizes the (optional coerce) + equality-check + assign + (optional notify) + invalidate pattern
+    /// required of visual property setters.
     /// </summary>
     /// <remarks>
     /// Only valid for atomically-assignable fields (a single value or reference store). State that cannot be
     /// written atomically (e.g. collections inside a wrapped control) must use a copy-on-write update instead.
+    /// When supplied, <paramref name="validate"/> runs first, so the equality check and stored value use the
+    /// coerced value; <paramref name="watch"/> then runs after assignment and before the invalidate/initialize.
     /// </remarks>
     /// <param name="field">The backing field to assign.</param>
     /// <param name="value">The new value.</param>
@@ -211,14 +214,17 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// When <see langword="true"/>, the change affects layout and <see cref="Initialize"/> is called (which
     /// re-lays-out on the UI thread and invalidates). Otherwise <see cref="Invalidate"/> is called.
     /// </param>
-    /// <param name="onChanged">Optional custom action run after assignment and before the invalidate/initialize.</param>
-    /// <returns>The resulting field value (the new value when changed, otherwise the existing one).</returns>
-    protected T SetAtomicProperty<T>(ref T field, T value, bool updatesLayout = false, Action? onChanged = null)
+    /// <param name="validate">Optional coercion (e.g. clamp) applied before the equality check and assignment.</param>
+    /// <param name="watch">Optional change callback receiving the old and new values, run before the invalidate/initialize.</param>
+    /// <returns>The resulting field value (the coerced new value when changed, otherwise the existing one).</returns>
+    protected T SetAtomicProperty<T>(ref T field, T value, bool updatesLayout = false, Func<T, T>? validate = null, Action<T, T>? watch = null)
     {
+        if (validate is not null) value = validate(value);
         if (EqualityComparer<T>.Default.Equals(field, value)) return field;
 
+        var old = field;
         field = value;
-        onChanged?.Invoke();
+        watch?.Invoke(old, value);
 
         if (updatesLayout)
             Initialize();

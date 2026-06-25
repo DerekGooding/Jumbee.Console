@@ -24,7 +24,21 @@ public class SetAtomicPropertyTests
         public int LayoutValue { get => _layoutValue; set => SetAtomicProperty(ref _layoutValue, value, updatesLayout: true); }
 
         private int _custom;
-        public int Custom { get => _custom; set => SetAtomicProperty(ref _custom, value, onChanged: () => OnChangedRuns++); }
+        public int Custom { get => _custom; set => SetAtomicProperty(ref _custom, value, watch: (_, _) => OnChangedRuns++); }
+
+        public int WatchOld = -1;
+        public int WatchNew = -1;
+        public int WatchRuns;
+
+        // Clamps to >= 0 (validate) and records the (old, new) pair (watch).
+        private int _validated;
+        public int Validated
+        {
+            get => _validated;
+            set => SetAtomicProperty(ref _validated, value,
+                validate: v => v < 0 ? 0 : v,
+                watch: (oldValue, newValue) => { WatchRuns++; WatchOld = oldValue; WatchNew = newValue; });
+        }
 
         protected override void Render() { }
         protected override void Invalidate() { InvalidateCount++; base.Invalidate(); }
@@ -91,5 +105,49 @@ public class SetAtomicPropertyTests
         Assert.Equal(42, c.Custom);
         Assert.Equal(1, c.OnChangedRuns);
         Assert.Equal(1, c.InvalidateCount);
+    }
+
+    [Fact]
+    public void SetAtomicProperty_Validate_CoercesBeforeStoreAndEqualityCheck()
+    {
+        var c = new TestControl();
+        c.Validated = 5;                 // baseline (so the coerced 0 is an actual change)
+
+        c.Validated = -5;                // coerced to 0
+
+        Assert.Equal(0, c.Validated);
+        Assert.Equal(2, c.InvalidateCount);
+        Assert.Equal(2, c.WatchRuns);
+        Assert.Equal(0, c.WatchNew);     // watch sees the coerced value, not the raw -5
+    }
+
+    [Fact]
+    public void SetAtomicProperty_Validate_NoOpAfterCoercionSkipsWatchAndInvalidate()
+    {
+        var c = new TestControl();
+        c.Validated = 5;                 // baseline
+        c.Validated = -3;                // coerced to 0, an actual change
+        var runs = c.WatchRuns;
+        var invalidations = c.InvalidateCount;
+
+        c.Validated = -9;                // also coerces to 0 == current -> no-op
+
+        Assert.Equal(0, c.Validated);
+        Assert.Equal(runs, c.WatchRuns);
+        Assert.Equal(invalidations, c.InvalidateCount);
+    }
+
+    [Fact]
+    public void SetAtomicProperty_Watch_ReceivesOldAndNewValues()
+    {
+        var c = new TestControl();
+        c.Validated = 3;
+        Assert.Equal(0, c.WatchOld);   // old was default 0
+        Assert.Equal(3, c.WatchNew);
+
+        c.Validated = 7;
+        Assert.Equal(3, c.WatchOld);   // old is the previous value
+        Assert.Equal(7, c.WatchNew);
+        Assert.Equal(2, c.WatchRuns);
     }
 }

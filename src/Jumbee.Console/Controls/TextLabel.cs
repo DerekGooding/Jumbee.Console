@@ -45,7 +45,7 @@ public class TextLabel : Control
     public string Text
     {
         get => _text;
-        set => SetAtomicProperty(ref _text, value, onChanged: () =>
+        set => SetAtomicProperty(ref _text, value, watch: (_, _) =>
         {
             chars = new Cell[_text.Length];
             size = _orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) : new Size(1, _text.Length);
