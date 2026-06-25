@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        ButtonDemo(args);
+        WheelDemo(args);
+        //ButtonDemo(args);
         //GridTest(args);
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
@@ -68,6 +69,25 @@ public class Program
 
         var run = UI.Start(grid, width: 72, height: 22, isAnsiTerminal: false);
         UI.SetFocus(editor1);
+        run.Wait();
+    }
+
+    // Interactive mouse-wheel demo: a list taller than its frame. Scroll the wheel over it (needs a VT terminal,
+    // e.g. Windows Terminal); Alt+Up / Alt+Down still scroll too. The scrollbar thumb tracks the position.
+    static void WheelDemo(string[] args)
+    {
+        var list = new ListBox { SelectedForegroundColor = Color.White, SelectedBackgroundColor = Color.Blue };
+        for (int i = 1; i <= 40; i++) list.AddItem($"Item {i:00}  — scroll the wheel over me");
+
+        list.WithRoundedBorder(Cyan1)
+            .WithTitle("Mouse wheel to scroll  (Alt+Up/Down also works)")
+            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Cyan1, arrows: Yellow));
+
+        list.IsFocused = true;
+
+        var grid = new Jumbee.Console.Grid([16], [50], [[list]]);
+
+        var run = UI.Start(grid, width: 56, height: 20, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource());
         run.Wait();
     }
 

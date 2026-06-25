@@ -101,7 +101,11 @@ public static class UI
                 {
                     case TerminalMouseKind.Down: ConsoleManager.MouseDown = true; break;
                     case TerminalMouseKind.Up: ConsoleManager.MouseDown = false; break;
-                        // Move/Drag only need the updated position above. Wheel has no ConsoleGUI equivalent yet (deferred).
+                    case TerminalMouseKind.Wheel:
+                        // Position was set above; dispatch the notch to the control under the pointer.
+                        ConsoleManager.MouseWheel(m.Button == TerminalMouseButton.WheelUp ? -WheelLines : WheelLines);
+                        break;
+                        // Move/Drag only need the updated position above.
                 }
                 break;
             case PasteInputEvent p: 
@@ -343,7 +347,9 @@ public static class UI
     }
     #endregion
 
-    #region Fields   
+    #region Fields
+    /// <summary>Lines scrolled per mouse-wheel notch.</summary>
+    private const int WheelLines = 3;
     public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics(300);
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs();

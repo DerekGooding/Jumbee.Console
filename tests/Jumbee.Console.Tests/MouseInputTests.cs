@@ -20,12 +20,21 @@ public class MouseInputTests
         public int Leaves;
         public bool Over => IsMouseOver;
         public bool Pressed => IsMousePressed;
+        public int WheelRuns;
+        public int WheelDelta;
 
         protected override void Render() { }
         protected override void OnClick(Position p) => Clicks++;
         protected override void OnDoubleClick(Position p) => DoubleClicks++;
         protected override void OnMouseEnter() => Enters++;
         protected override void OnMouseLeave() => Leaves++;
+        protected override void OnMouseWheel(Position p, int delta) { WheelRuns++; WheelDelta = delta; }
+    }
+
+    /// <summary>A control that does NOT override the wheel hook, to exercise the default (scroll-frame) path.</summary>
+    private sealed class BareControl : Control
+    {
+        protected override void Render() { }
     }
 
     private static readonly Position Origin = new(0, 0);
@@ -134,5 +143,38 @@ public class MouseInputTests
         UI.SendInput(b, ConsoleKey.A);
 
         Assert.Equal(0, activated);
+    }
+
+    [Theory]
+    [InlineData(-3)]   // wheel up
+    [InlineData(3)]    // wheel down
+    public void Wheel_RoutesDeltaToHook(int delta)
+    {
+        var c = new TestControl();
+
+        ((IMouseWheelListener)c).OnMouseWheel(Origin, delta);
+
+        Assert.Equal(1, c.WheelRuns);
+        Assert.Equal(delta, c.WheelDelta);
+    }
+
+    [Fact]
+    public void Wheel_RaisesMouseWheeledEvent()
+    {
+        var c = new TestControl();
+        var received = 0;
+        c.MouseWheeled += (_, d) => received = d;
+
+        ((IMouseWheelListener)c).OnMouseWheel(Origin, 3);
+
+        Assert.Equal(3, received);
+    }
+
+    [Fact]
+    public void Wheel_DefaultPath_WithNoFrame_DoesNotThrow()
+    {
+        var c = new BareControl();   // uses the default OnMouseWheel -> Frame?.Scroll, Frame is null
+
+        ((IMouseWheelListener)c).OnMouseWheel(Origin, 3);
     }
 }

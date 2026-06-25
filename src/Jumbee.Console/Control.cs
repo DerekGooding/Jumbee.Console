@@ -11,7 +11,7 @@ using ConsoleGUI.Space;
 /// <summary>
 /// Base class for all Jumbee.Console controls.
 /// </summary>
-public abstract class Control : CControl, IFocusable, IDisposable, IMouseListener
+public abstract class Control : CControl, IFocusable, IDisposable, IMouseListener, IMouseWheelListener
 {
     #region Constructors
     public Control() : base()
@@ -141,6 +141,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected virtual void OnMouseRelease(Position position) {}
     protected virtual void OnClick(Position position) {}
     protected virtual void OnDoubleClick(Position position) {}
+
+    /// <summary>
+    /// Handles a wheel notch over the control (<paramref name="delta"/>: negative up, positive down). Default
+    /// scrolls the surrounding <see cref="Frame"/> if there is one; override to consume the wheel directly.
+    /// </summary>
+    protected virtual void OnMouseWheel(Position position, int delta) => Frame?.Scroll(delta);
     #endregion
 
     #region IMouseListener (dispatch sink: ConsoleManager calls these on the UI thread)
@@ -200,6 +206,14 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             Clicked?.Invoke(this, position);
         }
         Invalidate();
+    }
+    #endregion
+
+    #region IMouseWheelListener
+    void IMouseWheelListener.OnMouseWheel(Position position, int delta)
+    {
+        OnMouseWheel(position, delta);
+        MouseWheeled?.Invoke(this, delta);
     }
     #endregion
 
@@ -378,6 +392,8 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     public event EventHandler<Position>? Clicked;
     /// <summary>Raised on two clicks within <see cref="DoubleClickMs"/> at the same position.</summary>
     public event EventHandler<Position>? DoubleClicked;
+    /// <summary>Raised on a wheel notch over the control (negative up, positive down).</summary>
+    public event EventHandler<int>? MouseWheeled;
     #endregion
 
     #region Fields
