@@ -57,14 +57,16 @@ public static class ControlExtensions
     }
     public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control
     {
+        // Assign only the arguments actually supplied: self-assigning (x ?? frame.x) would fire the themeable
+        // setters and wrongly mark those properties as explicit overrides, freezing them against theme switches.
         var frame = control.Frame ??= new ControlFrame(control);
-        frame.BorderStyle = borderStyle ?? frame.BorderStyle;
-        frame.Margin = margin ?? frame.Margin;
-        frame.Foreground = fgColor ?? frame.Foreground;
-        frame.Background = bgColor ?? frame.Background;
-        frame.Title = title ?? frame.Title;
-        frame.BorderFgColor = borderFgColor ?? frame.BorderFgColor;
-        frame.BorderBgColor = borderBgColor ?? frame.BorderBgColor;
+        if (borderStyle.HasValue) frame.BorderStyle = borderStyle.Value;
+        if (margin.HasValue) frame.Margin = margin.Value;
+        if (fgColor.HasValue) frame.Foreground = fgColor.Value;
+        if (bgColor.HasValue) frame.Background = bgColor.Value;
+        if (title is not null) frame.Title = title;
+        if (borderFgColor.HasValue) frame.BorderFgColor = borderFgColor.Value;
+        if (borderBgColor.HasValue) frame.BorderBgColor = borderBgColor.Value;
         return control;
     }
 
@@ -87,9 +89,9 @@ public static class ControlExtensions
     public static T WithBorder<T>(this T control, BorderStyle? style, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
-        frame.BorderStyle = style ?? frame.BorderStyle;
-        frame.BorderFgColor = borderFgColor ?? frame.BorderFgColor;
-        frame.BorderBgColor = borderBgColor ?? frame.BorderBgColor;
+        if (style.HasValue) frame.BorderStyle = style.Value;
+        if (borderFgColor.HasValue) frame.BorderFgColor = borderFgColor.Value;
+        if (borderBgColor.HasValue) frame.BorderBgColor = borderBgColor.Value;
         return control;
     }
 

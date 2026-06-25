@@ -38,6 +38,12 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         // The default title style comes straight from the style theme. An explicit TitleStyle (e.g.
         // WithTitle(text, style)) overrides it.
         _titleStyle = titleStyle ?? UI.StyleTheme.TitleStyle;
+        // Record which themeable values the caller supplied explicitly, so a later runtime theme switch
+        // (ApplyTheme) re-themes only the ones left at their theme default.
+        if (borderStyle.HasValue) _themeOverrides.Mark(nameof(BorderStyle));
+        if (fgColor.HasValue) _themeOverrides.Mark(nameof(Foreground));
+        if (borderFgColor.HasValue) _themeOverrides.Mark(nameof(BorderFgColor));
+        if (titleStyle.HasValue) _themeOverrides.Mark(nameof(TitleStyle));
         // The scrollbar's default glyphs come from the glyph theme and its colours from the style theme; the
         // frame composes them into its part cells here (override per-control with WithScrollBarGlyphs /
         // WithScrollBarStyle). Captured once, never read on the render path.
@@ -219,11 +225,12 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         get => _borderStyle;
         set
         {
-            UI.Invoke(() => 
+            UI.Invoke(() =>
             {
+                _themeOverrides.Mark(nameof(BorderStyle));
                 if (_borderStyle == value) return;
                 _borderStyle = value;
-                _boxBorder = GetSpectreBoxBorder(_borderStyle);               
+                _boxBorder = GetSpectreBoxBorder(_borderStyle);
                 Initialize();
             });
         }
@@ -250,6 +257,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         {
             UI.Invoke(() =>
             {
+                _themeOverrides.Mark(nameof(TitleStyle));
                 if (_titleStyle.Equals(value)) return;
                 _titleStyle = value;
                 Initialize();
@@ -290,6 +298,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         get => _foreground;
         set
         {
+            _themeOverrides.Mark(nameof(Foreground));
             if (Equals(_foreground, value)) return;
             _foreground = value;
             _Redraw();
@@ -312,6 +321,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         get => _borderFgColor;
         set
         {
+            _themeOverrides.Mark(nameof(BorderFgColor));
             if (Equals(_borderFgColor, value)) return;
             _borderFgColor = value;
             _Redraw();
@@ -413,7 +423,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     public ScrollBarGlyphs ScrollBarGlyphs
     {
         get => _scrollBarGlyphs;
-        set => UI.Invoke(() => { _scrollBarGlyphs = value; RecomposeScrollBar(); Redraw(); });
+        set => UI.Invoke(() => { _themeOverrides.Mark(nameof(ScrollBarGlyphs)); _scrollBarGlyphs = value; RecomposeScrollBar(); Redraw(); });
     }
 
     /// <summary>
@@ -423,7 +433,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     public ScrollBarStyle ScrollBarStyle
     {
         get => _scrollBarStyle;
-        set => UI.Invoke(() => { _scrollBarStyle = value; RecomposeScrollBar(); Redraw(); });
+        set => UI.Invoke(() => { _themeOverrides.Mark(nameof(ScrollBarStyle)); _scrollBarStyle = value; RecomposeScrollBar(); Redraw(); });
     }
 
     public ConsoleKeyInfo ScrollUpKey { get; set; } = UI.HotKeys.AltUp;
@@ -665,6 +675,29 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         return new Cell(character);
     }
 
+    /// <summary>
+    /// Re-applies theme defaults to every themeable property the caller has <em>not</em> explicitly overridden
+    /// (tracked via <see cref="ThemeOverrides"/>), then re-lays-out. Invoked on a runtime theme switch through
+    /// <see cref="UI.ThemeChanged"/> (wired by the owning control's <see cref="Control.Frame"/> setter).
+    /// </summary>
+    public void ApplyTheme() => UI.Invoke(() =>
+    {
+        if (!_themeOverrides.IsOverridden(nameof(BorderStyle)))
+        {
+            _borderStyle = UI.StyleTheme.FrameBorder;
+            _boxBorder = GetSpectreBoxBorder(_borderStyle);
+        }
+        if (!_themeOverrides.IsOverridden(nameof(Foreground))) _foreground = UI.StyleTheme.TitleText.ForegroundColor;
+        if (!_themeOverrides.IsOverridden(nameof(BorderFgColor))) _borderFgColor = UI.StyleTheme.BorderText.ForegroundColor;
+        if (!_themeOverrides.IsOverridden(nameof(TitleStyle))) _titleStyle = UI.StyleTheme.TitleStyle;
+        if (!_themeOverrides.IsOverridden(nameof(ScrollBarGlyphs))) _scrollBarGlyphs = UI.GlyphTheme.ScrollBar;
+        if (!_themeOverrides.IsOverridden(nameof(ScrollBarStyle))) _scrollBarStyle = UI.StyleTheme.ScrollBar;
+        RecomposeScrollBar();
+        Initialize();
+    });
+
+    internal void OnThemeChanged(object? sender, EventArgs e) => ApplyTheme();
+
     // Rebuilds the four scrollbar part cells from the current glyphs (glyph theme) and styles (style theme).
     private void RecomposeScrollBar()
     {
@@ -763,6 +796,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private TitleStyle _titleStyle = TitleStyle.Default;
     private int _top;
     
+    // Tracks which themeable properties were explicitly set, so a runtime theme switch re-themes only the rest.
+    private readonly ThemeOverrides _themeOverrides = new();
     // Source glyphs (from the glyph theme) and colours (from the style theme); the four Character fields below
     // are composed from them by RecomposeScrollBar and are what the renderer reads.
     private ScrollBarGlyphs _scrollBarGlyphs;

@@ -320,6 +320,35 @@ public class ThemeTests
     }
     #endregion
 
+    #region Live theme switching — ControlFrame (override-aware)
+    [Fact]
+    public void SetTheme_UpdatesFrame_NonOverriddenBorder()
+    {
+        var frame = new ControlFrame(new ListBox("a"));   // border left at the theme default (None)
+        Assert.Equal(BorderStyle.None, frame.BorderStyle);
+        try
+        {
+            UI.SetTheme(new FramedStyleTheme(), new DefaultGlyphTheme());   // FrameBorder = Rounded
+            Assert.Equal(BorderStyle.Rounded, frame.BorderStyle);          // followed the theme
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+
+    [Fact]
+    public void SetTheme_PreservesFrame_ExplicitBorder()
+    {
+        var lb = new ListBox("a");
+        lb.WithRoundedBorder(Color.Cyan1);   // explicit shape + colour
+        try
+        {
+            UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme());   // default FrameBorder is None
+            Assert.Equal(BorderStyle.Rounded, lb.Frame!.BorderStyle);        // explicit override survives the switch
+            Assert.Equal(Color.Cyan1, lb.Frame!.BorderFgColor);
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+    #endregion
+
     #region Style value-equality
     [Fact]
     public void Style_ValueEquality()

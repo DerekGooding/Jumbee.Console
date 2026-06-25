@@ -99,30 +99,37 @@ public class Program
     // The status line reflects the latest change. Needs a VT terminal (e.g. Windows Terminal).
     static void ToggleDemo(string[] args)
     {
+        // Start under the "cool" theme so the frames pick up its border shape/colour. Set the theme statics
+        // BEFORE constructing controls so they capture it (the switch below uses UI.SetTheme for the live path).
+        UI.StyleTheme = new CoolStyleTheme();
+        UI.GlyphTheme = new DefaultGlyphTheme();
+
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Click a control, then Space / arrows.".PadRight(44), Color.White);
 
         var notify = new Checkbox("Enable notifications");
         var dark = new Jumbee.Console.Switch("Dark mode");
 
+        // Keep the title placement inline (compact) but leave the BORDER unset so it follows the theme: the
+        // switch then changes the frame's border shape AND colour (cool = rounded cyan, retro = heavy magenta).
         var inlineTitle = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Inline, TitleColorStyle.Normal);
 
         var theme = new RadioSet("Light", "Dark", "Solarized") { SelectedIndex = 0 };
-        theme.WithRoundedBorder(Cyan1).WithTitle("Theme (one of)", inlineTitle);
+        theme.WithFrame().WithTitle("Theme (one of)", inlineTitle);
 
         var toppings = new SelectionList("Cheese", "Mushroom", "Pepperoni", "Olives");
-        toppings.WithRoundedBorder(Green).WithTitle("Toppings (any of)", inlineTitle);
+        toppings.WithFrame().WithTitle("Toppings (any of)", inlineTitle);
 
-        // Live theme switch: clicking re-skins every control above in place via UI.SetTheme (glyphs + colours,
-        // re-measuring widths). Watch the checkbox/radio markers and accent colours change.
+        // Live theme switch: clicking re-skins every control above in place via UI.SetTheme — checkbox/radio/
+        // switch glyphs, accent colours, the button, AND the frame borders (shape + colour).
         var retro = false;
-        var themeBtn = ColorButton("Switch theme (default ⇄ retro)", new Color(60, 60, 90));
+        var themeBtn = new Button("Switch theme (cool ⇄ retro)");   // plain button → follows the theme's Primary
         themeBtn.Activated += (_, _) =>
         {
             retro = !retro;
             UI.SetTheme(
-                retro ? new RetroStyleTheme() : new DefaultStyleTheme(),
+                retro ? new RetroStyleTheme() : new CoolStyleTheme(),
                 retro ? new RetroGlyphTheme() : new DefaultGlyphTheme());
-            status.Text = $"Theme: {(retro ? "retro" : "default")}".PadRight(44);
+            status.Text = $"Theme: {(retro ? "retro" : "cool")}".PadRight(44);
         };
 
         notify.Changed += (_, v) => status.Text = $"Notifications: {(v ? "on" : "off")}".PadRight(44);
@@ -635,13 +642,28 @@ public class Program
     */
 }
 
-// Example custom themes used by ToggleDemo's commented re-skin hint. A theme overrides only the tokens/glyphs
-// it wants; everything else falls back to the built-in defaults.
+// Example custom themes used by ToggleDemo's live theme switch. A theme overrides only the tokens/glyphs it
+// wants; everything else falls back to the built-in defaults. Both set the frame border shape/colour
+// (FrameBorder + BorderText + TitleText) so a switch visibly re-skins the frames around the radio/selection lists.
+file sealed class CoolStyleTheme : IStyleTheme
+{
+    public BorderStyle FrameBorder => BorderStyle.Rounded;
+    public Style BorderText => Style.Cyan1;
+    public Style TitleText => Style.Cyan1;
+    public Style TextAccent => Style.Green1;
+    public Style Selection => Style.White | Style.Bg(new Color(40, 50, 80));
+    public Style Primary => Style.White | Style.Bg(new Color(40, 70, 120));
+    public Style PrimaryHover => Style.White | Style.Bg(new Color(60, 90, 150));
+    public Style PrimaryActive => Style.White | Style.Bg(new Color(90, 130, 200));
+}
+
 file sealed class RetroStyleTheme : IStyleTheme
 {
+    public BorderStyle FrameBorder => BorderStyle.Heavy;
+    public Style BorderText => Style.Magenta1;
+    public Style TitleText => Style.Magenta1;
     public Style TextAccent => Style.Magenta1;
     public Style Selection => Style.White | Style.Bg(new Color(80, 30, 80));
-    public Style BorderText => Style.Magenta1;
     public Style Primary => Style.White | Style.Bg(new Color(90, 30, 90));
     public Style PrimaryHover => Style.White | Style.Bg(new Color(120, 45, 120));
     public Style PrimaryActive => Style.White | Style.Bg(new Color(160, 70, 160));

@@ -81,7 +81,19 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     public bool HasLayout => ActualWidth > 0 && ActualHeight > 0;
 
-    public ControlFrame? Frame { get; set; }
+    public ControlFrame? Frame
+    {
+        get => field;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+            // The frame participates in runtime theme switches via its own UI.ThemeChanged subscription; manage
+            // it here so the lifecycle follows attachment (and a replaced frame is detached).
+            if (field is not null) UI.ThemeChanged -= field.OnThemeChanged;
+            field = value;
+            if (value is not null) UI.ThemeChanged += value.OnThemeChanged;
+        }
+    }
 
     public bool HasFrame => Frame is not null;
 
@@ -235,6 +247,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     {
         UI.Paint -= OnPaint;
         UI.ThemeChanged -= OnThemeChanged;
+        if (Frame is not null) UI.ThemeChanged -= Frame.OnThemeChanged;
     }
 
     /// <summary>
