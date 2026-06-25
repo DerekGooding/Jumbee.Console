@@ -181,7 +181,8 @@ public class Program
 
         list.WithRoundedBorder(Cyan1)
             .WithTitle("Mouse wheel to scroll  (Alt+Up/Down also works)")
-            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Cyan1, arrows: Yellow));
+            .WithScrollBarGlyphs(ScrollBarGlyphs.Block)
+            .WithScrollBarStyle(ScrollBarStyle.Default.WithColors(thumb: Cyan1, arrows: Yellow));
 
         list.IsFocused = true;
 
@@ -448,13 +449,16 @@ public class Program
 
         blockList
             .WithRoundedBorder(Blue).WithTitle("Block")
-            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Cyan1, arrows: White));
+            .WithScrollBarGlyphs(ScrollBarGlyphs.Block)
+            .WithScrollBarStyle(ScrollBarStyle.Default.WithColors(thumb: Cyan1, arrows: White));
         shadedList
             .WithRoundedBorder(Purple).WithTitle("Shaded")
-            .WithScrollBarStyle(ScrollBarStyle.Shaded.WithColors(thumb: Magenta1, track: Silver, arrows: Red));
+            .WithScrollBarGlyphs(ScrollBarGlyphs.Shaded)
+            .WithScrollBarStyle(ScrollBarStyle.Default.WithColors(thumb: Magenta1, track: Silver, arrows: Red));
         lineList
             .WithRoundedBorder(Green).WithTitle("Line")
-            .WithScrollBarStyle(ScrollBarStyle.Line.WithColors(thumb: Yellow, arrows: Green));
+            .WithScrollBarGlyphs(ScrollBarGlyphs.Line)
+            .WithScrollBarStyle(ScrollBarStyle.Default.WithColors(thumb: Yellow, arrows: Green));
 
         var grid = new Jumbee.Console.Grid(
             [20],
@@ -485,7 +489,8 @@ public class Program
 
         tree.WithRoundedBorder(Purple)
             .WithTitle("Tree (Up/Down to navigate)")
-            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Cyan1, arrows: Yellow));
+            .WithScrollBarGlyphs(ScrollBarGlyphs.Block)
+            .WithScrollBarStyle(ScrollBarStyle.Default.WithColors(thumb: Cyan1, arrows: Yellow));
 
         tree.IsFocused = true;
 

@@ -64,6 +64,12 @@ public interface IStyleTheme
     Style Error => Style.Red1;
     Style Info => Style.SkyBlue1;
     #endregion
+
+    #region Scrollbar
+    /// <summary>The per-part colours/decoration a control frame's vertical scrollbar uses (glyphs come from
+    /// <see cref="IGlyphTheme.ScrollBar"/>). Defaults to <see cref="ScrollBarStyle.Default"/>.</summary>
+    ScrollBarStyle ScrollBar => ScrollBarStyle.Default;
+    #endregion
 }
 
 /// <summary>The built-in style theme: every token uses <see cref="IStyleTheme"/>'s default values.</summary>

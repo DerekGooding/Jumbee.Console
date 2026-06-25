@@ -1,18 +1,14 @@
 namespace Jumbee.Console;
 
-using ConsoleGUI.Data;
-
 /// <summary>
-/// Describes the glyphs and colors used to draw a control frame's vertical scrollbar: the up/down end arrows,
-/// the moving thumb, and the track behind it. Each part is a <see cref="Character"/> carrying its own glyph and
-/// (optional) foreground/background colors. The static presets (<see cref="Default"/>, <see cref="Block"/>,
-/// <see cref="Shaded"/>, <see cref="Line"/>) are convenience helpers for quickly restyling a single control;
-/// a frame's default scrollbar comes from the active <see cref="IGlyphTheme.ScrollBar"/>.
+/// The per-part <see cref="Style"/> (foreground/background/decoration, no glyph) a control frame applies to its
+/// vertical scrollbar. The glyphs come separately from <see cref="ScrollBarGlyphs"/> (via
+/// <see cref="IGlyphTheme.ScrollBar"/>); a control frame composes the two into its scrollbar cells.
 /// </summary>
 public readonly struct ScrollBarStyle
 {
     #region Constructors
-    public ScrollBarStyle(Character thumb, Character track, Character upArrow, Character downArrow)
+    public ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow)
     {
         Thumb = thumb;
         Track = track;
@@ -22,59 +18,41 @@ public readonly struct ScrollBarStyle
     #endregion
 
     #region Properties
-    /// <summary>The glyph drawn for the part of the track currently in view (the draggable handle).</summary>
-    public Character Thumb { get; init; }
+    /// <summary>Style for the thumb (the draggable handle).</summary>
+    public Style Thumb { get; init; }
 
-    /// <summary>The glyph drawn for the track behind the thumb.</summary>
-    public Character Track { get; init; }
+    /// <summary>Style for the track behind the thumb.</summary>
+    public Style Track { get; init; }
 
-    /// <summary>The glyph drawn at the top end of the scrollbar.</summary>
-    public Character UpArrow { get; init; }
+    /// <summary>Style for the top end arrow.</summary>
+    public Style UpArrow { get; init; }
 
-    /// <summary>The glyph drawn at the bottom end of the scrollbar.</summary>
-    public Character DownArrow { get; init; }
+    /// <summary>Style for the bottom end arrow.</summary>
+    public Style DownArrow { get; init; }
     #endregion
 
     #region Methods
     /// <summary>
-    /// Returns a copy with the foreground colors overridden. A <c>null</c> argument leaves that
-    /// part's existing color unchanged; <paramref name="arrows"/> recolors both end arrows.
+    /// Returns a copy with the foreground colours overridden. A <c>null</c> argument leaves that part unchanged;
+    /// <paramref name="arrows"/> recolours both end arrows.
     /// </summary>
     public ScrollBarStyle WithColors(Color? thumb = null, Color? track = null, Color? arrows = null) =>
-        new ScrollBarStyle(
-            thumb is { } t ? Thumb.WithForeground(t) : Thumb,
-            track is { } r ? Track.WithForeground(r) : Track,
-            arrows is { } a ? UpArrow.WithForeground(a) : UpArrow,
-            arrows is { } d ? DownArrow.WithForeground(d) : DownArrow);
+        new(
+            thumb is { } t ? (Style)t : Thumb,
+            track is { } r ? (Style)r : Track,
+            arrows is { } a ? (Style)a : UpArrow,
+            arrows is { } d ? (Style)d : DownArrow);
+
+    /// <summary>A scrollbar style with the same <see cref="Style"/> applied to every part.</summary>
+    public static ScrollBarStyle Uniform(Style style) => new(style, style, style, style);
     #endregion
 
     #region Presets
-    /// <summary>The original default style: a '#' thumb on a '|' track with triangle arrows.</summary>
+    /// <summary>The original default colours: a blue thumb on a grey track with terminal-default arrows.</summary>
     public static ScrollBarStyle Default { get; } = new(
-        new Character('#', foreground: new Color(100, 100, 255)),
-        new Character('|', foreground: new Color(100, 100, 100)),
-        new Character('▲'),
-        new Character('▼'));
-
-    /// <summary>A solid block thumb on a light vertical-line track with triangle arrows.</summary>
-    public static ScrollBarStyle Block { get; } = new(
-        new Character('█'),
-        new Character('│'),
-        new Character('▲'),
-        new Character('▼'));
-
-    /// <summary>A shaded (dithered) thumb on a light vertical-line track with thin line arrows.</summary>
-    public static ScrollBarStyle Shaded { get; } = new(
-        new Character('▒'),
-        new Character('│'),
-        new Character('↑'),
-        new Character('↓'));
-
-    /// <summary>A heavy vertical-line thumb on a light vertical-line track with triangle arrows.</summary>
-    public static ScrollBarStyle Line { get; } = new(
-        new Character('┃'),
-        new Character('│'),
-        new Character('▲'),
-        new Character('▼'));
+        thumb: new Color(100, 100, 255),
+        track: new Color(100, 100, 100),
+        upArrow: Style.Plain,
+        downArrow: Style.Plain);
     #endregion
 }

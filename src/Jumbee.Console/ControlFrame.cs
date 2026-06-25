@@ -100,13 +100,12 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         _borderBgColor = borderBgColor;
         _title = title;
         _titleStyle = titleStyle ?? TitleStyle.Default;
-        // The scrollbar's default glyphs/colours come from the active glyph theme (override per-control with
-        // WithScrollBarStyle). Captured directly into the part fields here, never read on the render path.
-        var scrollBar = UI.GlyphTheme.ScrollBar;
-        _scrollBarForeground = scrollBar.Thumb;
-        _scrollBarBackground = scrollBar.Track;
-        _scrollBarUpArrow = scrollBar.UpArrow;
-        _scrollBarDownArrow = scrollBar.DownArrow;
+        // The scrollbar's default glyphs come from the glyph theme and its colours from the style theme; the
+        // frame composes them into its part cells here (override per-control with WithScrollBarGlyphs /
+        // WithScrollBarStyle). Captured once, never read on the render path.
+        _scrollBarGlyphs = UI.GlyphTheme.ScrollBar;
+        _scrollBarStyle = UI.StyleTheme.ScrollBar;
+        RecomposeScrollBar();
         _control = control;
         _control.Frame = this;
         BindControl();
@@ -470,22 +469,23 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     }
 
     /// <summary>
-    /// Gets or sets all four scrollbar parts (thumb, track, up/down arrows) at once.
+    /// Gets or sets the scrollbar glyphs (thumb, track, up/down arrows). Setting it recomposes the part cells
+    /// with the current <see cref="ScrollBarStyle"/> colours.
+    /// </summary>
+    public ScrollBarGlyphs ScrollBarGlyphs
+    {
+        get => _scrollBarGlyphs;
+        set => UI.Invoke(() => { _scrollBarGlyphs = value; RecomposeScrollBar(); Redraw(); });
+    }
+
+    /// <summary>
+    /// Gets or sets the scrollbar part colours/decoration. Setting it recomposes the part cells with the current
+    /// <see cref="ScrollBarGlyphs"/> glyphs.
     /// </summary>
     public ScrollBarStyle ScrollBarStyle
     {
-        get => new ScrollBarStyle(_scrollBarForeground, _scrollBarBackground, _scrollBarUpArrow, _scrollBarDownArrow);
-        set
-        {
-            UI.Invoke(() =>
-            {
-                _scrollBarForeground = value.Thumb;
-                _scrollBarBackground = value.Track;
-                _scrollBarUpArrow = value.UpArrow;
-                _scrollBarDownArrow = value.DownArrow;
-                Redraw();
-            });
-        }
+        get => _scrollBarStyle;
+        set => UI.Invoke(() => { _scrollBarStyle = value; RecomposeScrollBar(); Redraw(); });
     }
 
     public ConsoleKeyInfo ScrollUpKey { get; set; } = UI.HotKeys.AltUp;
@@ -726,6 +726,26 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
         return new Cell(character);
     }
+
+    // Rebuilds the four scrollbar part cells from the current glyphs (glyph theme) and styles (style theme).
+    private void RecomposeScrollBar()
+    {
+        _scrollBarForeground = Compose(_scrollBarGlyphs.Thumb, _scrollBarStyle.Thumb);
+        _scrollBarBackground = Compose(_scrollBarGlyphs.Track, _scrollBarStyle.Track);
+        _scrollBarUpArrow = Compose(_scrollBarGlyphs.UpArrow, _scrollBarStyle.UpArrow);
+        _scrollBarDownArrow = Compose(_scrollBarGlyphs.DownArrow, _scrollBarStyle.DownArrow);
+    }
+
+    // Composes a single scrollbar cell: the first cell of the glyph string carrying the token's fg/bg/decoration.
+    private static Character Compose(string glyph, Style style)
+    {
+        char? content = string.IsNullOrEmpty(glyph) ? ' ' : glyph[0];
+        ConsoleGUI.Data.Color? fg = style.ForegroundColor is { } f ? f.ToConsoleGUIColor() : null;
+        ConsoleGUI.Data.Color? bg = style.BackgroundColor is { } b ? b.ToConsoleGUIColor() : null;
+        var spectreDecoration = style.SpectreConsoleStyle?.Decoration ?? Spectre.Console.Decoration.None;
+        Decoration? decoration = spectreDecoration == Spectre.Console.Decoration.None ? null : (Decoration)spectreDecoration;
+        return new Character(content, fg, bg, decoration);
+    }
     /// <summary>
     /// Returns the title <see cref="Cell"/> for column <paramref name="x"/> on the title row, or
     /// <c>null</c> when the column falls outside the (aligned) title span. <paramref name="left"/> and
@@ -805,7 +825,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private TitleStyle _titleStyle = TitleStyle.Default;
     private int _top;
     
-    // Initialized in the constructor from UI.GlyphTheme.ScrollBar (or overridden via WithScrollBarStyle).
+    // Source glyphs (from the glyph theme) and colours (from the style theme); the four Character fields below
+    // are composed from them by RecomposeScrollBar and are what the renderer reads.
+    private ScrollBarGlyphs _scrollBarGlyphs;
+    private ScrollBarStyle _scrollBarStyle;
     private Character _scrollBarForeground;
     private Character _scrollBarBackground;
     private Character _scrollBarUpArrow;

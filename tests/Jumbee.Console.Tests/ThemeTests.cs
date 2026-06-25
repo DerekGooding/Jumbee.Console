@@ -28,10 +28,16 @@ public class ThemeTests
         public Style TextAccent => Style.Magenta1;
     }
 
-    /// <summary>A glyph theme that overrides only the scrollbar style.</summary>
+    /// <summary>A glyph theme that overrides only the scrollbar glyphs.</summary>
     private sealed class BlockScrollGlyphTheme : IGlyphTheme
     {
-        public ScrollBarStyle ScrollBar => ScrollBarStyle.Block;
+        public ScrollBarGlyphs ScrollBar => ScrollBarGlyphs.Block;
+    }
+
+    /// <summary>A style theme that overrides only the scrollbar colours (all parts red).</summary>
+    private sealed class RedScrollStyleTheme : IStyleTheme
+    {
+        public ScrollBarStyle ScrollBar => ScrollBarStyle.Uniform(Style.Red1);
     }
 
     private static void WithGlyphTheme(IGlyphTheme theme, Action body)
@@ -153,34 +159,51 @@ public class ThemeTests
     }
     #endregion
 
-    #region Scrollbar theming
+    #region Scrollbar theming (glyphs from glyph theme, colours from style theme)
     [Fact]
-    public void DefaultGlyphTheme_ScrollBar_IsDefaultStyle()
+    public void DefaultGlyphTheme_ScrollBar_IsDefaultGlyphs()
     {
         IGlyphTheme g = new DefaultGlyphTheme();
-        Assert.Equal(ScrollBarStyle.Default.Thumb.Content, g.ScrollBar.Thumb.Content);
+        Assert.Equal(ScrollBarGlyphs.Default.Thumb, g.ScrollBar.Thumb);   // "#"
     }
 
     [Fact]
-    public void ControlFrame_CapturesScrollBarFromGlyphTheme()
+    public void ControlFrame_ComposesScrollBar_FromGlyphAndStyleThemes()
     {
-        WithGlyphTheme(new BlockScrollGlyphTheme(), () =>
+        var prevG = UI.GlyphTheme; var prevS = UI.StyleTheme;
+        UI.GlyphTheme = new BlockScrollGlyphTheme();    // glyph: block thumb
+        UI.StyleTheme = new RedScrollStyleTheme();      // colour: red
+        try
         {
             var lb = new ListBox("a");
             lb.WithRoundedBorder();
-            Assert.Equal('█', lb.Frame!.ScrollBarStyle.Thumb.Content);   // themed block thumb
-        });
+            var thumb = lb.Frame!.ScrollBarForeground;
+            Assert.Equal('█', thumb.Content);                       // glyph from the glyph theme
+            Assert.Equal((byte)255, thumb.Foreground!.Value.Red);   // colour from the style theme
+            Assert.Equal((byte)0, thumb.Foreground!.Value.Green);
+        }
+        finally { UI.GlyphTheme = prevG; UI.StyleTheme = prevS; }
     }
 
     [Fact]
-    public void ControlFrame_ScrollBarOverride_WinsOverTheme()
+    public void ControlFrame_ScrollBarGlyphsOverride_Wins()
     {
         WithGlyphTheme(new BlockScrollGlyphTheme(), () =>
         {
             var lb = new ListBox("a");
-            lb.WithRoundedBorder().WithScrollBarStyle(ScrollBarStyle.Shaded);
-            Assert.Equal('▒', lb.Frame!.ScrollBarStyle.Thumb.Content);   // explicit override wins
+            lb.WithRoundedBorder().WithScrollBarGlyphs(ScrollBarGlyphs.Shaded);
+            Assert.Equal('▒', lb.Frame!.ScrollBarForeground.Content);   // explicit glyph override wins
         });
+    }
+
+    [Fact]
+    public void ControlFrame_ScrollBarStyleOverride_Wins()
+    {
+        var lb = new ListBox("a");
+        lb.WithRoundedBorder().WithScrollBarStyle(ScrollBarStyle.Uniform(Style.Lime));
+        var thumb = lb.Frame!.ScrollBarForeground;
+        Assert.Equal((byte)0, thumb.Foreground!.Value.Red);     // Lime = (0,255,0)
+        Assert.Equal((byte)255, thumb.Foreground!.Value.Green);
     }
     #endregion
 

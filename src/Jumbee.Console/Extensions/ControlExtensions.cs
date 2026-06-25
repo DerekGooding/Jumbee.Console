@@ -115,6 +115,13 @@ public static class ControlExtensions
         return control;
     }
 
+    public static T WithScrollBarGlyphs<T>(this T control, ScrollBarGlyphs glyphs) where T : Control
+    {
+        var frame = control.Frame ??= new ControlFrame(control);
+        frame.ScrollBarGlyphs = glyphs;
+        return control;
+    }
+
     public static T WithNoBorder<T>(this T control) where T : Control =>
         control.WithBorder(BorderStyle.None);
 

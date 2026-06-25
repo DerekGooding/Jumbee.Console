@@ -27,8 +27,9 @@ public interface IGlyphTheme
     #endregion
 
     #region Scrollbar
-    /// <summary>The glyphs/colours a control frame's vertical scrollbar uses. Defaults to <see cref="ScrollBarStyle.Default"/>.</summary>
-    ScrollBarStyle ScrollBar => ScrollBarStyle.Default;
+    /// <summary>The glyphs a control frame's vertical scrollbar uses (colours come from <see cref="IStyleTheme.ScrollBar"/>).
+    /// Defaults to <see cref="ScrollBarGlyphs.Default"/>.</summary>
+    ScrollBarGlyphs ScrollBar => ScrollBarGlyphs.Default;
     #endregion
 
     #region Helpers

@@ -139,7 +139,8 @@ public class ConsoleSnapshotTests
         var list = new ListBox { SelectedForegroundColor = Color.White, SelectedBackgroundColor = Color.Blue };
         for (var i = 1; i <= 40; i++) list.AddItem($"Item {i}");
         list.WithRoundedBorder(Color.Purple).WithTitle("List")
-            .WithScrollBarStyle(ScrollBarStyle.Block.WithColors(thumb: Color.Cyan1, arrows: Color.Yellow));
+            .WithScrollBarGlyphs(ScrollBarGlyphs.Block)
+            .WithScrollBarStyle(ScrollBarStyle.Default.WithColors(thumb: Color.Cyan1, arrows: Color.Yellow));
         ConsoleSnapshot.SavePng(list, 26, 12, Path.Combine(dir, "listbox_scrollbar.png"));
 
         // Tree
