@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 using ConsoleGUI.Data;
@@ -258,6 +259,13 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// </summary>
     protected virtual void ApplyTheme() {}
 
+    /// <summary>
+    /// <see langword="true"/> if <paramref name="property"/> was explicitly set by the caller (a themeable token
+    /// setter passed it to <see cref="SetAtomicProperty"/>). A control's <see cref="ApplyTheme"/> guards each
+    /// themed field with this so a runtime theme switch re-themes only the properties the caller left at default.
+    /// </summary>
+    protected bool IsThemeOverridden(string property) => _themeOverrides.IsOverridden(property);
+
     // Runtime theme switch: re-capture themed fields (clobbering any explicit overrides) and repaint. Glyph-width
     // changes flow through the control's own ApplyTheme (which re-measures and resizes), so a relayout follows.
     private void OnThemeChanged(object? sender, EventArgs e)
@@ -332,9 +340,20 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// </param>
     /// <param name="validate">Optional coercion (e.g. clamp) applied before the equality check and assignment.</param>
     /// <param name="watch">Optional change callback receiving the old and new values, run before the invalidate/initialize.</param>
+    /// <param name="themeOverride">
+    /// When <see langword="true"/>, marks the calling property (captured automatically via
+    /// <paramref name="propertyName"/>) as an explicit theme override, so a later runtime theme switch through
+    /// <see cref="ApplyTheme"/> leaves it alone. Themeable token setters pass <c>themeOverride: true</c>.
+    /// </param>
+    /// <param name="propertyName">
+    /// The calling member's name, supplied automatically by the compiler (<see cref="CallerMemberNameAttribute"/>).
+    /// Inside a property setter this is the property name (e.g. <c>AccentStyle</c>), so it matches the
+    /// <c>nameof(AccentStyle)</c> used by <see cref="ApplyTheme"/>. Do not pass it explicitly.
+    /// </param>
     /// <returns>The resulting field value (the coerced new value when changed, otherwise the existing one).</returns>
-    protected T SetAtomicProperty<T>(ref T field, T value, bool updatesLayout = false, Func<T, T>? validate = null, Action<T, T>? watch = null)
+    protected T SetAtomicProperty<T>(ref T field, T value, bool updatesLayout = false, Func<T, T>? validate = null, Action<T, T>? watch = null, bool themeOverride = false, [CallerMemberName] string? propertyName = null)
     {
+        if (themeOverride && propertyName is not null) _themeOverrides.Mark(propertyName);
         if (validate is not null) value = validate(value);
         if (EqualityComparer<T>.Default.Equals(field, value)) return field;
 
@@ -433,6 +452,8 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected internal uint paintRequests;
     protected readonly ConsoleBuffer consoleBuffer;
     protected readonly AnsiConsoleBuffer ansiConsole;
+    // Tracks which theme-token properties the caller explicitly set, so ApplyTheme re-themes only the rest.
+    private readonly ThemeOverrides _themeOverrides = new();
 
     /// <summary>Maximum gap (ms) between two clicks for them to register as a double-click.</summary>
     protected const long DoubleClickMs = 400;

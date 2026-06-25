@@ -53,19 +53,19 @@ public abstract class ToggleList : RenderableControl
     }
 
     /// <summary>Text style for an option label. Defaults to <see cref="IStyleTheme.Text"/>.</summary>
-    public Style TextStyle { get => _textStyle; set => SetAtomicProperty(ref _textStyle, value); }
+    public Style TextStyle { get => _textStyle; set => SetAtomicProperty(ref _textStyle, value, themeOverride: true); }
 
     /// <summary>Indicator style for a checked/selected row. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
-    public Style AccentStyle { get => _accentStyle; set => SetAtomicProperty(ref _accentStyle, value); }
+    public Style AccentStyle { get => _accentStyle; set => SetAtomicProperty(ref _accentStyle, value, themeOverride: true); }
 
     /// <summary>Indicator style for an unchecked row. Defaults to <see cref="IStyleTheme.TextMuted"/>.</summary>
-    public Style MutedStyle { get => _mutedStyle; set => SetAtomicProperty(ref _mutedStyle, value); }
+    public Style MutedStyle { get => _mutedStyle; set => SetAtomicProperty(ref _mutedStyle, value, themeOverride: true); }
 
     /// <summary>Style for the highlighted (cursor) row. Defaults to <see cref="IStyleTheme.Selection"/>.</summary>
     public Style SelectionStyle
     {
         get => _selectionStyle;
-        set => SetAtomicProperty(ref _selectionStyle, value, watch: (_, v) => _selectionBackground = SelectionBg(v));
+        set => SetAtomicProperty(ref _selectionStyle, value, watch: (_, v) => _selectionBackground = SelectionBg(v), themeOverride: true);
     }
     #endregion
 
@@ -80,11 +80,14 @@ public abstract class ToggleList : RenderableControl
     // from the glyph theme, calling base first.
     protected override void ApplyTheme()
     {
-        _textStyle = UI.StyleTheme.Text;
-        _accentStyle = UI.StyleTheme.TextAccent;
-        _mutedStyle = UI.StyleTheme.TextMuted;
-        _selectionStyle = UI.StyleTheme.Selection;
-        _selectionBackground = SelectionBg(_selectionStyle);
+        if (!IsThemeOverridden(nameof(TextStyle))) _textStyle = UI.StyleTheme.Text;
+        if (!IsThemeOverridden(nameof(AccentStyle))) _accentStyle = UI.StyleTheme.TextAccent;
+        if (!IsThemeOverridden(nameof(MutedStyle))) _mutedStyle = UI.StyleTheme.TextMuted;
+        if (!IsThemeOverridden(nameof(SelectionStyle)))
+        {
+            _selectionStyle = UI.StyleTheme.Selection;
+            _selectionBackground = SelectionBg(_selectionStyle);
+        }
     }
 
     /// <summary>Sets the selected/unselected indicator glyphs (from the glyph theme), measures the indicator

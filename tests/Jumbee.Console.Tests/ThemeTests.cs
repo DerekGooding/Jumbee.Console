@@ -307,14 +307,28 @@ public class ThemeTests
     }
 
     [Fact]
-    public void SetTheme_ClobbersExplicitOverride()
+    public void SetTheme_PreservesExplicitOverride()
     {
         var cb = new Checkbox("x") { AccentStyle = Style.Red1 };   // explicit override
         Assert.Equal(Style.Red1, cb.AccentStyle);
         try
         {
-            UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme());
-            Assert.Equal(Style.Green1, cb.AccentStyle);   // reset to theme default (documented clobber behaviour)
+            UI.SetTheme(new AccentStyleTheme(), new DefaultGlyphTheme());   // theme TextAccent = Magenta1
+            Assert.Equal(Style.Red1, cb.AccentStyle);   // explicit override survives the switch (not clobbered)
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+
+    [Fact]
+    public void SetTheme_UpdatesNonOverriddenSiblings_WhenOneIsOverridden()
+    {
+        // Override only AccentStyle; LabelStyle should still follow the theme on a switch.
+        var cb = new Checkbox("x") { AccentStyle = Style.Red1 };
+        try
+        {
+            UI.SetTheme(new AccentStyleTheme(), new DefaultGlyphTheme());
+            Assert.Equal(Style.Red1, cb.AccentStyle);                                  // overridden → kept
+            Assert.Equal(((IStyleTheme)new AccentStyleTheme()).Text, cb.LabelStyle);   // not overridden → followed
         }
         finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
     }

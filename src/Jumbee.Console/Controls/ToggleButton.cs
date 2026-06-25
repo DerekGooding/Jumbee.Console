@@ -54,16 +54,16 @@ public abstract class ToggleButton : RenderableControl
     }
 
     /// <summary>Label style. Defaults to <see cref="IStyleTheme.Text"/>.</summary>
-    public Style LabelStyle { get => _labelStyle; set => SetAtomicProperty(ref _labelStyle, value); }
+    public Style LabelStyle { get => _labelStyle; set => SetAtomicProperty(ref _labelStyle, value, themeOverride: true); }
 
     /// <summary>Indicator style when checked. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
-    public Style AccentStyle { get => _accentStyle; set => SetAtomicProperty(ref _accentStyle, value); }
+    public Style AccentStyle { get => _accentStyle; set => SetAtomicProperty(ref _accentStyle, value, themeOverride: true); }
 
     /// <summary>Indicator style when unchecked. Defaults to <see cref="IStyleTheme.TextMuted"/>.</summary>
-    public Style MutedStyle { get => _mutedStyle; set => SetAtomicProperty(ref _mutedStyle, value); }
+    public Style MutedStyle { get => _mutedStyle; set => SetAtomicProperty(ref _mutedStyle, value, themeOverride: true); }
 
     /// <summary>Style merged across the row while hovered (typically a background). Defaults to <see cref="IStyleTheme.Hover"/>.</summary>
-    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value); }
+    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true); }
     #endregion
 
     #region Methods
@@ -74,10 +74,10 @@ public abstract class ToggleButton : RenderableControl
     // (via SetGlyphs) from the glyph theme, calling base first.
     protected override void ApplyTheme()
     {
-        _labelStyle = UI.StyleTheme.Text;
-        _accentStyle = UI.StyleTheme.TextAccent;
-        _mutedStyle = UI.StyleTheme.TextMuted;
-        _hoverStyle = UI.StyleTheme.Hover;
+        if (!IsThemeOverridden(nameof(LabelStyle))) _labelStyle = UI.StyleTheme.Text;
+        if (!IsThemeOverridden(nameof(AccentStyle))) _accentStyle = UI.StyleTheme.TextAccent;
+        if (!IsThemeOverridden(nameof(MutedStyle))) _mutedStyle = UI.StyleTheme.TextMuted;
+        if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.Hover;
     }
 
     /// <summary>Sets the on/off indicator glyphs (from the glyph theme), measures the indicator width from them,

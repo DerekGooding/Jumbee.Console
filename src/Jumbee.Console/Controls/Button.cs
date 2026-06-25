@@ -40,13 +40,13 @@ public class Button : RenderableControl
     }
 
     /// <summary>Style at rest. Defaults to <see cref="IStyleTheme.Primary"/>.</summary>
-    public Style NormalStyle { get => _normalStyle; set => SetAtomicProperty(ref _normalStyle, value); }
+    public Style NormalStyle { get => _normalStyle; set => SetAtomicProperty(ref _normalStyle, value, themeOverride: true); }
 
     /// <summary>Style while hovered. Defaults to <see cref="IStyleTheme.PrimaryHover"/>.</summary>
-    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value); }
+    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true); }
 
     /// <summary>Style while pressed. Defaults to <see cref="IStyleTheme.PrimaryActive"/>.</summary>
-    public Style PressStyle { get => _pressStyle; set => SetAtomicProperty(ref _pressStyle, value); }
+    public Style PressStyle { get => _pressStyle; set => SetAtomicProperty(ref _pressStyle, value, themeOverride: true); }
     #endregion
 
     #region Methods
@@ -55,9 +55,9 @@ public class Button : RenderableControl
 
     protected override void ApplyTheme()
     {
-        _normalStyle = UI.StyleTheme.Primary;
-        _hoverStyle = UI.StyleTheme.PrimaryHover;
-        _pressStyle = UI.StyleTheme.PrimaryActive;
+        if (!IsThemeOverridden(nameof(NormalStyle))) _normalStyle = UI.StyleTheme.Primary;
+        if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.PrimaryHover;
+        if (!IsThemeOverridden(nameof(PressStyle))) _pressStyle = UI.StyleTheme.PrimaryActive;
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
