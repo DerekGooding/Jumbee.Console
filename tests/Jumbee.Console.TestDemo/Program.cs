@@ -21,15 +21,16 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
+        SelectDemo(args);
         //OverlayDemo(args);
         //WheelDemo(args);
         //ButtonDemo(args);
         //GridTest(args);
         //GridTest(args);
-        SpectreControlTests.LiveDisplayTests();
+        //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //DockPanelTest(args);
-        TitleStyleTest(args);
+        //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
         //SpectreControlTests.ProgressTests();
@@ -70,6 +71,25 @@ public class Program
 
         var run = UI.Start(grid, width: 72, height: 22, isAnsiTerminal: false);
         UI.SetFocus(editor1);
+        run.Wait();
+    }
+
+    // Interactive Select/dropdown demo. Click the selector (or focus it and press Enter/Space) to open the
+    // options anchored below; arrow keys + Enter or a click choose; Escape / click-outside cancels. The chosen
+    // value shows in the status line. Needs a VT terminal (e.g. Windows Terminal).
+    static void SelectDemo(string[] args)
+    {
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Pick a colour from the dropdown.".PadRight(36), Color.White);
+        var select = new Select("Red", "Green", "Blue", "Magenta", "Cyan", "Yellow") { Placeholder = "Choose a colour ▾" };
+
+        var bottom = new Jumbee.Console.Grid([2, 1], [38], [[status], [select]]);
+        var overlay = new Overlay(bottom);
+        select.Overlay = overlay;   // the dropdown floats into this overlay
+
+        select.SelectionChanged += (_, value) => status.Text = $"You picked: {value}".PadRight(36);
+
+        var run = UI.Start(overlay, width: 42, height: 14, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(select);
         run.Wait();
     }
 

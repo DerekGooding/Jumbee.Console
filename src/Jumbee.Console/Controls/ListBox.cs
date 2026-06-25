@@ -8,6 +8,7 @@ using System.Threading;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using ConsoleGUI.Input;
+using ConsoleGUI.Space;
 
 /// <summary>
 /// Displays a flat list of items and allows user input navigation and selection.
@@ -44,7 +45,42 @@ public partial class ListBox : RenderableControl
         set => SetAtomicProperty(ref _selectedBackgroundColor, value);
     }
 
+    /// <summary>The index of the highlighted item (in item order), clamped to the item range.</summary>
+    public int SelectedIndex
+    {
+        get => _selectionIndex;
+        set
+        {
+            var count = _items.Count;
+            var clamped = count == 0 ? 0 : Math.Clamp(value, 0, count - 1);
+            if (clamped == _selectionIndex) return;
+            _selectionIndex = clamped;
+            AutoScroll();
+            Invalidate();
+            SelectionChanged?.Invoke(this, _selectionIndex);
+        }
+    }
+
+    /// <summary>The highlighted item, or <see langword="null"/> when empty.</summary>
+    public ListBoxItem? SelectedItem
+    {
+        get
+        {
+            var ordered = OrderedItems();
+            return _selectionIndex >= 0 && _selectionIndex < ordered.Length ? ordered[_selectionIndex] : null;
+        }
+    }
+
     public override bool HandlesInput => true;
+    #endregion
+
+    #region Events
+    /// <summary>Raised when the highlighted index changes (navigation or selection).</summary>
+    public event EventHandler<int>? SelectionChanged;
+    /// <summary>Raised when an item is committed (Enter or click).</summary>
+    public event EventHandler<ListBoxItem>? Committed;
+    /// <summary>Raised when the list is cancelled (Escape).</summary>
+    public event EventHandler? Cancelled;
     #endregion
 
     #region Methods        
@@ -136,29 +172,45 @@ public partial class ListBox : RenderableControl
 
     protected override void OnInput(InputEvent inputEvent)
     {
-        if (inputEvent.Key.Key == ConsoleKey.UpArrow)
+        var count = _items.Count;
+        switch (inputEvent.Key.Key)
         {
-            var count = _items.Count;
-            if (count > 0)
-            {
-                _selectionIndex = (_selectionIndex - 1 + count) % count;
-                AutoScroll();
-                Invalidate();
-            }
-            inputEvent.Handled = true;
-        }
-        else if (inputEvent.Key.Key == ConsoleKey.DownArrow)
-        {
-            var count = _items.Count;
-            if (count > 0)
-            {
-                _selectionIndex = (_selectionIndex + 1) % count;
-                AutoScroll();
-                Invalidate();
-            }
-            inputEvent.Handled = true;
+            case ConsoleKey.UpArrow when count > 0:
+                SelectedIndex = (_selectionIndex - 1 + count) % count;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.DownArrow when count > 0:
+                SelectedIndex = (_selectionIndex + 1) % count;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.Enter when count > 0:
+                Commit();
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.Escape:
+                Cancelled?.Invoke(this, EventArgs.Empty);
+                inputEvent.Handled = true;
+                break;
         }
     }
+
+    // A click selects the row under the pointer and commits it. Each item is one row, and the listener position
+    // is in the list's own content coordinates, so the row index is position.Y.
+    protected override void OnClick(Position position)
+    {
+        var count = _items.Count;
+        var index = position.Y;
+        if (index < 0 || index >= count) return;
+        SelectedIndex = index;
+        Commit();
+    }
+
+    private void Commit()
+    {
+        if (SelectedItem is { } item) Committed?.Invoke(this, item);
+    }
+
+    private ListBoxItem[] OrderedItems() => _items.Values.OrderBy(i => i.Index).ToArray();
 
     /// <summary>
     /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the selected item stays within
@@ -185,8 +237,8 @@ public partial class ListBox : RenderableControl
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var items = _items.Values.OrderBy(i => i.Index).ToArray();
-        
+        var items = OrderedItems();
+
         // Ensure selection index is valid
         if (_selectionIndex >= items.Length) _selectionIndex = Math.Max(0, items.Length - 1);
         if (_selectionIndex < 0 && items.Length > 0) _selectionIndex = 0;
