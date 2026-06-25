@@ -1,25 +1,17 @@
 namespace Jumbee.Console;
 
-using Spectre.Console.Rendering;
-
 /// <summary>
-/// A sliding on/off switch. Renders a small track with the thumb on the right and tinted with <see cref="ToggleButton.Accent"/>
-/// when on (<c>(  ●)</c>), and on the left tinted with <see cref="ToggleButton.Muted"/> when off (<c>(●  )</c>),
-/// followed by its label.
+/// A sliding on/off switch. Uses the glyph theme's <see cref="IGlyphTheme.SwitchOn"/>/
+/// <see cref="IGlyphTheme.SwitchOff"/> markers (by default <c>(─●)</c>/<c>(●─)</c>), tinted with the accent
+/// style when on, followed by its label.
 /// </summary>
 public class Switch : ToggleButton
 {
     #region Constructors
-    public Switch(string text = "", bool isOn = false) : base(text) => IsChecked = isOn;
-    #endregion
-
-    #region Methods
-    protected override int IndicatorWidth => 4;
-
-    protected override Segment RenderIndicator(Color? background)
+    public Switch(string text = "", bool isOn = false) : base(text)
     {
-        var glyph = IsChecked ? "(─●)" : "(●─)";
-        return new Segment(glyph, Style(IsChecked ? Accent : Muted, background));
+        SetGlyphs(UI.GlyphTheme.SwitchOn, UI.GlyphTheme.SwitchOff);
+        IsChecked = isOn;
     }
     #endregion
 }

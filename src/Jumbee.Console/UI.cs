@@ -262,6 +262,16 @@ public static class UI
     #region Properties
     public static ILayout Layout => layout!;
 
+    /// <summary>The active style theme. Controls capture their default colours/decorations from this in their
+    /// constructor, so set it <em>before</em> constructing controls to take effect (it is not a live switch).
+    /// Defaults to <see cref="DefaultStyleTheme"/>.</summary>
+    public static IStyleTheme StyleTheme { get; set; } = new DefaultStyleTheme();
+
+    /// <summary>The active glyph theme. Controls capture their indicator glyphs from this in their constructor,
+    /// so set it <em>before</em> constructing controls to take effect (it is not a live switch). Defaults to
+    /// <see cref="DefaultGlyphTheme"/>.</summary>
+    public static IGlyphTheme GlyphTheme { get; set; } = new DefaultGlyphTheme();
+
     /// <summary>True while the UI loop is running. Background work (e.g. a Spectre progress/live loop) can poll
     /// this to exit when the UI stops.</summary>
     public static bool IsRunning => isRunning;

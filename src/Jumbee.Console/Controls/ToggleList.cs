@@ -11,10 +11,15 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// Shared base for the vertical, navigable toggle lists (<see cref="RadioSet"/>, <see cref="SelectionList"/>).
-/// Each option is one row rendered as a three-cell indicator followed by the option text. Up/Down move the
-/// highlight cursor (auto-scrolling the surrounding <see cref="Control.Frame"/>); Space/Enter activate the
-/// highlighted row and a click activates the clicked row. Subclasses define the per-row checked state, the
-/// indicator glyph, and what "activate" does (single- vs multi-select).
+/// Each option is one row rendered as a state indicator followed by the option text. Up/Down move the highlight
+/// cursor (auto-scrolling the surrounding <see cref="Control.Frame"/>); Space/Enter activate the highlighted row
+/// and a click activates the clicked row. Subclasses define the per-row checked state, the indicator glyph pair,
+/// and what "activate" does (single- vs multi-select).
+/// <para>
+/// Appearance is theme-driven: style tokens are captured once from <see cref="UI.StyleTheme"/> in the constructor
+/// and glyphs from <see cref="UI.GlyphTheme"/> via <see cref="SetGlyphs"/>; the indicator width (and the control's
+/// width) is measured from the themed glyph. Captured values are read as plain fields on the render path.
+/// </para>
 /// </summary>
 public abstract class ToggleList : RenderableControl
 {
@@ -22,8 +27,13 @@ public abstract class ToggleList : RenderableControl
     protected ToggleList(IEnumerable<string> options)
     {
         _options = options.ToList();
+        _textStyle = UI.StyleTheme.Text;
+        _accentStyle = UI.StyleTheme.TextAccent;
+        _mutedStyle = UI.StyleTheme.TextMuted;
+        _selectionStyle = UI.StyleTheme.Selection;
+        _selectionBackground = SelectionBg(_selectionStyle);
         Height = Math.Max(1, _options.Count);
-        Width = PreferredWidth();
+        // Width is set by the subclass via SetGlyphs.
     }
     #endregion
 
@@ -46,22 +56,39 @@ public abstract class ToggleList : RenderableControl
         }
     }
 
-    public Color Foreground { get => _foreground; set => SetAtomicProperty(ref _foreground, value); }
-    public Color Accent { get => _accent; set => SetAtomicProperty(ref _accent, value); }
-    public Color Muted { get => _muted; set => SetAtomicProperty(ref _muted, value); }
-    public Color HighlightForeground { get => _highlightForeground; set => SetAtomicProperty(ref _highlightForeground, value); }
-    public Color HighlightBackground { get => _highlightBackground; set => SetAtomicProperty(ref _highlightBackground, value); }
+    /// <summary>Text style for an option label. Defaults to <see cref="IStyleTheme.Text"/>.</summary>
+    public Style TextStyle { get => _textStyle; set => SetAtomicProperty(ref _textStyle, value); }
+
+    /// <summary>Indicator style for a checked/selected row. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
+    public Style AccentStyle { get => _accentStyle; set => SetAtomicProperty(ref _accentStyle, value); }
+
+    /// <summary>Indicator style for an unchecked row. Defaults to <see cref="IStyleTheme.TextMuted"/>.</summary>
+    public Style MutedStyle { get => _mutedStyle; set => SetAtomicProperty(ref _mutedStyle, value); }
+
+    /// <summary>Style for the highlighted (cursor) row. Defaults to <see cref="IStyleTheme.Selection"/>.</summary>
+    public Style SelectionStyle
+    {
+        get => _selectionStyle;
+        set => SetAtomicProperty(ref _selectionStyle, value, watch: (_, v) => _selectionBackground = SelectionBg(v));
+    }
     #endregion
 
     #region Methods
     /// <summary><see langword="true"/> if the option at <paramref name="index"/> is currently selected/checked.</summary>
     protected abstract bool IsChecked(int index);
 
-    /// <summary>The three-cell indicator glyph for the option at <paramref name="index"/> (e.g. <c>[X]</c>).</summary>
-    protected abstract string IndicatorGlyph(int index);
-
     /// <summary>Acts on the option at <paramref name="index"/> (select it, or toggle its checked state).</summary>
     protected abstract void Activate(int index);
+
+    /// <summary>Sets the selected/unselected indicator glyphs (from the glyph theme), measures the indicator
+    /// width from them, and re-sizes the control. Subclasses call this from their constructor.</summary>
+    protected void SetGlyphs(string on, string off)
+    {
+        _on = on;
+        _off = off;
+        _indicatorWidth = IGlyphTheme.CellWidth(on, off);
+        Width = _indicatorWidth + 1 + (_options.Count == 0 ? 0 : _options.Max(o => o.Length));
+    }
 
     protected override void OnInput(InputEvent inputEvent)
     {
@@ -103,26 +130,27 @@ public abstract class ToggleList : RenderableControl
         for (int i = 0; i < _options.Count; i++)
         {
             var highlighted = i == _cursor;
-            Color? background = highlighted ? _highlightBackground : null;
-            var labelColor = highlighted ? _highlightForeground : _foreground;
-            var glyphColor = IsChecked(i) ? _accent : _muted;
+            // The cursor row takes the selection foreground/background for its label and overlays the selection
+            // background on the indicator, keeping the indicator's accent/muted hue.
+            var indicator = IsChecked(i) ? _accentStyle : _mutedStyle;
+            var label = highlighted ? _selectionStyle : _textStyle;
+            if (highlighted) indicator |= _selectionBackground;
 
-            yield return new Segment(IndicatorGlyph(i), MakeStyle(glyphColor, background));
+            yield return new Segment(IsChecked(i) ? _on : _off, indicator);
 
-            var label = " " + _options[i];
-            var fill = Math.Max(0, maxWidth - IndicatorWidth);
-            label = label.Length > fill ? label[..fill] : label.PadRight(fill);
-            yield return new Segment(label, MakeStyle(labelColor, background));
+            var text = " " + _options[i];
+            var fill = Math.Max(0, maxWidth - _indicatorWidth);
+            text = text.Length > fill ? text[..fill] : text.PadRight(fill);
+            yield return new Segment(text, label);
 
             if (i < _options.Count - 1) yield return Segment.LineBreak;
         }
     }
 
-    /// <summary>The cell width of the indicator (three cells for all current subclasses).</summary>
-    protected virtual int IndicatorWidth => 3;
-
-    private static Spectre.Console.Style MakeStyle(Color foreground, Color? background) =>
-        new(foreground: foreground, background: background is { } b ? b.ToSpectreColor() : null);
+    // The highlighted row overlays only the selection background on each indicator (keeping its hue); extract
+    // that background, or use a no-op style when the selection token carries no background.
+    private static Style SelectionBg(Style selection) =>
+        selection.BackgroundColor is { } bg ? Style.Bg(bg) : Style.Plain;
 
     private void AutoScroll()
     {
@@ -136,21 +164,18 @@ public abstract class ToggleList : RenderableControl
         if (y < top) Frame.Top = y;
         else if (y >= top + viewportHeight) Frame.Top = y - viewportHeight + 1;
     }
-
-    private int PreferredWidth()
-    {
-        var longest = _options.Count == 0 ? 0 : _options.Max(o => o.Length);
-        return IndicatorWidth + 1 + longest;   // indicator + space + text
-    }
     #endregion
 
     #region Fields
     private protected readonly List<string> _options;
     private int _cursor;
-    private Color _foreground = Color.White;
-    private Color _accent = Color.Green1;
-    private Color _muted = Color.Grey66;
-    private Color _highlightForeground = Color.White;
-    private Color _highlightBackground = new(40, 50, 80);
+    private string _on = "";
+    private string _off = "";
+    private int _indicatorWidth;
+    private Style _textStyle;
+    private Style _accentStyle;
+    private Style _mutedStyle;
+    private Style _selectionStyle;
+    private Style _selectionBackground;
     #endregion
 }

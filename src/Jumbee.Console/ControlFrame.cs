@@ -81,73 +81,6 @@ public readonly struct TitleStyle
 }
 
 /// <summary>
-/// Describes the glyphs and colors used to draw a <see cref="ControlFrame"/> vertical scrollbar:
-/// the up/down end arrows, the moving thumb, and the track behind it. Each part is a
-/// <see cref="Character"/> carrying its own glyph and (optional) foreground/background colors.
-/// </summary>
-public readonly struct ScrollBarStyle
-{
-    public ScrollBarStyle(Character thumb, Character track, Character upArrow, Character downArrow)
-    {
-        Thumb = thumb;
-        Track = track;
-        UpArrow = upArrow;
-        DownArrow = downArrow;
-    }
-
-    /// <summary>The glyph drawn for the part of the track currently in view (the draggable handle).</summary>
-    public Character Thumb { get; init; }
-
-    /// <summary>The glyph drawn for the track behind the thumb.</summary>
-    public Character Track { get; init; }
-
-    /// <summary>The glyph drawn at the top end of the scrollbar.</summary>
-    public Character UpArrow { get; init; }
-
-    /// <summary>The glyph drawn at the bottom end of the scrollbar.</summary>
-    public Character DownArrow { get; init; }
-
-    /// <summary>
-    /// Returns a copy with the foreground colors overridden. A <c>null</c> argument leaves that
-    /// part's existing color unchanged; <paramref name="arrows"/> recolors both end arrows.
-    /// </summary>
-    public ScrollBarStyle WithColors(Color? thumb = null, Color? track = null, Color? arrows = null) =>
-        new ScrollBarStyle(
-            thumb is { } t ? Thumb.WithForeground(t) : Thumb,
-            track is { } r ? Track.WithForeground(r) : Track,
-            arrows is { } a ? UpArrow.WithForeground(a) : UpArrow,
-            arrows is { } d ? DownArrow.WithForeground(d) : DownArrow);
-
-    /// <summary>The original default style: a '#' thumb on a '|' track with triangle arrows.</summary>
-    public static ScrollBarStyle Default { get; } = new(
-        new Character('#', foreground: new Color(100, 100, 255)),
-        new Character('|', foreground: new Color(100, 100, 100)),
-        new Character('▲'),
-        new Character('▼'));
-
-    /// <summary>A solid block thumb on a light vertical-line track with triangle arrows.</summary>
-    public static ScrollBarStyle Block { get; } = new(
-        new Character('█'),
-        new Character('│'),
-        new Character('▲'),
-        new Character('▼'));
-
-    /// <summary>A shaded (dithered) thumb on a light vertical-line track with thin line arrows.</summary>
-    public static ScrollBarStyle Shaded { get; } = new(
-        new Character('▒'),
-        new Character('│'),
-        new Character('↑'),
-        new Character('↓'));
-
-    /// <summary>A heavy vertical-line thumb on a light vertical-line track with triangle arrows.</summary>
-    public static ScrollBarStyle Line { get; } = new(
-        new Character('┃'),
-        new Character('│'),
-        new Character('▲'),
-        new Character('▼'));
-}
-
-/// <summary>
 /// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
 /// </summary>
 public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
@@ -158,12 +91,22 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         _borderStyle = borderStyle ?? BorderStyle.None;
         _boxBorder = GetSpectreBoxBorder(_borderStyle);
         _margin = margin ?? DefaultMargin;
-        _foreground = fgColor;
+        // Appearance defaults come from the active style theme when the caller doesn't specify a colour: the
+        // frame foreground (used for the title) from the Title token, the border colour from the Border token.
+        // Explicit colours (e.g. WithRoundedBorder(someColor)) still win. Captured once here, never on render.
+        _foreground = fgColor ?? UI.StyleTheme.Title.ForegroundColor;
         _background = bgColor;
-        _borderFgColor = borderFgColor;
+        _borderFgColor = borderFgColor ?? UI.StyleTheme.Border.ForegroundColor;
         _borderBgColor = borderBgColor;
         _title = title;
         _titleStyle = titleStyle ?? TitleStyle.Default;
+        // The scrollbar's default glyphs/colours come from the active glyph theme (override per-control with
+        // WithScrollBarStyle). Captured directly into the part fields here, never read on the render path.
+        var scrollBar = UI.GlyphTheme.ScrollBar;
+        _scrollBarForeground = scrollBar.Thumb;
+        _scrollBarBackground = scrollBar.Track;
+        _scrollBarUpArrow = scrollBar.UpArrow;
+        _scrollBarDownArrow = scrollBar.DownArrow;
         _control = control;
         _control.Frame = this;
         BindControl();
@@ -862,10 +805,11 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private TitleStyle _titleStyle = TitleStyle.Default;
     private int _top;
     
-    private Character _scrollBarForeground = new Character('#', foreground: new Color(100, 100, 255));
-    private Character _scrollBarBackground = new Character('|', foreground: new Color(100, 100, 100));
-    private Character _scrollBarUpArrow = new Character('▲'); 
-    private Character _scrollBarDownArrow = new Character('▼'); 
+    // Initialized in the constructor from UI.GlyphTheme.ScrollBar (or overridden via WithScrollBarStyle).
+    private Character _scrollBarForeground;
+    private Character _scrollBarBackground;
+    private Character _scrollBarUpArrow;
+    private Character _scrollBarDownArrow; 
     #endregion
 
 }

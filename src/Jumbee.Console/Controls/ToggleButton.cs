@@ -11,8 +11,15 @@ using Spectre.Console.Rendering;
 /// <summary>
 /// Shared base for the single-state toggle widgets (<see cref="Checkbox"/>, <see cref="RadioButton"/>,
 /// <see cref="Switch"/>). Renders a state indicator followed by an optional text label, toggles on a mouse
-/// click or Enter/Space while focused, and raises <see cref="Changed"/> when the state flips. Subclasses supply
-/// the indicator glyph (and its width) for the current <see cref="IsChecked"/> state.
+/// click or Enter/Space while focused, and raises <see cref="Changed"/> when the state flips.
+/// <para>
+/// Appearance is theme-driven: the style tokens are captured once from <see cref="UI.StyleTheme"/> in the
+/// constructor, and each subclass calls <see cref="SetGlyphs"/> with its <see cref="UI.GlyphTheme"/> glyphs.
+/// The indicator width (and hence the control's width) is derived from the themed glyph, so a glyph theme with
+/// wider/narrower markers re-sizes the control without any control-specific code. Captured tokens are read on
+/// the render path as plain fields, so theming costs nothing per frame; callers may still override any token
+/// via its setter.
+/// </para>
 /// </summary>
 public abstract class ToggleButton : RenderableControl
 {
@@ -20,8 +27,12 @@ public abstract class ToggleButton : RenderableControl
     protected ToggleButton(string text)
     {
         _text = text;
+        _labelStyle = UI.StyleTheme.Text;
+        _accentStyle = UI.StyleTheme.TextAccent;
+        _mutedStyle = UI.StyleTheme.TextMuted;
+        _hoverStyle = UI.StyleTheme.Hover;
         Height = 1;
-        Width = PreferredWidth();
+        // Width is set by the subclass via SetGlyphs, once its themed glyphs (and their measured width) are known.
     }
     #endregion
 
@@ -42,46 +53,50 @@ public abstract class ToggleButton : RenderableControl
     public string Text
     {
         get => _text;
-        set => SetAtomicProperty(ref _text, value, updatesLayout: true, watch: (_, _) => Width = PreferredWidth());
+        set => SetAtomicProperty(ref _text, value, updatesLayout: true, watch: (_, _) => RefreshWidth());
     }
 
-    /// <summary>Label colour.</summary>
-    public Color Foreground { get => _foreground; set => SetAtomicProperty(ref _foreground, value); }
+    /// <summary>Label style. Defaults to <see cref="IStyleTheme.Text"/>.</summary>
+    public Style LabelStyle { get => _labelStyle; set => SetAtomicProperty(ref _labelStyle, value); }
 
-    /// <summary>Indicator colour when checked.</summary>
-    public Color Accent { get => _accent; set => SetAtomicProperty(ref _accent, value); }
+    /// <summary>Indicator style when checked. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
+    public Style AccentStyle { get => _accentStyle; set => SetAtomicProperty(ref _accentStyle, value); }
 
-    /// <summary>Indicator colour when unchecked.</summary>
-    public Color Muted { get => _muted; set => SetAtomicProperty(ref _muted, value); }
+    /// <summary>Indicator style when unchecked. Defaults to <see cref="IStyleTheme.TextMuted"/>.</summary>
+    public Style MutedStyle { get => _mutedStyle; set => SetAtomicProperty(ref _mutedStyle, value); }
 
-    /// <summary>Background painted across the whole row while the pointer is over the control.</summary>
-    public Color HoverBackground { get => _hoverBackground; set => SetAtomicProperty(ref _hoverBackground, value); }
+    /// <summary>Style merged across the row while hovered (typically a background). Defaults to <see cref="IStyleTheme.Hover"/>.</summary>
+    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value); }
     #endregion
 
     #region Methods
     /// <summary>Flips the state (the same path as a click). Overridden by <see cref="RadioButton"/> to latch on.</summary>
     public virtual void Toggle() => IsChecked = !IsChecked;
 
-    /// <summary>The cell width the indicator occupies (e.g. 3 for <c>[X]</c>).</summary>
-    protected abstract int IndicatorWidth { get; }
+    /// <summary>Sets the on/off indicator glyphs (from the glyph theme), measures the indicator width from them,
+    /// and re-sizes the control. Subclasses call this from their constructor.</summary>
+    protected void SetGlyphs(string on, string off)
+    {
+        _on = on;
+        _off = off;
+        _indicatorWidth = IGlyphTheme.CellWidth(on, off);
+        RefreshWidth();
+    }
 
-    /// <summary>Renders the state indicator for the current <see cref="IsChecked"/> state at the row background.</summary>
-    protected abstract Segment RenderIndicator(Color? background);
-
-    /// <summary>Builds a Spectre style from a Jumbee foreground and optional background.</summary>
-    protected static Spectre.Console.Style Style(Color foreground, Color? background) =>
-        new(foreground: foreground, background: background is { } b ? b.ToSpectreColor() : null);
+    protected int IndicatorWidth => _indicatorWidth;
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        Color? background = IsMouseOver ? _hoverBackground : null;
+        var indicator = _isChecked ? _accentStyle : _mutedStyle;
+        var label = _labelStyle;
+        if (IsMouseOver) { indicator |= _hoverStyle; label |= _hoverStyle; }
 
-        yield return RenderIndicator(background);
+        yield return new Segment(_isChecked ? _on : _off, indicator);
 
-        var label = _text.Length > 0 ? " " + _text : string.Empty;
-        var fill = Math.Max(0, maxWidth - IndicatorWidth);
-        label = label.Length > fill ? label[..fill] : label.PadRight(fill);
-        yield return new Segment(label, Style(_foreground, background));
+        var text = _text.Length > 0 ? " " + _text : string.Empty;
+        var fill = Math.Max(0, maxWidth - _indicatorWidth);
+        text = text.Length > fill ? text[..fill] : text.PadRight(fill);
+        yield return new Segment(text, label);
     }
 
     protected override void OnClick(Position position) => Toggle();
@@ -98,15 +113,18 @@ public abstract class ToggleButton : RenderableControl
         }
     }
 
-    private int PreferredWidth() => IndicatorWidth + (_text.Length > 0 ? _text.Length + 1 : 0);
+    private void RefreshWidth() => Width = _indicatorWidth + (_text.Length > 0 ? _text.Length + 1 : 0);
     #endregion
 
     #region Fields
     private bool _isChecked;
     private string _text;
-    private Color _foreground = Color.White;
-    private Color _accent = Color.Green1;
-    private Color _muted = Color.Grey66;
-    private Color _hoverBackground = new(45, 45, 60);
+    private string _on = "";
+    private string _off = "";
+    private int _indicatorWidth;
+    private Style _labelStyle;
+    private Style _accentStyle;
+    private Style _mutedStyle;
+    private Style _hoverStyle;
     #endregion
 }

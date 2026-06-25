@@ -32,8 +32,8 @@ public enum CursorStyle
     BlinkingBar = 5,
     SteadyBar = 6,
 }
-public readonly struct Style
-{    
+public readonly partial struct Style : System.IEquatable<Style>
+{
     #region Constructors
     public Style(SCStyle spectreConsoleStyle)
     {
@@ -52,7 +52,32 @@ public readonly struct Style
     #region Methods
     public static string EscapeMarkup(string text) => Spectre.Console.Markup.Escape(text);
 
+    /// <summary>A style carrying only a background colour, for composing with a foreground via <c>|</c>
+    /// (e.g. <c>Style.White | Style.Bg(color)</c>).</summary>
+    public static Style Bg(Color background) => new Style(new SCStyle(background: background));
+
+    /// <summary>The foreground colour, or <see langword="null"/> when the style leaves it as the terminal default.</summary>
+    public Color? ForegroundColor => ColorOrNull(SpectreConsoleStyle?.Foreground);
+
+    /// <summary>The background colour, or <see langword="null"/> when the style leaves it as the terminal default.</summary>
+    public Color? BackgroundColor => ColorOrNull(SpectreConsoleStyle?.Background);
+
+    private static Color? ColorOrNull(Spectre.Console.Color? color) =>
+        color is { } c && c != Spectre.Console.Color.Default ? Color.FromSpectreColor(c) : null;
+
     public string ToMarkup() => SpectreConsoleStyle.ToMarkup();
+
+    // Value equality delegates to the wrapped Spectre Style (which is IEquatable), so SetAtomicProperty and
+    // other equality checks on Style tokens short-circuit correctly instead of comparing by reference.
+    public bool Equals(Style other) => Equals(SpectreConsoleStyle, other.SpectreConsoleStyle);
+
+    public override bool Equals(object? obj) => obj is Style s && Equals(s);
+
+    public override int GetHashCode() => SpectreConsoleStyle?.GetHashCode() ?? 0;
+
+    public static bool operator ==(Style a, Style b) => a.Equals(b);
+
+    public static bool operator !=(Style a, Style b) => !a.Equals(b);
     #endregion
 
     #region Operators

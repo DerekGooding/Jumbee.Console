@@ -3,7 +3,7 @@
 using ConsoleGUIColor = ConsoleGUI.Data.Color;
 using SpectreColor = Spectre.Console.Color;
 using SystemDrawingColor = System.Drawing.Color;
-public readonly struct Color 
+public readonly partial struct Color
 {
     #region Constructors
     public Color(byte r, byte g, byte b)
@@ -11,13 +11,13 @@ public readonly struct Color
         R = r;
         G = g;
         B = b;
-        SystemColor = SystemDrawingColor.FromArgb(r, g, b);
     }
     #endregion
 
     #region Properties
-    
-    public SystemDrawingColor SystemColor { get; }
+    // Computed on demand (not stored) so Color stays a 3-byte value instead of carrying a ~24-byte
+    // System.Drawing.Color; R/G/B already fully describe the colour and the alpha is always opaque.
+    public SystemDrawingColor SystemColor => SystemDrawingColor.FromArgb(R, G, B);
     #endregion
     
     #region Methods

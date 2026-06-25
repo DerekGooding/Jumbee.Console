@@ -99,6 +99,11 @@ public class Program
     // The status line reflects the latest change. Needs a VT terminal (e.g. Windows Terminal).
     static void ToggleDemo(string[] args)
     {
+        // Re-theme everything below by setting these statics BEFORE constructing the controls (controls capture
+        // their colours/glyphs from the theme in their constructor). Uncomment to see the same widgets re-skinned:
+        // UI.StyleTheme = new RetroStyleTheme();
+        // UI.GlyphTheme = new RetroGlyphTheme();
+
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Click a control, then Space / arrows.".PadRight(44), Color.White);
 
         var notify = new Checkbox("Enable notifications");
@@ -136,15 +141,27 @@ public class Program
     // Interactive overlay/modal demo. Click "Open dialog" to float a MODAL framed popup over a dimming scrim:
     // the background is blocked (clicking outside does nothing), and the dialog closes with its button or Esc
     // (the overlay's CloseKey). Needs a VT terminal (e.g. Windows Terminal).
+    // Builds a button whose default theme styles are overridden with a custom colour scheme (showing that a
+    // control can still depart from the active theme via its style setters).
+    static Button ColorButton(string text, Color baseColor) => new Button(text)
+    {
+        NormalStyle = Style.White | Style.Bg(baseColor),
+        HoverStyle = Style.White | Style.Bg(Lighten(baseColor, 25)),
+        PressStyle = Style.White | Style.Bg(Lighten(baseColor, 55)),
+    };
+
+    static Color Lighten(Color c, int by) =>
+        new((byte)Math.Min(255, c.R + by), (byte)Math.Min(255, c.G + by), (byte)Math.Min(255, c.B + by));
+
     static void OverlayDemo(string[] args)
     {
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Click 'Open dialog' to pop a window.".PadRight(40), Color.White);
-        var openBtn = new Button("Open dialog") { Background = new Color(40, 70, 120), HoverBackground = new Color(60, 90, 150), PressBackground = new Color(90, 130, 200) };
+        var openBtn = ColorButton("Open dialog", new Color(40, 70, 120));
 
         var bottom = new Jumbee.Console.Grid([2, 3], [44], [[status], [openBtn]]);
         var overlay = new Overlay(bottom);
 
-        var closeBtn = new Button("Close (or press Esc)") { Background = new Color(110, 40, 40), HoverBackground = new Color(150, 55, 55), PressBackground = new Color(200, 80, 80) };
+        var closeBtn = ColorButton("Close (or press Esc)", new Color(110, 40, 40));
         closeBtn.WithRoundedBorder(Yellow).WithTitle("Modal dialog");
 
         openBtn.Activated += (_, _) => { status.Text = "Modal open — Close or Esc (bg blocked).".PadRight(40); overlay.ShowModal(closeBtn); };
@@ -183,10 +200,10 @@ public class Program
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0".PadRight(38), Color.White);
         void SetStatus(string last) => status.Text = $"Count: {count}   (last: {last})".PadRight(38);
 
-        var inc = new Button("Increment (+1)") { Background = new Color(30, 90, 50), HoverBackground = new Color(45, 120, 70), PressBackground = new Color(70, 170, 100) };
-        var dec = new Button("Decrement (-1)") { Background = new Color(110, 70, 30), HoverBackground = new Color(150, 95, 45), PressBackground = new Color(200, 130, 70) };
-        var reset = new Button("Reset") { Background = new Color(60, 60, 110), HoverBackground = new Color(85, 85, 150), PressBackground = new Color(120, 120, 200) };
-        var quit = new Button("Quit") { Background = new Color(110, 40, 40), HoverBackground = new Color(150, 55, 55), PressBackground = new Color(200, 80, 80) };
+        var inc = ColorButton("Increment (+1)", new Color(30, 90, 50));
+        var dec = ColorButton("Decrement (-1)", new Color(110, 70, 30));
+        var reset = ColorButton("Reset", new Color(60, 60, 110));
+        var quit = ColorButton("Quit", new Color(110, 40, 40));
 
         inc.Activated += (_, _) => { count++; SetStatus("Increment"); };
         dec.Activated += (_, _) => { count--; SetStatus("Decrement"); };
@@ -599,8 +616,29 @@ public class Program
             Thread.Sleep(50);
         }
 
-        
+
     }
     */
+}
+
+// Example custom themes used by ToggleDemo's commented re-skin hint. A theme overrides only the tokens/glyphs
+// it wants; everything else falls back to the built-in defaults.
+file sealed class RetroStyleTheme : IStyleTheme
+{
+    public Style TextAccent => Style.Magenta1;
+    public Style Selection => Style.White | Style.Bg(new Color(80, 30, 80));
+    public Style Border => Style.Magenta1;
+    public Style Primary => Style.White | Style.Bg(new Color(90, 30, 90));
+    public Style PrimaryHover => Style.White | Style.Bg(new Color(120, 45, 120));
+    public Style PrimaryActive => Style.White | Style.Bg(new Color(160, 70, 160));
+}
+
+file sealed class RetroGlyphTheme : IGlyphTheme
+{
+    public string CheckboxChecked => "[*]";
+    public string RadioSelected => "<o>";
+    public string RadioUnselected => "< >";
+    public string SwitchOn => "[ON ]";
+    public string SwitchOff => "[OFF]";
 }
 

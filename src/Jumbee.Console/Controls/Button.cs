@@ -19,6 +19,9 @@ public class Button : RenderableControl
     public Button(string text)
     {
         _text = text;
+        _normalStyle = UI.StyleTheme.Primary;
+        _hoverStyle = UI.StyleTheme.PrimaryHover;
+        _pressStyle = UI.StyleTheme.PrimaryActive;
         Width = LabelWidth(text);
         Height = 1;
     }
@@ -38,10 +41,14 @@ public class Button : RenderableControl
         set => SetAtomicProperty(ref _text, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth(_text));
     }
 
-    public Color Foreground { get => _foreground; set => SetAtomicProperty(ref _foreground, value); }
-    public Color Background { get => _background; set => SetAtomicProperty(ref _background, value); }
-    public Color HoverBackground { get => _hoverBackground; set => SetAtomicProperty(ref _hoverBackground, value); }
-    public Color PressBackground { get => _pressBackground; set => SetAtomicProperty(ref _pressBackground, value); }
+    /// <summary>Style at rest. Defaults to <see cref="IStyleTheme.Primary"/>.</summary>
+    public Style NormalStyle { get => _normalStyle; set => SetAtomicProperty(ref _normalStyle, value); }
+
+    /// <summary>Style while hovered. Defaults to <see cref="IStyleTheme.PrimaryHover"/>.</summary>
+    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value); }
+
+    /// <summary>Style while pressed. Defaults to <see cref="IStyleTheme.PrimaryActive"/>.</summary>
+    public Style PressStyle { get => _pressStyle; set => SetAtomicProperty(ref _pressStyle, value); }
     #endregion
 
     #region Methods
@@ -50,8 +57,7 @@ public class Button : RenderableControl
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var background = IsMousePressed ? _pressBackground : IsMouseOver ? _hoverBackground : _background;
-        var style = new Spectre.Console.Style(foreground: _foreground, background: background);
+        var style = IsMousePressed ? _pressStyle : IsMouseOver ? _hoverStyle : _normalStyle;
 
         var label = $" {_text} ";
         if (label.Length < maxWidth) label = label.PadRight(maxWidth);
@@ -77,9 +83,8 @@ public class Button : RenderableControl
 
     #region Fields
     private string _text;
-    private Color _foreground = Color.White;
-    private Color _background = new Color(40, 70, 120);
-    private Color _hoverBackground = new Color(60, 90, 150);
-    private Color _pressBackground = new Color(90, 130, 200);
+    private Style _normalStyle;
+    private Style _hoverStyle;
+    private Style _pressStyle;
     #endregion
 }
