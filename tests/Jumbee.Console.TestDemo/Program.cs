@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        SelectDemo(args);
+        ToggleDemo(args);
+        //SelectDemo(args);
         //OverlayDemo(args);
         //WheelDemo(args);
         //ButtonDemo(args);
@@ -90,6 +91,45 @@ public class Program
 
         var run = UI.Start(overlay, width: 42, height: 14, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(select);
+        run.Wait();
+    }
+
+    // Interactive toggle-widgets demo: a Checkbox, a Switch, a single-select RadioSet and a multi-select
+    // SelectionList. Click a control to focus it, then Space toggles / arrows navigate (or just click rows).
+    // The status line reflects the latest change. Needs a VT terminal (e.g. Windows Terminal).
+    static void ToggleDemo(string[] args)
+    {
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Click a control, then Space / arrows.".PadRight(44), Color.White);
+
+        var notify = new Checkbox("Enable notifications");
+        var dark = new Jumbee.Console.Switch("Dark mode");
+
+        var inlineTitle = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Inline, TitleColorStyle.Normal);
+
+        var theme = new RadioSet("Light", "Dark", "Solarized") { SelectedIndex = 0 };
+        theme.WithRoundedBorder(Cyan1).WithTitle("Theme (one of)", inlineTitle);
+
+        var toppings = new SelectionList("Cheese", "Mushroom", "Pepperoni", "Olives");
+        toppings.WithRoundedBorder(Green).WithTitle("Toppings (any of)", inlineTitle);
+
+        notify.Changed += (_, v) => status.Text = $"Notifications: {(v ? "on" : "off")}".PadRight(44);
+        dark.Changed += (_, v) => status.Text = $"Dark mode: {(v ? "on" : "off")}".PadRight(44);
+        theme.SelectionChanged += (_, _) => status.Text = $"Theme: {theme.SelectedValue}".PadRight(44);
+        toppings.SelectionChanged += (_, _) => status.Text = ("Toppings: " + string.Join(", ", toppings.SelectedValues)).PadRight(44);
+
+        var grid = new Jumbee.Console.Grid(
+            [2, 1, 1, 5, 6],
+            [46],
+            [
+                [status],
+                [notify],
+                [dark],
+                [theme],
+                [toppings],
+            ]);
+
+        var run = UI.Start(grid, width: 50, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(notify);
         run.Wait();
     }
 

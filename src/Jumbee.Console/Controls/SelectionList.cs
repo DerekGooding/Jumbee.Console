@@ -1,0 +1,54 @@
+namespace Jumbee.Console;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+/// <summary>
+/// A vertical list of independently-checkable options (multi-select). Navigate with Up/Down and press Space/Enter
+/// (or click a row) to toggle that option. Each row renders as <c>[X]</c> when checked and <c>[ ]</c> otherwise.
+/// </summary>
+public class SelectionList : ToggleList
+{
+    #region Constructors
+    public SelectionList(params string[] options) : base(options) { }
+    #endregion
+
+    #region Events
+    /// <summary>Raised when an option's checked state changes, with its index.</summary>
+    public event EventHandler<int>? SelectionChanged;
+    #endregion
+
+    #region Properties
+    /// <summary>The indices of the checked options, in ascending order.</summary>
+    public IReadOnlyList<int> SelectedIndices => _checked.OrderBy(i => i).ToList();
+
+    /// <summary>The text of the checked options, in option order.</summary>
+    public IReadOnlyList<string> SelectedValues =>
+        Enumerable.Range(0, _options.Count).Where(_checked.Contains).Select(i => _options[i]).ToList();
+    #endregion
+
+    #region Methods
+    /// <summary>Sets the checked state of an option, raising <see cref="SelectionChanged"/> when it changes.</summary>
+    public void SetChecked(int index, bool isChecked)
+    {
+        if (index < 0 || index >= _options.Count) return;
+        var changed = isChecked ? _checked.Add(index) : _checked.Remove(index);
+        if (!changed) return;
+        Invalidate();
+        SelectionChanged?.Invoke(this, index);
+    }
+
+    public bool IsCheckedAt(int index) => _checked.Contains(index);
+
+    protected override bool IsChecked(int index) => _checked.Contains(index);
+
+    protected override string IndicatorGlyph(int index) => _checked.Contains(index) ? "[X]" : "[ ]";
+
+    protected override void Activate(int index) => SetChecked(index, !_checked.Contains(index));
+    #endregion
+
+    #region Fields
+    private readonly HashSet<int> _checked = new();
+    #endregion
+}
