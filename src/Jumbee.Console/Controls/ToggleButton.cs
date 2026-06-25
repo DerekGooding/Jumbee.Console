@@ -27,12 +27,9 @@ public abstract class ToggleButton : RenderableControl
     protected ToggleButton(string text)
     {
         _text = text;
-        _labelStyle = UI.StyleTheme.Text;
-        _accentStyle = UI.StyleTheme.TextAccent;
-        _mutedStyle = UI.StyleTheme.TextMuted;
-        _hoverStyle = UI.StyleTheme.Hover;
         Height = 1;
-        // Width is set by the subclass via SetGlyphs, once its themed glyphs (and their measured width) are known.
+        // Styles + glyphs are captured by ApplyTheme, which the subclass calls from its constructor (and which
+        // re-runs on a runtime theme switch). Width is set there via SetGlyphs once the themed glyphs are known.
     }
     #endregion
 
@@ -72,6 +69,16 @@ public abstract class ToggleButton : RenderableControl
     #region Methods
     /// <summary>Flips the state (the same path as a click). Overridden by <see cref="RadioButton"/> to latch on.</summary>
     public virtual void Toggle() => IsChecked = !IsChecked;
+
+    // Captures the label/indicator styles from the style theme. Subclasses override to also set their glyphs
+    // (via SetGlyphs) from the glyph theme, calling base first.
+    protected override void ApplyTheme()
+    {
+        _labelStyle = UI.StyleTheme.Text;
+        _accentStyle = UI.StyleTheme.TextAccent;
+        _mutedStyle = UI.StyleTheme.TextMuted;
+        _hoverStyle = UI.StyleTheme.Hover;
+    }
 
     /// <summary>Sets the on/off indicator glyphs (from the glyph theme), measures the indicator width from them,
     /// and re-sizes the control. Subclasses call this from their constructor.</summary>

@@ -266,6 +266,60 @@ public class ThemeTests
     }
     #endregion
 
+    #region Live theme switching (UI.SetTheme)
+    [Fact]
+    public void SetTheme_LiveUpdatesGlyphs_OnExistingControl()
+    {
+        var cb = new Checkbox("OK", isChecked: true);
+        Assert.Contains("[X] OK", ConsoleSnapshot.ToText(cb, 12, 1));
+        try
+        {
+            UI.SetTheme(new DefaultStyleTheme(), new AsciiGlyphTheme());   // CheckboxChecked = "[*]"
+            Assert.Contains("[*] OK", ConsoleSnapshot.ToText(cb, 12, 1));  // re-glyphed live
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+
+    [Fact]
+    public void SetTheme_LiveUpdatesStyle_OnExistingControl()
+    {
+        var cb = new Checkbox("x");
+        Assert.NotEqual(Style.Magenta1, cb.AccentStyle);
+        try
+        {
+            UI.SetTheme(new AccentStyleTheme(), new DefaultGlyphTheme());   // TextAccent = Magenta1
+            Assert.Equal(Style.Magenta1, cb.AccentStyle);
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+
+    [Fact]
+    public void SetTheme_GlyphWidthChange_ResizesLiveControl()
+    {
+        var sw = new Switch("P");
+        var before = sw.Width;
+        try
+        {
+            UI.SetTheme(new DefaultStyleTheme(), new AsciiGlyphTheme());   // switch glyph width 5 vs 4
+            Assert.Equal(before + 1, sw.Width);
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+
+    [Fact]
+    public void SetTheme_ClobbersExplicitOverride()
+    {
+        var cb = new Checkbox("x") { AccentStyle = Style.Red1 };   // explicit override
+        Assert.Equal(Style.Red1, cb.AccentStyle);
+        try
+        {
+            UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme());
+            Assert.Equal(Style.Green1, cb.AccentStyle);   // reset to theme default (documented clobber behaviour)
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
+    }
+    #endregion
+
     #region Style value-equality
     [Fact]
     public void Style_ValueEquality()

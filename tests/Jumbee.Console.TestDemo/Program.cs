@@ -99,11 +99,6 @@ public class Program
     // The status line reflects the latest change. Needs a VT terminal (e.g. Windows Terminal).
     static void ToggleDemo(string[] args)
     {
-        // Re-theme everything below by setting these statics BEFORE constructing the controls (controls capture
-        // their colours/glyphs from the theme in their constructor). Uncomment to see the same widgets re-skinned:
-        // UI.StyleTheme = new RetroStyleTheme();
-        // UI.GlyphTheme = new RetroGlyphTheme();
-
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Click a control, then Space / arrows.".PadRight(44), Color.White);
 
         var notify = new Checkbox("Enable notifications");
@@ -117,13 +112,26 @@ public class Program
         var toppings = new SelectionList("Cheese", "Mushroom", "Pepperoni", "Olives");
         toppings.WithRoundedBorder(Green).WithTitle("Toppings (any of)", inlineTitle);
 
+        // Live theme switch: clicking re-skins every control above in place via UI.SetTheme (glyphs + colours,
+        // re-measuring widths). Watch the checkbox/radio markers and accent colours change.
+        var retro = false;
+        var themeBtn = ColorButton("Switch theme (default ⇄ retro)", new Color(60, 60, 90));
+        themeBtn.Activated += (_, _) =>
+        {
+            retro = !retro;
+            UI.SetTheme(
+                retro ? new RetroStyleTheme() : new DefaultStyleTheme(),
+                retro ? new RetroGlyphTheme() : new DefaultGlyphTheme());
+            status.Text = $"Theme: {(retro ? "retro" : "default")}".PadRight(44);
+        };
+
         notify.Changed += (_, v) => status.Text = $"Notifications: {(v ? "on" : "off")}".PadRight(44);
         dark.Changed += (_, v) => status.Text = $"Dark mode: {(v ? "on" : "off")}".PadRight(44);
         theme.SelectionChanged += (_, _) => status.Text = $"Theme: {theme.SelectedValue}".PadRight(44);
         toppings.SelectionChanged += (_, _) => status.Text = ("Toppings: " + string.Join(", ", toppings.SelectedValues)).PadRight(44);
 
         var grid = new Jumbee.Console.Grid(
-            [2, 1, 1, 5, 6],
+            [2, 1, 1, 5, 6, 2],
             [46],
             [
                 [status],
@@ -131,9 +139,10 @@ public class Program
                 [dark],
                 [theme],
                 [toppings],
+                [themeBtn],
             ]);
 
-        var run = UI.Start(grid, width: 50, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        var run = UI.Start(grid, width: 50, height: 20, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(notify);
         run.Wait();
     }
@@ -632,7 +641,7 @@ file sealed class RetroStyleTheme : IStyleTheme
 {
     public Style TextAccent => Style.Magenta1;
     public Style Selection => Style.White | Style.Bg(new Color(80, 30, 80));
-    public Style Border => Style.Magenta1;
+    public Style BorderText => Style.Magenta1;
     public Style Primary => Style.White | Style.Bg(new Color(90, 30, 90));
     public Style PrimaryHover => Style.White | Style.Bg(new Color(120, 45, 120));
     public Style PrimaryActive => Style.White | Style.Bg(new Color(160, 70, 160));

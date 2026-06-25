@@ -27,13 +27,9 @@ public abstract class ToggleList : RenderableControl
     protected ToggleList(IEnumerable<string> options)
     {
         _options = options.ToList();
-        _textStyle = UI.StyleTheme.Text;
-        _accentStyle = UI.StyleTheme.TextAccent;
-        _mutedStyle = UI.StyleTheme.TextMuted;
-        _selectionStyle = UI.StyleTheme.Selection;
-        _selectionBackground = SelectionBg(_selectionStyle);
         Height = Math.Max(1, _options.Count);
-        // Width is set by the subclass via SetGlyphs.
+        // Styles + glyphs are captured by ApplyTheme, which the subclass calls from its constructor (and which
+        // re-runs on a runtime theme switch). Width is set there via SetGlyphs.
     }
     #endregion
 
@@ -79,6 +75,17 @@ public abstract class ToggleList : RenderableControl
 
     /// <summary>Acts on the option at <paramref name="index"/> (select it, or toggle its checked state).</summary>
     protected abstract void Activate(int index);
+
+    // Captures the row styles from the style theme. Subclasses override to also set their glyphs (via SetGlyphs)
+    // from the glyph theme, calling base first.
+    protected override void ApplyTheme()
+    {
+        _textStyle = UI.StyleTheme.Text;
+        _accentStyle = UI.StyleTheme.TextAccent;
+        _mutedStyle = UI.StyleTheme.TextMuted;
+        _selectionStyle = UI.StyleTheme.Selection;
+        _selectionBackground = SelectionBg(_selectionStyle);
+    }
 
     /// <summary>Sets the selected/unselected indicator glyphs (from the glyph theme), measures the indicator
     /// width from them, and re-sizes the control. Subclasses call this from their constructor.</summary>

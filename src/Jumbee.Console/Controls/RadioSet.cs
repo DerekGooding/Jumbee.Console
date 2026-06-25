@@ -10,8 +10,7 @@ using System;
 public class RadioSet : ToggleList
 {
     #region Constructors
-    public RadioSet(params string[] options) : base(options) =>
-        SetGlyphs(UI.GlyphTheme.RadioSelected, UI.GlyphTheme.RadioUnselected);
+    public RadioSet(params string[] options) : base(options) => ApplyTheme();
     #endregion
 
     #region Events
@@ -44,6 +43,12 @@ public class RadioSet : ToggleList
     protected override bool IsChecked(int index) => index == _selectedIndex;
 
     protected override void Activate(int index) => SelectedIndex = index;
+
+    protected override void ApplyTheme()
+    {
+        base.ApplyTheme();
+        SetGlyphs(UI.GlyphTheme.RadioSelected, UI.GlyphTheme.RadioUnselected);
+    }
     #endregion
 
     #region Fields

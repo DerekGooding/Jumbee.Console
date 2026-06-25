@@ -11,7 +11,7 @@ public class RadioButton : ToggleButton
     #region Constructors
     public RadioButton(string text = "", bool isChecked = false) : base(text)
     {
-        SetGlyphs(UI.GlyphTheme.RadioSelected, UI.GlyphTheme.RadioUnselected);
+        ApplyTheme();
         IsChecked = isChecked;
     }
     #endregion
@@ -19,5 +19,11 @@ public class RadioButton : ToggleButton
     #region Methods
     /// <summary>Latches the button on (a click never turns a radio button off).</summary>
     public override void Toggle() => IsChecked = true;
+
+    protected override void ApplyTheme()
+    {
+        base.ApplyTheme();
+        SetGlyphs(UI.GlyphTheme.RadioSelected, UI.GlyphTheme.RadioUnselected);
+    }
     #endregion
 }

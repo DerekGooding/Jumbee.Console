@@ -19,11 +19,9 @@ public class Button : RenderableControl
     public Button(string text)
     {
         _text = text;
-        _normalStyle = UI.StyleTheme.Primary;
-        _hoverStyle = UI.StyleTheme.PrimaryHover;
-        _pressStyle = UI.StyleTheme.PrimaryActive;
         Width = LabelWidth(text);
         Height = 1;
+        ApplyTheme();
     }
     #endregion
 
@@ -54,6 +52,13 @@ public class Button : RenderableControl
     #region Methods
     /// <summary>Programmatically activate the button (the same path as a click).</summary>
     public void Activate() => Activated?.Invoke(this, EventArgs.Empty);
+
+    protected override void ApplyTheme()
+    {
+        _normalStyle = UI.StyleTheme.Primary;
+        _hoverStyle = UI.StyleTheme.PrimaryHover;
+        _pressStyle = UI.StyleTheme.PrimaryActive;
+    }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {

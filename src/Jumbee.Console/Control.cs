@@ -19,6 +19,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         consoleBuffer = new ConsoleBuffer();
         ansiConsole = new AnsiConsoleBuffer(consoleBuffer);
         UI.Paint += OnPaint;
+        UI.ThemeChanged += OnThemeChanged;
         OnInitialization += Control_OnInitialization;
         OnFocus += Control_OnFocus;
         OnLostFocus += Control_OnLostFocus;
@@ -233,6 +234,23 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     public virtual void Dispose()
     {
         UI.Paint -= OnPaint;
+        UI.ThemeChanged -= OnThemeChanged;
+    }
+
+    /// <summary>
+    /// Re-captures this control's themed colours/glyphs from the current <see cref="UI.StyleTheme"/>/
+    /// <see cref="UI.GlyphTheme"/>. Called by themed controls from their constructor and again on a runtime theme
+    /// switch (<see cref="UI.SetTheme"/>). Must read the themes <em>only here</em> (and in the constructor), never
+    /// on the render path. The default is a no-op for controls that don't use the theme.
+    /// </summary>
+    protected virtual void ApplyTheme() {}
+
+    // Runtime theme switch: re-capture themed fields (clobbering any explicit overrides) and repaint. Glyph-width
+    // changes flow through the control's own ApplyTheme (which re-measures and resizes), so a relayout follows.
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        ApplyTheme();
+        Invalidate();
     }
     
     public void Focus() => IsFocused = true;

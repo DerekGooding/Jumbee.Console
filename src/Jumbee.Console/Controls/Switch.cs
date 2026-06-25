@@ -10,8 +10,16 @@ public class Switch : ToggleButton
     #region Constructors
     public Switch(string text = "", bool isOn = false) : base(text)
     {
-        SetGlyphs(UI.GlyphTheme.SwitchOn, UI.GlyphTheme.SwitchOff);
+        ApplyTheme();
         IsChecked = isOn;
+    }
+    #endregion
+
+    #region Methods
+    protected override void ApplyTheme()
+    {
+        base.ApplyTheme();
+        SetGlyphs(UI.GlyphTheme.SwitchOn, UI.GlyphTheme.SwitchOff);
     }
     #endregion
 }

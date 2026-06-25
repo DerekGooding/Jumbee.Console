@@ -10,8 +10,16 @@ public class Checkbox : ToggleButton
     #region Constructors
     public Checkbox(string text = "", bool isChecked = false) : base(text)
     {
-        SetGlyphs(UI.GlyphTheme.CheckboxChecked, UI.GlyphTheme.CheckboxUnchecked);
+        ApplyTheme();
         IsChecked = isChecked;
+    }
+    #endregion
+
+    #region Methods
+    protected override void ApplyTheme()
+    {
+        base.ApplyTheme();
+        SetGlyphs(UI.GlyphTheme.CheckboxChecked, UI.GlyphTheme.CheckboxUnchecked);
     }
     #endregion
 }

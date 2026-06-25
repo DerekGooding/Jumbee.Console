@@ -11,8 +11,7 @@ using System.Linq;
 public class SelectionList : ToggleList
 {
     #region Constructors
-    public SelectionList(params string[] options) : base(options) =>
-        SetGlyphs(UI.GlyphTheme.CheckboxChecked, UI.GlyphTheme.CheckboxUnchecked);
+    public SelectionList(params string[] options) : base(options) => ApplyTheme();
     #endregion
 
     #region Events
@@ -45,6 +44,12 @@ public class SelectionList : ToggleList
     protected override bool IsChecked(int index) => _checked.Contains(index);
 
     protected override void Activate(int index) => SetChecked(index, !_checked.Contains(index));
+
+    protected override void ApplyTheme()
+    {
+        base.ApplyTheme();
+        SetGlyphs(UI.GlyphTheme.CheckboxChecked, UI.GlyphTheme.CheckboxUnchecked);
+    }
     #endregion
 
     #region Fields

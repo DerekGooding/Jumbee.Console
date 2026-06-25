@@ -267,10 +267,27 @@ public static class UI
     /// Defaults to <see cref="DefaultStyleTheme"/>.</summary>
     public static IStyleTheme StyleTheme { get; set; } = new DefaultStyleTheme();
 
-    /// <summary>The active glyph theme. Controls capture their indicator glyphs from this in their constructor,
-    /// so set it <em>before</em> constructing controls to take effect (it is not a live switch). Defaults to
-    /// <see cref="DefaultGlyphTheme"/>.</summary>
+    /// <summary>The active glyph theme. Controls capture their indicator glyphs from this in their constructor.
+    /// Assign directly to configure before building the UI; use <see cref="SetTheme"/> to switch at runtime.
+    /// Defaults to <see cref="DefaultGlyphTheme"/>.</summary>
     public static IGlyphTheme GlyphTheme { get; set; } = new DefaultGlyphTheme();
+
+    /// <summary>
+    /// Switches both active themes at runtime and notifies every live control (via <see cref="ThemeChanged"/>)
+    /// to re-capture its themed colours/glyphs. Runs on the UI thread.
+    /// </summary>
+    /// <remarks>
+    /// Re-capture happens only here, not on the render path, so frame-to-frame cost is unchanged. Clobber
+    /// semantics: a control's explicit per-property style/glyph overrides are <em>reset</em> to the new theme
+    /// (per-property override tracking is a future addition). Control frames do not currently follow a runtime
+    /// switch — their explicit border styling is preserved instead of being clobbered.
+    /// </remarks>
+    public static void SetTheme(IStyleTheme styleTheme, IGlyphTheme glyphTheme) => Invoke(() =>
+    {
+        StyleTheme = styleTheme;
+        GlyphTheme = glyphTheme;
+        ThemeChanged?.Invoke(null, EventArgs.Empty);
+    });
 
     /// <summary>True while the UI loop is running. Background work (e.g. a Spectre progress/live loop) can poll
     /// this to exit when the UI stops.</summary>
@@ -333,6 +350,10 @@ public static class UI
     #endregion
 
     #region Events
+    /// <summary>Raised by <see cref="SetTheme"/> after the active themes change, so live controls re-apply them.
+    /// Controls subscribe in their constructor and unsubscribe on <see cref="IDisposable.Dispose"/>.</summary>
+    public static event EventHandler? ThemeChanged;
+
     private static EventHandler<PaintEventArgs>? _Paint;
     public static event EventHandler<PaintEventArgs> Paint
     {
