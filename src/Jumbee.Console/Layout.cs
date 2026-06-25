@@ -117,7 +117,22 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
 
     public void OnUpdate(DrawingContext drawingContext, Rect rect) => control.OnUpdate(drawingContext, rect);
 
-    public void OnInput(UI.InputEventArgs inputEventArgs) => Controls.ForEach(f => f.FocusedControl?.OnInput(inputEventArgs));
+    public void OnInput(UI.InputEventArgs inputEventArgs)
+    {
+        // Tunnel phase: let the layout itself consume the input (e.g. an Overlay closing on its CloseKey) before
+        // it routes down to the focused control.
+        if (InterceptInput(inputEventArgs))
+        {
+            return;
+        }
+        else
+        {
+            Controls.ForEach(f => f.FocusedControl?.OnInput(inputEventArgs));
+        }
+    }
+
+    /// <summary>Lets a layout intercept input before it routes to the focused control. Return true if handled.</summary>
+    protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs) => false;
 
     public void OnPaste(string text) => Controls.ForEach(f => f.FocusedControl?.OnPaste(text));
     #endregion

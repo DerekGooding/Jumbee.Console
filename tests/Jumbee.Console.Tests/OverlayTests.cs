@@ -1,5 +1,9 @@
 namespace Jumbee.Console.Tests;
 
+using System;
+
+using ConsoleGUI.Input;
+
 using Jumbee.Console;
 using Jumbee.Console.Snapshot;
 
@@ -13,6 +17,9 @@ public class OverlayTests
         var grid = new Grid([3], [10], [[bottom]]);
         return (new Overlay(grid), bottom);
     }
+
+    private static UI.InputEventArgs KeyArgs(ConsoleKey key) =>
+        new(new InputEvent(new ConsoleKeyInfo('\0', key, shift: false, alt: false, control: false)));
 
     [Fact]
     public void Show_CompositesPopup_AndFocusesIt()
@@ -89,6 +96,66 @@ public class OverlayTests
         overlay.Hide();
         var hidden = ConsoleSnapshot.ToText(overlay, 40, 12);
         Assert.DoesNotContain("DIALOGTEXT", hidden);
+    }
+
+    [Fact]
+    public void CloseKey_ClosesPopup_BeforeItReachesThePopup()
+    {
+        var (overlay, _) = MakeOverlay();
+        overlay.Show(new Button("popup"));
+        Assert.True(overlay.IsShowing);
+
+        overlay.OnInput(KeyArgs(ConsoleKey.Escape));   // default CloseKey
+
+        Assert.False(overlay.IsShowing);
+    }
+
+    [Fact]
+    public void CloseKey_Null_DoesNotClose()
+    {
+        var (overlay, _) = MakeOverlay();
+        overlay.CloseKey = null;
+        overlay.Show(new Button("popup"));
+
+        overlay.OnInput(KeyArgs(ConsoleKey.Escape));
+
+        Assert.True(overlay.IsShowing);
+    }
+
+    [Fact]
+    public void ShowModal_IsModal_AndCompositesPopup()
+    {
+        var (overlay, _) = MakeOverlay();
+        var popup = new Button("MODALX");
+
+        overlay.ShowModal(popup);
+
+        Assert.True(overlay.IsShowing);
+        Assert.True(overlay.IsModal);
+        Assert.Contains("MODALX", ConsoleSnapshot.ToText(overlay, 40, 12));
+    }
+
+    [Fact]
+    public void ModalPopup_DoesNotCloseOnFocusLoss()
+    {
+        var (overlay, bottom) = MakeOverlay();
+        overlay.ShowModal(new Button("popup"));
+
+        UI.SetFocus(bottom);                 // a modal must not be dismissed by focus moving away
+
+        Assert.True(overlay.IsShowing);
+    }
+
+    [Fact]
+    public void ModalPopup_ClosesOnCloseKey()
+    {
+        var (overlay, _) = MakeOverlay();
+        overlay.ShowModal(new Button("popup"));
+
+        overlay.OnInput(KeyArgs(ConsoleKey.Escape));
+
+        Assert.False(overlay.IsShowing);
+        Assert.False(overlay.IsModal);
     }
 
     [Fact]
