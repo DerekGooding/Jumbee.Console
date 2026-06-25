@@ -12,73 +12,8 @@ using Spectre.Console.Rendering;
 using SpectreBoxBorder = Spectre.Console.BoxBorder;
 using SpectreBoxBorderPart = Spectre.Console.Rendering.BoxBorderPart;
 
-public enum BorderStyle
-{
-    None,
-    Ascii,
-    Double,
-    Heavy,
-    Rounded,
-    Square
-}
-
-/// <summary>
-/// Position of a <see cref="ControlFrame"/> title: which border (top or bottom) it is drawn in,
-/// and its horizontal alignment within that border.
-/// </summary>
-public enum TitlePos
-{
-    TopLeft,
-    TopCenter,
-    TopRight,
-    BottomLeft,
-    BottomCenter,
-    BottomRight
-}
-
-/// <summary>
-/// The way a <see cref="ControlFrame"/> title is drawn relative to the top border.
-/// </summary>
-public enum TitleBorderStyle
-{
-    /// <summary>Title is drawn inside the single top border row, replacing some of the border line characters.</summary>
-    Inline,
-
-    /// <summary>Title is drawn on its own row between a top border line and a separator line.</summary>
-    Double
-}
-
-/// <summary>
-/// The way a <see cref="ControlFrame"/> title is colored relative to the border color.
-/// </summary>
-public enum TitleColorStyle
-{
-    /// <summary>Title is drawn in the frame's foreground/background colors.</summary>
-    Normal,
-
-    /// <summary>Title foreground and background are swapped with the border color.</summary>
-    Reverse
-}
-
-/// <summary>
-/// Describes how a <see cref="ControlFrame"/> title is aligned, bordered, and colored.
-/// </summary>
-public readonly struct TitleStyle
-{
-    public TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
-    {
-        Pos = pos;
-        BorderStyle = borderStyle;
-        Color = color;
-    }
-
-    public TitlePos Pos { get; init; }
-    public TitleBorderStyle BorderStyle { get; init; }
-    public TitleColorStyle Color { get; init; }
-
-    /// <summary>The default title style (top-left, double border, normal colors), matching the original behavior.</summary>
-    public static TitleStyle Default { get; } = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Double, TitleColorStyle.Normal);
-}
+// BorderStyle, TitlePos, TitleBorderStyle, TitleColorStyle and TitleStyle live in the Jumbee.Console.Styles
+// project (BorderStyle.cs / TitleStyle.cs); a frame composes its defaults from the active themes (see ctor).
 
 /// <summary>
 /// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
@@ -88,18 +23,21 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #region Constructors
     public ControlFrame(Control control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title=null, Color? borderFgColor = null, Color? borderBgColor = null, TitleStyle? titleStyle = null)
     {
-        _borderStyle = borderStyle ?? BorderStyle.None;
+        // The default border shape comes from the style theme when the caller doesn't specify one.
+        _borderStyle = borderStyle ?? UI.StyleTheme.FrameBorder;
         _boxBorder = GetSpectreBoxBorder(_borderStyle);
         _margin = margin ?? DefaultMargin;
         // Appearance defaults come from the active style theme when the caller doesn't specify a colour: the
-        // frame foreground (used for the title) from the Title token, the border colour from the Border token.
-        // Explicit colours (e.g. WithRoundedBorder(someColor)) still win. Captured once here, never on render.
-        _foreground = fgColor ?? UI.StyleTheme.Title.ForegroundColor;
+        // frame foreground (used for the title) from the TitleText token, the border colour from the BorderText
+        // token. Explicit colours (e.g. WithRoundedBorder(someColor)) still win. Captured once, never on render.
+        _foreground = fgColor ?? UI.StyleTheme.TitleText.ForegroundColor;
         _background = bgColor;
-        _borderFgColor = borderFgColor ?? UI.StyleTheme.Border.ForegroundColor;
+        _borderFgColor = borderFgColor ?? UI.StyleTheme.BorderText.ForegroundColor;
         _borderBgColor = borderBgColor;
         _title = title;
-        _titleStyle = titleStyle ?? TitleStyle.Default;
+        // The default title style comes straight from the style theme. An explicit TitleStyle (e.g.
+        // WithTitle(text, style)) overrides it.
+        _titleStyle = titleStyle ?? UI.StyleTheme.TitleStyle;
         // The scrollbar's default glyphs come from the glyph theme and its colours from the style theme; the
         // frame composes them into its part cells here (override per-control with WithScrollBarGlyphs /
         // WithScrollBarStyle). Captured once, never read on the render path.

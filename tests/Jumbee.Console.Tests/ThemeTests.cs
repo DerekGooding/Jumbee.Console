@@ -40,6 +40,13 @@ public class ThemeTests
         public ScrollBarStyle ScrollBar => ScrollBarStyle.Uniform(Style.Red1);
     }
 
+    /// <summary>A style theme that overrides the frame border/title defaults (all non-glyph appearance).</summary>
+    private sealed class FramedStyleTheme : IStyleTheme
+    {
+        public BorderStyle FrameBorder => BorderStyle.Rounded;
+        public TitleStyle TitleStyle => new(TitlePos.BottomCenter, TitleBorderStyle.Inline, TitleColorStyle.Reverse);
+    }
+
     private static void WithGlyphTheme(IGlyphTheme theme, Action body)
     {
         var prev = UI.GlyphTheme;
@@ -204,6 +211,58 @@ public class ThemeTests
         var thumb = lb.Frame!.ScrollBarForeground;
         Assert.Equal((byte)0, thumb.Foreground!.Value.Red);     // Lime = (0,255,0)
         Assert.Equal((byte)255, thumb.Foreground!.Value.Green);
+    }
+    #endregion
+
+    #region Frame border/title theming (all on the style theme now)
+    [Fact]
+    public void DefaultStyleTheme_FrameTokens_HaveExpectedDefaults()
+    {
+        IStyleTheme s = new DefaultStyleTheme();
+        Assert.Equal(BorderStyle.None, s.FrameBorder);
+        Assert.Equal(TitleStyle.Default, s.TitleStyle);
+    }
+
+    [Fact]
+    public void ControlFrame_DefaultBorder_ComesFromStyleTheme()
+    {
+        WithStyleTheme(new FramedStyleTheme(), () =>
+        {
+            var frame = new ControlFrame(new ListBox("a"));   // no explicit border
+            Assert.Equal(BorderStyle.Rounded, frame.BorderStyle);
+        });
+    }
+
+    [Fact]
+    public void ControlFrame_ExplicitBorder_OverridesTheme()
+    {
+        WithStyleTheme(new FramedStyleTheme(), () =>
+        {
+            var frame = new ControlFrame(new ListBox("a"), borderStyle: BorderStyle.Double);
+            Assert.Equal(BorderStyle.Double, frame.BorderStyle);
+        });
+    }
+
+    [Fact]
+    public void ControlFrame_DefaultTitleStyle_ComesFromStyleTheme()
+    {
+        WithStyleTheme(new FramedStyleTheme(), () =>
+        {
+            var frame = new ControlFrame(new ListBox("a"), title: "T");
+            Assert.Equal(TitlePos.BottomCenter, frame.TitleStyle.Pos);
+            Assert.Equal(TitleBorderStyle.Inline, frame.TitleStyle.BorderStyle);
+            Assert.Equal(TitleColorStyle.Reverse, frame.TitleStyle.Color);
+        });
+    }
+
+    [Fact]
+    public void ControlFrame_ExplicitTitleStyle_OverridesTheme()
+    {
+        WithStyleTheme(new FramedStyleTheme(), () =>
+        {
+            var frame = new ControlFrame(new ListBox("a"), title: "T", titleStyle: TitleStyle.Default);
+            Assert.Equal(TitlePos.TopLeft, frame.TitleStyle.Pos);   // explicit Default wins over themed BottomCenter
+        });
     }
     #endregion
 

@@ -1,11 +1,14 @@
 namespace Jumbee.Console;
 
 /// <summary>
-/// A set of semantic <see cref="Style"/> tokens (foreground + background + decoration) that controls compose
-/// when resolving their default appearance. A theme defines <em>appearance only</em>; it never changes a
-/// control's behaviour. Members are default-implemented, so a custom theme overrides only the tokens it wants
-/// to change. Because the members are default interface implementations, hold and read a theme through this
-/// interface type (e.g. <see cref="UI.StyleTheme"/>), not through a concrete class.
+/// The general appearance theme. Its core is a set of semantic <see cref="Style"/> tokens (foreground +
+/// background + decoration) that controls compose when resolving their default appearance, but it also covers
+/// the rest of a control's non-glyph styling — e.g. a frame's border shape (<see cref="FrameBorder"/>) and its
+/// title's position/border/colour. (Only the literal glyphs rendered in controls live in <see cref="IGlyphTheme"/>.)
+/// A theme defines <em>appearance only</em>; it never changes a control's behaviour. Members are
+/// default-implemented, so a custom theme overrides only what it wants to change. Because the members are default
+/// interface implementations, hold and read a theme through this interface type (e.g. <see cref="UI.StyleTheme"/>),
+/// not through a concrete class.
 /// </summary>
 /// <remarks>
 /// Controls must read these tokens <em>once</em> (in their constructor) into plain fields — never on the
@@ -31,14 +34,16 @@ public interface IStyleTheme
     /// <summary>A panel/container fill.</summary>
     Style Surface => Style.Bg(new Color(20, 20, 28));
 
-    /// <summary>A frame border at rest.</summary>
-    Style Border => Style.Grey50;
+    /// <summary>The text/character style of a frame border at rest (its colour). Distinct from <see cref="FrameBorder"/>,
+    /// which selects the border <em>shape</em>.</summary>
+    Style BorderText => Style.Grey50;
 
-    /// <summary>A frame border when its control is focused.</summary>
-    Style BorderFocused => Style.Cyan1;
+    /// <summary>The text/character style of a frame border when its control is focused.</summary>
+    Style BorderFocusedText => Style.Cyan1;
 
-    /// <summary>A frame title.</summary>
-    Style Title => Style.Grey85;
+    /// <summary>The text/character style of a frame title (its colour). Distinct from <see cref="TitleStyle"/>,
+    /// which controls the title's placement, border, and Normal/Reverse colouring.</summary>
+    Style TitleText => Style.Grey85;
     #endregion
 
     #region Interactive states
@@ -69,6 +74,15 @@ public interface IStyleTheme
     /// <summary>The per-part colours/decoration a control frame's vertical scrollbar uses (glyphs come from
     /// <see cref="IGlyphTheme.ScrollBar"/>). Defaults to <see cref="ScrollBarStyle.Default"/>.</summary>
     ScrollBarStyle ScrollBar => ScrollBarStyle.Default;
+    #endregion
+
+    #region Frame
+    /// <summary>The default border shape for a control frame when none is specified. Defaults to <see cref="BorderStyle.None"/>.</summary>
+    BorderStyle FrameBorder => BorderStyle.None;
+
+    /// <summary>The default title style for a control frame — its position, border placement, and Normal/Reverse
+    /// colouring, in one value. Defaults to <see cref="TitleStyle.Default"/>.</summary>
+    TitleStyle TitleStyle => TitleStyle.Default;
     #endregion
 }
 
