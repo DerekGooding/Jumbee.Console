@@ -55,6 +55,36 @@ public class CompositeControlTests
     }
 
     [Fact]
+    public void CodeEditor_SameLineTyping_LeavesGutterValid_ButLineChangeInvalidatesIt()
+    {
+        // Partial-invalidation: the editor re-renders on every keystroke, but the gutter should only be repainted
+        // when what it draws (line numbers / active-row highlight) actually changes. Typing within a line must
+        // leave the gutter valid (no pending paint request); adding a line must invalidate it.
+        var ed = new CodeEditor(Language.None) { Text = "abc" };   // a single logical line
+        ed.WithRoundedBorder();
+        ed.Editor.Focus();
+
+        ConsoleSnapshot.Render(ed, 28, 8);                 // establish layout; everything painted + validated
+        Assert.Equal(0u, PaintRequests(ed.Gutter));        // sanity: gutter clean after a render
+
+        // A within-line edit: same numbers, same active row -> the gutter is not touched.
+        UI.SendInput(ed.FocusedControl!, new ConsoleKeyInfo('x', ConsoleKey.X, false, false, false));
+        Assert.Equal(0u, PaintRequests(ed.Gutter));        // gutter stayed valid (not re-rendered)
+
+        ConsoleSnapshot.Render(ed, 28, 8);                 // re-validate
+        // A new line changes the line count (and an extra label) -> the gutter must be invalidated.
+        UI.SendInput(ed.FocusedControl!, new ConsoleKeyInfo('\0', ConsoleKey.Enter, false, false, false));
+        Assert.True(PaintRequests(ed.Gutter) > 0u);        // gutter invalidated by the line-count change
+    }
+
+    /// <summary>Reads a control's pending paint-request count (the private Control.paintRequests) for asserting
+    /// that a clean control was not needlessly invalidated.</summary>
+    private static uint PaintRequests(Control c) =>
+        (uint)typeof(Control)
+            .GetField("paintRequests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .GetValue(c)!;
+
+    [Fact]
     public void CodeEditor_ScrollsToKeepCaretVisible_WithGutterAndScrollbar()
     {
         var lines = new string[15];
@@ -134,6 +164,26 @@ public class CompositeControlTests
         // The editor's frame takes the full width and everything below the 1-row header.
         Assert.Equal(30, ed.Frame!.Size.Width);
         Assert.Equal(9, ed.Frame!.Size.Height);
+    }
+
+    [Fact]
+    public void DockPanel_AutoSizesIntrinsicHeaderWithoutExplicitHeight()
+    {
+        // A docked TextLabel with NO explicit Height must size to its intrinsic 1 row (it reports an intrinsic
+        // height) rather than ballooning to fill the panel and collapsing the editor's fill region to zero.
+        var ed = new CodeEditor(Language.CSharp) { Text = "class Foo\n{\n}" };
+        ed.WithRoundedBorder();
+        var bar = new TextLabel(TextLabelOrientation.Horizontal, "STATUS");   // no explicit Height
+        var dock = new DockPanel(DockedControlPlacement.Top, bar, ed);
+
+        var rows = ConsoleSnapshot.ToText(dock, 30, 10).TrimEnd('\n').Split('\n');
+
+        Assert.Equal(30, bar.ActualWidth);    // status bar fills the width...
+        Assert.Equal(1, bar.ActualHeight);    // ...but stays one row tall
+        Assert.Equal(30, ed.Frame!.Size.Width);
+        Assert.Equal(9, ed.Frame!.Size.Height);   // editor gets everything below the 1-row header
+        Assert.StartsWith("STATUS", rows[0]);
+        Assert.Contains("class Foo", string.Join("\n", rows));
     }
 
     [Fact]

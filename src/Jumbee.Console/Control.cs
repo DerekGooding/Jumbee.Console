@@ -394,10 +394,21 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         int minWidth = Math.Clamp(MinSize.Width, 0 ,1000);
         int minHeight = Math.Clamp(MinSize.Height, 0, 1000);
 
-        // Width first (an intrinsic height may depend on it, e.g. wrapped text).
-        var preferredWidth = Width > 0 ? Width : Size.Width > 0 ? Size.Width : maxWidth;
+        // Width first (an intrinsic height may depend on it, e.g. wrapped text). An intrinsic width — a genuine
+        // fixed extent reported by an adornment control (e.g. a vertical TextLabel that is one column wide) — is
+        // honored even under a finite parent, ahead of the fill-to-parent default, so the control doesn't balloon
+        // to fill the space a docking/layout parent offers.
+        var intrinsicWidth = IntrinsicWidth();
+        var preferredWidth = Width > 0 ? Width
+            : intrinsicWidth > 0 ? intrinsicWidth
+            : Size.Width > 0 ? Size.Width
+            : maxWidth;
         var width = Math.Clamp(preferredWidth, minWidth, maxWidth);
 
+        // An intrinsic height is likewise authoritative even under a finite parent (a horizontal TextLabel is one
+        // row tall and must stay one row when docked, not eat the whole panel). Distinct from MeasureHeight below,
+        // which is a content height honored only when the parent is unbounded (for scrolling).
+        var intrinsicHeight = IntrinsicHeight();
         // When the parent leaves the height unbounded — a scrolling ControlFrame passes int.MaxValue so the child
         // can grow and be scrolled — size to the control's intrinsic content height (MeasureHeight) instead of
         // filling to the 1000 clamp. That makes the frame's scrollbar and scroll range reflect real content. A
@@ -405,6 +416,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         var unbounded = MaxSize.Height >= UnboundedHeight;
         var contentHeight = unbounded ? MeasureHeight(width) : 0;
         var preferredHeight = Height > 0 ? Height
+            : intrinsicHeight > 0 ? intrinsicHeight
             : contentHeight > 0 ? contentHeight
             : Size.Height > 0 ? Size.Height
             : maxHeight;
@@ -423,6 +435,19 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <see cref="Invalidate"/>) so the frame re-measures.
     /// </summary>
     protected virtual int MeasureHeight(int width) => 0;
+
+    /// <summary>
+    /// An intrinsic, fixed width in cells this control always wants regardless of the space its parent offers, or
+    /// 0 (the default) to fill the parent's width. Unlike <see cref="MeasureHeight"/> — a content height honored
+    /// only when the parent is unbounded — an intrinsic size is authoritative even under a finite parent. Override
+    /// on adornment controls with a genuine fixed extent (e.g. a vertical <see cref="TextLabel"/>, one column
+    /// wide) so a docking/layout parent can't stretch them to fill the region.
+    /// </summary>
+    protected virtual int IntrinsicWidth() => 0;
+
+    /// <summary>The intrinsic, fixed height counterpart of <see cref="IntrinsicWidth"/> (e.g. a horizontal
+    /// <see cref="TextLabel"/> is one row tall). Returns 0 to fill the parent's height (the default).</summary>
+    protected virtual int IntrinsicHeight() => 0;
 
     // A height limit this large only comes from a scrolling ControlFrame (which passes int.MaxValue); any real
     // viewport is far smaller, so it cleanly distinguishes "unbounded for scrolling" from a finite parent.

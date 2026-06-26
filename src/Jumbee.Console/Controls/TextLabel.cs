@@ -96,9 +96,16 @@ public class TextLabel : Control
         for (int i = 0; i < _text.Length; i++)
         {
             chars[i] = (Cell)new Character(_text[i], foreground: _fgcolor, background: _bgcolor);
-        }       
+        }
     }
-    
+
+    // A label is fixed in its minor axis (a horizontal label is 1 row tall, a vertical one is 1 column wide) and
+    // fills along its text axis (returning 0 there). Reporting this as an intrinsic size keeps a label docked on a
+    // DockPanel edge from ballooning to fill the panel and collapsing the fill region — see CalculateSize.
+    protected override int IntrinsicWidth() => _orientation == TextLabelOrientation.Vertical ? 1 : 0;
+
+    protected override int IntrinsicHeight() => _orientation == TextLabelOrientation.Horizontal ? 1 : 0;
+
     #endregion
 
     #region Fields

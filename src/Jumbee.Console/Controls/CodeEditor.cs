@@ -35,7 +35,7 @@ public class CodeEditor : CompositeControl
         _editor.MouseWheeled += (_, delta) => Frame?.Scroll(delta);
 
         SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _editor));
-        SyncGutter();
+        _gutter.LineCount = _editor.LineCount;   // initial sync; thereafter OnEditorChanged keeps it in step
     }
     #endregion
 
@@ -64,19 +64,40 @@ public class CodeEditor : CompositeControl
     protected override int MeasureHeight(int width) =>
         Math.Max(1, _editor.VisualRowCount(Math.Max(1, width - _gutter.Width)));
 
-    private void OnEditorChanged()
+    // Re-baseline the cached "what the gutter currently shows" on every (re)layout, so the first edit after a
+    // resize compares against the just-laid-out width rather than a stale measurement.
+    protected override void Control_OnInitialization()
     {
-        SyncGutter();
-        Initialize();   // re-measure our content height (the row count may have changed) for the frame's scroll range
-        AutoScroll();   // keep the caret in view by scrolling our frame
+        base.Control_OnInitialization();
+        _lastRowCount = EditorRowCount();
+        _lastActiveRow = _editor.CaretVisualRow;
     }
 
-    private void SyncGutter()
+    private void OnEditorChanged()
     {
-        // Width follows the logical line count; the row labels/active row come from RowsProvider at render time.
+        // Sync the gutter's logical line count (its own setter is already a no-op when the count is unchanged).
         _gutter.LineCount = _editor.LineCount;
-        _gutter.Refresh();
+
+        var rows = EditorRowCount();
+        var activeRow = _editor.CaretVisualRow;
+
+        // Only repaint the gutter when something it actually draws moved: the active-row highlight, or the row
+        // labels (which track the wrapped row count). Typing within a line changes neither, so the gutter stays
+        // valid and is not re-rendered — the per-control invalidation is preserved instead of being defeated by a
+        // blanket refresh on every keystroke.
+        if (activeRow != _lastActiveRow || rows != _lastRowCount) _gutter.Refresh();
+
+        // Re-measure our content height for the frame's scroll range only when the wrapped row count changed; an
+        // in-line edit that adds/removes no row needs no re-layout (Initialize would otherwise run every keystroke).
+        if (rows != _lastRowCount) Initialize();
+
+        AutoScroll();   // keep the caret in view by scrolling our frame (no-op when the caret's row is unchanged)
+        (_lastActiveRow, _lastRowCount) = (activeRow, rows);
     }
+
+    // The editor's wrapped row count at its current width — our content height, and the value that decides whether a
+    // re-layout / gutter relabel is needed.
+    private int EditorRowCount() => _editor.VisualRowCount(Math.Max(1, _editor.ActualWidth));
 
     // The editor itself isn't framed, so scroll OUR ControlFrame to keep the editor's caret row within the viewport.
     private void AutoScroll()
@@ -95,5 +116,10 @@ public class CodeEditor : CompositeControl
     #region Fields
     private readonly TextEditor _editor;
     private readonly LineNumberGutter _gutter;
+    // Cached snapshot of what the gutter currently reflects (wrapped row count + caret's visual row), so
+    // OnEditorChanged can skip the gutter repaint and the content re-measure when an edit changes neither — e.g.
+    // typing within a line. -1 = nothing measured yet (forces the first sync). Re-baselined on each (re)layout.
+    private int _lastActiveRow = -1;
+    private int _lastRowCount = -1;
     #endregion
 }
