@@ -26,7 +26,16 @@ public enum Language
     Sql,
     TypeScript,
     Xml,
-    Yaml
+    Yaml,
+    Toml,
+    C,
+    Cpp,
+    Go,
+    Java,
+    Kotlin,
+    Python,
+    Rust,
+    Swift
 }
 
 /// <summary>
@@ -88,7 +97,7 @@ public class TextEditor : Control
         get => input;
         set
         {
-            input = value ?? string.Empty;
+            input = NormalizeNewlines(value);
             caretPosition = input.Length;
             newInput = true;
             Invalidate();
@@ -124,8 +133,11 @@ public class TextEditor : Control
         {
             ansiConsole.Clear(true);
             WriteText(_language, input);
-            Validate();
         }
+        // Draw the cursor as part of initialization too, so a focused editor shows it on the very first paint
+        // (Render is otherwise skipped once Validate clears the paint request).
+        RenderCursor();
+        Validate();
     }
 
     protected override void Render()
@@ -144,6 +156,7 @@ public class TextEditor : Control
     public override void OnPaste(string text)
     {
         if (string.IsNullOrEmpty(text)) return;
+        text = NormalizeNewlines(text);
         input = input.Insert(caretPosition, text);
         caretPosition += text.Length;
         newInput = true;
@@ -151,6 +164,13 @@ public class TextEditor : Control
         Invalidate();
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    // Editor state uses '\n' as the only line separator. Collapse CRLF/CR (e.g. from a Windows clipboard paste)
+    // so a stray '\r' can't sit invisibly in the buffer: both the renderer and the caret-position math skip '\r',
+    // which makes it a zero-width character the caret can land on — pressing an arrow key then appears to do
+    // nothing and the drawn cursor falls out of sync with the logical caret.
+    private static string NormalizeNewlines(string? text) =>
+        string.IsNullOrEmpty(text) ? string.Empty : text.Replace("\r\n", "\n").Replace('\r', '\n');
 
     protected override void OnInput(InputEvent inputEvent)
     {
@@ -354,7 +374,7 @@ public class TextEditor : Control
                 ansiConsole.Write(text); 
                 break;
             case Language.Markdown:
-                ansiConsole.Write(new Markup(ccFormatter.Format(text, Languages.Markdown, ccSyntaxTheme, ccSyntaxOptions)));
+                ansiConsole.Markup(ccFormatter.Format(text, Languages.Markdown, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.CSharp:
                 ansiConsole.Markup(ccFormatter.Format(text, Languages.CSharp, ccSyntaxTheme, ccSyntaxOptions));
@@ -379,6 +399,33 @@ public class TextEditor : Control
                 break;
             case Language.Yaml:
                 ansiConsole.WriteYaml(text);
+                break;
+            case Language.Toml:
+                ansiConsole.WriteToml(text);
+                break;
+            case Language.C:
+                ansiConsole.WriteC(text);
+                break;
+            case Language.Cpp:
+                ansiConsole.WriteCpp(text);
+                break;
+            case Language.Go:
+                ansiConsole.WriteGo(text);
+                break;
+            case Language.Java:
+                ansiConsole.WriteJava(text);
+                break;
+            case Language.Kotlin:
+                ansiConsole.WriteKotlin(text);
+                break;
+            case Language.Python:
+                ansiConsole.WritePython(text);
+                break;
+            case Language.Rust:
+                ansiConsole.WriteRust(text);
+                break;
+            case Language.Swift:
+                ansiConsole.WriteSwift(text);
                 break;
         }
     }
