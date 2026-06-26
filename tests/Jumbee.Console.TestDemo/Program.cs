@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        WidgetGalleryDemo(args);
+        LinkDemo(args);
+        //WidgetGalleryDemo(args);
         //ToggleDemo(args);
         //SelectDemo(args);
         //OverlayDemo(args);
@@ -143,6 +144,50 @@ public class Program
         });
 
         var run = UI.Start(grid, width: 58, height: 24, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource());
+        run.Wait();
+    }
+
+    // Phase 3 demo: two clickable Links (each opens a URL in the system browser on click or Enter/Space while
+    // focused). Focus moves by clicking a link or pressing Tab (wired below via a global hotkey — the framework
+    // has no built-in Tab traversal); Esc quits. A plain TextLabel serves as the key-hint line. Needs a VT terminal.
+    static void LinkDemo(string[] args)
+    {
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Tab between links, Enter/click opens, Esc quits.".PadRight(52), Color.White);
+
+        var docs = new Link("Open the Spectre.Console website", "https://spectreconsole.net");
+        var repo = new Link("Open the ConsoleGUI repository", "https://github.com/TomaszRewak/C-sharp-console-gui-framework");
+        docs.Activated += (_, _) => status.Text = "Opened spectreconsole.net".PadRight(52);
+        repo.Activated += (_, _) => status.Text = "Opened the ConsoleGUI repo".PadRight(52);
+
+        var hints = new TextLabel(TextLabelOrientation.Horizontal, "Tab Focus   Enter Open   Esc Quit", Color.Grey);
+
+        var spacer = new TextLabel(TextLabelOrientation.Horizontal, "", Color.White);
+        var grid = new Jumbee.Console.Grid(
+            [2, 1, 1, 5, 1],
+            [60],
+            [
+                [status],
+                [docs],
+                [repo],
+                [spacer],
+                [hints],
+            ]);
+
+        // Tab cycles focus across the links (click-to-focus also works); Esc quits. These are global hotkeys,
+        // dispatched before the focused control sees the key.
+        var links = new[] { docs, repo };
+        var names = new[] { "docs", "repo" };
+        var focus = 0;
+        UI.RegisterHotKey(UI.HotKeys.Tab, () =>
+        {
+            focus = (focus + 1) % links.Length;
+            UI.SetFocus(links[focus]);
+            status.Text = $"Focused the {names[focus]} link (Enter to open).".PadRight(52);
+        });
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var run = UI.Start(grid, width: 64, height: 12, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(docs);
         run.Wait();
     }
 

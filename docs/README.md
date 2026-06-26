@@ -8,3 +8,5 @@ notes on internals live under [internal/](internal/).
   single-/multi-select list controls (`RadioSet`, `SelectionList`).
 - [Display Widgets](controls/Display%20Widgets.md) — read-only presentation widgets: `Sparkline`, `Digits`,
   and `Log`.
+- [Links](controls/Links.md) — the clickable `Link` (opens a URL / runs an action), plus wiring app-wide keys
+  (`UI.RegisterHotKey`, Tab/Esc).

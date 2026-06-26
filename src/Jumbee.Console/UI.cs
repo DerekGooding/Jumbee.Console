@@ -153,6 +153,17 @@ public static class UI
     public static IFocusable? Focused => controls.FirstOrDefault(c => c.IsFocused);
 
     /// <summary>
+    /// Registers an application-wide hotkey handled <em>before</em> any control (so it works regardless of focus),
+    /// overwriting any existing action for the same key. <see cref="HotKeys.CtrlQ"/> → <see cref="Stop"/> is
+    /// registered by default. Typically called before <see cref="Start"/>; the key must match what the input
+    /// decoder produces (use the <see cref="HotKeys"/> constants/helpers).
+    /// </summary>
+    public static void RegisterHotKey(ConsoleKeyInfo key, Action action) => Invoke(() => GlobalHotKeys[key] = action);
+
+    /// <summary>Removes a global hotkey registered via <see cref="RegisterHotKey"/>.</summary>
+    public static void UnregisterHotKey(ConsoleKeyInfo key) => Invoke(() => GlobalHotKeys.Remove(key));
+
+    /// <summary>
     /// Marks the UI as needing a redraw on the next frame. Called whenever control content or
     /// layout changes; idle frames skip the redraw until this is set.
     /// </summary>
@@ -480,6 +491,12 @@ public static class UI
 
         public static ConsoleKeyInfo CtrlAlt(ConsoleKey key) =>
             new('\0', key, false, true, true);
+
+        /// <summary>The Escape key, as produced by the input decoder (KeyChar <c>\x1b</c>, no modifiers).</summary>
+        public static ConsoleKeyInfo Escape = new('\x1b', ConsoleKey.Escape, false, false, false);
+
+        /// <summary>The Tab key, as produced by the input decoder (KeyChar <c>\t</c>, no modifiers).</summary>
+        public static ConsoleKeyInfo Tab = new('\t', ConsoleKey.Tab, false, false, false);
 
         public static ConsoleKeyInfo CtrlQ = Ctrl(ConsoleKey.Q);
         public static ConsoleKeyInfo CtrlN = Ctrl(ConsoleKey.N);
