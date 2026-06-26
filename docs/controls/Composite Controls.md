@@ -20,12 +20,20 @@ UI.SetFocus(editor.Editor);   // focus the inner editor to type
 run.Wait();
 ```
 
-The gutter automatically tracks the editor's line count and highlights the caret's line — it reacts to the
-editor's `Changed` event. `editor.Editor` and `editor.Gutter` expose the children.
+The gutter automatically tracks the editor's line count and highlights the caret's line, and long lines soft-wrap.
+To scroll content taller than the viewport, **wrap the `CodeEditor` in a frame** (e.g.
+`codeEditor.WithRoundedBorder()` or `.WithFrame()`); then arrows / PageUp-Down scroll, `AutoScroll` keeps the
+caret visible, the scrollbar tracks position, and the gutter stays aligned with the scrolled text. `editor.Editor`
+and `editor.Gutter` expose the children.
 
-> **Scrolling (current limitation):** the inner editor isn't independently scrolled inside the composite yet, so
-> content taller than the viewport won't scroll. Keep content within the visible area for now; scroll-sync is a
-> planned follow-up.
+> **How the scrolling works (and how to make your own composite scroll):** a content control inside a
+> `ControlFrame` is given an unbounded height so it can grow and be scrolled. For the frame's scrollbar to be
+> accurate, the control must report its **content height** by overriding `Control.MeasureHeight(width)` (e.g.
+> `ListBox` → item count, `TextEditor` → wrapped row count) and re-lay-out (`Initialize()`, not just
+> `Invalidate()`) when that height changes. A composite does the same: `CodeEditor` overrides `MeasureHeight` to
+> report the editor's wrapped row count, so an enclosing frame scrolls the gutter and text together, and it scrolls
+> that frame itself (`AutoScroll`) to keep the caret in view. Do **not** nest a self-scrolling control inside
+> another scrolling frame — both would try to scroll.
 
 ## Authoring a composite: subclass `CompositeControl`
 

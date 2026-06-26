@@ -394,14 +394,39 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         int minWidth = Math.Clamp(MinSize.Width, 0 ,1000);
         int minHeight = Math.Clamp(MinSize.Height, 0, 1000);
 
-        // Use Width and Height as preferred if set (non-zero), otherwise default to MaxSize.Width and MaxSize.Height set by parents
+        // Width first (an intrinsic height may depend on it, e.g. wrapped text).
         var preferredWidth = Width > 0 ? Width : Size.Width > 0 ? Size.Width : maxWidth;
-        var preferredHeight = Height > 0 ? Height : Size.Height > 0 ? Size.Height : maxHeight;
-        
         var width = Math.Clamp(preferredWidth, minWidth, maxWidth);
+
+        // When the parent leaves the height unbounded — a scrolling ControlFrame passes int.MaxValue so the child
+        // can grow and be scrolled — size to the control's intrinsic content height (MeasureHeight) instead of
+        // filling to the 1000 clamp. That makes the frame's scrollbar and scroll range reflect real content. A
+        // finite parent (e.g. a Grid cell) still fills, exactly as before.
+        var unbounded = MaxSize.Height >= UnboundedHeight;
+        var contentHeight = unbounded ? MeasureHeight(width) : 0;
+        var preferredHeight = Height > 0 ? Height
+            : contentHeight > 0 ? contentHeight
+            : Size.Height > 0 ? Size.Height
+            : maxHeight;
+
         var height = Math.Clamp(preferredHeight, minHeight, maxHeight);
         return (width, height);
     }
+
+    /// <summary>
+    /// The control's intrinsic content height in rows at the given <paramref name="width"/>, or 0 when it has no
+    /// intrinsic height and should fill the space its parent gives it (the default). Consulted by
+    /// <see cref="CalculateSize"/> only when a parent leaves the height unbounded — i.e. inside a scrolling
+    /// <see cref="ControlFrame"/> — so the frame can size the control to its content and show an accurate
+    /// scrollbar instead of a tiny thumb over ~1000 empty rows. Override on content controls (lists, editors,
+    /// logs). A content change that alters the height must re-lay-out (<see cref="Initialize"/>, not merely
+    /// <see cref="Invalidate"/>) so the frame re-measures.
+    /// </summary>
+    protected virtual int MeasureHeight(int width) => 0;
+
+    // A height limit this large only comes from a scrolling ControlFrame (which passes int.MaxValue); any real
+    // viewport is far smaller, so it cleanly distinguishes "unbounded for scrolling" from a finite parent.
+    private const int UnboundedHeight = 100_000;
 
     public int ClampWidth(int width) => Math.Clamp(width, 0, Size.Width);
 

@@ -346,6 +346,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         {
             UI.Invoke(() =>
             {
+                var old = _top;
                 using (Freeze())
                 {
                     _top = value;
@@ -362,6 +363,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                         ControlContext?.SetOffset(new Vector(borderOffset.Left, borderOffset.Top));
                     }
                 }
+                // Let adornments outside the frame (e.g. a line-number gutter docked beside it) follow the scroll.
+                if (_top != old) Scrolled?.Invoke();
             });
         }
     }
@@ -787,6 +790,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #region Events
     public event FocusableEventHandler? OnFocus;
     public event FocusableEventHandler? OnLostFocus;
+    /// <summary>Raised after the vertical scroll position (<see cref="Top"/>) changes.</summary>
+    public event Action? Scrolled;
     #endregion
 
     #region Fields

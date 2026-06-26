@@ -192,16 +192,35 @@ public class Program
         run.Wait();
     }
 
-    // Composite-control demo: a CodeEditor = a TextEditor with a line-number gutter docked to its left,
-    // built as a single CompositeControl. Type into it — the gutter tracks the line count and highlights the
-    // caret's line (the gutter reacts to the editor's Changed event). Esc quits. Needs a VT terminal.
+    // Composite-control demo: a CodeEditor = a TextEditor with a line-number gutter docked to its left, built as
+    // a single CompositeControl. The content is taller than the viewport, so it VERTICALLY SCROLLS: type / use
+    // arrows + PageUp/Down, or the mouse wheel; AutoScroll keeps the caret visible, the scrollbar tracks position,
+    // and the gutter stays aligned with the scrolled text (long lines also soft-wrap). Esc quits. Needs a VT terminal.
     static void CodeEditorDemo(string[] args)
     {
-        var editor = new CodeEditor(Language.CSharp)
-        {
-            Text = "// Type here — the gutter tracks lines + the caret.\nclass Hello\n{\n    static void Main()\n    {\n        Console.WriteLine(\"hi\");\n    }\n}"
-        };
-        editor.WithRoundedBorder(Cyan1).WithTitle("CodeEditor (CompositeControl: editor + gutter)");
+        var code = string.Join("\n",
+            "// CodeEditor — scroll with arrows / PageUp-Down / wheel; long lines soft-wrap.",
+            "using System;",
+            "",
+            "class Demo",
+            "{",
+            "    static void Main()",
+            "    {",
+            "        for (var i = 0; i < 20; i++)",
+            "        {",
+            "            Console.WriteLine($\"This is line number {i} — long enough to soft-wrap at the edge.\");",
+            "        }",
+            "",
+            "        var message = \"the gutter numbers stay aligned with each logical line as you scroll\";",
+            "        Console.WriteLine(message);",
+            "    }",
+            "}",
+            "",
+            "// Keep scrolling — there is more below the fold than the viewport can show at once.",
+            "// 1\n// 2\n// 3\n// 4\n// 5\n// 6\n// 7\n// 8\n// 9\n// 10");
+
+        var editor = new CodeEditor(Language.CSharp) { Text = code };
+        editor.WithRoundedBorder(Cyan1).WithTitle("CodeEditor — vertical scroll + soft-wrap");
 
         UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 

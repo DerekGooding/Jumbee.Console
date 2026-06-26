@@ -93,7 +93,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             foreach (var item in added) _items[item.Index] = item;
-            Invalidate();
+            Initialize();   // re-measure: the content height (item count) may have changed
         });
     }
 
@@ -103,7 +103,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             foreach (var item in added) _items[item.Index] = item;
-            Invalidate();
+            Initialize();   // re-measure: the content height (item count) may have changed
         });
     }
 
@@ -113,7 +113,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             foreach (var item in added) _items[item.Index] = item;
-            Invalidate();
+            Initialize();   // re-measure: the content height (item count) may have changed
         });
     }
 
@@ -123,7 +123,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             _items[listItem.Index] = listItem;
-            Invalidate();
+            Initialize();
         });
         return listItem;
     }
@@ -134,7 +134,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             _items[item.Index] = item;
-            Invalidate();
+            Initialize();
         });
         return item;
     }
@@ -152,7 +152,7 @@ public partial class ListBox : RenderableControl
             {
                 r.Detach();
                 removed = true;
-                Invalidate();
+                Initialize();
             }
         });
         return removed;
@@ -164,11 +164,15 @@ public partial class ListBox : RenderableControl
         {
             foreach (var item in _items.Values) item.Detach();
             _items.Clear();
-            Invalidate();
+            Initialize();
         });
     }
 
     public void Update() => Invalidate();
+
+    // Each item is one row; report the item count so a surrounding ControlFrame sizes us to our content and
+    // scrolls accurately, instead of filling to the 1000-row clamp.
+    protected override int MeasureHeight(int width) => Math.Max(1, _items.Count);
 
     protected override void OnInput(InputEvent inputEvent)
     {

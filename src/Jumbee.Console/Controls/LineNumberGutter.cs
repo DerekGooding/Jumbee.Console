@@ -37,15 +37,20 @@ public class LineNumberGutter : RenderableControl
     public int ActiveLine { get => _activeLine; set => SetAtomicProperty(ref _activeLine, value); }
 
     /// <summary>
-    /// Optional per-render source of wrap-aware labels: returns, for each visual row, the line number to show
-    /// (0 = wrapped continuation, drawn blank), plus the active visual row. When set it overrides the sequential
-    /// numbering. Pulled on every render so it tracks edits and resizes without extra wiring.
+    /// Optional per-render source of wrap-aware labels: returns, for every visual row, the line number to show
+    /// (0 = wrapped continuation, drawn blank) and the active visual row. When set it overrides the sequential
+    /// numbering. Pulled on every render so it tracks edits and resizes. The gutter renders one label per visual
+    /// row (it is content-tall, like the editor); a surrounding frame scrolls them together, so no scroll offset
+    /// is needed here.
     /// </summary>
     public Func<(IReadOnlyList<int> labels, int activeRow)>? RowsProvider
     {
         get => _rowsProvider;
         set { _rowsProvider = value; Invalidate(); }
     }
+
+    /// <summary>Requests a repaint (e.g. when the paired editor's line count or caret changes).</summary>
+    public void Refresh() => Invalidate();
 
     /// <summary>Style of inactive line numbers. Defaults to <see cref="IStyleTheme.TextMuted"/>.</summary>
     public Style NumberStyle { get => _numberStyle; set => SetAtomicProperty(ref _numberStyle, value, themeOverride: true); }

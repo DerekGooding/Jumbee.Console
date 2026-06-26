@@ -103,7 +103,7 @@ public class TextEditor : Control
             caretPosition = input.Length;
             _desiredColumn = -1;
             newInput = true;
-            Invalidate();
+            Initialize();   // new content -> re-measure the row count (for a framed editor's scroll range)
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -196,7 +196,7 @@ public class TextEditor : Control
         _desiredColumn = -1;
         newInput = true;
         AutoScroll();
-        Invalidate();
+        Initialize();   // a paste changes the row count -> re-measure (for a framed editor's scroll range)
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -283,7 +283,9 @@ public class TextEditor : Control
         }
         if (!vertical) _desiredColumn = -1;   // a horizontal move or an edit drops the remembered column
         AutoScroll();
-        Invalidate();
+        // An edit (newInput) can change the wrapped row count, so re-lay-out for a framed editor's scroll range;
+        // navigation only needs a repaint.
+        if (newInput) Initialize(); else Invalidate();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -305,12 +307,21 @@ public class TextEditor : Control
     /// <summary>The column the text wraps at — the rendered buffer width.</summary>
     private int WrapWidth => Math.Max(1, ActualWidth);
 
-    // Splits the document into visual rows (as the renderer does) using the same character wrap at WrapWidth.
-    // Each row is a half-open [start, end) range of indices into `input`; a '\n' ends a row and is not part of it.
-    private List<(int start, int end)> BuildVisualRows()
+    // Report the wrapped row count as the content height so a surrounding ControlFrame sizes the editor to its
+    // content and scrolls accurately (measured at the layout width, which may differ from the current ActualWidth).
+    protected override int MeasureHeight(int width) => BuildVisualRows(width).Count;
+
+    /// <summary>The number of visual (wrapped) rows the text occupies at the given width — the editor's content
+    /// height. A composite (e.g. <see cref="CodeEditor"/>) uses it to size/scroll itself around the editor.</summary>
+    public int VisualRowCount(int width) => BuildVisualRows(Math.Max(1, width)).Count;
+
+    // Splits the document into visual rows (as the renderer does) using the same character wrap. Each row is a
+    // half-open [start, end) range of indices into `input`; a '\n' ends a row and is not part of it. The wrap
+    // width defaults to the current buffer width, but can be supplied (e.g. while measuring at a new layout width).
+    private List<(int start, int end)> BuildVisualRows(int? wrapWidth = null)
     {
         var rows = new List<(int, int)>();
-        int width = WrapWidth;
+        int width = Math.Max(1, wrapWidth ?? WrapWidth);
         int n = input.Length;
         int rowStart = 0, col = 0, i = 0;
         while (i < n)
