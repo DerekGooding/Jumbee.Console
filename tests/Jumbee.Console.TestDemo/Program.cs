@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        ToggleDemo(args);
+        WidgetGalleryDemo(args);
+        //ToggleDemo(args);
         //SelectDemo(args);
         //OverlayDemo(args);
         //WheelDemo(args);
@@ -91,6 +92,57 @@ public class Program
 
         var run = UI.Start(overlay, width: 42, height: 14, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(select);
+        run.Wait();
+    }
+
+    // Phase 2 display-widget gallery: a Digits clock, a Sparkline, and a colour Log. A background loop ticks the
+    // clock, shifts the sparkline, and appends log lines once a second to show the live-update path (UI.Post from
+    // a worker thread).
+    static void WidgetGalleryDemo(string[] args)
+    {
+        var clock = new Digits(DateTime.Now.ToString("HH:mm:ss"));
+
+        var sparkData = new List<double> { 3, 5, 2, 8, 6, 7, 4, 2, 5, 9 };
+        // AsciiBars renders on a legacy console (cmd.exe). In Windows Terminal you can drop this and the default
+        // block ramp (▁▂▃▄▅▆▇█) looks crisper.
+        var spark = new Sparkline(sparkData.ToArray()) { BarStyle = Cyan1, Bars = Sparkline.AsciiBars };
+
+
+
+        var log = new Log();
+        
+        log.Write("[green]OK[/]   gallery started");
+
+        var grid = new Jumbee.Console.Grid(
+            [10, 3, 10],
+            [54],
+            [                
+                [clock],                
+                [spark],
+                [log],
+            ]);
+
+        var n = 1;
+        var rnd = new Random();
+        _ = Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(1000);
+                UI.Post(() =>
+                {
+                    clock.Text = DateTime.Now.ToString("HH:mm:ss");
+                    sparkData.Add(rnd.Next(1, 10));
+                    if (sparkData.Count > 10) sparkData.RemoveAt(0);
+                    spark.Values = sparkData.ToArray();
+                    log.Write($"tick {n} at {DateTime.Now:HH:mm:ss}");
+                    if (n % 3 == 0) log.Write($"[grey]heartbeat[/] {n}");
+                    n++;
+                });
+            }
+        });
+
+        var run = UI.Start(grid, width: 58, height: 24, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource());
         run.Wait();
     }
 
