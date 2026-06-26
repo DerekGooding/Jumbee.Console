@@ -29,6 +29,11 @@ public class CodeEditor : CompositeControl
         // Inter-child wiring: the gutter follows the editor, and the composite re-measures + scrolls to the caret.
         _editor.Changed += (_, _) => OnEditorChanged();
 
+        // A wheel notch over the editor scrolls OUR frame — the same scroll target AutoScroll drives. The editor
+        // isn't framed itself (its own OnMouseWheel is a no-op), so we bubble its MouseWheeled event up to the
+        // composite. This is the "composite owns its children and wires their events itself" pattern.
+        _editor.MouseWheeled += (_, delta) => Frame?.Scroll(delta);
+
         SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _editor));
         SyncGutter();
     }
@@ -41,11 +46,15 @@ public class CodeEditor : CompositeControl
     /// <summary>The line-number gutter.</summary>
     public LineNumberGutter Gutter => _gutter;
 
-    /// <summary>The editor's text. Setting it refreshes the gutter.</summary>
+    /// <summary>The editor's text. Setting it loads the document with the caret at the start (top of the file).</summary>
     public string Text
     {
         get => _editor.Text;
-        set => _editor.Text = value;   // raises Changed -> OnEditorChanged
+        set
+        {
+            _editor.Text = value;       // raises Changed -> OnEditorChanged
+            _editor.CaretIndex = 0;     // open at the top, like a file editor, not at the end of the text
+        }
     }
     #endregion
 

@@ -64,7 +64,7 @@ public class CompositeControlTests
         ed.Editor.Focus();
 
         ConsoleSnapshot.Render(ed, 18, 9);
-        for (var i = 0; i < 5; i++)   // drive the caret + auto-scroll toward the bottom
+        for (var i = 0; i < 14; i++)   // from the top, drive the caret + auto-scroll to the bottom line
             UI.SendInput(ed.FocusedControl!, new ConsoleKeyInfo('\0', ConsoleKey.DownArrow, false, false, false));
 
         var text = ConsoleSnapshot.ToText(ed, 18, 9);
@@ -72,6 +72,123 @@ public class CompositeControlTests
         Assert.Equal(15, ed.Editor.ActualHeight);   // composite/editor sized to content, not the 1000-row fill
         Assert.Contains("15 line 15", text);        // scrolled to the bottom, gutter number aligned with its line
         Assert.DoesNotContain("line 01", text);     // the top scrolled out of view
+    }
+
+    [Fact]
+    public void CodeEditor_MouseWheelOverEditor_ScrollsTheFrame()
+    {
+        var lines = new string[15];
+        for (var i = 0; i < 15; i++) lines[i] = $"line {i + 1:00}";
+        var ed = new CodeEditor { Text = string.Join("\n", lines) };
+        ed.WithRoundedBorder();   // the frame is what scrolls; the editor itself isn't framed
+
+        ConsoleSnapshot.Render(ed, 18, 9);
+        Assert.Equal(0, ed.Frame!.Top);   // opens at the top
+
+        // A wheel notch over the editor (its cells carry the editor's listener) bubbles to the composite's frame.
+        ((ConsoleGUI.Input.IMouseWheelListener)ed.Editor).OnMouseWheel(new ConsoleGUI.Space.Position(0, 0), 3);
+
+        Assert.True(ed.Frame!.Top > 0);   // scrolled down without moving the caret
+    }
+
+    [Fact]
+    public void CodeEditor_OpensAtTheTop_WithCaretOnFirstChar()
+    {
+        var lines = new string[20];
+        for (var i = 0; i < 20; i++) lines[i] = $"line {i + 1:00}";
+        var ed = new CodeEditor { Text = string.Join("\n", lines) };
+        ed.WithRoundedBorder();
+        ed.Editor.Focus();
+
+        var text = ConsoleSnapshot.ToText(ed, 18, 9);
+
+        Assert.Equal(0, ed.Editor.CaretIndex);    // caret on the first character, not at the end of the file
+        Assert.Contains("line 01", text);         // the top is visible on load
+        Assert.DoesNotContain("line 20", text);   // not scrolled to the bottom
+    }
+    #endregion
+
+    #region Fluid layout (resizes with the console window)
+    // A framed CodeEditor as the fill control of a DockPanel — the canonical "fluid" arrangement: a header/status
+    // bar docked to one edge and the editor flowing into whatever space the console leaves. Resizing is simulated
+    // by rendering the same tree at a different size (ConsoleSnapshot.Render re-runs layout via the new limits).
+    private static DockPanel DockedEditor(out CodeEditor ed, DockedControlPlacement placement, string text,
+        Language lang = Language.CSharp)
+    {
+        ed = new CodeEditor(lang) { Text = text };
+        ed.WithRoundedBorder();   // framed so it scrolls its content within the docked fill region
+        var bar = new TextLabel(TextLabelOrientation.Horizontal, "STATUS") { Height = 1 };   // a 1-row status bar
+        return new DockPanel(placement, bar, ed);
+    }
+
+    [Fact]
+    public void CodeEditor_InDockPanel_FillsAreaBelowHeader()
+    {
+        var dock = DockedEditor(out var ed, DockedControlPlacement.Top, "class Foo\n{\n}");
+
+        var rows = ConsoleSnapshot.ToText(dock, 30, 10).TrimEnd('\n').Split('\n');
+
+        Assert.StartsWith("STATUS", rows[0]);             // header docked at the top
+        Assert.DoesNotContain("class Foo", rows[0]);      // editor does NOT bleed into the header row
+        Assert.Contains("class Foo", string.Join("\n", rows));   // editor fills the rest
+        // The editor's frame takes the full width and everything below the 1-row header.
+        Assert.Equal(30, ed.Frame!.Size.Width);
+        Assert.Equal(9, ed.Frame!.Size.Height);
+    }
+
+    [Fact]
+    public void CodeEditor_InDockPanel_ReflowsWhenConsoleWidens()
+    {
+        var line = "the quick brown fox jumps over the lazy dog again and again and again and again";
+        var dock = DockedEditor(out var ed, DockedControlPlacement.Top, line, Language.None);
+
+        ConsoleSnapshot.Render(dock, 24, 12);   // narrow console window
+        var narrowWidth = ed.Editor.ActualWidth;
+        var narrowRows = ed.Editor.VisualRowCount(narrowWidth);
+
+        ConsoleSnapshot.Render(dock, 60, 12);   // user widens the console window
+        var wideWidth = ed.Editor.ActualWidth;
+        var wideRows = ed.Editor.VisualRowCount(wideWidth);
+
+        Assert.True(wideWidth > narrowWidth,
+            $"editor should grow with the console (narrow {narrowWidth} -> wide {wideWidth})");
+        Assert.True(wideRows < narrowRows,
+            $"the long line should reflow into fewer wrapped rows when wider (narrow {narrowRows} -> wide {wideRows})");
+    }
+
+    [Fact]
+    public void CodeEditor_InDockPanel_ScrollsToCaretAfterResize()
+    {
+        var lines = new string[20];
+        for (var i = 0; i < 20; i++) lines[i] = $"row {i + 1:00}";
+        var dock = DockedEditor(out var ed, DockedControlPlacement.Top, string.Join("\n", lines));
+        ed.Editor.Focus();
+
+        ConsoleSnapshot.Render(dock, 20, 8);    // lay out at one size...
+        ConsoleSnapshot.Render(dock, 26, 12);   // ...then resize before scrolling
+
+        for (var i = 0; i < 19; i++)            // drive the caret to the last line at the new size
+            UI.SendInput(ed.FocusedControl!, new ConsoleKeyInfo('\0', ConsoleKey.DownArrow, false, false, false));
+
+        var text = ConsoleSnapshot.ToText(dock, 26, 12);
+
+        Assert.Contains("row 20", text);        // auto-scrolled to the bottom against the resized viewport
+        Assert.DoesNotContain("row 01", text);  // the top scrolled out of view
+    }
+
+    [Fact]
+    public void CodeEditor_InDockPanel_BottomStatusBar_StaysPinnedAcrossResizes()
+    {
+        var dock = DockedEditor(out _, DockedControlPlacement.Bottom, "class Foo\n{\n}");
+
+        foreach (var (w, h) in new[] { (28, 8), (44, 14), (22, 20) })
+        {
+            var rows = ConsoleSnapshot.ToText(dock, w, h).TrimEnd('\n').Split('\n');
+
+            Assert.StartsWith("STATUS", rows[^1]);                       // status bar pinned to the bottom row
+            Assert.Contains("class Foo", string.Join("\n", rows));       // editor fills the area above it
+            Assert.DoesNotContain("class Foo", rows[^1]);                // and never overlaps the status row
+        }
     }
     #endregion
 

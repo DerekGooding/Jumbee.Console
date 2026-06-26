@@ -119,6 +119,20 @@ public class TextEditor : Control
         }
     }
 
+    /// <summary>The caret's index into the text, clamped to <c>0..Text.Length</c>. Setting it moves the caret and
+    /// raises <see cref="Changed"/> (so adornments/auto-scroll follow); e.g. set to 0 to move to the start.</summary>
+    public int CaretIndex
+    {
+        get => caretPosition;
+        set
+        {
+            caretPosition = Math.Clamp(value, 0, input.Length);
+            _desiredColumn = -1;
+            Invalidate();
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     /// <summary>The zero-based logical line the caret is on (newline count before it).</summary>
     public int CaretLine
     {
