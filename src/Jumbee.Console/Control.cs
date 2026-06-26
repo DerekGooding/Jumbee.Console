@@ -122,6 +122,14 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     public IFocusable FocusableControl => this.Frame is not null ? this.Frame : this;
 
+    /// <summary>
+    /// The focused control within this one — itself (<em>not</em> its <see cref="FocusableControl"/>/frame, so a
+    /// frame forwarding input inward doesn't loop back to itself) when focused, otherwise <see langword="null"/>.
+    /// A composite (<see cref="CompositeControl"/>) overrides this to return its focused descendant, letting
+    /// keyboard input route through the composite to the right child.
+    /// </summary>
+    public virtual IFocusable? FocusedControl => Focusable && IsFocused ? this : null;
+
     public virtual bool HandlesInput { get; } = false;
     
     public void OnInput(UI.InputEventArgs inputEventArgs)

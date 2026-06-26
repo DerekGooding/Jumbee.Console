@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        LinkDemo(args);
+        CodeEditorDemo(args);
+        //LinkDemo(args);
         //WidgetGalleryDemo(args);
         //ToggleDemo(args);
         //SelectDemo(args);
@@ -188,6 +189,25 @@ public class Program
 
         var run = UI.Start(grid, width: 64, height: 12, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(docs);
+        run.Wait();
+    }
+
+    // Composite-control demo: a CodeEditor = a TextEditor with a line-number gutter docked to its left,
+    // built as a single CompositeControl. Type into it — the gutter tracks the line count and highlights the
+    // caret's line (the gutter reacts to the editor's Changed event). Esc quits. Needs a VT terminal.
+    static void CodeEditorDemo(string[] args)
+    {
+        var editor = new CodeEditor(Language.CSharp)
+        {
+            Text = "// Type here — the gutter tracks lines + the caret.\nclass Hello\n{\n    static void Main()\n    {\n        Console.WriteLine(\"hi\");\n    }\n}"
+        };
+        editor.WithRoundedBorder(Cyan1).WithTitle("CodeEditor (CompositeControl: editor + gutter)");
+
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var grid = new Jumbee.Console.Grid([16], [72], [[editor]]);
+        var run = UI.Start(grid, width: 76, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(editor.Editor);
         run.Wait();
     }
 
@@ -618,7 +638,7 @@ public class Program
 
     static void DockPanelTest(string[] args)
     {
-        var p = new TextEditor(TextEditor.Language.Markdown, blinkCursor: false)
+        var p = new TextEditor(Language.Markdown, blinkCursor: false)
            .WithRoundedBorder(Purple)
            .WithTitle("Editor");
         var tree = new Tree("tree", TreeGuide.Line, Green | Dim) { Width = 20, Height=10 };

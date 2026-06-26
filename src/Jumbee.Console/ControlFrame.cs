@@ -463,6 +463,14 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     public IFocusable FocusableControl => this;
 
+    /// <summary>
+    /// When something inside the frame is focused, the frame stays the routing node (so it can still intercept
+    /// scroll keys) but reports that focus is present. This delegates to the wrapped control's
+    /// <see cref="Control.FocusedControl"/> rather than the frame's own <see cref="IsFocused"/>, so focus nested
+    /// deeper than one level — e.g. a child inside a <see cref="CompositeControl"/> — still routes correctly.
+    /// </summary>
+    public IFocusable? FocusedControl => _control.FocusedControl is not null ? this : null;
+
     public bool HandlesInput => true;
 
     private DrawingContext ControlContext
@@ -497,7 +505,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         this.OnInput(inputEvent);
         if (!inputEvent.Handled)
         {
-            Control.OnInput(inputEventArgs);
+            // Forward to the focused descendant (the wrapped control itself for a leaf, or the focused child of a
+            // composite), not blindly to the wrapped control — so input reaches the right control when nested.
+            (_control.FocusedControl ?? (IFocusable)_control).OnInput(inputEventArgs);
         }
     }
 

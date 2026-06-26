@@ -12,6 +12,24 @@ using RazorConsole.Core.Rendering.Syntax;
 using ColorCode;
 
 /// <summary>
+/// A source language for syntax highlighting, shared by the text/code controls (e.g. <see cref="TextEditor"/>,
+/// <see cref="CodeEditor"/>). <see cref="None"/> renders plain, unhighlighted text.
+/// </summary>
+public enum Language
+{
+    None,
+    Markdown,
+    Json,
+    Html,
+    Css,
+    CSharp,
+    Sql,
+    TypeScript,
+    Xml,
+    Yaml
+}
+
+/// <summary>
 /// A text editor control with syntax highlighting for supported languages.
 /// </summary>
 public class TextEditor : Control
@@ -62,6 +80,41 @@ public class TextEditor : Control
             RenderCursor();
         }
     }
+
+    /// <summary>The full text content. Setting it replaces the buffer, moves the caret to the end, and raises
+    /// <see cref="Changed"/>.</summary>
+    public string Text
+    {
+        get => input;
+        set
+        {
+            input = value ?? string.Empty;
+            caretPosition = input.Length;
+            newInput = true;
+            Invalidate();
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>The number of lines (newline count + 1).</summary>
+    public int LineCount
+    {
+        get
+        {
+            var count = 1;
+            foreach (var c in input) if (c == '\n') count++;
+            return count;
+        }
+    }
+
+    /// <summary>The zero-based line the caret is currently on.</summary>
+    public int CaretLine => GetCursorPositionFromCaret(caretPosition).y;
+    #endregion
+
+    #region Events
+    /// <summary>Raised after the text or caret position changes (typing, paste, delete, navigation, or setting
+    /// <see cref="Text"/>). Composites use it to keep adornments — e.g. a line-number gutter — in sync.</summary>
+    public event EventHandler? Changed;
     #endregion
 
     #region Methods   
@@ -96,6 +149,7 @@ public class TextEditor : Control
         newInput = true;
         AutoScroll();
         Invalidate();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     protected override void OnInput(InputEvent inputEvent)
@@ -172,6 +226,7 @@ public class TextEditor : Control
         }
         AutoScroll();
         Invalidate();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     protected void RenderCursor()
@@ -339,22 +394,6 @@ public class TextEditor : Control
 
     SpectreMarkupFormatter ccFormatter = new SpectreMarkupFormatter() ;
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
-    SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0,   };    
-    #endregion
-
-    #region Types
-    public enum Language
-    {
-        None,
-        Markdown,
-        Json,
-        Html,
-        Css,
-        CSharp,
-        Sql,
-        TypeScript,
-        Xml,
-        Yaml
-    }   
+    SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0,   };
     #endregion
 }

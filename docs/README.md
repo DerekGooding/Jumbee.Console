@@ -10,3 +10,5 @@ notes on internals live under [internal/](internal/).
   and `Log`.
 - [Links](controls/Links.md) — the clickable `Link` (opens a URL / runs an action), plus wiring app-wide keys
   (`UI.RegisterHotKey`, Tab/Esc).
+- [Composite Controls](controls/Composite%20Controls.md) — building a single `Control` out of several child
+  controls (`CompositeControl`), e.g. `CodeEditor` (editor + line-number gutter).
