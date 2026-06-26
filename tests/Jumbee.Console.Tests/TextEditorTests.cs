@@ -77,4 +77,56 @@ public class TextEditorTests
         Assert.Equal((1, 1), afterOneLeft);   // lands before 'd', not stuck on a phantom '\r'
     }
     #endregion
+
+    #region Soft wrap
+    [Fact]
+    public void Wrap_LongLine_RendersOnMultipleRows()
+    {
+        var ed = new TextEditor { Text = new string('x', 30) };
+
+        var rows = ConsoleSnapshot.ToText(ed, 20, 4).TrimEnd('\n').Split('\n');
+
+        Assert.Equal(20, rows[0].Length);   // first visual row filled to the width
+        Assert.Equal(10, rows[1].Length);   // the remaining 10 chars wrap onto the second
+    }
+
+    [Fact]
+    public void Wrap_CaretMidWrappedLine_OnSecondVisualRow()
+    {
+        var ed = new TextEditor();
+        ed.Focus();
+        ed.Text = new string('x', 40);   // caret at 40; 5 Lefts -> index 35 -> column 15 of visual row 1
+
+        var cursor = FindCursor(ConsoleSnapshot.RenderAfter(ed, 20, 6,
+            ConsoleKey.LeftArrow, ConsoleKey.LeftArrow, ConsoleKey.LeftArrow, ConsoleKey.LeftArrow, ConsoleKey.LeftArrow));
+
+        Assert.Equal((15, 1), cursor);   // tracks the wrapped row, not off-screen at x=35
+    }
+
+    [Fact]
+    public void Wrap_CaretAtEndOfFullRow_ShowsAtStartOfNextVisualRow()
+    {
+        var ed = new TextEditor();
+        ed.Focus();
+        ed.Text = new string('x', 40);   // two full 20-wide visual rows; caret at the very end
+
+        Assert.Equal((0, 2), FindCursor(ConsoleSnapshot.Render(ed, 20, 6)));
+    }
+    #endregion
+
+    #region Desired column (vertical navigation)
+    [Fact]
+    public void DesiredColumn_PreservedAcrossVerticalMoves()
+    {
+        var ed = new TextEditor();
+        ed.Focus();
+        ed.Text = "aaaaaaaa\nbb\ncccccccc";   // lines of width 8, 2, 8; caret ends at (8,2)
+
+        // Up onto the short middle line clamps to column 2, but the desired column (8) is remembered, so a second
+        // Up returns to column 8 on the first line — not column 2.
+        var cursor = FindCursor(ConsoleSnapshot.RenderAfter(ed, 20, 4, ConsoleKey.UpArrow, ConsoleKey.UpArrow));
+
+        Assert.Equal((8, 0), cursor);
+    }
+    #endregion
 }

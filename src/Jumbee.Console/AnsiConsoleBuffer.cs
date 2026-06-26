@@ -151,6 +151,14 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                     {
                         var width = c.GetCellWidth();
                         if (width <= 0) continue; // Skip zero-width chars
+                        // Character-level soft wrap: when the glyph won't fit on the current row, drop to the next
+                        // row instead of clipping it. Opt-in (used by TextEditor, which disables Spectre's own
+                        // word-wrap so this is the single, deterministic wrap the caret math can mirror exactly).
+                        if (wrap && _cursorX > 0 && _cursorX + width > _console.Size.Width)
+                        {
+                            _cursorX = 0;
+                            _cursorY++;
+                        }
                         var position = new Position(_cursorX, _cursorY);
                         if (IsValidPosition(position))
                         {
@@ -270,6 +278,9 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     /// synchronous IAnsiConsole behavior for existing Spectre.Console controls.
     /// </summary>
     public bool marshal;
+    /// <summary>When <see langword="true"/>, <see cref="Write"/> wraps glyphs to the next row at the buffer's
+    /// right edge instead of clipping them. See the wrap note in <see cref="_Write"/>.</summary>
+    public bool wrap;
     internal readonly ConsoleBuffer _console;
     internal readonly AnsiConsoleBufferCursor _cursor;
     private readonly IAnsiConsoleInput _input;

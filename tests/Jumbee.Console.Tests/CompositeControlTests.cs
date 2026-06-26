@@ -41,6 +41,18 @@ public class CompositeControlTests
         var ed = new CodeEditor();
         Assert.False(ed.Gutter.Focusable);
     }
+
+    [Fact]
+    public void CodeEditor_Gutter_AlignsWithSoftWrappedLines()
+    {
+        var ed = new CodeEditor { Text = "this is a long first line that wraps\nsecond" };
+
+        var rows = ConsoleSnapshot.ToText(ed, 24, 6).TrimEnd('\n').Split('\n');
+
+        Assert.StartsWith(" 1 ", rows[0]);   // logical line 1
+        Assert.StartsWith("   ", rows[1]);   // its wrapped continuation -> blank gutter
+        Assert.StartsWith(" 2 ", rows[2]);   // logical line 2
+    }
     #endregion
 
     #region Focus + input routing

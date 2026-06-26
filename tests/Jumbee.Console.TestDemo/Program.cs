@@ -21,7 +21,7 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        //CodeEditorDemo(args);
+        CodeEditorDemo(args);
         //LinkDemo(args);
         //WidgetGalleryDemo(args);
         //ToggleDemo(args);
@@ -31,7 +31,7 @@ public class Program
         //ButtonDemo(args);
         //GridTest(args);
         //GridTest(args);
-        SpectreControlTests.LiveDisplayTests();
+        //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);

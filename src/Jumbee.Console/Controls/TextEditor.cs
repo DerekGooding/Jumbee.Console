@@ -1,6 +1,7 @@
 ﻿namespace Jumbee.Console;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using RazorConsole.Core;
@@ -48,7 +49,8 @@ public class TextEditor : Control
     {
         this._language = language;
         this._showCursor = showCursor;
-        this._blinkCursor = blinkCursor;        
+        this._blinkCursor = blinkCursor;
+        ansiConsole.wrap = true;   // character-level soft wrap at the buffer's right edge
     }
     #endregion
 
@@ -99,6 +101,7 @@ public class TextEditor : Control
         {
             input = NormalizeNewlines(value);
             caretPosition = input.Length;
+            _desiredColumn = -1;
             newInput = true;
             Invalidate();
             Changed?.Invoke(this, EventArgs.Empty);
@@ -116,8 +119,39 @@ public class TextEditor : Control
         }
     }
 
-    /// <summary>The zero-based line the caret is currently on.</summary>
-    public int CaretLine => GetCursorPositionFromCaret(caretPosition).y;
+    /// <summary>The zero-based logical line the caret is on (newline count before it).</summary>
+    public int CaretLine
+    {
+        get
+        {
+            int line = 0;
+            for (int i = 0; i < caretPosition && i < input.Length; i++)
+                if (input[i] == '\n') line++;
+            return line;
+        }
+    }
+
+    /// <summary>The zero-based visual (wrapped) row the caret is on.</summary>
+    public int CaretVisualRow => GetCursorPositionFromCaret(caretPosition).y;
+
+    /// <summary>
+    /// For each visual (wrapped) row, the 1-based logical line number when the row starts a logical line, or 0
+    /// for a wrapped continuation row. A line-number gutter uses this to stay aligned with soft-wrapped text.
+    /// </summary>
+    public IReadOnlyList<int> VisualLineNumbers()
+    {
+        var rows = BuildVisualRows();
+        var labels = new List<int>(rows.Count);
+        int logicalLine = 1;
+        for (int r = 0; r < rows.Count; r++)
+        {
+            var start = rows[r].start;
+            bool firstOfLine = start == 0 || input[start - 1] == '\n';
+            if (r > 0 && firstOfLine) logicalLine++;
+            labels.Add(firstOfLine ? logicalLine : 0);
+        }
+        return labels;
+    }
     #endregion
 
     #region Events
@@ -159,6 +193,7 @@ public class TextEditor : Control
         text = NormalizeNewlines(text);
         input = input.Insert(caretPosition, text);
         caretPosition += text.Length;
+        _desiredColumn = -1;
         newInput = true;
         AutoScroll();
         Invalidate();
@@ -174,6 +209,8 @@ public class TextEditor : Control
 
     protected override void OnInput(InputEvent inputEvent)
     {
+        var vertical = inputEvent.Key.Key is ConsoleKey.UpArrow or ConsoleKey.DownArrow
+            or ConsoleKey.PageUp or ConsoleKey.PageDown;
         switch (inputEvent.Key.Key)
         {
             case ConsoleKey.LeftArrow:
@@ -244,6 +281,7 @@ public class TextEditor : Control
                 }
                 break;
         }
+        if (!vertical) _desiredColumn = -1;   // a horizontal move or an edit drops the remembered column
         AutoScroll();
         Invalidate();
         Changed?.Invoke(this, EventArgs.Empty);
@@ -264,68 +302,106 @@ public class TextEditor : Control
         }
     }
 
-    private (int x, int y) GetCursorPositionFromCaret(int caret)
+    /// <summary>The column the text wraps at — the rendered buffer width.</summary>
+    private int WrapWidth => Math.Max(1, ActualWidth);
+
+    // Splits the document into visual rows (as the renderer does) using the same character wrap at WrapWidth.
+    // Each row is a half-open [start, end) range of indices into `input`; a '\n' ends a row and is not part of it.
+    private List<(int start, int end)> BuildVisualRows()
     {
-        int x = 0;
-        int y = 0;
-        for (int i = 0; i < caret && i < input.Length; i++)
+        var rows = new List<(int, int)>();
+        int width = WrapWidth;
+        int n = input.Length;
+        int rowStart = 0, col = 0, i = 0;
+        while (i < n)
         {
             char c = input[i];
             if (c == '\n')
             {
-                x = 0;
-                y++;
+                rows.Add((rowStart, i));
+                i++;
+                rowStart = i;
+                col = 0;
             }
-            else if (c == '\r') continue;
             else
             {
-                x += c.GetCellWidth();
+                int w = c.GetCellWidth();
+                if (w <= 0) { i++; continue; }                 // zero-width: renderer skips it too
+                if (col > 0 && col + w > width)                // glyph won't fit -> wrap before it
+                {
+                    rows.Add((rowStart, i));
+                    rowStart = i;
+                    col = 0;
+                }
+                col += w;
+                i++;
             }
         }
-        return (x, y);
+        rows.Add((rowStart, n));
+        return rows;
     }
 
-    private int GetCaretIndex(int targetLine, int targetX)
+    // Visual column of an index within its row (sum of cell widths from the row start).
+    private int ColumnOf(int start, int caret)
     {
-        int line = 0;
-        int currentX = 0;
-        int i = 0;
-
-        while (i < input.Length && line < targetLine)
+        int col = 0;
+        for (int i = start; i < caret && i < input.Length; i++)
         {
-            if (input[i] == '\n') line++;
-            i++;
+            char c = input[i];
+            if (c == '\n' || c == '\r') continue;
+            int w = c.GetCellWidth();
+            if (w > 0) col += w;
         }
+        return col;
+    }
 
-        if (line < targetLine) return input.Length;
-
-        while (i < input.Length && input[i] != '\n')
+    private (int x, int y) GetCursorPositionFromCaret(int caret)
+    {
+        caret = Math.Clamp(caret, 0, input.Length);
+        var rows = BuildVisualRows();
+        for (int r = 0; r < rows.Count; r++)
         {
-            if (input[i] == '\r')
+            var (start, end) = rows[r];
+            // The caret is on row r when strictly inside it, or at its end only if that end is a hard break (a
+            // newline or the document end). At a wrap point the caret belongs to the next row's start, so we fall
+            // through to the next iteration (whose start == caret).
+            bool atHardEnd = caret == end && (r == rows.Count - 1 || input[end] == '\n');
+            if (caret < end || atHardEnd)
             {
-                i++;
-                continue;
+                int x = ColumnOf(start, caret);
+                // A caret past the last cell of a completely full row shows at the start of the next visual row.
+                if (x >= WrapWidth) return (x - WrapWidth, r + 1);
+                return (x, r);
             }
-
-            int w = input[i].ToString().GetCellWidth();
-
-            if (currentX + (w / 2.0) > targetX) break;
-
-            currentX += w;
-            i++;
-
-            if (currentX >= targetX) break;
         }
+        var last = rows[^1];
+        return (ColumnOf(last.start, input.Length), rows.Count - 1);
+    }
 
+    // The index on visual row `visualRow` nearest (rounded down to) column `targetColumn`.
+    private int CaretIndexAt(int visualRow, int targetColumn)
+    {
+        var rows = BuildVisualRows();
+        visualRow = Math.Clamp(visualRow, 0, rows.Count - 1);
+        var (start, end) = rows[visualRow];
+        int i = start, col = 0;
+        while (i < end && col < targetColumn)
+        {
+            int w = input[i].GetCellWidth();
+            if (w <= 0) { i++; continue; }
+            if (col + w > targetColumn) break;
+            col += w;
+            i++;
+        }
         return i;
     }
 
     private void MoveCaretVertically(int direction)
     {
         var (currentX, currentY) = GetCursorPositionFromCaret(caretPosition);
-        var targetY = Math.Max(0, currentY + direction);
-        
-        caretPosition = GetCaretIndex(targetY, currentX);
+        // Remember the column the user is aiming for so a run of Up/Down keeps it even across short lines.
+        if (_desiredColumn < 0) _desiredColumn = currentX;
+        caretPosition = CaretIndexAt(currentY + direction, _desiredColumn);
     }
     
     private void MoveCaretHome()
@@ -367,6 +443,27 @@ public class TextEditor : Control
     }
 
     private void WriteText(Language language, string text)
+    {
+        // Render each logical line unwrapped (a large profile width) so Spectre never word-wraps; the buffer then
+        // applies one deterministic character wrap at its real width (ansiConsole.wrap), which BuildVisualRows /
+        // the caret math mirror exactly. The editor owns this profile and always wants the inflated render width,
+        // so it stays set between calls (re-set here every render; always >= 2, never the buffer's possibly-0 width).
+        ansiConsole.Profile.Width = LongestLineWidth(text) + 1;
+        WriteHighlighted(language, text);
+    }
+
+    private static int LongestLineWidth(string text)
+    {
+        int max = 1, col = 0;
+        foreach (var c in text)
+        {
+            if (c == '\n') { if (col > max) max = col; col = 0; }
+            else if (c != '\r') col += c.GetCellWidth();
+        }
+        return Math.Max(max, col);
+    }
+
+    private void WriteHighlighted(Language language, string text)
     {
         switch (language)
         {
@@ -438,6 +535,9 @@ public class TextEditor : Control
     private string input = string.Empty;
     private bool newInput;
     private int caretPosition = 0;
+    // The visual column a vertical (Up/Down) move aims for, preserved across a run of them; -1 = recompute from
+    // the caret's current column on the next vertical move. Reset by any horizontal move or edit.
+    private int _desiredColumn = -1;
 
     SpectreMarkupFormatter ccFormatter = new SpectreMarkupFormatter() ;
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();

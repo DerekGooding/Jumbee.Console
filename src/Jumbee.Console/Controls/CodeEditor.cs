@@ -12,9 +12,13 @@ public class CodeEditor : CompositeControl
     public CodeEditor(Language language = Language.None)
     {
         _editor = new TextEditor(language);
-        _gutter = new LineNumberGutter();
+        _gutter = new LineNumberGutter
+        {
+            // Pulled each render: wrap-aware labels (0 = a soft-wrapped continuation row) + the caret's visual row.
+            RowsProvider = () => (_editor.VisualLineNumbers(), _editor.CaretVisualRow),
+        };
 
-        // Inter-child wiring: the gutter follows the editor's content and caret.
+        // Inter-child wiring: the gutter widens with the line count and repaints as the editor changes.
         _editor.Changed += (_, _) => SyncGutter();
 
         SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _editor));
@@ -40,8 +44,8 @@ public class CodeEditor : CompositeControl
     #region Methods
     private void SyncGutter()
     {
+        // Width follows the logical line count; the row labels + active row come from RowsProvider at render time.
         _gutter.LineCount = _editor.LineCount;
-        _gutter.ActiveLine = _editor.CaretLine;
     }
     #endregion
 
