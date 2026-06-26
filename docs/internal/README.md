@@ -7,4 +7,5 @@ This directory contains (mostly) AI generated documentation about Jumbee.Console
 - [Spectre.Console Control Rendering](Spectre.Console%20Control%20Rendering.md)
 - [ANSI and Legacy Terminal Rendering](Ansi%20and%20Legacy%20Terminal%20Rendering.md) — how the renderer drives ANSI vs non-ANSI terminals, and the hardware vs software cursor.
 - [Mouse Input and Overlays](Mouse%20Input%20and%20Overlays.md) — per-control mouse events (hover/click/wheel), the floating overlay/popup layer, modal routing, and the `Select` widget.
+- [Theming](Theming.md) — the glyph/style theme split, styling primitives, how controls capture the theme, live theme switching (`UI.SetTheme`), and override-aware re-application.
 - [Multithreading](Multithreading.md)

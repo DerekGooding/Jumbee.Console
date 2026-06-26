@@ -149,13 +149,17 @@ public class ThemeTests
     }
 
     [Fact]
-    public void Control_CapturesThemeAtConstruction_NotLive()
+    public void AssigningStyleTheme_IsALiveSwitch()
     {
-        Checkbox cb = null!;
-        WithStyleTheme(new AccentStyleTheme(), () => cb = new Checkbox("x"));
-
-        // Theme reverted after construction; the control keeps what it captured (no live switching).
-        Assert.Equal(Style.Magenta1, cb.AccentStyle);
+        // Assigning the property (not just SetTheme) raises ThemeChanged, so a live control re-captures.
+        var cb = new Checkbox("x");
+        var prev = UI.StyleTheme;
+        try
+        {
+            UI.StyleTheme = new AccentStyleTheme();      // TextAccent = Magenta1
+            Assert.Equal(Style.Magenta1, cb.AccentStyle);
+        }
+        finally { UI.StyleTheme = prev; }
     }
 
     [Fact]
@@ -263,6 +267,37 @@ public class ThemeTests
             var frame = new ControlFrame(new ListBox("a"), title: "T", titleStyle: TitleStyle.Default);
             Assert.Equal(TitlePos.TopLeft, frame.TitleStyle.Pos);   // explicit Default wins over themed BottomCenter
         });
+    }
+    #endregion
+
+    #region Bundled ITheme
+    private sealed class BundledTheme : ITheme
+    {
+        public IStyleTheme Styles => new AccentStyleTheme();   // Magenta accent
+        public IGlyphTheme Glyphs => new AsciiGlyphTheme();    // "[*]" checkbox
+    }
+
+    private sealed class EmptyTheme : ITheme { }
+
+    [Fact]
+    public void ITheme_DefaultsToBuiltIns()
+    {
+        ITheme t = new EmptyTheme();
+        Assert.IsType<DefaultStyleTheme>(t.Styles);
+        Assert.IsType<DefaultGlyphTheme>(t.Glyphs);
+    }
+
+    [Fact]
+    public void SetTheme_ITheme_AppliesBothHalves()
+    {
+        var cb = new Checkbox("x", isChecked: true);
+        try
+        {
+            UI.SetTheme(new BundledTheme());
+            Assert.Equal(Style.Magenta1, cb.AccentStyle);                  // style half
+            Assert.Contains("[*] x", ConsoleSnapshot.ToText(cb, 10, 1));   // glyph half
+        }
+        finally { UI.SetTheme(new DefaultStyleTheme(), new DefaultGlyphTheme()); }
     }
     #endregion
 

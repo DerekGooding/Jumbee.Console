@@ -262,32 +262,45 @@ public static class UI
     #region Properties
     public static ILayout Layout => layout!;
 
-    /// <summary>The active style theme. Controls capture their default colours/decorations from this in their
-    /// constructor, so set it <em>before</em> constructing controls to take effect (it is not a live switch).
-    /// Defaults to <see cref="DefaultStyleTheme"/>.</summary>
-    public static IStyleTheme StyleTheme { get; set; } = new DefaultStyleTheme();
-
-    /// <summary>The active glyph theme. Controls capture their indicator glyphs from this in their constructor.
-    /// Assign directly to configure before building the UI; use <see cref="SetTheme"/> to switch at runtime.
-    /// Defaults to <see cref="DefaultGlyphTheme"/>.</summary>
-    public static IGlyphTheme GlyphTheme { get; set; } = new DefaultGlyphTheme();
+    /// <summary>
+    /// The active style theme. Controls capture their default colours/decorations from it. Assigning raises
+    /// <see cref="ThemeChanged"/> (on the UI thread), so every live control re-captures — i.e. assigning it is a
+    /// runtime theme switch. Defaults to <see cref="DefaultStyleTheme"/>.
+    /// </summary>
+    public static IStyleTheme StyleTheme
+    {
+        get => _styleTheme;
+        set => Invoke(() => { _styleTheme = value; ThemeChanged?.Invoke(null, EventArgs.Empty); });
+    }
 
     /// <summary>
-    /// Switches both active themes at runtime and notifies every live control (via <see cref="ThemeChanged"/>)
-    /// to re-capture its themed colours/glyphs. Runs on the UI thread.
+    /// The active glyph theme. Controls capture their indicator glyphs from it. Assigning raises
+    /// <see cref="ThemeChanged"/> (on the UI thread), so every live control re-captures — i.e. assigning it is a
+    /// runtime theme switch. Defaults to <see cref="DefaultGlyphTheme"/>.
+    /// </summary>
+    public static IGlyphTheme GlyphTheme
+    {
+        get => _glyphTheme;
+        set => Invoke(() => { _glyphTheme = value; ThemeChanged?.Invoke(null, EventArgs.Empty); });
+    }
+
+    /// <summary>
+    /// Convenience to set both themes at once. The work (and the <see cref="ThemeChanged"/> notification that
+    /// makes live controls re-capture) is done by the <see cref="StyleTheme"/>/<see cref="GlyphTheme"/> setters.
     /// </summary>
     /// <remarks>
-    /// Re-capture happens only here, not on the render path, so frame-to-frame cost is unchanged. Clobber
-    /// semantics: a control's explicit per-property style/glyph overrides are <em>reset</em> to the new theme
-    /// (per-property override tracking is a future addition). Control frames do not currently follow a runtime
-    /// switch — their explicit border styling is preserved instead of being clobbered.
+    /// Re-capture happens only on assignment, never on the render path, so frame-to-frame cost is unchanged.
+    /// Each control re-applies the theme only to properties it has not explicitly overridden (see
+    /// <c>ThemeOverrides</c>), so explicit per-control styling — including a frame's border — survives the switch.
     /// </remarks>
-    public static void SetTheme(IStyleTheme styleTheme, IGlyphTheme glyphTheme) => Invoke(() =>
+    public static void SetTheme(IStyleTheme styleTheme, IGlyphTheme glyphTheme)
     {
         StyleTheme = styleTheme;
         GlyphTheme = glyphTheme;
-        ThemeChanged?.Invoke(null, EventArgs.Empty);
-    });
+    }
+
+    /// <summary>Applies both halves of a bundled <see cref="ITheme"/> (see <see cref="SetTheme(IStyleTheme, IGlyphTheme)"/>).</summary>
+    public static void SetTheme(ITheme theme) => SetTheme(theme.Styles, theme.Glyphs);
 
     /// <summary>True while the UI loop is running. Background work (e.g. a Spectre progress/live loop) can poll
     /// this to exit when the UI stops.</summary>
@@ -388,6 +401,8 @@ public static class UI
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
     private static readonly Dispatcher dispatcher = new Dispatcher();
+    private static IStyleTheme _styleTheme = new DefaultStyleTheme();
+    private static IGlyphTheme _glyphTheme = new DefaultGlyphTheme();
     private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
