@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        CodeEditorDemo(args);
+        TabsDemo(args);
+        //CodeEditorDemo(args);
         //LinkDemo(args);
         //WidgetGalleryDemo(args);
         //ToggleDemo(args);
@@ -227,6 +228,35 @@ public class Program
         var grid = new Jumbee.Console.Grid([16], [72], [[editor]]);
         var run = UI.Start(grid, width: 76, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(editor.Editor);
+        run.Wait();
+    }
+
+    // Interactive tabbed-container demo: a TabPanel with three tabs whose contents differ (a file list, a status
+    // line, an about line). Click a tab label to switch, or — since the tab bar is focused on start — use the
+    // Left/Right arrow keys. The selected tab's content fills the area below; the bottom line tracks the selection.
+    // Needs a VT terminal (e.g. Windows Terminal) for mouse + hover. Esc quits.
+    static void TabsDemo(string[] args)
+    {
+        var files = new ListBox();
+        foreach (var f in new[] { "Program.cs", "TabPanel.cs", "TabHeader.cs", "CodeEditor.cs", "UI.cs", "Control.cs" })
+            files.AddItem(f);
+
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Build: OK    Tests: 202 passing", Color.White);
+        var about = new TextLabel(TextLabelOrientation.Horizontal, "Click a tab, or use Left/Right arrows.  Esc quits.", Color.White);
+
+        var tabs = new TabPanel(TabBarDock.Top,
+            ("Files", files),
+            ("Status", status),
+            ("About", about));
+
+        var hint = new TextLabel(TextLabelOrientation.Horizontal, "Active: Files".PadRight(54), Color.White);
+        tabs.SelectionChanged += i => hint.Text = $"Active: {tabs.ActiveTabName}".PadRight(54);
+
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var grid = new Jumbee.Console.Grid([15, 1], [54], [[tabs], [hint]]);
+        var run = UI.Start(grid, width: 58, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(tabs.Headers[0]);   // focus the tab bar so the arrow keys switch tabs immediately
         run.Wait();
     }
 
@@ -748,7 +778,7 @@ public class Program
         );
         //var dockedFrame = dockedPanel.WithFrame(borderStyle: BorderStyle.Single, title: "Docked Panel (Left)");
 
-        var tabpanel = new TabPanel(TabBarDock.Top, controls: [("Tab 1", CreateBox("T-Item 1", Magenta1)), ("Tab 2", CreateBox("T-Item 2", Cyan1))]);
+        var tabpanel = new TabPanel(TabBarDock.Top, tabs: [("Tab 1", CreateBox("T-Item 1", Magenta1)), ("Tab 2", CreateBox("T-Item 2", Cyan1))]);
 
         var vt = new TextLabel(TextLabelOrientation.Horizontal, "hello", Red);
         // --- Main Layout ---

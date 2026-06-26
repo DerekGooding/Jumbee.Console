@@ -103,6 +103,15 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
 
     public bool HandlesInput => true;
 
+    /// <summary>
+    /// The focused control reached when input is routed into this layout from a parent layout (a nested layout is a
+    /// single <see cref="IFocusable"/> to its parent). The default mirrors the <see cref="IFocusable"/> default — the
+    /// layout itself when focused, otherwise nothing — so plain container layouts (Grid, DockPanel, stack panels)
+    /// are unchanged. Interactive layouts (e.g. <see cref="TabPanel"/>) override it to return the focused descendant
+    /// so keyboard input reaches it even when the layout is nested.
+    /// </summary>
+    public virtual IFocusable? FocusedControl => Focusable && IsFocused ? FocusableControl : null;
+
     public virtual void OnInput(InputEvent inputEvent) {}
     #endregion
 

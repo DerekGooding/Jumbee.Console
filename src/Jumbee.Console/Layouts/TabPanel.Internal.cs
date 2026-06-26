@@ -1,147 +1,63 @@
-﻿namespace Jumbee.Console;
+namespace Jumbee.Console;
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using ConsoleGUI;
 using ConsoleGUI.Controls;
-using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
-public class Tab
-{    
-    #region Constructors
-    internal Tab(TabBarDock tabBarDock, string name, IControl content, Color activeBgColor = default, Color inactiveBgColor = default)
-    {
-        this.activeBgColor = activeBgColor.Equals(default) ? defaultactiveBgColor : activeBgColor;
-        this.inactiveBgColor = inactiveBgColor.Equals(default) ? defaultinactiveBgColor : inactiveBgColor;        
-        bool isHorizontalTabBar = tabBarDock ==  TabBarDock.Top || tabBarDock == TabBarDock.Bottom;
-        headerBackground = new Background
-        {
-            Content = new Margin
-            {
-                Offset = isHorizontalTabBar ? new Offset(1, 0, 1, 0) : new Offset(0, 1, 0, 1),
-                Content = isHorizontalTabBar ? new TextLabel(TextLabelOrientation.Horizontal, name) : new TextLabel(TextLabelOrientation.Horizontal, name)
-            },
-            Color = this.inactiveBgColor
-
-        };
-
-        Header = new Margin
-        {
-            Offset = isHorizontalTabBar ? new Offset(0, 0, 1, 0) : new Offset(0, 0, 0, 1),
-            Content = headerBackground
-        };
-        Content = content;
-
-    }
-    #endregion
-    
-    #region Properties
-    public IControl Header { get; }
-    public IControl Content { get; }
-    #endregion
-
-    #region Methods
-    public void MarkAsActive() => headerBackground.Color = defaultactiveBgColor;
-    public void MarkAsInactive() => headerBackground.Color = defaultinactiveBgColor;
-    #endregion
-
-    #region Fields
-    private static readonly Color defaultactiveBgColor = new Color(25, 54, 65);
-    private static readonly Color defaultinactiveBgColor = new Color(65, 24, 25);
-    private readonly Color activeBgColor;
-    private readonly Color inactiveBgColor;
-    private readonly Background headerBackground;
-    #endregion    
-}
-
-public class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
+/// <summary>
+/// The visual scaffold behind <see cref="TabPanel"/>: a ConsoleGUI <see cref="ConsoleGUI.Controls.DockPanel"/> that
+/// docks a thin tab bar (a horizontal or vertical stack of <see cref="TabHeader"/> cells) on one edge and fills the
+/// rest with the active tab's content. It does no selection bookkeeping — <see cref="TabPanel"/> owns the model and
+/// drives this through <see cref="AddHeader"/> / <see cref="SetFill"/>.
+/// </summary>
+public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
 {
     #region Constructors
-    internal TabPanelDockPanel(TabBarDock tabBarDock, Color inactiveTabBgColor) : base()
+    // barThickness = the bar's cross-axis size: the label row height for a top/bottom bar (1), or the widest label
+    // for a left/right bar. A stack panel stretches each child to the cross-axis it's given, so this can't be
+    // derived from a laid-out header (that would be circular); TabPanel computes it from the label texts up front.
+    internal TabPanelDockPanel(TabBarDock tabBarDock, int barThickness)
     {
-        this.tabBarDock = tabBarDock;
+        IsHorizontalTabBar = tabBarDock is TabBarDock.Top or TabBarDock.Bottom;
         Placement = tabBarDock switch
         {
-            TabBarDock.Top => ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Top,
-            TabBarDock.Bottom => ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Bottom,
-            TabBarDock.Left => ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Left,
-            TabBarDock.Right => ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Right,
+            TabBarDock.Top => DockedControlPlacement.Top,
+            TabBarDock.Bottom => DockedControlPlacement.Bottom,
+            TabBarDock.Left => DockedControlPlacement.Left,
+            TabBarDock.Right => DockedControlPlacement.Right,
             _ => throw new NotImplementedException()
         };
-            
-        tabsPanel = IsHorizontalTabBar ? new ConsoleGUI.Controls.HorizontalStackPanel() : new ConsoleGUI.Controls.VerticalStackPanel();
-        DockedControl = new Background
-        {
-            Color = inactiveTabBgColor,
-            Content = IsHorizontalTabBar ?
-            new Boundary
-            {
-                MinHeight = 1,
-                MaxHeight = 1,
-                Content = tabsPanel
-            } :
-            new Boundary
-            {
-                MinWidth = 1,
-                MaxWidth = 1,
-                Content = tabsPanel
-            }
 
-        };               
-    }
-    #endregion
-
-    #region Methods
-    public void AddTab(string name, IControl content, Color activeBgColor = default, Color inactiveBgColor = default )
-    {
-        var newTab = new Tab(tabBarDock, name, content, activeBgColor, inactiveBgColor);
-        tabs.Add(newTab);
-        if (IsHorizontalTabBar)
-        {
-            var htabspanel = (ConsoleGUI.Controls.HorizontalStackPanel)tabsPanel;
-            htabspanel.Add(newTab.Header);
-        }
-        else
-        {            
-            var vtabspanel = (ConsoleGUI.Controls.VerticalStackPanel)tabsPanel;
-            vtabspanel.Add(newTab.Header);            
-        }
-        if (tabs.Count == 1)
-            SelectTab(0);
-    }
-
-    public void SelectTab(int tab)
-    {
-        currentTab?.MarkAsInactive();
-        currentTab = tabs[tab];
-        currentTab.MarkAsActive();
-        FillingControl = currentTab.Content;
-    }
-
-    public void OnInput(InputEvent inputEvent)
-    {
-        if (inputEvent.Key.Key != ConsoleKey.Tab || currentTab is null) return;
-        SelectTab((tabs.IndexOf(currentTab) + 1) % tabs.Count);
-        inputEvent.Handled = true;
+        _bar = IsHorizontalTabBar
+            ? new ConsoleGUI.Controls.HorizontalStackPanel()
+            : new ConsoleGUI.Controls.VerticalStackPanel();
+        // Cap ONLY the cross-axis to the label thickness; the main axis is left unconstrained so the labels lay out
+        // along it.
+        _boundary = IsHorizontalTabBar
+            ? new Boundary { MinHeight = barThickness, MaxHeight = barThickness, Content = _bar }
+            : new Boundary { MinWidth = barThickness, MaxWidth = barThickness, Content = _bar };
+        DockedControl = _boundary;
     }
     #endregion
 
     #region Properties
-    public int TabCount => tabs.Count;
-    public bool IsHorizontalTabBar => tabBarDock == TabBarDock.Top || tabBarDock == TabBarDock.Bottom;
+    public bool IsHorizontalTabBar { get; }
     #endregion
 
-    #region Indexers
-    public IControl this[int t] => tabs.ElementAt(t).Content;
+    #region Methods
+    public void AddHeader(IControl header)
+    {
+        if (_bar is ConsoleGUI.Controls.HorizontalStackPanel h) h.Add(header);
+        else ((ConsoleGUI.Controls.VerticalStackPanel)_bar).Add(header);
+    }
+
+    public void SetFill(IControl content) => FillingControl = content;
     #endregion
 
     #region Fields
-    private readonly TabBarDock tabBarDock;
-    private readonly List<Tab> tabs = new List<Tab>();
-    private readonly CControl tabsPanel;
-    private Tab? currentTab;
+    private readonly CControl _bar;
+    private readonly Boundary _boundary;
     #endregion
 }
