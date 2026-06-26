@@ -17,12 +17,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{C9B2828B-D
 	ProjectSection(SolutionItems) = preProject
 		..\.gitignore = ..\.gitignore
 		..\CLAUDE.md = ..\CLAUDE.md
-		..\docs\internal\ConsoleGUI and Spectre.Console Control Integration.md = ..\docs\internal\ConsoleGUI and Spectre.Console Control Integration.md
-		..\docs\internal\ConsoleGUI Control Rendering.md = ..\docs\internal\ConsoleGUI Control Rendering.md
 		..\GEMINI.md = ..\GEMINI.md
 		..\README.md = ..\README.md
 		..\ext\RazorConsole.Core.Syntax\README.md = ..\ext\RazorConsole.Core.Syntax\README.md
-		..\docs\internal\Spectre.Console Control Rendering.md = ..\docs\internal\Spectre.Console Control Rendering.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{28E2EEB4-6314-439F-A73B-2B95203051D2}"
@@ -45,6 +42,18 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Tests", "..\tests\Jumbee.Console.Tests\Jumbee.Console.Tests.csproj", "{5EF25934-E5E3-46A1-B942-165DD7A2F6A5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Styles", "Jumbee.Console.Styles\Jumbee.Console.Styles.csproj", "{7B0A9702-3AE8-4483-B448-460AE6D708FB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Internal", "Internal", "{EC032391-3629-495D-AE51-F70A9DC01C22}"
+	ProjectSection(SolutionItems) = preProject
+		..\docs\internal\ConsoleGUI and Spectre.Console Control Integration.md = ..\docs\internal\ConsoleGUI and Spectre.Console Control Integration.md
+		..\docs\internal\ConsoleGUI Control Rendering.md = ..\docs\internal\ConsoleGUI Control Rendering.md
+		..\docs\internal\Spectre.Console Control Rendering.md = ..\docs\internal\Spectre.Console Control Rendering.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Library", "Library", "{240D7793-4492-4B85-AC86-0220825D6B54}"
+	ProjectSection(SolutionItems) = preProject
+		..\docs\controls\Selection Controls.md = ..\docs\controls\Selection Controls.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -191,6 +200,8 @@ Global
 		{398DEAA0-9E0F-4671-B497-61BE1B85763E} = {8575CE18-ABF9-494C-9232-43E0F1E9BCE7}
 		{5EF25934-E5E3-46A1-B942-165DD7A2F6A5} = {6ED98344-E90A-44C5-8EB8-CBA5F48FF975}
 		{7B0A9702-3AE8-4483-B448-460AE6D708FB} = {8575CE18-ABF9-494C-9232-43E0F1E9BCE7}
+		{EC032391-3629-495D-AE51-F70A9DC01C22} = {C9B2828B-DAC4-4D99-B75E-890596A0B988}
+		{240D7793-4492-4B85-AC86-0220825D6B54} = {C9B2828B-DAC4-4D99-B75E-890596A0B988}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65B3BAD7-920D-4EBC-B47B-01164C7E4AF1}
