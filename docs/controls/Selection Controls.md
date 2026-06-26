@@ -1,0 +1,195 @@
+# Selection Controls
+
+The selection family lets users pick and toggle values. It comes in two groups:
+
+| Control | Picks | Renders | Multiple? |
+|---------|-------|---------|-----------|
+| `Checkbox` | one on/off value | `[X]` / `[ ]` Label | independent |
+| `RadioButton` | one on value | `(●)` / `( )` Label | latches on |
+| `Switch` | one on/off value | `(─●)` / `(●─)` Label | independent |
+| `RadioSet` | one option from a list | a column of `(●)`/`( )` rows | single-select |
+| `SelectionList` | any options from a list | a column of `[X]`/`[ ]` rows | multi-select |
+
+All of them are in the `Jumbee.Console` namespace and are used like any other control — placed in a layout and
+shown with `UI.Start`.
+
+> **Naming note:** `Switch` collides with `System.Diagnostics.Switch`. If your file imports `System.Diagnostics`,
+> qualify it as `Jumbee.Console.Switch`.
+
+## A first example
+
+```csharp
+using Jumbee.Console;
+
+var accept = new Checkbox("Accept terms");
+accept.Changed += (_, isChecked) =>
+{
+    // react to the new state
+};
+
+// One column, one row, the checkbox in it.
+var grid = new Grid(rowHeights: [1], columnWidths: [30], controls: [[accept]]);
+
+// Mouse needs a VT terminal + a VtInputSource; keyboard-only works with the default input.
+var run = UI.Start(grid, width: 32, height: 3, input: new VtInputSource(anyMotion: true));
+UI.SetFocus(accept);   // so Space/Enter toggles it immediately; clicking works regardless of focus
+run.Wait();
+```
+
+Controls **auto-size** to their content (indicator + label), so you normally let the layout decide placement and
+leave `Width`/`Height` alone.
+
+## Single toggles: `Checkbox`, `RadioButton`, `Switch`
+
+The three single toggles share a base (`ToggleButton`) and therefore the same surface. A user toggles one by
+**clicking it**, or by **focusing it and pressing Enter or Space**.
+
+```csharp
+var notify = new Checkbox("Enable notifications", isChecked: true);
+var dark   = new Jumbee.Console.Switch("Dark mode");   // qualified to avoid System.Diagnostics.Switch
+var option = new RadioButton("Option A");
+```
+
+### Shared members
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `IsChecked` | `bool` | The current state. Set it to change the control programmatically. |
+| `Changed` | `event EventHandler<bool>` | Raised with the new state whenever `IsChecked` changes. |
+| `Text` | `string` | The label. Changing it re-sizes the control. |
+| `Toggle()` | `void` | Flips the state (the same path a click takes). |
+
+```csharp
+notify.Changed += (_, on) => status.Text = on ? "Notifications on" : "Notifications off";
+
+if (notify.IsChecked) { /* ... */ }   // read it any time
+notify.IsChecked = false;             // set it programmatically (also raises Changed)
+```
+
+### `RadioButton` vs `Checkbox`
+
+A `RadioButton` **latches**: activating it always turns it *on* (a click never turns it off), which is the
+expected behaviour for "pick one of several." A standalone `RadioButton` doesn't coordinate with its siblings,
+so for a real mutually-exclusive group reach for **`RadioSet`** (below) — it manages the exclusivity for you.
+
+### `Switch`
+
+`Switch` is an on/off control identical in behaviour to `Checkbox`; it just renders as a slider. Its constructor
+names the initial state `isOn`:
+
+```csharp
+var wifi = new Jumbee.Console.Switch("Wi-Fi", isOn: true);
+```
+
+## Single-select list: `RadioSet`
+
+`RadioSet` is a vertical group of mutually-exclusive options — exactly one is selected at a time. Construct it
+with the option labels:
+
+```csharp
+var theme = new RadioSet("Light", "Dark", "Solarized") { SelectedIndex = 0 };
+theme.SelectionChanged += (_, index) =>
+{
+    string picked = theme.SelectedValue!;   // or use `index`
+};
+```
+
+The user navigates with **Up/Down** and chooses with **Space/Enter**, or simply **clicks a row**.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `SelectedIndex` | `int` | Index of the selected option, or `-1` when nothing is selected. Settable. |
+| `SelectedValue` | `string?` | The selected option's text, or `null`. |
+| `SelectionChanged` | `event EventHandler<int>` | Raised with the new index when the selection changes. |
+| `Options` | `IReadOnlyList<string>` | The option labels. |
+
+## Multi-select list: `SelectionList`
+
+`SelectionList` is a vertical checklist — each option is independently checkable.
+
+```csharp
+var toppings = new SelectionList("Cheese", "Mushroom", "Pepperoni", "Olives");
+toppings.SetChecked(0, true);     // pre-check "Cheese"
+toppings.SelectionChanged += (_, _) =>
+{
+    IReadOnlyList<string> chosen = toppings.SelectedValues;   // e.g. ["Cheese", "Pepperoni"]
+};
+```
+
+The user navigates with **Up/Down** and toggles the highlighted row with **Space/Enter**, or **clicks a row**.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `SelectedIndices` | `IReadOnlyList<int>` | Indices of the checked options, ascending. |
+| `SelectedValues` | `IReadOnlyList<string>` | Text of the checked options, in option order. |
+| `SetChecked(int index, bool isChecked)` | `void` | Check/uncheck an option (raises `SelectionChanged` when it changes). |
+| `IsCheckedAt(int index)` | `bool` | Whether a given option is checked. |
+| `SelectionChanged` | `event EventHandler<int>` | Raised with the affected index when an option's checked state changes. |
+| `Options` | `IReadOnlyList<string>` | The option labels. |
+
+Both list controls also expose `CursorIndex` (the highlighted row), which you can set to move the keyboard cursor
+programmatically.
+
+## Layout, focus, and frames
+
+**Placement.** Add controls to a layout such as `Grid` and pass it to `UI.Start`:
+
+```csharp
+var grid = new Grid(
+    rowHeights:    [1, 1, 5],          // a row per control; the list needs a few rows
+    columnWidths:  [40],
+    controls:
+    [
+        [notify],
+        [dark],
+        [theme],                       // a 3-option RadioSet
+    ]);
+UI.Start(grid, width: 44, height: 9, input: new VtInputSource(anyMotion: true)).Wait();
+```
+
+**Focus.** Keyboard input goes to the focused control. Use `UI.SetFocus(control)` to set it, and `control.IsFocused`
+to read it. Clicking a control also focuses it. (Mouse events require a VT terminal and a
+`VtInputSource`; pass `anyMotion: true` to get hover highlighting.)
+
+**Frames.** Any control can be wrapped in a border/title — handy for the list controls:
+
+```csharp
+theme.WithRoundedBorder().WithTitle("Theme");
+toppings.WithRoundedBorder(Color.Green).WithTitle("Toppings");
+```
+
+`WithFrame`, `WithBorder`, `WithRoundedBorder`, and `WithTitle` all return the control, so they chain. If a list
+is taller than its frame, the frame shows a scrollbar and the keyboard cursor auto-scrolls to stay in view.
+
+## Styling
+
+Each control's colours come from the active theme by default, so an app-wide look is set once via the theme
+(`UI.StyleTheme` / `UI.GlyphTheme`) rather than per control. When you need a one-off, set the style properties
+directly — they take a `Style` (and a plain `Color` converts to one):
+
+```csharp
+var cb = new Checkbox("Custom")
+{
+    AccentStyle = Color.Magenta1,     // the checked mark
+    MutedStyle  = Color.Grey50,       // the unchecked mark
+    LabelStyle  = Color.White,
+};
+```
+
+| Control(s) | Style properties |
+|------------|------------------|
+| `Checkbox` / `RadioButton` / `Switch` | `LabelStyle`, `AccentStyle` (checked), `MutedStyle` (unchecked), `HoverStyle` |
+| `RadioSet` / `SelectionList` | `TextStyle`, `AccentStyle` (selected/checked mark), `MutedStyle`, `SelectionStyle` (highlighted row) |
+
+Explicit values like these survive a runtime theme switch; everything you leave unset keeps following the theme.
+
+## Behaviour summary
+
+| | Activate by | Keyboard |
+|---|-------------|----------|
+| `Checkbox` / `RadioButton` / `Switch` | click | Enter / Space toggles (when focused) |
+| `RadioSet` | click a row | Up / Down move, Enter / Space select |
+| `SelectionList` | click a row | Up / Down move, Enter / Space toggle |
+
+Double-clicking a toggle counts as two activations (e.g. a checkbox ends where it started), so rapid clicks
+behave predictably.
