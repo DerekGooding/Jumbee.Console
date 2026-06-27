@@ -130,20 +130,22 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     {
         // Tunnel phase: let the layout itself consume the input (e.g. an Overlay closing on its CloseKey) before
         // it routes down to the focused control.
-        if (InterceptInput(inputEventArgs))
+        if (InterceptInput(inputEventArgs)) return;
+
+        // Deliver to the focused descendant. A cell may be null (e.g. an empty slot in a custom layout), so guard
+        // it. Stop once the event is handled: keyboard input belongs to a single control, so there's no reason to
+        // keep delivering — and it avoids double-handling if more than one control is somehow focused.
+        foreach (var f in Controls)
         {
-            return;
-        }
-        else
-        {
-            Controls.ForEach(f => f.FocusedControl?.OnInput(inputEventArgs));
+            f?.FocusedControl?.OnInput(inputEventArgs);
+            if (inputEventArgs.InputEvent?.Handled == true) return;
         }
     }
 
     /// <summary>Lets a layout intercept input before it routes to the focused control. Return true if handled.</summary>
     protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs) => false;
 
-    public void OnPaste(string text) => Controls.ForEach(f => f.FocusedControl?.OnPaste(text));
+    public void OnPaste(string text) => Controls.ForEach(f => f?.FocusedControl?.OnPaste(text));
     #endregion
 
     #region Fields

@@ -282,7 +282,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         Invalidate();
     }
     
-    public void Focus() => IsFocused = true;
+    // Move focus here *exclusively*, the same as click-to-focus. Setting IsFocused directly would leave any
+    // previously-focused control focused too (only UI.SetFocus clears the others), and Layout input routing then
+    // delivers keys to every focused control. Always go through UI.SetFocus so single-focus is preserved.
+    public void Focus() => UI.SetFocus(this);
 
     public void UnFocus() => IsFocused = false;
 
