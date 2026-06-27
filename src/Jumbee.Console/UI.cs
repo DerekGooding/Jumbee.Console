@@ -152,32 +152,98 @@ public static class UI
     /// <summary>The currently focused registered control, or <see langword="null"/> if none.</summary>
     public static IFocusable? Focused => controls.FirstOrDefault(c => c.IsFocused);
 
-    /// <summary>
-    /// Moves keyboard focus to the next focusable control in registration (construction) order, wrapping at the end.
-    /// Bound to <c>Ctrl+N</c> by default — re-register that hotkey (or call this directly) to remap.
-    /// </summary>
-    public static void FocusNext() => MoveFocus(+1);
+    // ---- Focus navigation -------------------------------------------------------------------------------------
+    // Two tiers, both on the root layout's 2-D cell grid (Rows/Columns/this[r,c]):
+    //   * Ctrl+arrows move spatially BETWEEN root cells (regions), wrapping per axis and skipping cells with no
+    //     focusable; landing on a cell focuses its first focusable leaf (descending layouts, frames, composites).
+    //   * Ctrl+N/P cycle WITHIN the current region — but only when that region is a multi-focusable nested layout;
+    //     a single-control or composite cell is a no-op (enter/leave those with the arrows).
 
-    /// <summary>Moves keyboard focus to the previous focusable control, wrapping. Bound to <c>Ctrl+P</c> by default.</summary>
-    public static void FocusPrevious() => MoveFocus(-1);
+    /// <summary>Moves focus to the next focusable control within the current root-layout region, wrapping. Bound to
+    /// <c>Ctrl+N</c> by default. A no-op unless the focused region is a multi-focusable nested layout.</summary>
+    public static void FocusNext() => CycleWithinRegion(+1);
 
-    // The tab ring is every laid-out interactive control (Focusable + HandlesInput) in registration order. This
-    // skips frames (not Controls), display-only controls and adornments (HandlesInput false), and composite wrappers
-    // (HandlesInput false — they delegate focus to a child, which is itself in the ring). HasLayout drops controls
-    // that aren't currently shown (e.g. the content of an inactive tab). Wraps around.
-    private static void MoveFocus(int direction) => Invoke(() =>
+    /// <summary>Moves focus to the previous focusable control within the current region. Bound to <c>Ctrl+P</c>.</summary>
+    public static void FocusPrevious() => CycleWithinRegion(-1);
+
+    /// <summary>Moves focus one cell left/right/up/down in the root layout's 2-D grid (wraps; skips empties). Bound
+    /// to <c>Ctrl+Left/Right/Up/Down</c> by default.</summary>
+    public static void FocusLeft() => MoveSpatial(0, -1);
+    public static void FocusRight() => MoveSpatial(0, +1);
+    public static void FocusUp() => MoveSpatial(-1, 0);
+    public static void FocusDown() => MoveSpatial(+1, 0);
+
+    private static void MoveSpatial(int dRow, int dCol) => Invoke(() =>
     {
-        var ring = controls.OfType<Control>()
-            .Where(c => c.Focusable && c.HandlesInput && c.HasLayout)
-            .ToList();
-        if (ring.Count == 0) return;
+        if (layout is not { } root) return;
+        int rows = root.Rows, cols = root.Columns;
+        if (rows <= 0 || cols <= 0) return;
 
-        var current = ring.FindIndex(c => c.IsFocused);
+        var (r, c) = CurrentCell(root) ?? (0, 0);
+        for (var step = 0; step < rows * cols; step++)   // walk in the given direction, wrapping, until a focusable cell
+        {
+            r = ((r + dRow) % rows + rows) % rows;
+            c = ((c + dCol) % cols + cols) % cols;
+            if (FirstLeaf(SafeCell(root, r, c)) is { } target) { SetFocus(target); return; }
+        }
+    });
+
+    private static void CycleWithinRegion(int direction) => Invoke(() =>
+    {
+        if (layout is not { } root || CurrentCell(root) is not { } cell) return;
+        // Only a multi-focusable region cycles; a single control / composite cell is a no-op (use the arrows there).
+        if (SafeCell(root, cell.Item1, cell.Item2) is not ILayout region) return;
+
+        var ring = LeavesIn(region).ToList();
+        if (ring.Count <= 1) return;
+        var current = ring.FindIndex(f => ReferenceEquals(f, Focused));
         var next = current < 0
             ? (direction > 0 ? 0 : ring.Count - 1)
             : ((current + direction) % ring.Count + ring.Count) % ring.Count;
         SetFocus(ring[next]);
     });
+
+    // The (row, column) of the root cell whose subtree currently holds focus, or null if none.
+    private static (int, int)? CurrentCell(ILayout root)
+    {
+        for (var r = 0; r < root.Rows; r++)
+            for (var c = 0; c < root.Columns; c++)
+                if (SafeCell(root, r, c)?.FocusedControl is not null) return (r, c);
+        return null;
+    }
+
+    // Indexer access that tolerates an empty slot (a sparse Grid cell can throw from the underlying indexer).
+    private static IFocusable? SafeCell(ILayout layout, int r, int c)
+    {
+        try { return layout[r, c]; } catch { return null; }
+    }
+
+    private static IFocusable? FirstLeaf(IFocusable? node) => LeavesIn(node).FirstOrDefault();
+
+    // The focusable leaves reachable from a node, in order: descends nested layouts, frames, and composites; a leaf
+    // is an interactive, laid-out Control (Focusable + HandlesInput + HasLayout).
+    private static IEnumerable<IFocusable> LeavesIn(IFocusable? node)
+    {
+        if (node is null) yield break;
+        if (node is CompositeControl composite && composite.ContentLayout is { } content)
+        {
+            foreach (var f in LeavesIn(content)) yield return f;
+        }
+        else if (node is ILayout nested)
+        {
+            for (var r = 0; r < nested.Rows; r++)
+                for (var c = 0; c < nested.Columns; c++)
+                    foreach (var f in LeavesIn(SafeCell(nested, r, c))) yield return f;
+        }
+        else if (node is ControlFrame frame)
+        {
+            foreach (var f in LeavesIn(frame.Control)) yield return f;
+        }
+        else if (node is Control control && control.Focusable && control.HandlesInput && control.HasLayout)
+        {
+            yield return control;
+        }
+    }
 
     /// <summary>
     /// Registers an application-wide hotkey handled <em>before</em> any control (so it works regardless of focus),
@@ -455,10 +521,14 @@ public static class UI
     private static readonly Dictionary<ConsoleKeyInfo, Action> GlobalHotKeys = new Dictionary<ConsoleKeyInfo, Action>
     {
         { HotKeys.CtrlQ, Stop },
-        // Global focus traversal (the "Ctrl tier"). Plain keys are left for the focused control (a text editor
-        // indents on Tab, moves its caret with the arrows); layout-specific nav (e.g. switching tabs) uses Alt.
+        // Focus navigation (the "Ctrl tier"). Ctrl+arrows move spatially between root-layout regions; Ctrl+N/P
+        // cycle within the current region. Plain keys stay with the focused control; Alt is layout-specific nav.
         { HotKeys.CtrlN, FocusNext },
         { HotKeys.CtrlP, FocusPrevious },
+        { HotKeys.CtrlLeft, FocusLeft },
+        { HotKeys.CtrlRight, FocusRight },
+        { HotKeys.CtrlUp, FocusUp },
+        { HotKeys.CtrlDown, FocusDown },
     };
     private static readonly int paintTimeSamples = 60;
     private static readonly long[] paintTimes = new long[paintTimeSamples];
@@ -533,9 +603,13 @@ public static class UI
         public static ConsoleKeyInfo ShiftTab = new('\0', ConsoleKey.Tab, true, false, false);
 
         public static ConsoleKeyInfo CtrlQ = Ctrl(ConsoleKey.Q);
-        // Global focus traversal (Ctrl tier): Ctrl+N = next focusable, Ctrl+P = previous.
+        // Focus navigation (Ctrl tier): Ctrl+N/P cycle within a region; Ctrl+arrows move between regions.
         public static ConsoleKeyInfo CtrlN = Ctrl(ConsoleKey.N);
         public static ConsoleKeyInfo CtrlP = Ctrl(ConsoleKey.P);
+        public static ConsoleKeyInfo CtrlLeft = Ctrl(ConsoleKey.LeftArrow);
+        public static ConsoleKeyInfo CtrlRight = Ctrl(ConsoleKey.RightArrow);
+        public static ConsoleKeyInfo CtrlUp = Ctrl(ConsoleKey.UpArrow);
+        public static ConsoleKeyInfo CtrlDown = Ctrl(ConsoleKey.DownArrow);
         // Alt+arrows — the "Alt tier" layout navigation keys (e.g. TabPanel switches tabs on Alt+Left/Right).
         public static ConsoleKeyInfo AltUp = Alt(ConsoleKey.UpArrow);
         public static ConsoleKeyInfo AltDown = Alt(ConsoleKey.DownArrow);

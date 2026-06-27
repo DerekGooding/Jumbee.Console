@@ -125,29 +125,37 @@ Navigation keys are tiered by modifier so the **unmodified** key is always free 
 | Modifier | Scope | Owner | Examples |
 |---|---|---|---|
 | *(none)* | the **focused control** | the control | a text editor indents on `Tab`, moves its caret on the arrows |
-| `Ctrl` | **global** | `UI` (global hotkeys) | `Ctrl+N`/`Ctrl+P` focus traversal, `Ctrl+Q` quit |
+| `Ctrl` | **global** | `UI` (global hotkeys) | `Ctrl+arrows` move between regions, `Ctrl+N/P` within a region, `Ctrl+Q` quit |
 | `Alt` | **layout** | the **layout** (its `InterceptInput` tunnel) | `TabPanel` switches tabs on `Alt+Left/Right` |
 | `Shift` | **frame** | the `ControlFrame` | (intended) scroll the focused control's frame |
 
 There is **one global hotkey set** (`Ctrl`-modified). Each *layout* defines its own navigation keys by overriding
 `InterceptInput` — e.g. `TabPanel` claims `Alt+arrows`. Plain `Tab` is deliberately left for the focused control:
 `Ctrl+Tab` can't be encoded by terminals without the `modifyOtherKeys`/kitty protocol (not enabled), whereas
-`Ctrl+N`/`Ctrl+P` (a C0 control char) and `Alt`+*arrow* (`CSI 1;3{ABCD}`) decode reliably. Leaving `Tab` unbound is
-what lets `TextEditor` receive it (it inserts `TabWidth` spaces).
+`Ctrl`+*letter* (a C0 control char) and `Ctrl`/`Alt`+*arrow* (`CSI 1;5/3{ABCD}`) decode reliably. Leaving `Tab`
+unbound is what lets `TextEditor` receive it (it inserts `TabWidth` spaces).
 
-### Global focus traversal (Ctrl+N / Ctrl+P)
+### Global focus navigation (Ctrl+arrows between regions, Ctrl+N/P within)
 
-`Ctrl+N → UI.FocusNext()` and `Ctrl+P → UI.FocusPrevious()` are **default global hotkeys** (alongside `Ctrl+Q →
-Stop`). The **tab ring** is every registered control that is `Focusable && HandlesInput && HasLayout`, in
-**registration (construction) order**; `FocusNext`/`Previous` walk it with wrap-around and call `UI.SetFocus`. The
-filter skips frames (not `Control`s), display-only controls and adornments (`HandlesInput == false`), and composite
-*wrappers* (also `HandlesInput == false` — they delegate focus to a child that is itself in the ring). `HasLayout`
-drops controls that aren't currently shown (e.g. the content of an inactive tab).
+Focus navigation is **spatial**, driven off the **root layout's 2-D cell grid** (`Rows`/`Columns`/`this[r,c]`) rather
+than a flat registration-order ring (construction order isn't the user's mental order, and screen positions aren't
+cheaply available — but the layout structure already encodes the spatial arrangement). Two tiers, both default
+`Ctrl`-tier hotkeys:
 
-To remap, register your own action for `HotKeys.CtrlN`/`CtrlP` (or `UnregisterHotKey` them). Known v1 limitations:
-the order is construction order (not geometric), and the ring spans the whole process (every live, laid-out
-interactive control), not strictly the current screen — a more scoped/declared tab order would walk the current root
-layout instead.
+- **`Ctrl+arrows` → move between regions.** `UI.FocusLeft/Right/Up/Down` step one cell in the root layout's grid,
+  **wrapping per axis** and **skipping cells with no focusable**; landing on a cell focuses its first focusable leaf
+  (`FirstLeaf`, which descends nested layouts, `ControlFrame`s, and `CompositeControl`s via the internal
+  `ContentLayout`). So arrowing onto a `CodeEditor` cell enters its editor.
+- **`Ctrl+N/P` → cycle within the current region.** `UI.FocusNext/Previous` cycle the focusable leaves of the cell
+  that currently holds focus — **but only when that cell is a multi-focusable nested layout**; a single-control or
+  composite cell is a **no-op** (enter/leave those with the arrows).
+
+A leaf is an interactive, laid-out control (`Focusable && HandlesInput && HasLayout`) — so display-only controls,
+adornments, and frames/composite *wrappers* are skipped or descended-through. Remap by re-registering
+`HotKeys.CtrlLeft/Right/Up/Down`/`CtrlN`/`CtrlP`. Caveat: a couple of layouts (`TabPanel`, `Overlay`) **flatten**
+their indexer for routing, so as a *root* their `Ctrl+arrows` follow that flattened order rather than a spatial grid
+(uncommon — the root is normally a `Grid`/stack/dock, whose indexer is spatial). Sparse `Grid` cells are tolerated
+(`SafeCell` swallows the empty-slot indexer throw).
 
 ```
 key ─▶ UI.OnInput ─▶ Ctrl hotkeys ─▶ ROOT layout.OnInput

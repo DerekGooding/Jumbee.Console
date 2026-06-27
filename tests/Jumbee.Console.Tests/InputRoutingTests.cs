@@ -1,6 +1,7 @@
 namespace Jumbee.Console.Tests;
 
 using System;
+using System.Reflection;
 
 using ConsoleGUI.Input;
 
@@ -46,57 +47,111 @@ public class InputRoutingTests
         Assert.Equal(1, a2);
     }
 
-    [Fact]
-    public void FocusNext_ThenFocusPrevious_RoundTripsToTheSameControl()
-    {
-        // Tab/Shift+Tab are exact inverses, so next-then-previous returns to the start — deterministic regardless of
-        // whatever other controls are registered in the process (the global focus ring).
-        var a = new Button("A");
-        var b = new Button("B");
-        ConsoleSnapshot.Render(a, 10, 1);   // give them a layout so they're in the ring (HasLayout)
-        ConsoleSnapshot.Render(b, 10, 1);
+    // Point UI's root layout at a test layout (UI.Start normally sets it; here we don't run the loop).
+    private static void SetRoot(ILayout? root) =>
+        typeof(UI).GetField("layout", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, root);
 
+    [Fact]
+    public void CtrlArrows_NavigateSpatially_BetweenRootCells_AndWrap()
+    {
+        var left = new Button("L");
+        var right = new Button("R");
+        var grid = new Grid([1], [6, 6], [[left, right]]);   // one row, two columns
+        ConsoleSnapshot.Render(grid, 12, 1);
+        SetRoot(grid);
+        left.Focus();
+
+        UI.FocusRight();
+        Assert.True(right.IsFocused);     // moved to the cell on the right
+
+        UI.FocusRight();                  // wraps back to the first column
+        Assert.True(left.IsFocused);
+
+        UI.FocusLeft();                   // wraps the other way
+        Assert.True(right.IsFocused);
+    }
+
+    [Fact]
+    public void CtrlArrows_SkipCellsWithNoFocusable()
+    {
+        var a = new Button("A");
+        var label = new TextLabel(TextLabelOrientation.Horizontal, "x");   // not interactive -> skipped
+        var b = new Button("B");
+        var grid = new Grid([1], [4, 4, 4], [[a, label, b]]);
+        ConsoleSnapshot.Render(grid, 12, 1);
+        SetRoot(grid);
         a.Focus();
+
+        UI.FocusRight();
+
+        Assert.True(b.IsFocused);         // jumped over the non-focusable label cell
+    }
+
+    [Fact]
+    public void CtrlNP_CycleWithinARegion_ThatIsANestedLayout()
+    {
+        var one = new Button("1");
+        var two = new Button("2");
+        var stack = new VerticalStackPanel(one, two);     // a multi-focusable region
+        var grid = new Grid([6], [10], [[stack]]);        // the whole root is one cell = the stack
+        ConsoleSnapshot.Render(grid, 10, 6);
+        SetRoot(grid);
+        one.Focus();
+
         UI.FocusNext();
-        var moved = UI.Focused;
+        Assert.True(two.IsFocused);       // cycled within the stack region
+
         UI.FocusPrevious();
-
-        Assert.NotSame(a, moved);        // FocusNext actually advanced to another control
-        Assert.Same(a, UI.Focused);      // FocusPrevious came back
+        Assert.True(one.IsFocused);
     }
 
     [Fact]
-    public void FocusTraversal_OnlyVisitsInteractiveControls()
+    public void CtrlNP_AreNoOp_InASingleControlCell()
     {
-        // A non-interactive control (a label: HandlesInput == false) must never be a tab stop.
-        var button = new Button("go");
-        var label = new TextLabel(TextLabelOrientation.Horizontal, "label");
-        ConsoleSnapshot.Render(button, 10, 1);
-        ConsoleSnapshot.Render(label, 10, 1);
+        var only = new Button("only");
+        var grid = new Grid([1], [10], [[only]]);
+        ConsoleSnapshot.Render(grid, 10, 1);
+        SetRoot(grid);
+        only.Focus();
 
-        button.Focus();
-        for (var i = 0; i < 6; i++)
-        {
-            UI.FocusNext();
-            Assert.IsNotType<TextLabel>(UI.Focused);                  // never lands on the label
-            Assert.True(UI.Focused is Control { HandlesInput: true }); // always an interactive control
-        }
+        UI.FocusNext();
+        Assert.True(only.IsFocused);      // nothing to cycle in a single-control cell -> stays put
     }
 
     [Fact]
-    public void CtrlN_IsBoundToFocusTraversal_ByDefault()
+    public void Overlay_WithNoPopup_IsTransparent_DelegatingSpatialNavToTheBottom()
     {
-        var a = new Button("A");
-        var b = new Button("B");
-        ConsoleSnapshot.Render(a, 10, 1);
-        ConsoleSnapshot.Render(b, 10, 1);
-        a.Focus();
+        var left = new Button("L");
+        var right = new Button("R");
+        var overlay = new Overlay(new Grid([1], [6, 6], [[left, right]]));
+        ConsoleSnapshot.Render(overlay, 12, 1);
+        SetRoot(overlay);
+        left.Focus();
 
-        // Ctrl+N is a default global hotkey -> FocusNext (the live hotkey path).
-        var e = new InputEvent(UI.HotKeys.CtrlN);
-        new UI.GlobalInputListener().OnInput(e);
+        UI.FocusRight();
 
-        Assert.True(e.Handled);          // consumed as a global hotkey (doesn't reach the focused control)
-        Assert.NotSame(a, UI.Focused);   // focus advanced
+        Assert.True(right.IsFocused);     // arrows pass through the (empty) overlay to the bottom grid
+    }
+
+    [Fact]
+    public void Overlay_ModalPopup_HoldsFocusExclusively_NavCannotLeaveIt()
+    {
+        var bottom = new Button("bottom");
+        var overlay = new Overlay(new Grid([1], [10], [[bottom]]));
+        ConsoleSnapshot.Render(overlay, 10, 1);
+        SetRoot(overlay);
+        bottom.Focus();
+
+        var popup = new Button("popup");
+        overlay.ShowModal(popup);
+        ConsoleSnapshot.Render(overlay, 10, 1);   // lay the popup out
+        Assert.True(popup.IsFocused);
+        Assert.False(bottom.IsFocused);
+
+        UI.FocusRight();   // try to navigate out of the modal
+        UI.FocusNext();
+
+        Assert.True(popup.IsFocused);     // focus stays on the modal; the bottom is unreachable while it's up
+        Assert.False(bottom.IsFocused);
     }
 }

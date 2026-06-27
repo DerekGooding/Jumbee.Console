@@ -130,20 +130,15 @@ public class Overlay : Layout<COverlay>
         return false;
     }
 
-    // Flattens the bottom layer's focusables plus the popup (when shown). Drives Controls, which UI uses to
-    // register/route focus: while the popup is shown it is the only focused control, so input goes to it.
-    private List<IFocusable> Flatten()
-    {
-        var list = _bottom.Controls.ToList();
-        if (_top is not null) list.Add(_top);
-        return list;
-    }
     #endregion
 
     #region Layout overrides
-    public override int Rows => Flatten().Count;
-    public override int Columns => 1;
-    public override IFocusable this[int row, int column] => Flatten()[row];
+    // With no popup the overlay is transparent to navigation and input routing — it delegates its 2-D cell grid to
+    // the bottom layer, so spatial nav (Ctrl+arrows) and routing see the bottom's real structure. While a popup is
+    // shown it presents ONLY the popup (a single cell), so focus/input/nav are exclusive to it until it closes.
+    public override int Rows => _top is not null ? 1 : _bottom.Rows;
+    public override int Columns => _top is not null ? 1 : _bottom.Columns;
+    public override IFocusable this[int row, int column] => _top is not null ? _top : _bottom[row, column];
     #endregion
 
     #region Fields

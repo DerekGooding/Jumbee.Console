@@ -21,7 +21,8 @@ public class Program
     static async Task Main(string[] args)
     {
         //ConsoleManager.EmulateBlinkingCursor = true;
-        TabsDemo(args);
+        NavigationDemo(args);
+        //TabsDemo(args);
         //CodeEditorDemo(args);
         //LinkDemo(args);
         //WidgetGalleryDemo(args);
@@ -233,7 +234,8 @@ public class Program
 
     // Interactive tabbed-container demo: a TabPanel with three tabs whose contents differ (a file list, a status
     // line, an about line). Click a tab label to switch, or use Alt+Left/Right (handled by the panel, so it works
-    // from anywhere); Ctrl+N/Ctrl+P move focus; Ctrl+T cycles the selection style (Highlight/Underline/Caret) on
+    // from anywhere); Ctrl+arrows move focus between root regions and Ctrl+N/P cycle within the focused region (here
+    // the tab panel: its headers + active content); Ctrl+T cycles the selection style (Highlight/Underline/Caret) on
     // both the list and the tab bar. The selected tab's content fills the area below.
     // Needs a VT terminal (e.g. Windows Terminal) for mouse + hover. Esc quits.
     static void TabsDemo(string[] args)
@@ -272,6 +274,76 @@ public class Program
         var grid = new Jumbee.Console.Grid([15, 1], [54], [[tabs], [hint]]);
         var run = UI.Start(grid, width: 58, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(files);   // focus the first tab's content so its keys work; Alt+arrows still switch tabs
+        run.Wait();
+    }
+
+    // Navigation playground exercising the focus model:
+    //   * Ctrl+arrows move spatially between the root grid's regions (wrapping; skipping non-focusable regions).
+    //   * Ctrl+N / Ctrl+P cycle focus WITHIN the current region — only when it's a multi-focusable layout (the
+    //     "Actions" button stack); a single control / single-focusable region is a no-op.
+    //   * Plain keys go to the focused control (arrows navigate the list; type / Tab indents the editor).
+    //   * Non-focusable controls (Spinners, Digits, labels) and the regions made only of them are skipped by nav.
+    //   * Ctrl+O opens a MODAL dialog that takes input exclusively until closed (Enter / Esc); the rest is inert
+    //     and click-blocked while it is up. Ctrl+Q quits. Needs a VT terminal.
+    static void NavigationDemo(string[] args)
+    {
+        // Live focus readout + key hints (all non-focusable, so navigation skips this region).
+        var focusLabel = new TextLabel(TextLabelOrientation.Horizontal, "", Cyan1);
+        void ShowFocus(string name) => focusLabel.Text = $"Focused: {name}".PadRight(28);
+        var statusRegion = new Jumbee.Console.VerticalStackPanel(
+            focusLabel,
+            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+arrows: between regions", Color.White),
+            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+N/P: within a region", Color.White),
+            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+O: dialog   Ctrl+Q: quit", Color.White));
+
+        // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it.
+        var bA = new Button("Action A"); var bB = new Button("Action B"); var bC = new Button("Action C");
+        bA.OnFocus += () => ShowFocus("Action A");
+        bB.OnFocus += () => ShowFocus("Action B");
+        bC.OnFocus += () => ShowFocus("Action C");
+        var actions = new Jumbee.Console.VerticalStackPanel(bA, bB, bC);
+
+        // [0,1] Files: a single interactive control -> plain Up/Down navigate; Ctrl+N/P is a no-op here.
+        var files = new ListBox("alpha.cs", "beta.cs", "gamma.cs", "delta.cs");
+        files.OnFocus += () => ShowFocus("Files list");
+        files.WithFrame().WithTitle("Files (Up/Down)");
+
+        // [0,2] Editor: a single interactive control -> type, Tab indents.
+        var editor = new CodeEditor(Language.CSharp) { Text = "// edit me\nclass Demo\n{\n}" };
+        editor.Editor.OnFocus += () => ShowFocus("Editor");
+        editor.WithRoundedBorder(Cyan1).WithTitle("Editor (type, Tab)");
+
+        // [1,0] Dock: a DockPanel (a different layout type) — a non-focusable header docked on top + a focusable
+        // button filling below, so arrows enter the button and Ctrl+N/P is a no-op (one focusable in the region).
+        var openBtn = new Button("Open dialog");
+        openBtn.OnFocus += () => ShowFocus("Open-dialog button");
+        var dockHeader = new TextLabel(TextLabelOrientation.Horizontal, "— dock region —", Color.White) { Height = 1 };
+        var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Top, dockHeader, openBtn);
+
+        // [1,1] Display: a non-focusable animated Spinner -> Ctrl+arrows skip the whole region.
+        var spin = new Spinner { SpinnerType = Spectre.Console.Spinner.Known.Dots }; spin.Start();
+        spin.WithFrame().WithTitle("Spinner (skipped)");
+
+        var bottom = new Jumbee.Console.Grid([9, 6], [26, 24, 30],
+        [
+            [actions, files, editor],
+            [dock,    spin,  statusRegion],
+        ]);
+        var overlay = new Overlay(bottom);
+
+        // Modal dialog: a framed OK button. While shown it has exclusive input (Enter activates, Esc = CloseKey).
+        void OpenDialog()
+        {
+            var ok = new Button("OK   (Enter / Esc to close)");
+            ok.Activated += (_, _) => overlay.Hide();
+            ok.WithRoundedBorder(Cyan1).WithTitle("Modal — input is exclusive until closed");
+            overlay.ShowModal(ok);
+        }
+        openBtn.Activated += (_, _) => OpenDialog();
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.O), OpenDialog);   // Ctrl+Q quits (default); Esc closes the dialog
+
+        var run = UI.Start(overlay, width: 84, height: 17, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(bA);   // start on the first action button
         run.Wait();
     }
 

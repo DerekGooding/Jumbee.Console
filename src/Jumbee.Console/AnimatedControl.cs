@@ -43,8 +43,11 @@ public abstract class AnimatedControl : Control
         {
             accumulated = 0L;
             frameIndex = (frameIndex + 1) % frameCount;
-            Render();
-        }        
+        }
+        // Render the current frame on every paint (not only when it advances) so the very first paint shows frame 0;
+        // otherwise the control stays blank until a full interval elapses, which leaves it empty in a single static
+        // frame and gives it no content/size to lay out inside a container.
+        Render();
     }
 
     // Control should always repaint itself
