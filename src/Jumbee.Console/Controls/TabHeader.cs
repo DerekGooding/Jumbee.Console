@@ -22,9 +22,9 @@ public class TabHeader : RenderableControl
     {
         _index = index;
         _text = text;
+        ApplyTheme();        // capture SelectionStyle + caret first: a caret style reserves a gutter in the width
         Height = 1;
-        Width = LabelWidth(text);
-        ApplyTheme();
+        Width = LabelWidth();
     }
     #endregion
 
@@ -43,7 +43,7 @@ public class TabHeader : RenderableControl
     public string Text
     {
         get => _text;
-        set => SetAtomicProperty(ref _text, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth(_text));
+        set => SetAtomicProperty(ref _text, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth());
     }
 
     /// <summary><see langword="true"/> for the currently selected tab (drawn with <see cref="ActiveStyle"/>).</summary>
@@ -57,6 +57,10 @@ public class TabHeader : RenderableControl
 
     /// <summary>Style of a hovered inactive tab. Defaults to <see cref="IStyleTheme.Hover"/>.</summary>
     public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true); }
+
+    /// <summary>How the active tab is indicated — highlight / underline / caret. Set by the owning
+    /// <see cref="TabPanel"/>; defaults to the theme's <see cref="IStyleTheme.SelectionStyle"/>.</summary>
+    internal SelectionStyle SelectionStyle { get => _selectionStyle; set => SetAtomicProperty(ref _selectionStyle, value, updatesLayout: true, themeOverride: true, watch: (_, _) => Width = LabelWidth()); }
     #endregion
 
     #region Methods
@@ -65,15 +69,31 @@ public class TabHeader : RenderableControl
         if (!IsThemeOverridden(nameof(ActiveStyle))) _activeStyle = UI.StyleTheme.Selection;
         if (!IsThemeOverridden(nameof(InactiveStyle))) _inactiveStyle = UI.StyleTheme.TextMuted;
         if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.Hover;
+        if (!IsThemeOverridden(nameof(SelectionStyle))) _selectionStyle = UI.StyleTheme.SelectionStyle;
+        _selectionCaret = UI.GlyphTheme.SelectionCaret;
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var style = _isActive ? _activeStyle : IsMouseOver ? _hoverStyle : _inactiveStyle;
-        // Show keyboard focus that isn't already implied by the active highlight with an underline.
-        if (IsFocused && !_isActive) style |= Style.Underline;
+        Spectre.Console.Style style;
+        string label;
+        // In Caret mode every header reserves a caret-width gutter (the active one shows the caret, the others blank)
+        // so the labels stay aligned and the caret never truncates the text.
+        var gutter = _selectionStyle == SelectionStyle.Caret ? new string(' ', _selectionCaret.GetCellWidth()) : "";
+        if (_isActive)
+        {
+            // The active tab is the "selected item": render it per SelectionStyle (highlight / underline / caret).
+            style = _selectionStyle.TextStyle(_activeStyle.ForegroundColor, _activeStyle.BackgroundColor);
+            label = $" {(_selectionStyle == SelectionStyle.Caret ? _selectionCaret : gutter)}{_text} ";
+        }
+        else
+        {
+            var s = IsMouseOver ? _hoverStyle : _inactiveStyle;
+            if (IsFocused) s |= Style.Underline;   // show keyboard focus on an inactive header
+            style = s.SpectreConsoleStyle;
+            label = $" {gutter}{_text} ";
+        }
 
-        var label = $" {_text} ";
         if (label.Length < maxWidth) label = label.PadRight(maxWidth);
         else if (label.Length > maxWidth) label = label[..Math.Max(0, maxWidth)];
 
@@ -92,7 +112,8 @@ public class TabHeader : RenderableControl
         }
     }
 
-    private static int LabelWidth(string text) => text.Length + 2;   // a space of padding either side
+    // A space of padding either side, plus a caret-width gutter when the selection style is Caret.
+    private int LabelWidth() => _text.Length + 2 + (_selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0);
     #endregion
 
     #region Fields
@@ -102,5 +123,7 @@ public class TabHeader : RenderableControl
     private Style _activeStyle;
     private Style _inactiveStyle;
     private Style _hoverStyle;
+    private SelectionStyle _selectionStyle;
+    private string _selectionCaret = "";
     #endregion
 }

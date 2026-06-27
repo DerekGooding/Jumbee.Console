@@ -32,6 +32,12 @@ public interface IGlyphTheme
     ScrollBarGlyphs ScrollBar => ScrollBarGlyphs.Default;
     #endregion
 
+    #region Selection
+    /// <summary>The glyph prefixed to the selected item when a control's <see cref="SelectionStyle"/> is
+    /// <see cref="SelectionStyle.Caret"/> (includes its trailing spacing). Defaults to <c>"▶ "</c>.</summary>
+    string SelectionCaret => "▶ ";
+    #endregion
+
     #region Helpers
     /// <summary>The cell width of the widest of two state glyphs (both states of a toggle should be equal width;
     /// this guards against a theme that isn't).</summary>

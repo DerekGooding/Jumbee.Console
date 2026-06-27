@@ -233,8 +233,8 @@ public class Program
 
     // Interactive tabbed-container demo: a TabPanel with three tabs whose contents differ (a file list, a status
     // line, an about line). Click a tab label to switch, or use Alt+Left/Right (handled by the panel, so it works
-    // from anywhere); Ctrl+N/Ctrl+P move focus. The selected tab's content fills the area below; the bottom line
-    // tracks the selection.
+    // from anywhere); Ctrl+N/Ctrl+P move focus; Ctrl+T cycles the selection style (Highlight/Underline/Caret) on
+    // both the list and the tab bar. The selected tab's content fills the area below.
     // Needs a VT terminal (e.g. Windows Terminal) for mouse + hover. Esc quits.
     static void TabsDemo(string[] args)
     {
@@ -252,8 +252,20 @@ public class Program
             ("Status", status),
             ("About", about));
 
-        var hint = new TextLabel(TextLabelOrientation.Horizontal, "Active: Files".PadRight(54), Color.White);
-        tabs.SelectionChanged += i => hint.Text = $"Active: {tabs.ActiveTabName}".PadRight(54);
+        var hint = new TextLabel(TextLabelOrientation.Horizontal, "".PadRight(54), Color.White);
+
+        // Cycle the selection style (Highlight -> Underline -> Caret) on Ctrl+T so the three modes can be eyeballed
+        // on both the list (selected row) and the tab bar (active tab) at once.
+        var styles = new[] { SelectionStyle.Highlight, SelectionStyle.Underline, SelectionStyle.Caret };
+        var styleIdx = 0;
+        void ApplyStyle()
+        {
+            files.SelectionStyle = styles[styleIdx];
+            tabs.SelectionStyle = styles[styleIdx];
+            hint.Text = $"Selection style: {styles[styleIdx]}   (Ctrl+T to cycle)".PadRight(54);
+        }
+        ApplyStyle();
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.T), () => { styleIdx = (styleIdx + 1) % styles.Length; ApplyStyle(); });
 
         UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 

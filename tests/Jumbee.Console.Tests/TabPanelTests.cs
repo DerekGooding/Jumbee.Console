@@ -212,6 +212,21 @@ public class TabPanelTests
     }
     #endregion
 
+    #region Selection style
+    [Fact]
+    public void CaretSelectionStyle_PrefixesTheActiveTabHeader()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.SelectionStyle = SelectionStyle.Caret;
+
+        var bar = ConsoleSnapshot.ToText(panel, 28, 6).Split('\n')[0];   // the tab bar row
+
+        Assert.Contains("▶", bar);          // the active tab shows the caret
+        Assert.Contains("One", bar);        // ...before the active tab's label
+        Assert.Contains("Two", bar);        // the inactive tab is still drawn (no caret, blank gutter)
+    }
+    #endregion
+
     #region Orientation
     [Fact]
     public void VerticalBar_RendersStackedHeadersAndContent()

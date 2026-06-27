@@ -50,6 +50,10 @@ public interface IStyleTheme
     /// <summary>A selected/highlighted row (foreground + background).</summary>
     Style Selection => Style.White | Style.Bg(new Color(40, 50, 80));
 
+    /// <summary>How navigable controls (ListBox, Tree, TabPanel) indicate their selected item — a background
+    /// highlight, an underline, or a caret prefix. Defaults to <see cref="SelectionStyle.Highlight"/>.</summary>
+    SelectionStyle SelectionStyle => SelectionStyle.Highlight;
+
     /// <summary>A row/control under the pointer (background tint).</summary>
     Style Hover => Style.Bg(new Color(45, 45, 60));
 

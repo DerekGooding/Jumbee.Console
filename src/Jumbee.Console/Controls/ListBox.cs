@@ -41,6 +41,14 @@ public partial class ListBox : RenderableControl
         set => SetAtomicProperty(ref _selectedBackgroundColor, value, themeOverride: true);
     }
 
+    /// <summary>How the selected row is indicated — highlight / underline / caret. Defaults to the theme's
+    /// <see cref="IStyleTheme.SelectionStyle"/>.</summary>
+    public SelectionStyle SelectionStyle
+    {
+        get => _selectionStyle;
+        set => SetAtomicProperty(ref _selectionStyle, value, themeOverride: true);
+    }
+
     /// <summary>The index of the highlighted item (in item order), clamped to the item range.</summary>
     public int SelectedIndex
     {
@@ -172,6 +180,8 @@ public partial class ListBox : RenderableControl
     {
         if (!IsThemeOverridden(nameof(SelectedForegroundColor))) _selectedForegroundColor = UI.StyleTheme.Selection.ForegroundColor;
         if (!IsThemeOverridden(nameof(SelectedBackgroundColor))) _selectedBackgroundColor = UI.StyleTheme.Selection.BackgroundColor;
+        if (!IsThemeOverridden(nameof(SelectionStyle))) _selectionStyle = UI.StyleTheme.SelectionStyle;
+        _selectionCaret = UI.GlyphTheme.SelectionCaret;
     }
 
     // Each item is one row; report the item count so a surrounding ControlFrame sizes us to our content and
@@ -253,12 +263,24 @@ public partial class ListBox : RenderableControl
 
         var renderables = new IRenderable[items.Length];
 
+        // In Caret mode reserve a caret-width gutter on every row (the selected row shows the caret, the rest a
+        // blank) so the item text stays put as the selection moves instead of jumping.
+        var caret = _selectionStyle == SelectionStyle.Caret;
+        var gutter = caret ? new string(' ', _selectionCaret.GetCellWidth()) : "";
+
         for (int i = 0; i < items.Length; i++)
         {
             var item = items[i];
-            if (i == _selectionIndex && item.Text != null && (_selectedForegroundColor.HasValue || _selectedBackgroundColor.HasValue))
+            if (i == _selectionIndex && item.Text != null)
             {
-                renderables[i] = new Markup(item.Text, new Spectre.Console.Style(_selectedForegroundColor, _selectedBackgroundColor));
+                // Indicate the selected row per SelectionStyle: a highlight, an underline, or a caret prefix.
+                var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
+                renderables[i] = new Markup(_selectionStyle.Prefix(_selectionCaret) + item.Text, style);
+            }
+            else if (caret && item.Text != null)
+            {
+                // Blank gutter, keeping the item's own colours, so unselected rows line up with the selected one.
+                renderables[i] = new Markup(gutter + item.Text, new Spectre.Console.Style(item.ForegroundColor, item.BackgroundColor));
             }
             else
             {
@@ -277,5 +299,7 @@ public partial class ListBox : RenderableControl
     private int _selectionIndex = 0;
     private Color? _selectedBackgroundColor;
     private Color? _selectedForegroundColor;
+    private SelectionStyle _selectionStyle;
+    private string _selectionCaret = "";
     #endregion
 }

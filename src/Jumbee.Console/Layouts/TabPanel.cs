@@ -50,6 +50,14 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// <summary>The tab header labels, in order (for inspection or per-tab styling).</summary>
     public IReadOnlyList<TabHeader> Headers => _tabs.ConvertAll(t => t.Header);
 
+    /// <summary>How the active tab is indicated — highlight / underline / caret. Defaults to the theme's
+    /// <see cref="IStyleTheme.SelectionStyle"/> (each header self-themes); setting it applies to every tab header.</summary>
+    public SelectionStyle SelectionStyle
+    {
+        get => _tabs.Count > 0 ? _tabs[0].Header.SelectionStyle : UI.StyleTheme.SelectionStyle;
+        set { foreach (var t in _tabs) t.Header.SelectionStyle = value; }
+    }
+
     /// <summary>The zero-based selected tab. Setting it activates that tab (clamped to range); raises
     /// <see cref="SelectionChanged"/> when it actually changes. -1 only before the first tab is added.</summary>
     public int SelectedIndex

@@ -101,6 +101,14 @@ public partial class Tree : RenderableControl
         set => SetAtomicProperty(ref _selectedBackgroundColor, value, themeOverride: true);
     }
 
+    /// <summary>How the selected node is indicated — highlight / underline / caret. Defaults to the theme's
+    /// <see cref="IStyleTheme.SelectionStyle"/>.</summary>
+    public SelectionStyle SelectionStyle
+    {
+        get => _selectionStyle;
+        set => SetAtomicProperty(ref _selectionStyle, value, themeOverride: true);
+    }
+
     public override bool HandlesInput => true;
 
     #endregion
@@ -116,6 +124,8 @@ public partial class Tree : RenderableControl
     {
         if (!IsThemeOverridden(nameof(SelectedForegroundColor))) _selectedForegroundColor = UI.StyleTheme.Selection.ForegroundColor;
         if (!IsThemeOverridden(nameof(SelectedBackgroundColor))) _selectedBackgroundColor = UI.StyleTheme.Selection.BackgroundColor;
+        if (!IsThemeOverridden(nameof(SelectionStyle))) _selectionStyle = UI.StyleTheme.SelectionStyle;
+        _selectionCaret = UI.GlyphTheme.SelectionCaret;
     }
 
     public TreeNode AddNode(IRenderable label) => _root.AddChild(label);
@@ -194,10 +204,20 @@ public partial class Tree : RenderableControl
             var prefix = levels.Skip(1).ToList();
             
             IRenderable renderable = current.Renderable;
-            if (current.Selected && !string.IsNullOrEmpty(current.Text) && (_selectedForegroundColor.HasValue || _selectedBackgroundColor.HasValue))
+            // In Caret mode reserve a caret-width gutter on every node so the labels don't jump as the selection moves.
+            var caret = _selectionStyle == SelectionStyle.Caret;
+            if (!string.IsNullOrEmpty(current.Text))
             {
-                 var style = new Spectre.Console.Style(_selectedForegroundColor, _selectedBackgroundColor);
-                 renderable = new Markup(current.Text, style);
+                if (current.Selected)
+                {
+                    // Indicate the selected node per SelectionStyle: a highlight, an underline, or a caret prefix.
+                    var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
+                    renderable = new Markup(_selectionStyle.Prefix(_selectionCaret) + current.Text, style);
+                }
+                else if (caret)
+                {
+                    renderable = new Markup(new string(' ', _selectionCaret.GetCellWidth()) + current.Text);
+                }
             }
 
             var renderableLines = Segment.SplitLines(renderable.Render(options, maxWidth - Segment.CellCount(prefix)));
@@ -317,5 +337,7 @@ public partial class Tree : RenderableControl
     protected bool _expanded;
     private Color? _selectedForegroundColor;
     private Color? _selectedBackgroundColor;
+    private SelectionStyle _selectionStyle;
+    private string _selectionCaret = "";
     #endregion
 }

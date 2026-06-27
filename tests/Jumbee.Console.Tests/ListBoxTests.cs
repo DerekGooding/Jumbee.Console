@@ -42,4 +42,55 @@ public class ListBoxTests
         Assert.False(RowHasBackground(buf, 0));   // highlight left the first row
         Assert.True(RowHasBackground(buf, 1));    // and is now visibly on the second
     }
+
+    [Fact]
+    public void CaretSelectionStyle_PrefixesSelectedRowWithTheCaretGlyph()
+    {
+        var list = new ListBox("alpha", "beta") { SelectionStyle = SelectionStyle.Caret };
+
+        var rows = ConsoleSnapshot.ToText(list, 14, 2).TrimEnd('\n').Split('\n');
+
+        Assert.Contains("▶", rows[0]);          // the selected row carries the caret glyph
+        Assert.Contains("alpha", rows[0]);
+        Assert.DoesNotContain("▶", rows[1]);    // an unselected row does not
+    }
+
+    [Fact]
+    public void CaretSelectionStyle_ReservesGutter_SoTextDoesNotJumpWhenSelectionMoves()
+    {
+        var list = new ListBox("alpha", "beta") { SelectionStyle = SelectionStyle.Caret };
+
+        // "beta" is on row 1, unselected (blank gutter).
+        var before = ConsoleSnapshot.ToText(list, 16, 2).TrimEnd('\n').Split('\n');
+        var colBefore = before[1].IndexOf("beta");
+
+        // Select "beta" (now caret-prefixed). Its text column must be unchanged — the gutter was already reserved.
+        var afterRows = ConsoleSnapshot.ToText(ConsoleSnapshot.RenderAfter(list, 16, 2, ConsoleKey.DownArrow))
+            .TrimEnd('\n').Split('\n');
+        var colAfter = afterRows[1].IndexOf("beta");
+
+        Assert.True(colBefore > 0);            // the gutter is reserved even when unselected
+        Assert.Equal(colBefore, colAfter);     // text stays put when the row becomes selected (no jump)
+    }
+
+    [Fact]
+    public void UnderlineSelectionStyle_UnderlinesSelectedRow_NotOthers()
+    {
+        var list = new ListBox("alpha", "beta") { SelectionStyle = SelectionStyle.Underline };
+
+        var buf = ConsoleSnapshot.Render(list, 14, 2);
+
+        Assert.True(RowHasUnderline(buf, 0));    // selected row underlined
+        Assert.False(RowHasUnderline(buf, 1));   // unselected row not
+    }
+
+    private static bool RowHasUnderline(ConsoleBuffer buf, int y)
+    {
+        for (var x = 0; x < buf.Size.Width; x++)
+        {
+            var d = buf[x, y].Character.Decoration;
+            if (d is { } dec && (dec & ConsoleGUI.Data.Decoration.Underline) != 0) return true;
+        }
+        return false;
+    }
 }
