@@ -61,10 +61,15 @@ public class TabPanel : Layout<TabPanelDockPanel>
             var idx = Math.Clamp(value, 0, _tabs.Count - 1);
             if (idx == _selectedIndex) return;
 
+            // If focus is already inside the panel, follow the selection into the new tab so its content is usable
+            // straight away; if focus is elsewhere, don't steal it on a (possibly programmatic) selection change.
+            var panelHadFocus = FocusedControl is not null;
+
             if (_selectedIndex >= 0) _tabs[_selectedIndex].Header.IsActive = false;
             _selectedIndex = idx;
             _tabs[idx].Header.IsActive = true;
             control.SetFill(_tabs[idx].Content.FocusableControl);
+            if (panelHadFocus) FocusActiveTab();
             SelectionChanged?.Invoke(idx);
         }
     }
@@ -109,23 +114,45 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// <summary>Selects the tab at <paramref name="index"/> (clamped). Equivalent to setting <see cref="SelectedIndex"/>.</summary>
     public void SelectTab(int index) => SelectedIndex = index;
 
+    // Layout-tier navigation (the "Alt tier"): Alt+Left/Right on a top/bottom bar — or Alt+Up/Down on a left/right
+    // bar — switch tabs. Handled here (the tunnel) rather than on the header so it works from anywhere inside the
+    // panel, including while the active tab's content is focused. The base Layout.OnInput calls this for the panel
+    // whenever it is on the focus path (even nested), and marks the key handled when we return true.
+    protected override bool InterceptInput(UI.InputEventArgs inputEventArgs)
+    {
+        if (inputEventArgs.InputEvent is not { } e) return false;
+        var delta = _horizontal
+            ? (e.Key == UI.HotKeys.AltLeft ? -1 : e.Key == UI.HotKeys.AltRight ? +1 : 0)
+            : (e.Key == UI.HotKeys.AltUp ? -1 : e.Key == UI.HotKeys.AltDown ? +1 : 0);
+        if (delta == 0) return false;
+        MoveSelection(delta);
+        return true;
+    }
+
     private void AddTabInternal(string name, IFocusable content)
     {
-        var header = new TabHeader(_tabs.Count, name, _horizontal);
-        header.Activated += (_, _) => SelectedIndex = header.Index;          // click / Enter / Space -> select
-        header.Navigated += (_, delta) => MoveSelection(delta);             // arrow along the bar -> adjacent tab
+        var header = new TabHeader(_tabs.Count, name);
+        header.Activated += (_, _) => SelectedIndex = header.Index;   // click / Enter / Space -> select
         control.AddHeader(header);
         _tabs.Add((name, content, header));
     }
 
-    // Arrow navigation: move the selection by one and keep keyboard focus on the bar at the newly selected header.
+    // Move the selection by one; the setter follows focus into the new tab (this is reached from the Alt-arrow
+    // tunnel, so the panel always has focus here).
     private void MoveSelection(int delta)
     {
         if (_tabs.Count == 0) return;
-        var idx = Math.Clamp(_selectedIndex + delta, 0, _tabs.Count - 1);
-        if (idx == _selectedIndex) return;
-        SelectedIndex = idx;
-        UI.SetFocus(_tabs[idx].Header);
+        SelectedIndex = Math.Clamp(_selectedIndex + delta, 0, _tabs.Count - 1);
+    }
+
+    // Put focus on the active tab's content when it can take keyboard input; otherwise on its header (e.g. a tab
+    // whose content is a plain label). NB: content that is a layout/composite focuses the header — navigate in with
+    // Ctrl+N — since "first interactive descendant" isn't resolved here.
+    private void FocusActiveTab()
+    {
+        var content = _tabs[_selectedIndex].Content;
+        if (content is Control { Focusable: true, HandlesInput: true } interactive) UI.SetFocus(interactive);
+        else UI.SetFocus(_tabs[_selectedIndex].Header);
     }
     #endregion
 

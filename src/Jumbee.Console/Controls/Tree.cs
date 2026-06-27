@@ -41,6 +41,7 @@ public partial class Tree : RenderableControl
         this._guide = guide ?? TreeGuide.Line;
         this.scguide = GetSpectreConsoleTreeGuide(this._guide);
         this._expanded = expanded;
+        ApplyTheme();
     }
 
     /// <summary>
@@ -86,16 +87,18 @@ public partial class Tree : RenderableControl
     internal ICollection<TreeNode> Nodes => _root.Children;
 
 
+    /// <summary>Foreground of the selected node. Defaults to the theme's <see cref="IStyleTheme.Selection"/>.</summary>
     public Color? SelectedForegroundColor
     {
         get => _selectedForegroundColor;
-        set => SetAtomicProperty(ref _selectedForegroundColor, value);
+        set => SetAtomicProperty(ref _selectedForegroundColor, value, themeOverride: true);
     }
 
+    /// <summary>Background of the selected node. Defaults to the theme's <see cref="IStyleTheme.Selection"/>.</summary>
     public Color? SelectedBackgroundColor
     {
         get => _selectedBackgroundColor;
-        set => SetAtomicProperty(ref _selectedBackgroundColor, value);
+        set => SetAtomicProperty(ref _selectedBackgroundColor, value, themeOverride: true);
     }
 
     public override bool HandlesInput => true;
@@ -107,8 +110,16 @@ public partial class Tree : RenderableControl
     #endregion
 
     #region Methods
+    // Default the selected-node colours from the theme so a bare Tree shows a visible selection (re-applied on a
+    // runtime theme switch; explicit SelectedForeground/BackgroundColor overrides are left alone).
+    protected override void ApplyTheme()
+    {
+        if (!IsThemeOverridden(nameof(SelectedForegroundColor))) _selectedForegroundColor = UI.StyleTheme.Selection.ForegroundColor;
+        if (!IsThemeOverridden(nameof(SelectedBackgroundColor))) _selectedBackgroundColor = UI.StyleTheme.Selection.BackgroundColor;
+    }
+
     public TreeNode AddNode(IRenderable label) => _root.AddChild(label);
-            
+
     public TreeNode AddNode(string label) => _root.AddChild(label);
 
     public Tree AddNodes(params IRenderable[] labels)

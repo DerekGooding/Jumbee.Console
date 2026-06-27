@@ -2,7 +2,10 @@ namespace Jumbee.Console.Tests;
 
 using System;
 
+using ConsoleGUI.Input;
+
 using Jumbee.Console;
+using Jumbee.Console.Snapshot;
 
 using Xunit;
 
@@ -41,5 +44,59 @@ public class InputRoutingTests
 
         Assert.Equal(0, a1);
         Assert.Equal(1, a2);
+    }
+
+    [Fact]
+    public void FocusNext_ThenFocusPrevious_RoundTripsToTheSameControl()
+    {
+        // Tab/Shift+Tab are exact inverses, so next-then-previous returns to the start — deterministic regardless of
+        // whatever other controls are registered in the process (the global focus ring).
+        var a = new Button("A");
+        var b = new Button("B");
+        ConsoleSnapshot.Render(a, 10, 1);   // give them a layout so they're in the ring (HasLayout)
+        ConsoleSnapshot.Render(b, 10, 1);
+
+        a.Focus();
+        UI.FocusNext();
+        var moved = UI.Focused;
+        UI.FocusPrevious();
+
+        Assert.NotSame(a, moved);        // FocusNext actually advanced to another control
+        Assert.Same(a, UI.Focused);      // FocusPrevious came back
+    }
+
+    [Fact]
+    public void FocusTraversal_OnlyVisitsInteractiveControls()
+    {
+        // A non-interactive control (a label: HandlesInput == false) must never be a tab stop.
+        var button = new Button("go");
+        var label = new TextLabel(TextLabelOrientation.Horizontal, "label");
+        ConsoleSnapshot.Render(button, 10, 1);
+        ConsoleSnapshot.Render(label, 10, 1);
+
+        button.Focus();
+        for (var i = 0; i < 6; i++)
+        {
+            UI.FocusNext();
+            Assert.IsNotType<TextLabel>(UI.Focused);                  // never lands on the label
+            Assert.True(UI.Focused is Control { HandlesInput: true }); // always an interactive control
+        }
+    }
+
+    [Fact]
+    public void CtrlN_IsBoundToFocusTraversal_ByDefault()
+    {
+        var a = new Button("A");
+        var b = new Button("B");
+        ConsoleSnapshot.Render(a, 10, 1);
+        ConsoleSnapshot.Render(b, 10, 1);
+        a.Focus();
+
+        // Ctrl+N is a default global hotkey -> FocusNext (the live hotkey path).
+        var e = new InputEvent(UI.HotKeys.CtrlN);
+        new UI.GlobalInputListener().OnInput(e);
+
+        Assert.True(e.Handled);          // consumed as a global hotkey (doesn't reach the focused control)
+        Assert.NotSame(a, UI.Focused);   // focus advanced
     }
 }

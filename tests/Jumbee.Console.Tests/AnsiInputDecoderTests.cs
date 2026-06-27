@@ -72,6 +72,8 @@ public class AnsiInputDecoderTests
         var e = (KeyInputEvent)Single("[Z");
         Assert.Equal(ConsoleKey.Tab, e.Key);
         Assert.True(e.Modifiers.HasFlag(TerminalModifiers.Shift));
+        // The focus-traversal hotkey must equal exactly what a back-tab decodes to (the dict keys on ConsoleKeyInfo).
+        Assert.Equal(UI.HotKeys.ShiftTab, e.ToConsoleKeyInfo());
     }
 
     [Fact]

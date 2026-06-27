@@ -153,6 +153,33 @@ public static class UI
     public static IFocusable? Focused => controls.FirstOrDefault(c => c.IsFocused);
 
     /// <summary>
+    /// Moves keyboard focus to the next focusable control in registration (construction) order, wrapping at the end.
+    /// Bound to <c>Ctrl+N</c> by default — re-register that hotkey (or call this directly) to remap.
+    /// </summary>
+    public static void FocusNext() => MoveFocus(+1);
+
+    /// <summary>Moves keyboard focus to the previous focusable control, wrapping. Bound to <c>Ctrl+P</c> by default.</summary>
+    public static void FocusPrevious() => MoveFocus(-1);
+
+    // The tab ring is every laid-out interactive control (Focusable + HandlesInput) in registration order. This
+    // skips frames (not Controls), display-only controls and adornments (HandlesInput false), and composite wrappers
+    // (HandlesInput false — they delegate focus to a child, which is itself in the ring). HasLayout drops controls
+    // that aren't currently shown (e.g. the content of an inactive tab). Wraps around.
+    private static void MoveFocus(int direction) => Invoke(() =>
+    {
+        var ring = controls.OfType<Control>()
+            .Where(c => c.Focusable && c.HandlesInput && c.HasLayout)
+            .ToList();
+        if (ring.Count == 0) return;
+
+        var current = ring.FindIndex(c => c.IsFocused);
+        var next = current < 0
+            ? (direction > 0 ? 0 : ring.Count - 1)
+            : ((current + direction) % ring.Count + ring.Count) % ring.Count;
+        SetFocus(ring[next]);
+    });
+
+    /// <summary>
     /// Registers an application-wide hotkey handled <em>before</em> any control (so it works regardless of focus),
     /// overwriting any existing action for the same key. <see cref="HotKeys.CtrlQ"/> → <see cref="Stop"/> is
     /// registered by default. Typically called before <see cref="Start"/>; the key must match what the input
@@ -427,7 +454,11 @@ public static class UI
     private static readonly GlobalInputListener globalInputListener = new GlobalInputListener();
     private static readonly Dictionary<ConsoleKeyInfo, Action> GlobalHotKeys = new Dictionary<ConsoleKeyInfo, Action>
     {
-        { HotKeys.CtrlQ, Stop }
+        { HotKeys.CtrlQ, Stop },
+        // Global focus traversal (the "Ctrl tier"). Plain keys are left for the focused control (a text editor
+        // indents on Tab, moves its caret with the arrows); layout-specific nav (e.g. switching tabs) uses Alt.
+        { HotKeys.CtrlN, FocusNext },
+        { HotKeys.CtrlP, FocusPrevious },
     };
     private static readonly int paintTimeSamples = 60;
     private static readonly long[] paintTimes = new long[paintTimeSamples];
@@ -498,10 +529,18 @@ public static class UI
         /// <summary>The Tab key, as produced by the input decoder (KeyChar <c>\t</c>, no modifiers).</summary>
         public static ConsoleKeyInfo Tab = new('\t', ConsoleKey.Tab, false, false, false);
 
+        /// <summary>Shift+Tab (back-tab), as produced by the input decoder from CSI Z (KeyChar <c>\0</c>, Shift).</summary>
+        public static ConsoleKeyInfo ShiftTab = new('\0', ConsoleKey.Tab, true, false, false);
+
         public static ConsoleKeyInfo CtrlQ = Ctrl(ConsoleKey.Q);
+        // Global focus traversal (Ctrl tier): Ctrl+N = next focusable, Ctrl+P = previous.
         public static ConsoleKeyInfo CtrlN = Ctrl(ConsoleKey.N);
+        public static ConsoleKeyInfo CtrlP = Ctrl(ConsoleKey.P);
+        // Alt+arrows — the "Alt tier" layout navigation keys (e.g. TabPanel switches tabs on Alt+Left/Right).
         public static ConsoleKeyInfo AltUp = Alt(ConsoleKey.UpArrow);
         public static ConsoleKeyInfo AltDown = Alt(ConsoleKey.DownArrow);
+        public static ConsoleKeyInfo AltLeft = Alt(ConsoleKey.LeftArrow);
+        public static ConsoleKeyInfo AltRight = Alt(ConsoleKey.RightArrow);
         public static ConsoleKeyInfo CtrlAltUp = CtrlAlt(ConsoleKey.UpArrow);
     }
     #endregion

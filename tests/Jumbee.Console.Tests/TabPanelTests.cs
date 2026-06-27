@@ -92,32 +92,112 @@ public class TabPanelTests
 
     #region Keyboard
     [Fact]
-    public void ArrowKeys_MoveSelection_AlongHorizontalBar()
+    public void AltLeftRight_SwitchTabs_OnHorizontalBar()
     {
         var panel = TwoTabs(out _, out _);
         ConsoleSnapshot.Render(panel, 24, 6);
-        panel.Headers[0].Focus();
 
-        // Routed exactly as the live path: into the panel, which forwards to the focused header.
-        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.RightArrow, false, false, false));
+        // The panel intercepts Alt+arrows in its tunnel (no header focus needed).
+        UI.SendInput(panel, UI.HotKeys.AltRight);
         Assert.Equal(1, panel.SelectedIndex);
 
-        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.LeftArrow, false, false, false));
+        UI.SendInput(panel, UI.HotKeys.AltLeft);
         Assert.Equal(0, panel.SelectedIndex);
     }
 
     [Fact]
-    public void UpDownArrows_MoveSelection_AlongVerticalBar()
+    public void AltUpDown_SwitchTabs_OnVerticalBar()
     {
         var panel = TwoTabs(out _, out _, TabBarDock.Left);
         ConsoleSnapshot.Render(panel, 24, 6);
-        panel.Headers[0].Focus();
 
-        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.DownArrow, false, false, false));
+        UI.SendInput(panel, UI.HotKeys.AltDown);
         Assert.Equal(1, panel.SelectedIndex);
 
-        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.UpArrow, false, false, false));
+        UI.SendInput(panel, UI.HotKeys.AltUp);
         Assert.Equal(0, panel.SelectedIndex);
+    }
+
+    [Fact]
+    public void PlainArrow_ReachesFocusedContent_NestedInTab()
+    {
+        // Regression guard for "ListBox arrows don't work in a tab": a plain arrow must route grid -> tabpanel ->
+        // the focused content (the panel's Alt-arrow tunnel must NOT swallow unmodified arrows).
+        var list = new ListBox();
+        list.AddItem("one"); list.AddItem("two"); list.AddItem("three");
+        var panel = new TabPanel(TabBarDock.Top, ("L", list), ("X", new TextLabel(TextLabelOrientation.Horizontal, "x")));
+        var grid = new Grid([6], [20], [[panel]]);
+        ConsoleSnapshot.Render(grid, 20, 6);
+        list.Focus();
+        Assert.Equal(0, list.SelectedIndex);
+
+        UI.SendInput(grid, new ConsoleKeyInfo('\0', ConsoleKey.DownArrow, false, false, false));
+
+        Assert.Equal(1, list.SelectedIndex);   // the arrow reached the ListBox and moved its selection
+    }
+
+    [Fact]
+    public void SwitchingTab_FocusesNewContent_WhenPanelHasFocus()
+    {
+        var listA = new ListBox();
+        var listB = new ListBox();
+        listA.AddItem("a"); listB.AddItem("b");
+        var panel = new TabPanel(TabBarDock.Top, ("A", listA), ("B", listB));
+        ConsoleSnapshot.Render(panel, 20, 6);
+        panel.Headers[0].Focus();   // focus is inside the panel (on a header)
+
+        UI.SendInput(panel, UI.HotKeys.AltRight);
+
+        Assert.Equal(1, panel.SelectedIndex);
+        Assert.True(listB.IsFocused);    // focus followed into the newly active tab's content
+        Assert.False(listA.IsFocused);
+    }
+
+    [Fact]
+    public void SwitchingToNonInteractiveContent_FocusesTheHeader()
+    {
+        var list = new ListBox();
+        var label = new TextLabel(TextLabelOrientation.Horizontal, "info");   // not interactive
+        var panel = new TabPanel(TabBarDock.Top, ("List", list), ("Info", label));
+        ConsoleSnapshot.Render(panel, 20, 6);
+        panel.Headers[0].Focus();
+
+        UI.SendInput(panel, UI.HotKeys.AltRight);
+
+        Assert.Equal(1, panel.SelectedIndex);
+        Assert.True(panel.Headers[1].IsFocused);   // a label can't take keys, so focus rests on its header
+    }
+
+    [Fact]
+    public void ProgrammaticSelect_DoesNotStealFocus_WhenPanelNotFocused()
+    {
+        var outside = new Button("out");
+        var panel = new TabPanel(TabBarDock.Top, ("A", new ListBox()), ("B", new ListBox()));
+        ConsoleSnapshot.Render(panel, 20, 6);
+        ConsoleSnapshot.Render(outside, 10, 1);
+        outside.Focus();   // focus is OUTSIDE the panel
+
+        panel.SelectedIndex = 1;
+
+        Assert.Equal(1, panel.SelectedIndex);
+        Assert.True(outside.IsFocused);   // selection change didn't steal focus
+    }
+
+    [Fact]
+    public void AltArrows_SwitchTabs_WhileNestedAndContentFocused()
+    {
+        // The whole point of handling this in the panel's tunnel: switch tabs from a parent layout, while the
+        // active tab's CONTENT (not a header) holds focus. Exercises nested-layout tunnel routing.
+        var contentA = new Button("A");
+        var contentB = new Button("B");
+        var panel = new TabPanel(TabBarDock.Top, ("One", contentA), ("Two", contentB));
+        var grid = new Grid([6], [20], [[panel]]);   // panel nested inside a grid (the root)
+        ConsoleSnapshot.Render(grid, 20, 6);
+        contentA.Focus();                            // focus is in tab 0's content, not a tab header
+
+        UI.SendInput(grid, UI.HotKeys.AltRight);     // routed through the grid -> into the nested panel's tunnel
+
+        Assert.Equal(1, panel.SelectedIndex);        // tab switched even though a content button was focused
     }
 
     [Fact]

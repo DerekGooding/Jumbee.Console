@@ -12,28 +12,18 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Interop;
 
-public enum LayoutKeyboardNavigation
-{
-    Up,
-    Down,
-    Left,
-    Right
-}
-
 public interface ILayout : IFocusable, IDrawingContextListener
 {
     int Rows { get; }
-    
-    int Columns { get; }    
-    
+
+    int Columns { get; }
+
     IControl CControl { get; }
 
     IFocusable this[int row, int column] { get; }
 
     IEnumerable<IFocusable> Controls { get; }
-
-    Dictionary <ConsoleKeyInfo, LayoutKeyboardNavigation> NavigationKeys { get; }
-}   
+}
 
 public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListener
 {
@@ -51,11 +41,9 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     #region Properties
     public abstract int Rows { get; }
 
-    public abstract int Columns { get; }    
-        
-    public Dictionary<ConsoleKeyInfo, LayoutKeyboardNavigation> NavigationKeys { get; } = new Dictionary<ConsoleKeyInfo, LayoutKeyboardNavigation>();
-   
-    public Cell this[Position position] => control[position];   
+    public abstract int Columns { get; }
+
+    public Cell this[Position position] => control[position];
 
     public Size Size => control.Size;   
 
@@ -104,15 +92,20 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     public bool HandlesInput => true;
 
     /// <summary>
-    /// The focused control reached when input is routed into this layout from a parent layout (a nested layout is a
-    /// single <see cref="IFocusable"/> to its parent). The default mirrors the <see cref="IFocusable"/> default — the
-    /// layout itself when focused, otherwise nothing — so plain container layouts (Grid, DockPanel, stack panels)
-    /// are unchanged. Interactive layouts (e.g. <see cref="TabPanel"/>) override it to return the focused descendant
-    /// so keyboard input reaches it even when the layout is nested.
+    /// The focused descendant within this layout (or <see langword="null"/>), so a parent can tell that this layout
+    /// is on the focus path and route input into it. Walks <see cref="Controls"/> for the focused leaf; this is what
+    /// lets keyboard input — and each ancestor layout's tunnel (<see cref="InterceptInput"/>) — reach a control even
+    /// when the layout is nested several levels deep.
     /// </summary>
-    public virtual IFocusable? FocusedControl => Focusable && IsFocused ? FocusableControl : null;
-
-    public virtual void OnInput(InputEvent inputEvent) {}
+    public virtual IFocusable? FocusedControl
+    {
+        get
+        {
+            foreach (var f in Controls)
+                if (f?.FocusedControl is { } focused) return focused;
+            return Focusable && IsFocused ? FocusableControl : null;
+        }
+    }
     #endregion
 
     #region Events
@@ -128,16 +121,29 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
 
     public void OnInput(UI.InputEventArgs inputEventArgs)
     {
-        // Tunnel phase: let the layout itself consume the input (e.g. an Overlay closing on its CloseKey) before
-        // it routes down to the focused control.
-        if (InterceptInput(inputEventArgs)) return;
+        // Tunnel phase: let this layout consume the input before it routes down (e.g. an Overlay closing on its
+        // CloseKey, or a TabPanel switching tabs on Alt+arrows). A consumed key is marked handled so ancestor
+        // layouts stop routing it. This runs for every layout on the focus path — the root always, and each nested
+        // layout reached below — so a layout can define its own navigation keys even when deeply nested.
+        if (InterceptInput(inputEventArgs))
+        {
+            if (inputEventArgs.InputEvent is { } consumed) consumed.Handled = true;
+            return;
+        }
 
-        // Deliver to the focused descendant. A cell may be null (e.g. an empty slot in a custom layout), so guard
-        // it. Stop once the event is handled: keyboard input belongs to a single control, so there's no reason to
-        // keep delivering — and it avoids double-handling if more than one control is somehow focused.
+        // Deliver to the focused descendant. For a nested layout, recurse through its OwnInput so it gets its own
+        // tunnel pass (and routes on to its focused child); for a leaf/frame/composite, dispatch via FocusedControl.
+        // Cells may be null (an empty slot in a custom layout), so guard. Stop once the event is handled.
         foreach (var f in Controls)
         {
-            f?.FocusedControl?.OnInput(inputEventArgs);
+            if (f is ILayout nested)
+            {
+                if (nested.FocusedControl is not null) nested.OnInput(inputEventArgs);
+            }
+            else
+            {
+                f?.FocusedControl?.OnInput(inputEventArgs);
+            }
             if (inputEventArgs.InputEvent?.Handled == true) return;
         }
     }

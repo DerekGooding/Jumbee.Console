@@ -40,6 +40,29 @@ public class TextEditorTests
     }
     #endregion
 
+    #region Tab key (indent)
+    [Fact]
+    public void Tab_InsertsTabWidthSpaces()
+    {
+        var ed = new TextEditor();   // empty, caret at start
+
+        UI.SendInput(ed, new ConsoleKeyInfo('\t', ConsoleKey.Tab, false, false, false));
+
+        Assert.Equal("    ", ed.Text);   // default TabWidth = 4
+    }
+
+    [Fact]
+    public void Tab_RespectsTabWidth_AndInsertsAtCaret()
+    {
+        var ed = new TextEditor { TabWidth = 2 };
+
+        UI.SendInput(ed, new ConsoleKeyInfo('\t', ConsoleKey.Tab, false, false, false));
+        UI.SendInput(ed, new ConsoleKeyInfo('x', ConsoleKey.X, false, false, false));
+
+        Assert.Equal("  x", ed.Text);   // 2 spaces then the typed char
+    }
+    #endregion
+
     #region Cursor drawing / tracking
     [Fact]
     public void Cursor_DrawnAtCaretPosition()

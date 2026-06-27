@@ -57,6 +57,9 @@ public class TextEditor : Control
     #region Properties
     public override bool HandlesInput => true;
 
+    /// <summary>The number of spaces inserted when the Tab key is pressed. Defaults to 4.</summary>
+    public int TabWidth { get; set; } = 4;
+
     public bool ShowCursor
     {
         get => _showCursor;
@@ -283,7 +286,16 @@ public class TextEditor : Control
                 break;
             case ConsoleKey.Enter:
                 input = input.Insert(caretPosition++, "\n");
-                newInput = true;                
+                newInput = true;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.Tab:
+                // Plain Tab now reaches the editor (focus traversal moved to Ctrl+arrows), so indent with it.
+                // Insert spaces rather than a literal '\t' so the wrap/caret column math stays simple and exact.
+                var indent = new string(' ', Math.Max(0, TabWidth));
+                input = input.Insert(caretPosition, indent);
+                caretPosition += indent.Length;
+                newInput = true;
                 inputEvent.Handled = true;
                 break;
             default:

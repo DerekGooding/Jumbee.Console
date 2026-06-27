@@ -18,11 +18,10 @@ using Spectre.Console.Rendering;
 public class TabHeader : RenderableControl
 {
     #region Constructors
-    internal TabHeader(int index, string text, bool horizontal)
+    internal TabHeader(int index, string text)
     {
         _index = index;
         _text = text;
-        _horizontal = horizontal;
         Height = 1;
         Width = LabelWidth(text);
         ApplyTheme();
@@ -32,9 +31,6 @@ public class TabHeader : RenderableControl
     #region Events
     /// <summary>Raised when this tab is chosen — by a click or by Enter/Space while focused.</summary>
     public event EventHandler? Activated;
-
-    /// <summary>Raised when an arrow key moves along the bar: -1 toward the first tab, +1 toward the last.</summary>
-    public event EventHandler<int>? Navigated;
     #endregion
 
     #region Properties
@@ -88,23 +84,11 @@ public class TabHeader : RenderableControl
 
     protected override void OnInput(InputEvent inputEvent)
     {
-        switch (inputEvent.Key.Key)
+        // Enter/Space selects this tab; switching between tabs (Alt+arrows) is handled by the owning TabPanel.
+        if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
         {
-            case ConsoleKey.Enter or ConsoleKey.Spacebar:
-                Activated?.Invoke(this, EventArgs.Empty);
-                inputEvent.Handled = true;
-                break;
-            // Move along the bar in its orientation: Left/Right for a horizontal bar, Up/Down for a vertical one.
-            case ConsoleKey.LeftArrow when _horizontal:
-            case ConsoleKey.UpArrow when !_horizontal:
-                Navigated?.Invoke(this, -1);
-                inputEvent.Handled = true;
-                break;
-            case ConsoleKey.RightArrow when _horizontal:
-            case ConsoleKey.DownArrow when !_horizontal:
-                Navigated?.Invoke(this, +1);
-                inputEvent.Handled = true;
-                break;
+            Activated?.Invoke(this, EventArgs.Empty);
+            inputEvent.Handled = true;
         }
     }
 
@@ -113,7 +97,6 @@ public class TabHeader : RenderableControl
 
     #region Fields
     private readonly int _index;
-    private readonly bool _horizontal;
     private string _text;
     private bool _isActive;
     private Style _activeStyle;

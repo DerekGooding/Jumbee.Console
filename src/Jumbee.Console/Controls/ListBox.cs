@@ -16,33 +16,29 @@ using ConsoleGUI.Space;
 public partial class ListBox : RenderableControl
 {
     #region Constructors
-    public ListBox() {}
+    public ListBox() => ApplyTheme();
 
-    public ListBox(params IRenderable[] items) 
-    {
-        AddItems(items);
-    }
+    public ListBox(params IRenderable[] items) : this() => AddItems(items);
 
-    public ListBox(params string[] items )
-    {
-        AddItems(items);
-    }
+    public ListBox(params string[] items) : this() => AddItems(items);
 
     #endregion
 
     #region Properties
     public ICollection<ListBoxItem> Items => _items.Values;
 
+    /// <summary>Foreground of the selected row. Defaults to the theme's <see cref="IStyleTheme.Selection"/>.</summary>
     public Color? SelectedForegroundColor
     {
         get => _selectedForegroundColor;
-        set => SetAtomicProperty(ref _selectedForegroundColor, value);
+        set => SetAtomicProperty(ref _selectedForegroundColor, value, themeOverride: true);
     }
 
+    /// <summary>Background of the selected row. Defaults to the theme's <see cref="IStyleTheme.Selection"/>.</summary>
     public Color? SelectedBackgroundColor
     {
         get => _selectedBackgroundColor;
-        set => SetAtomicProperty(ref _selectedBackgroundColor, value);
+        set => SetAtomicProperty(ref _selectedBackgroundColor, value, themeOverride: true);
     }
 
     /// <summary>The index of the highlighted item (in item order), clamped to the item range.</summary>
@@ -169,6 +165,14 @@ public partial class ListBox : RenderableControl
     }
 
     public void Update() => Invalidate();
+
+    // Default the selected-row colours from the theme so a bare ListBox shows a visible selection (re-applied on a
+    // runtime theme switch; explicit SelectedForeground/BackgroundColor overrides are left alone).
+    protected override void ApplyTheme()
+    {
+        if (!IsThemeOverridden(nameof(SelectedForegroundColor))) _selectedForegroundColor = UI.StyleTheme.Selection.ForegroundColor;
+        if (!IsThemeOverridden(nameof(SelectedBackgroundColor))) _selectedBackgroundColor = UI.StyleTheme.Selection.BackgroundColor;
+    }
 
     // Each item is one row; report the item count so a surrounding ControlFrame sizes us to our content and
     // scrolls accurately, instead of filling to the 1000-row clamp.

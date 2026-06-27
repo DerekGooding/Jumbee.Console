@@ -94,10 +94,13 @@ descendants even when nested — that override is what makes `TabPanel` work (§
 ```csharp
 public void OnInput(UI.InputEventArgs args)
 {
-    if (InterceptInput(args)) return;                 // tunnel phase (e.g. Overlay closing on Esc)
+    // tunnel phase: this layout's own nav keys (Alt), Overlay Esc-close, … — consumed => mark handled
+    if (InterceptInput(args)) { if (args.InputEvent is { } e) e.Handled = true; return; }
+
     foreach (var f in Controls)
     {
-        f?.FocusedControl?.OnInput(args);             // deliver to each child's focused descendant (null-safe)
+        if (f is ILayout nested) { if (nested.FocusedControl is not null) nested.OnInput(args); } // recurse w/ tunnel
+        else f?.FocusedControl?.OnInput(args);        // leaf / frame / composite (null-safe)
         if (args.InputEvent?.Handled == true) return; // stop once consumed — input belongs to one control
     }
 }
@@ -113,15 +116,46 @@ public void OnInput(UI.InputEventArgs args)
   to the focused leaf.
 
 A leaf control's `Control.OnInput(UI.InputEventArgs)` runs `OnInput(InputEvent)` only when `HandlesInput` is true,
-so display-only controls ignore keys. There is **no built-in Tab traversal** — focus moves by click (or explicit
-`UI.SetFocus`); see [Mouse Input and Overlays](Mouse%20Input%20and%20Overlays.md) and the hotkeys/focus notes.
+so display-only controls ignore keys.
+
+### The modifier-key navigation convention
+
+Navigation keys are tiered by modifier so the **unmodified** key is always free for the focused control:
+
+| Modifier | Scope | Owner | Examples |
+|---|---|---|---|
+| *(none)* | the **focused control** | the control | a text editor indents on `Tab`, moves its caret on the arrows |
+| `Ctrl` | **global** | `UI` (global hotkeys) | `Ctrl+N`/`Ctrl+P` focus traversal, `Ctrl+Q` quit |
+| `Alt` | **layout** | the **layout** (its `InterceptInput` tunnel) | `TabPanel` switches tabs on `Alt+Left/Right` |
+| `Shift` | **frame** | the `ControlFrame` | (intended) scroll the focused control's frame |
+
+There is **one global hotkey set** (`Ctrl`-modified). Each *layout* defines its own navigation keys by overriding
+`InterceptInput` — e.g. `TabPanel` claims `Alt+arrows`. Plain `Tab` is deliberately left for the focused control:
+`Ctrl+Tab` can't be encoded by terminals without the `modifyOtherKeys`/kitty protocol (not enabled), whereas
+`Ctrl+N`/`Ctrl+P` (a C0 control char) and `Alt`+*arrow* (`CSI 1;3{ABCD}`) decode reliably. Leaving `Tab` unbound is
+what lets `TextEditor` receive it (it inserts `TabWidth` spaces).
+
+### Global focus traversal (Ctrl+N / Ctrl+P)
+
+`Ctrl+N → UI.FocusNext()` and `Ctrl+P → UI.FocusPrevious()` are **default global hotkeys** (alongside `Ctrl+Q →
+Stop`). The **tab ring** is every registered control that is `Focusable && HandlesInput && HasLayout`, in
+**registration (construction) order**; `FocusNext`/`Previous` walk it with wrap-around and call `UI.SetFocus`. The
+filter skips frames (not `Control`s), display-only controls and adornments (`HandlesInput == false`), and composite
+*wrappers* (also `HandlesInput == false` — they delegate focus to a child that is itself in the ring). `HasLayout`
+drops controls that aren't currently shown (e.g. the content of an inactive tab).
+
+To remap, register your own action for `HotKeys.CtrlN`/`CtrlP` (or `UnregisterHotKey` them). Known v1 limitations:
+the order is construction order (not geometric), and the ring spans the whole process (every live, laid-out
+interactive control), not strictly the current screen — a more scoped/declared tab order would walk the current root
+layout instead.
 
 ```
-key ─▶ UI.OnInput ─▶ hotkeys ─▶ ROOT layout.OnInput
-                                   ├─ InterceptInput?  (tunnel)
-                                   └─ for each child:  child.FocusedControl?.OnInput
-                                                          └─▶ (recurses through composites / nested layouts)
-                                                                 └─▶ focused leaf.OnInput(InputEvent)
+key ─▶ UI.OnInput ─▶ Ctrl hotkeys ─▶ ROOT layout.OnInput
+                                       ├─ InterceptInput?  (this layout's own tunnel — Alt nav, Esc-close, …)
+                                       └─ for each child:
+                                            ├─ nested ILayout w/ focus → child.OnInput  (its OWN tunnel, then recurse)
+                                            └─ leaf / frame / composite → child.FocusedControl?.OnInput
+                                                                             └─▶ focused leaf.OnInput(InputEvent)
 ```
 
 ## 5. Mouse routing
@@ -254,6 +288,16 @@ focus there again — the single global focus is the switch between "drive the t
   cell's listener* is on screen there, not about the layout hierarchy.
 - **Hidden = unreachable, for free.** Inactive tabs / closed popups are neither rendered (no mouse) nor in the
   focus/routing path (no keyboard); no explicit gating required.
+
+## The tunnel runs at every layout on the focus path
+
+`InterceptInput` (the tunnel that lets a layout consume a key before its children — e.g. `Overlay` closing on its
+`CloseKey`, or `TabPanel` switching tabs on `Alt+arrows`) runs for **every layout on the focus path**, not just the
+root. `Layout.OnInput` recurses into a nested layout via *its* `OnInput` (so it gets its own tunnel pass) rather than
+jumping straight to the focused leaf — which is what lets a nested layout define its own navigation keys. A layout's
+`InterceptInput` only fires when the layout is actually on the focus path: the root always (keys enter at
+`root.OnInput`), and a nested layout only when it contains the focus (`FocusedControl != null`) — so a sibling's keys
+never reach it. A consumed key (`InterceptInput` returns `true`) is marked `Handled`, so ancestor layouts stop.
 
 ## See also
 - [Mouse Input and Overlays](Mouse%20Input%20and%20Overlays.md) — mouse gesture synthesis, the wheel hook, overlays, modal routing.
