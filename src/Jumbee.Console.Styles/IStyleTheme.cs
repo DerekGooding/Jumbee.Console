@@ -95,6 +95,16 @@ public interface IStyleTheme
     /// colouring, in one value. Defaults to <see cref="TitleStyle.Default"/>.</summary>
     TitleStyle TitleStyle => TitleStyle.Default;
     #endregion
+
+    #region Overlay
+    /// <summary>The tint a modal overlay scrim blends the layer beneath it toward (only its background colour is
+    /// used). Paired with <see cref="ScrimDim"/>. Defaults to a near-black.</summary>
+    Style Scrim => Style.Bg(new Color(10, 10, 15));
+
+    /// <summary>How strongly a modal scrim dims the layer beneath it: 0 = fully see-through, 1 = a solid
+    /// <see cref="Scrim"/> fill. Defaults to 0.6.</summary>
+    float ScrimDim => 0.6f;
+    #endregion
 }
 
 /// <summary>The built-in style theme: every token uses <see cref="IStyleTheme"/>'s default values.</summary>

@@ -188,6 +188,11 @@ public partial class ListBox : RenderableControl
     // scrolls accurately, instead of filling to the 1000-row clamp.
     protected override int MeasureHeight(int width) => Math.Max(1, _items.Count);
 
+    protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("List", "List", "A scrollable list of items; the selected item is highlighted.")
+        .WithKey("↑ / ↓", "Move the selection")
+        .WithKey("Enter", "Choose the selected item")
+        .WithKey("Click", "Select an item");
+
     protected override void OnInput(InputEvent inputEvent)
     {
         var count = _items.Count;

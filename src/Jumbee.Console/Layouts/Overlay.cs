@@ -7,7 +7,6 @@ using System.Linq;
 using ConsoleGUI;
 using ConsoleGUI.Space;
 
-using CBackground = ConsoleGUI.Controls.Background;
 using CBox = ConsoleGUI.Controls.Box;
 using CMargin = ConsoleGUI.Controls.Margin;
 using COverlay = ConsoleGUI.Controls.Overlay;
@@ -47,8 +46,24 @@ public class Overlay : Layout<COverlay>
     /// <summary>Key that closes any open popup, intercepted before the popup sees it. <see langword="null"/> disables it.</summary>
     public ConsoleKey? CloseKey { get; set; } = ConsoleKey.Escape;
 
-    /// <summary>Background colour painted behind a modal popup (blocks and obscures the layer beneath).</summary>
-    public Color ModalScrim { get; set; } = new(10, 10, 15);
+    /// <summary>The tint a modal scrim blends the layer beneath toward (see <see cref="ModalDim"/>). Defaults to
+    /// the theme's <see cref="IStyleTheme.Scrim"/> colour (picked up live on a theme switch); set it to override
+    /// per overlay.</summary>
+    public Color ModalScrim
+    {
+        get => _modalScrim ?? UI.StyleTheme.Scrim.BackgroundColor ?? DefaultScrim;
+        set => _modalScrim = value;
+    }
+
+    /// <summary>How strongly a modal scrim dims the layer beneath it: 0 = fully see-through, 1 = a solid
+    /// <see cref="ModalScrim"/> fill (the classic opaque modal). Defaults to the theme's
+    /// <see cref="IStyleTheme.ScrimDim"/> (0.6), so the controls behind show through, dimmed, while the popup stands
+    /// out; set it to override per overlay. The scrim blocks clicks regardless of this value.</summary>
+    public float ModalDim
+    {
+        get => _modalDim ?? UI.StyleTheme.ScrimDim;
+        set => _modalDim = value;
+    }
     #endregion
 
     #region Methods
@@ -111,13 +126,11 @@ public class Overlay : Layout<COverlay>
         Content = popup.FocusableControl,
     };
 
-    // Full-area opaque background with the popup centered on it. The filled cells carry no mouse listener, so
-    // clicks over them are swallowed (the layer beneath is never hit) — that is what makes the popup modal.
-    private IControl ScrimAround(Control popup) => new CBackground
-    {
-        Color = ModalScrim,
-        Content = CenterIn(popup),
-    };
+    // Full-area scrim with the popup centered on it. The scrim shows the layer beneath dimmed (see DimScrim) and its
+    // cells carry no mouse listener, so clicks over them are swallowed (the layer beneath is never hit) — that is
+    // what makes the popup modal. ModalDim controls how see-through it is.
+    private IControl ScrimAround(Control popup) =>
+        new DimScrim(_bottom.CControl, CenterIn(popup), ModalScrim, ModalDim);
 
     // Tunnel phase (see Layout.OnInput): close any open popup on CloseKey before the popup itself sees the key.
     protected override bool InterceptInput(UI.InputEventArgs inputEventArgs)
@@ -142,9 +155,12 @@ public class Overlay : Layout<COverlay>
     #endregion
 
     #region Fields
+    private static readonly Color DefaultScrim = new(10, 10, 15);   // fallback when the theme leaves Scrim without a bg
     private readonly ILayout _bottom;
     private Control? _top;
     private bool _modal;
     private IFocusable? _previousFocus;
+    private Color? _modalScrim;   // null = use the theme's Scrim colour
+    private float? _modalDim;     // null = use the theme's ScrimDim
     #endregion
 }

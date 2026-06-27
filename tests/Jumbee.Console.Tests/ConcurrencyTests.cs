@@ -13,6 +13,9 @@ using Xunit;
 
 public class ConcurrencyTests
 {
+    // Begin each test from a fully stopped UI (shared process-wide static state across sequential tests).
+    public ConcurrencyTests() => UiTestHarness.EnsureStopped();
+
     /// <summary>
     /// Phase C: collection mutations marshal onto the UI thread (via <c>UI.Invoke</c>), so <c>ListBox</c> can
     /// use a plain <see cref="System.Collections.Generic.Dictionary{TKey,TValue}"/>. This hammers AddItem from

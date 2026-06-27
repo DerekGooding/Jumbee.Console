@@ -35,6 +35,11 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     /// <summary>The internal layout arranging the child controls (set via <see cref="SetContent"/>).</summary>
     protected ILayout? Content => _content;
 
+    /// <summary>The internal layout, exposed so the parent's input routing can deliver keys through it — running any
+    /// nested layout tunnels (e.g. a <see cref="TabPanel"/>'s Alt+arrow tab switching) on the way to the focused
+    /// child, which a direct <see cref="FocusedControl"/> dispatch would skip.</summary>
+    internal ILayout? ContentLayout => _content;
+
     /// <summary>
     /// Returns the focused descendant so keyboard input routed by the parent layout reaches the right child;
     /// falls back to the composite itself when it is focused and no child is.

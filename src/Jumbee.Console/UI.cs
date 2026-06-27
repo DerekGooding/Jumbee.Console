@@ -39,8 +39,12 @@ public static class UI
         inputSource = input ?? new ConsoleInputSource();
         ConsoleManager.Setup();
         ConsoleManager.Resize(new Size(width, height));
-        ConsoleManager.Content = layout.CControl;
-        UI.layout = layout;
+        // Wrap the app's root in a UI-owned system overlay so global modals (the F1 help dialog, and any future
+        // system dialog) always have a layer to show on, whatever the app's root layout is. If the root is already
+        // an Overlay, reuse it. The overlay is transparent to navigation/input while no popup is shown.
+        systemOverlay = layout as Overlay ?? new Overlay(layout);
+        ConsoleManager.Content = systemOverlay.CControl;
+        UI.layout = systemOverlay;
         foreach(var c in layout.Controls.Select(lc => lc.FocusableControl))
         {
             if (!controls.Contains(c))
@@ -158,6 +162,57 @@ public static class UI
 
     /// <summary>The currently focused registered control, or <see langword="null"/> if none.</summary>
     public static IFocusable? Focused => controls.FirstOrDefault(c => c.IsFocused);
+
+    /// <summary>
+    /// Opens the global help dialog — a modal with one tab per control (compiled from every control's
+    /// <see cref="Control.GetHelpInfo"/>, deduplicated by <see cref="HelpInfo.Name"/>), the focused control's tab
+    /// shown first. Bound to <see cref="HotKeys.F1"/> by default; pressing it again closes the dialog. A no-op when
+    /// no control supplies help. The dialog is shown on the UI-owned system overlay (see <see cref="Start"/>).
+    /// </summary>
+    public static void ShowHelp() => Invoke(() =>
+    {
+        if (systemOverlay is null) return;
+        if (systemOverlay.Top is HelpControl) { systemOverlay.Hide(); return; }   // F1 toggles the dialog
+
+        var infos = CompileHelp();
+        if (infos.Count <= 1) return;   // only the built-in General entry — no control supplied help
+
+        // Open on the focused control's tab (resolve an inner composite child up to its owning unit, then match by
+        // name since that tab may be a shared/deduplicated entry).
+        var focusName = Focused is Control fc ? (fc.FocusRoot.CompileHelp() ?? fc.CompileHelp())?.Name : null;
+        var start = 0;
+        if (focusName is not null)
+            for (var i = 0; i < infos.Count; i++)
+                if (infos[i].Name == focusName) { start = i; break; }
+
+        systemOverlay.ShowModal(new HelpControl(infos, HideHelp, start));
+    });
+
+    /// <summary>
+    /// Compiles the help shown by <see cref="ShowHelp"/>: a built-in "General" entry (global keys) followed by each
+    /// registered control's <see cref="Control.GetHelpInfo"/> (modified by its <see cref="Control.OnHelp"/>
+    /// handlers), deduplicated by <see cref="HelpInfo.Name"/>. Exposed so an app can present its own help UI.
+    /// </summary>
+    public static IReadOnlyList<HelpInfo> CompileHelp()
+    {
+        var infos = new List<HelpInfo>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        // A built-in entry for the global keys, always first.
+        var general = new HelpInfo("General", text: "Global keys, available anywhere in the app.")
+            .WithKey("F1", "Show / hide this help")
+            .WithKey("Ctrl+Q", "Quit")
+            .WithKey("Ctrl+← ↑ → ↓", "Move focus between regions")
+            .WithKey("Ctrl+N / Ctrl+P", "Next / previous control in a region");
+        infos.Add(general);
+        seen.Add(general.Name);
+        foreach (var f in controls.ToArray())
+            if (f is Control c && c.CompileHelp() is { Name.Length: > 0 } info && seen.Add(info.Name))
+                infos.Add(info);
+        return infos;
+    }
+
+    /// <summary>Closes the global help dialog if it is open.</summary>
+    public static void HideHelp() => Invoke(() => { if (systemOverlay?.Top is HelpControl) systemOverlay.Hide(); });
 
     // ---- Focus navigation -------------------------------------------------------------------------------------
     // Two tiers, both on the root layout's 2-D cell grid (Rows/Columns/this[r,c]):
@@ -461,6 +516,8 @@ public static class UI
     private static bool isRunning;
     private static volatile bool needsDraw = true;
     private static ILayout? layout;
+    // UI-owned overlay wrapping the app root; hosts global modals (the F1 help dialog). Set in Start.
+    private static Overlay? systemOverlay;
     private static readonly List<IFocusable> controls = new List<IFocusable>();
     private static readonly GlobalInputListener globalInputListener = new GlobalInputListener();
     private static readonly Dictionary<ConsoleKeyInfo, Action> GlobalHotKeys = new Dictionary<ConsoleKeyInfo, Action>
@@ -474,6 +531,8 @@ public static class UI
         { HotKeys.CtrlRight, FocusRight },
         { HotKeys.CtrlUp, FocusUp },
         { HotKeys.CtrlDown, FocusDown },
+        // Global help dialog (toggles open/closed).
+        { HotKeys.F1, ShowHelp },
     };
     private static readonly int paintTimeSamples = 60;
     private static readonly long[] paintTimes = new long[paintTimeSamples];
@@ -543,6 +602,9 @@ public static class UI
 
         /// <summary>The Tab key, as produced by the input decoder (KeyChar <c>\t</c>, no modifiers).</summary>
         public static ConsoleKeyInfo Tab = new('\t', ConsoleKey.Tab, false, false, false);
+
+        /// <summary>The F1 key, as produced by the input decoder (SS3 <c>ESC O P</c> → KeyChar <c>\0</c>, no modifiers).</summary>
+        public static ConsoleKeyInfo F1 = new('\0', ConsoleKey.F1, false, false, false);
 
         /// <summary>Shift+Tab (back-tab), as produced by the input decoder from CSI Z (KeyChar <c>\0</c>, Shift).</summary>
         public static ConsoleKeyInfo ShiftTab = new('\0', ConsoleKey.Tab, true, false, false);

@@ -337,6 +337,11 @@ public class TextEditor : Control
     // content and scrolls accurately (measured at the layout width, which may differ from the current ActualWidth).
     protected override int MeasureHeight(int width) => BuildVisualRows(width).Count;
 
+    protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editor", "Editor", "A multi-line text editor.")
+        .WithKey("Arrows", "Move the caret")
+        .WithKey("Tab", "Indent")
+        .WithKey("Enter", "New line");
+
     /// <summary>The number of visual (wrapped) rows the text occupies at the given width — the editor's content
     /// height. A composite (e.g. <see cref="CodeEditor"/>) uses it to size/scroll itself around the editor.</summary>
     public int VisualRowCount(int width) => BuildVisualRows(Math.Max(1, width)).Count;

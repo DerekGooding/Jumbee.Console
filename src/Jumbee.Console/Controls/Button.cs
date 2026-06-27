@@ -33,6 +33,10 @@ public class Button : RenderableControl
     #region Properties
     public override bool HandlesInput => true;
 
+    protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Button", text: "A clickable button.")
+        .WithKey("Enter / Space", "Activate when focused")
+        .WithKey("Click", "Activate");
+
     public string Text
     {
         get => _text;

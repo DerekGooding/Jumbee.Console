@@ -64,6 +64,14 @@ public class CodeEditor : CompositeControl
     protected override int MeasureHeight(int width) =>
         Math.Max(1, _editor.VisualRowCount(Math.Max(1, width - _gutter.Width)));
 
+    // Named "Editor" so it shares the editor tab (and the focused composite opens it). Describes the code editor.
+    protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editor", "Editor",
+        "A code editor with line numbers and syntax highlighting.")
+        .WithKey("Arrows", "Move the caret")
+        .WithKey("Tab", "Indent")
+        .WithKey("Enter", "New line")
+        .WithKey("Alt+↑ / Alt+↓", "Scroll");
+
     // Re-baseline the cached "what the gutter currently shows" on every (re)layout, so the first edit after a
     // resize compares against the just-laid-out width rather than a stale measurement.
     protected override void Control_OnInitialization()

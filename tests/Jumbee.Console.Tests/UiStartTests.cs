@@ -16,6 +16,9 @@ using Xunit;
 
 public class UiStartTests
 {
+    // Begin each test from a fully stopped UI (shared process-wide static state across sequential tests).
+    public UiStartTests() => UiTestHarness.EnsureStopped();
+
     private sealed class FakeInputSource : IInputSource
     {
         private readonly ConcurrentQueue<TerminalInputEvent> _events = new();

@@ -222,6 +222,13 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
             {
                 if (nested.FocusedControl is not null) nested.OnInput(inputEventArgs);
             }
+            else if (f is CompositeControl composite && composite.ContentLayout is { } content)
+            {
+                // Route through the composite's internal layout so its nested tunnels (e.g. a TabPanel's Alt+arrow
+                // tab switching) run before the key reaches the focused child — a direct FocusedControl dispatch
+                // would skip them.
+                if (composite.FocusedControl is not null) content.OnInput(inputEventArgs);
+            }
             else
             {
                 f?.FocusedControl?.OnInput(inputEventArgs);

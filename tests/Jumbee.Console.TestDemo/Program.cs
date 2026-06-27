@@ -294,7 +294,8 @@ public class Program
             focusLabel,
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+arrows: between regions", Color.White),
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+N/P: within a region", Color.White),
-            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+O: dialog   Ctrl+Q: quit", Color.White));
+            new TextLabel(TextLabelOrientation.Horizontal, "F1: help   Ctrl+O: dialog", Color.White),
+            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+Q: quit", Color.White));
 
         // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it. Each button is
         // framed with a neutral (grey) square border; the focused one's border turns cyan (theme BorderFocusedText).
@@ -327,6 +328,13 @@ public class Program
         // [1,1] Display: a non-focusable animated Spinner -> Ctrl+arrows skip the whole region.
         var spin = new Spinner { SpinnerType = Spectre.Console.Spinner.Known.Dots }; spin.Start();
         spin.WithSquareBorder().WithTitle("Spinner (skipped)");   // non-focusable: border stays grey, never turns cyan
+        // Supply help for this control without subclassing it: OnHelp adds an F1 tab for the spinner.
+        spin.OnHelp += info =>
+        {
+            info.Name = "Spinner";
+            info.Title = "Spinner";
+            info.Text = "An animated busy indicator. It is display-only, so focus navigation skips it.";
+        };
 
         var bottom = new Jumbee.Console.Grid([9, 6], [26, 24, 30],
         [

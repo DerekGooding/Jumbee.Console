@@ -298,6 +298,29 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     public void UnFocus() => IsFocused = false;
 
     /// <summary>
+    /// The help shown for this control in the global help dialog (F1), or <see langword="null"/> for no help.
+    /// Override to describe the control and its keys. The result is deduplicated across the UI by
+    /// <see cref="HelpInfo.Name"/>, so give controls of the same kind the same name. <see cref="OnHelp"/> handlers
+    /// can further modify (or create) it.
+    /// </summary>
+    protected internal virtual HelpInfo? GetHelpInfo() => null;
+
+    /// <summary>The effective help for this control: <see cref="GetHelpInfo"/> with any <see cref="OnHelp"/>
+    /// handlers applied (they mutate it in place, and may supply help even when <see cref="GetHelpInfo"/> returned
+    /// <see langword="null"/> — a blank entry named after the type is created first). <see langword="null"/> when the
+    /// control has no help.</summary>
+    public HelpInfo? CompileHelp()
+    {
+        var info = GetHelpInfo();
+        if (OnHelp is { } handlers)
+        {
+            info ??= new HelpInfo(GetType().Name);
+            handlers(info);
+        }
+        return info;
+    }
+
+    /// <summary>
     /// Fired when a control's Initialize method is called. This method is always called inside UI.Invoke.
     /// </summary>
     protected virtual void Control_OnInitialization() {}
@@ -496,6 +519,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     public event InitializationHandler OnInitialization;
     public event FocusableEventHandler? OnFocus;
     public event FocusableEventHandler? OnLostFocus;
+
+    /// <summary>Raised while the global help dialog is compiled, letting code add or modify this control's help
+    /// without subclassing. The handler receives a mutable <see cref="HelpInfo"/> (created if
+    /// <see cref="GetHelpInfo"/> returned <see langword="null"/>) and edits it in place.</summary>
+    public event Action<HelpInfo>? OnHelp;
 
     /// <summary>Raised when the pointer enters the control.</summary>
     public event EventHandler? MouseEntered;

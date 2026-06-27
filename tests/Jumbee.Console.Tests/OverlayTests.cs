@@ -136,6 +136,18 @@ public class OverlayTests
     }
 
     [Fact]
+    public void ModalScrim_ShowsBottomThroughDimmed()
+    {
+        var (overlay, _) = MakeOverlay();              // the bottom layer reads "bottom" (top-left, away from centre)
+        overlay.ShowModal(new Button("MODALX"));       // default ModalDim is see-through
+
+        var text = ConsoleSnapshot.ToText(overlay, 40, 12);
+
+        Assert.Contains("MODALX", text);               // the popup
+        Assert.Contains("bottom", text);               // the layer behind shows through the dimmed scrim
+    }
+
+    [Fact]
     public void ModalPopup_DoesNotCloseOnFocusLoss()
     {
         var (overlay, bottom) = MakeOverlay();
