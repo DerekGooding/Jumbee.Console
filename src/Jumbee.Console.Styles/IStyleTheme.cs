@@ -84,6 +84,13 @@ public interface IStyleTheme
     /// <summary>The default border shape for a control frame when none is specified. Defaults to <see cref="BorderStyle.None"/>.</summary>
     BorderStyle FrameBorder => BorderStyle.None;
 
+    /// <summary>The border shape a control frame uses while its control is focused, or <see langword="null"/> to keep
+    /// <see cref="FrameBorder"/> unchanged (showing focus through the <see cref="BorderFocusedText"/> colour only).
+    /// Defaults to <see langword="null"/>. Switching shape on focus never changes the frame's geometry — the border
+    /// offset comes from <c>BorderPlacement</c>, not the shape — so a focused frame restyles in place without
+    /// reflowing its siblings.</summary>
+    BorderStyle? FocusedFrameBorder => null;
+
     /// <summary>The default title style for a control frame — its position, border placement, and Normal/Reverse
     /// colouring, in one value. Defaults to <see cref="TitleStyle.Default"/>.</summary>
     TitleStyle TitleStyle => TitleStyle.Default;

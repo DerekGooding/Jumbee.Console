@@ -26,6 +26,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         // The default border shape comes from the style theme when the caller doesn't specify one.
         _borderStyle = borderStyle ?? UI.StyleTheme.FrameBorder;
         _boxBorder = GetSpectreBoxBorder(_borderStyle);
+        // Focus appearance: an optional shape swap (null = keep the same shape) and a border colour, both taken from
+        // the theme and applied on the render path while the wrapped control is focused. See GetBorderCell.
+        CaptureFocusStyle();
         _margin = margin ?? DefaultMargin;
         // Appearance defaults come from the active style theme when the caller doesn't specify a colour: the
         // frame foreground (used for the title) from the TitleText token, the border colour from the BorderText
@@ -461,6 +464,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                 OnLostFocus?.Invoke();
             }
             _control.IsFocused = field;
+            // Repaint the border so the focused style/colour appears (or clears). Geometry is unaffected — the
+            // border offset comes from BorderPlacement, not the shape — so this redraws in place without reflow.
+            if (field != old) _Redraw();
         }
     }
 
@@ -674,12 +680,14 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     private Cell GetBorderCell(BoxBorderPart part)
     {
-        var str = _boxBorder.GetPart(part);
+        // While focused, draw the focused shape (when the theme supplies one) and prefer the focused border colour.
+        var box = IsFocused && _focusedBoxBorder is { } focusedBox ? focusedBox : _boxBorder;
+        var str = box.GetPart(part);
         var ch = string.IsNullOrEmpty(str) ? ' ' : str[0];
 
         var character = new Character(ch);
 
-        var fg = _borderFgColor ?? _foreground;
+        var fg = (IsFocused ? _focusedBorderFgColor : null) ?? _borderFgColor ?? _foreground;
         if (fg.HasValue) character = character.WithForeground(fg.Value);
 
         var bg = _borderBgColor ?? _background;
@@ -705,11 +713,21 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         if (!_themeOverrides.IsOverridden(nameof(TitleStyle))) _titleStyle = UI.StyleTheme.TitleStyle;
         if (!_themeOverrides.IsOverridden(nameof(ScrollBarGlyphs))) _scrollBarGlyphs = UI.GlyphTheme.ScrollBar;
         if (!_themeOverrides.IsOverridden(nameof(ScrollBarStyle))) _scrollBarStyle = UI.StyleTheme.ScrollBar;
+        CaptureFocusStyle();
         RecomposeScrollBar();
         Initialize();
     });
 
     internal void OnThemeChanged(object? sender, EventArgs e) => ApplyTheme();
+
+    // Captures the focus appearance from the theme: the optional focused border shape (null = no shape change) and
+    // the focused border colour. These are theme-only (no per-frame override), so they refresh on every theme switch.
+    private void CaptureFocusStyle()
+    {
+        _focusedBorderStyle = UI.StyleTheme.FocusedFrameBorder;
+        _focusedBoxBorder = _focusedBorderStyle is { } style ? GetSpectreBoxBorder(style) : null;
+        _focusedBorderFgColor = UI.StyleTheme.BorderFocusedText.ForegroundColor;
+    }
 
     // Rebuilds the four scrollbar part cells from the current glyphs (glyph theme) and styles (style theme).
     private void RecomposeScrollBar()
@@ -806,6 +824,11 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private Color? _background;
     private Color? _borderFgColor;
     private Color? _borderBgColor;
+    // Focus appearance (captured from the theme by CaptureFocusStyle): an optional focused border shape (null = keep
+    // the resting shape) and the focused border colour, applied on the render path while focused (see GetBorderCell).
+    private BorderStyle? _focusedBorderStyle;
+    private SpectreBoxBorder? _focusedBoxBorder;
+    private Color? _focusedBorderFgColor;
     private DrawingContext _controlContext = DrawingContext.Dummy;
     private string? _title;
     private TitleStyle _titleStyle = TitleStyle.Default;

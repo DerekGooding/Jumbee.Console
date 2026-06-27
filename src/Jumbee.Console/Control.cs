@@ -98,6 +98,14 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     public bool HasFrame => Frame is not null;
 
+    /// <summary>The composite that owns this control as one of its children (set by <see cref="CompositeControl"/>),
+    /// or null for a top-level control. Lets focus resolve to the composite — the navigable unit — so clicking or
+    /// navigating to a child focuses the composite, which then delegates focus back to the child.</summary>
+    internal CompositeControl? Owner { get; set; }
+
+    /// <summary>The outermost navigable focus unit for this control: the topmost owning composite, or itself.</summary>
+    internal Control FocusRoot => Owner?.FocusRoot ?? this;
+
     public bool Focusable { get; set; } = true;
 
     public bool IsFocused

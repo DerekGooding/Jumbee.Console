@@ -35,10 +35,6 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     /// <summary>The internal layout arranging the child controls (set via <see cref="SetContent"/>).</summary>
     protected ILayout? Content => _content;
 
-    /// <summary>The internal layout, exposed for focus navigation so it can reach the composite's focusable
-    /// children (e.g. Ctrl+arrows entering a composite cell).</summary>
-    internal ILayout? ContentLayout => _content;
-
     /// <summary>
     /// Returns the focused descendant so keyboard input routed by the parent layout reaches the right child;
     /// falls back to the composite itself when it is focused and no child is.
@@ -57,6 +53,15 @@ public abstract class CompositeControl : Control, IDrawingContextListener
             return base.FocusedControl;
         }
     }
+
+    /// <summary>A composite is an opaque focusable leaf to the navigation/routing layer: it reports that it handles
+    /// input (keys reach its focused child via <see cref="FocusedControl"/>) so <c>ILayout.Leaves</c> treats it as a
+    /// single navigable unit rather than descending into its children.</summary>
+    public override bool HandlesInput => true;
+
+    /// <summary>The child that receives focus when the composite is focused (and input/caret follow). Defaults to the
+    /// first focusable child; override to choose a different default.</summary>
+    protected virtual Control? FocusChild => _firstFocusable;
     #endregion
 
     #region Indexers
@@ -90,7 +95,40 @@ public abstract class CompositeControl : Control, IDrawingContextListener
         _content = content;
         if (!ReferenceEquals(_contentContext, DrawingContext.Dummy)) _contentContext.Dispose();
         _contentContext = new DrawingContext(this, content.CControl);
+        foreach (var f in content.Controls) SetOwnership(f);
         Initialize();
+    }
+
+    // The composite is the navigable focus unit; route focus inward to a child so keyboard input (via
+    // FocusedControl) and the child's caret/selection follow. A no-op when a descendant is already focused (e.g. a
+    // child claimed by a more specific path). Overriding FocusChild changes which child this picks.
+    protected override void Control_OnFocus()
+    {
+        if (FocusChild is { } child && !child.IsFocused) child.IsFocused = true;
+    }
+
+    // Clear the focused descendant when the composite loses focus (covers the direct UnFocus path; UI.SetFocus
+    // already clears registered children when focus moves elsewhere).
+    protected override void Control_OnLostFocus()
+    {
+        if (FocusedControl is Control child && !ReferenceEquals(child, this)) child.IsFocused = false;
+    }
+
+    // Claim focusable descendants as ours so focus resolves to this composite (the navigable unit); the first one
+    // becomes the default FocusChild. Stops at nested composites (they own their own children). Runs at construction
+    // before layout, so it walks structure rather than laid-out leaves (it can't depend on HasLayout).    
+    private void SetOwnership(IFocusable? node)
+    {
+        switch (node)
+        {
+            case null or CompositeControl: return;                   // a nested composite owns its own children
+            case ILayout nested: foreach (var c in nested.Controls) SetOwnership(c); return;
+            case ControlFrame frame: SetOwnership(frame.Control); return;
+            case Control control when control.Focusable:
+                control.Owner ??= this;
+                _firstFocusable ??= control;
+                return;
+        }
     }
 
     // Children render themselves into their own buffers; the composite paints nothing by default. Subclasses may
@@ -120,5 +158,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     #region Fields
     private ILayout? _content;
     private DrawingContext _contentContext = DrawingContext.Dummy;
+    // The first focusable descendant claimed in SetContent — the default FocusChild (e.g. a CodeEditor's editor).
+    private Control? _firstFocusable;
     #endregion
 }

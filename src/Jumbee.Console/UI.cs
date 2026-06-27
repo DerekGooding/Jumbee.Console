@@ -139,10 +139,17 @@ public static class UI
     {
         Invoke(() =>
         {
+            // Resolve a composite's inner child up to the composite (the navigable focus unit); the composite then
+            // delegates focus back to the appropriate child via Control_OnFocus. Click-to-focus and keyboard
+            // navigation therefore agree on which control is "focused".
+            if (target is Control tc) target = tc.FocusRoot;
             var keep = target.FocusableControl;
             foreach (var c in controls)
             {
-                if (c.IsFocused && !ReferenceEquals(c, target) && !ReferenceEquals(c, keep))
+                // Don't clear controls in the target's own subtree (a composite keeps its delegated child focused
+                // when it is (re)focused); clear every other focused control for single-focus.
+                if (c.IsFocused && !ReferenceEquals(c, target) && !ReferenceEquals(c, keep)
+                    && !(c is Control cc && ReferenceEquals(cc.FocusRoot, target)))
                     c.IsFocused = false;
             }
             if (target.Focusable) target.IsFocused = true;
@@ -161,89 +168,27 @@ public static class UI
 
     /// <summary>Moves focus to the next focusable control within the current root-layout region, wrapping. Bound to
     /// <c>Ctrl+N</c> by default. A no-op unless the focused region is a multi-focusable nested layout.</summary>
-    public static void FocusNext() => CycleWithinRegion(+1);
+    public static void FocusNext() => CycleFocusWithinRegion(+1);
 
     /// <summary>Moves focus to the previous focusable control within the current region. Bound to <c>Ctrl+P</c>.</summary>
-    public static void FocusPrevious() => CycleWithinRegion(-1);
+    public static void FocusPrevious() => CycleFocusWithinRegion(-1);
 
     /// <summary>Moves focus one cell left/right/up/down in the root layout's 2-D grid (wraps; skips empties). Bound
     /// to <c>Ctrl+Left/Right/Up/Down</c> by default.</summary>
-    public static void FocusLeft() => MoveSpatial(0, -1);
-    public static void FocusRight() => MoveSpatial(0, +1);
-    public static void FocusUp() => MoveSpatial(-1, 0);
-    public static void FocusDown() => MoveSpatial(+1, 0);
+    public static void FocusLeft() => MoveSpatialFocus(0, -1);
+    public static void FocusRight() => MoveSpatialFocus(0, +1);
+    public static void FocusUp() => MoveSpatialFocus(-1, 0);
+    public static void FocusDown() => MoveSpatialFocus(+1, 0);
 
-    private static void MoveSpatial(int dRow, int dCol) => Invoke(() =>
+    private static void MoveSpatialFocus(int dRow, int dCol) => Invoke(() =>
     {
-        if (layout is not { } root) return;
-        int rows = root.Rows, cols = root.Columns;
-        if (rows <= 0 || cols <= 0) return;
-
-        var (r, c) = CurrentCell(root) ?? (0, 0);
-        for (var step = 0; step < rows * cols; step++)   // walk in the given direction, wrapping, until a focusable cell
-        {
-            r = ((r + dRow) % rows + rows) % rows;
-            c = ((c + dCol) % cols + cols) % cols;
-            if (FirstLeaf(SafeCell(root, r, c)) is { } target) { SetFocus(target); return; }
-        }
+        if (layout?.SpatialTarget(dRow, dCol) is { } target) SetFocus(target);
     });
 
-    private static void CycleWithinRegion(int direction) => Invoke(() =>
+    private static void CycleFocusWithinRegion(int direction) => Invoke(() =>
     {
-        if (layout is not { } root || CurrentCell(root) is not { } cell) return;
-        // Only a multi-focusable region cycles; a single control / composite cell is a no-op (use the arrows there).
-        if (SafeCell(root, cell.Item1, cell.Item2) is not ILayout region) return;
-
-        var ring = LeavesIn(region).ToList();
-        if (ring.Count <= 1) return;
-        var current = ring.FindIndex(f => ReferenceEquals(f, Focused));
-        var next = current < 0
-            ? (direction > 0 ? 0 : ring.Count - 1)
-            : ((current + direction) % ring.Count + ring.Count) % ring.Count;
-        SetFocus(ring[next]);
+        if (layout?.RegionCycleTarget(direction, Focused) is { } target) SetFocus(target);
     });
-
-    // The (row, column) of the root cell whose subtree currently holds focus, or null if none.
-    private static (int, int)? CurrentCell(ILayout root)
-    {
-        for (var r = 0; r < root.Rows; r++)
-            for (var c = 0; c < root.Columns; c++)
-                if (SafeCell(root, r, c)?.FocusedControl is not null) return (r, c);
-        return null;
-    }
-
-    // Indexer access that tolerates an empty slot (a sparse Grid cell can throw from the underlying indexer).
-    private static IFocusable? SafeCell(ILayout layout, int r, int c)
-    {
-        try { return layout[r, c]; } catch { return null; }
-    }
-
-    private static IFocusable? FirstLeaf(IFocusable? node) => LeavesIn(node).FirstOrDefault();
-
-    // The focusable leaves reachable from a node, in order: descends nested layouts, frames, and composites; a leaf
-    // is an interactive, laid-out Control (Focusable + HandlesInput + HasLayout).
-    private static IEnumerable<IFocusable> LeavesIn(IFocusable? node)
-    {
-        if (node is null) yield break;
-        if (node is CompositeControl composite && composite.ContentLayout is { } content)
-        {
-            foreach (var f in LeavesIn(content)) yield return f;
-        }
-        else if (node is ILayout nested)
-        {
-            for (var r = 0; r < nested.Rows; r++)
-                for (var c = 0; c < nested.Columns; c++)
-                    foreach (var f in LeavesIn(SafeCell(nested, r, c))) yield return f;
-        }
-        else if (node is ControlFrame frame)
-        {
-            foreach (var f in LeavesIn(frame.Control)) yield return f;
-        }
-        else if (node is Control control && control.Focusable && control.HandlesInput && control.HasLayout)
-        {
-            yield return control;
-        }
-    }
 
     /// <summary>
     /// Registers an application-wide hotkey handled <em>before</em> any control (so it works regardless of focus),

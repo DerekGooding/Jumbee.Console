@@ -144,8 +144,10 @@ cheaply available — but the layout structure already encodes the spatial arran
 
 - **`Ctrl+arrows` → move between regions.** `UI.FocusLeft/Right/Up/Down` step one cell in the root layout's grid,
   **wrapping per axis** and **skipping cells with no focusable**; landing on a cell focuses its first focusable leaf
-  (`FirstLeaf`, which descends nested layouts, `ControlFrame`s, and `CompositeControl`s via the internal
-  `ContentLayout`). So arrowing onto a `CodeEditor` cell enters its editor.
+  (`FirstLeaf`, which descends nested layouts and `ControlFrame`s). A `CompositeControl` is an *opaque* leaf (it
+  reports `HandlesInput`): arrowing onto a `CodeEditor` cell focuses the composite, which then delegates focus to its
+  editor child via `Control_OnFocus` (focus resolves to the composite — the navigable unit — through `Control.Owner`/
+  `FocusRoot`, so click-to-focus and keyboard navigation agree).
 - **`Ctrl+N/P` → cycle within the current region.** `UI.FocusNext/Previous` cycle the focusable leaves of the cell
   that currently holds focus — **but only when that cell is a multi-focusable nested layout**; a single-control or
   composite cell is a **no-op** (enter/leave those with the arrows).

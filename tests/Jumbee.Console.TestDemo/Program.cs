@@ -296,33 +296,37 @@ public class Program
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+N/P: within a region", Color.White),
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+O: dialog   Ctrl+Q: quit", Color.White));
 
-        // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it.
+        // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it. Each button is
+        // framed with a neutral (grey) square border; the focused one's border turns cyan (theme BorderFocusedText).
         var bA = new Button("Action A"); var bB = new Button("Action B"); var bC = new Button("Action C");
         bA.OnFocus += () => ShowFocus("Action A");
         bB.OnFocus += () => ShowFocus("Action B");
         bC.OnFocus += () => ShowFocus("Action C");
+        bA.WithSquareBorder(); bB.WithSquareBorder(); bC.WithSquareBorder();
         var actions = new Jumbee.Console.VerticalStackPanel(bA, bB, bC);
 
-        // [0,1] Files: a single interactive control -> plain Up/Down navigate; Ctrl+N/P is a no-op here.
+        // [0,1] Files: a single interactive control -> plain Up/Down navigate; Ctrl+N/P is a no-op here. A neutral
+        // square border (no explicit colour) so focus shows by turning the border cyan.
         var files = new ListBox("alpha.cs", "beta.cs", "gamma.cs", "delta.cs");
         files.OnFocus += () => ShowFocus("Files list");
-        files.WithFrame().WithTitle("Files (Up/Down)");
+        files.WithSquareBorder().WithTitle("Files (Up/Down)");
 
         // [0,2] Editor: a single interactive control -> type, Tab indents.
         var editor = new CodeEditor(Language.CSharp) { Text = "// edit me\nclass Demo\n{\n}" };
         editor.Editor.OnFocus += () => ShowFocus("Editor");
-        editor.WithRoundedBorder(Cyan1).WithTitle("Editor (type, Tab)");
+        editor.WithRoundedBorder(Magenta1).WithTitle("Editor (type, Tab)");
 
         // [1,0] Dock: a DockPanel (a different layout type) — a non-focusable header docked on top + a focusable
         // button filling below, so arrows enter the button and Ctrl+N/P is a no-op (one focusable in the region).
         var openBtn = new Button("Open dialog");
         openBtn.OnFocus += () => ShowFocus("Open-dialog button");
+        openBtn.WithSquareBorder();   // neutral border; turns cyan when the button is focused
         var dockHeader = new TextLabel(TextLabelOrientation.Horizontal, "— dock region —", Color.White) { Height = 1 };
         var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Top, dockHeader, openBtn);
 
         // [1,1] Display: a non-focusable animated Spinner -> Ctrl+arrows skip the whole region.
         var spin = new Spinner { SpinnerType = Spectre.Console.Spinner.Known.Dots }; spin.Start();
-        spin.WithFrame().WithTitle("Spinner (skipped)");
+        spin.WithSquareBorder().WithTitle("Spinner (skipped)");   // non-focusable: border stays grey, never turns cyan
 
         var bottom = new Jumbee.Console.Grid([9, 6], [26, 24, 30],
         [

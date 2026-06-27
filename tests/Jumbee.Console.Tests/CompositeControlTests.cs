@@ -255,6 +255,42 @@ public class CompositeControlTests
     }
 
     [Fact]
+    public void FocusingComposite_DelegatesFocusToItsChild()
+    {
+        var ed = new CodeEditor();
+
+        UI.SetFocus(ed);                          // focus the composite (the navigable unit, e.g. via Ctrl+arrows)
+
+        Assert.True(ed.IsFocused);                // the composite itself is focused (so a frame would light up)
+        Assert.True(ed.Editor.IsFocused);         // and it delegated focus inward to its editor child
+        Assert.Same(ed.Editor, ed.FocusedControl);
+    }
+
+    [Fact]
+    public void FocusingInnerChild_ResolvesToOwningComposite()
+    {
+        // Click-to-focus / Control.Focus() target the inner child; focus must resolve UP to the owning composite
+        // so mouse and keyboard agree on the focused unit (and the composite's frame reflects it).
+        var ed = new CodeEditor();
+
+        ed.Editor.Focus();
+
+        Assert.True(ed.IsFocused);                // resolved up to the composite...
+        Assert.True(ed.Editor.IsFocused);         // ...which delegated focus back to the child
+    }
+
+    [Fact]
+    public void FocusingFramedComposite_FocusesItsFrame()
+    {
+        var ed = new CodeEditor();
+        ed.WithSquareBorder();
+
+        ed.Editor.Focus();
+
+        Assert.True(ed.Frame!.IsFocused);         // the frame reflects focus, so its border restyles when focused
+    }
+
+    [Fact]
     public void Input_RoutedThroughFocusedControl_ReachesEditor()
     {
         var ed = new CodeEditor();

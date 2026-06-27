@@ -23,6 +23,88 @@ public interface ILayout : IFocusable, IDrawingContextListener
     IFocusable this[int row, int column] { get; }
 
     IEnumerable<IFocusable> Controls { get; }
+
+    // ---- Focus navigation -------------------------------------------------------------------------------------
+    // Spatial/region focus navigation over this layout's 2-D cell grid (Rows/Columns/this[r,c]). These compute the
+    // focusable to move to; applying focus stays a UI concern (UI.SetFocus). Hoisted here from UI so any layout can
+    // drive the same navigation, not only the root.
+
+    /// <summary>Indexer access that tolerates an empty slot (a sparse Grid cell can throw from the underlying
+    /// indexer); returns <see langword="null"/> in that case.</summary>
+    IFocusable? CellAt(int row, int column)
+    {
+        try { return this[row, column]; } catch { return null; }
+    }
+
+    /// <summary>The (row, column) of the cell whose subtree currently holds focus, or <see langword="null"/> if none.</summary>
+    (int Row, int Column)? FocusedCell()
+    {
+        for (var r = 0; r < Rows; r++)
+            for (var c = 0; c < Columns; c++)
+                if (CellAt(r, c)?.FocusedControl is not null) return (r, c);
+        return null;
+    }
+
+    /// <summary>Computes the focusable one cell in the given direction from the focused cell (wraps per axis; skips
+    /// empty cells), or <see langword="null"/> if none. Pass a row/column delta (e.g. (0, -1) = left). Landing on a
+    /// cell descends to its first focusable leaf.</summary>
+    IFocusable? SpatialTarget(int dRow, int dCol)
+    {
+        int rows = Rows, cols = Columns;
+        if (rows <= 0 || cols <= 0) return null;
+
+        var (r, c) = FocusedCell() ?? (0, 0);
+        for (var step = 0; step < rows * cols; step++)   // walk in the given direction, wrapping, until a focusable cell
+        {
+            r = ((r + dRow) % rows + rows) % rows;
+            c = ((c + dCol) % cols + cols) % cols;
+            if (FirstLeaf(CellAt(r, c)) is { } target) return target;
+        }
+        return null;
+    }
+
+    /// <summary>Computes the next (<paramref name="direction"/> &gt; 0) or previous focusable within the currently
+    /// focused region, relative to <paramref name="current"/>, wrapping — or <see langword="null"/>. A no-op (null)
+    /// unless the focused cell is a multi-focusable nested layout (enter/leave a single control or composite via the
+    /// spatial arrows instead).</summary>
+    IFocusable? RegionCycleTarget(int direction, IFocusable? current)
+    {
+        if (FocusedCell() is not { } cell) return null;
+        if (CellAt(cell.Row, cell.Column) is not ILayout region) return null;
+
+        var ring = Leaves(region).ToList();
+        if (ring.Count <= 1) return null;
+        var index = ring.FindIndex(f => ReferenceEquals(f, current));
+        var next = index < 0
+            ? (direction > 0 ? 0 : ring.Count - 1)
+            : ((index + direction) % ring.Count + ring.Count) % ring.Count;
+        return ring[next];
+    }
+
+    /// <summary>The first focusable leaf reachable from <paramref name="node"/> (see <see cref="Leaves"/>), or null.</summary>
+    static IFocusable? FirstLeaf(IFocusable? node) => Leaves(node).FirstOrDefault();
+
+    /// <summary>The focusable leaves reachable from <paramref name="node"/>, in order: descends nested layouts and
+    /// frames; a leaf is an interactive, laid-out Control (Focusable + HandlesInput + HasLayout). A composite is an
+    /// opaque leaf here (it reports HandlesInput) and manages its own children's focus internally.</summary>
+    static IEnumerable<IFocusable> Leaves(IFocusable? node)
+    {
+        if (node is null) yield break;
+        if (node is ILayout nested)
+        {
+            for (var r = 0; r < nested.Rows; r++)
+                for (var c = 0; c < nested.Columns; c++)
+                    foreach (var f in Leaves(nested.CellAt(r, c))) yield return f;
+        }
+        else if (node is ControlFrame frame)
+        {
+            foreach (var f in Leaves(frame.Control)) yield return f;
+        }
+        else if (node is Control control && control.Focusable && control.HandlesInput && control.HasLayout)
+        {
+            yield return control;
+        }
+    }
 }
 
 public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListener
