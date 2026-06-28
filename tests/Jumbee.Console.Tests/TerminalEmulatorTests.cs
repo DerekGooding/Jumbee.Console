@@ -3,9 +3,9 @@ namespace Jumbee.Console.Tests;
 using System.Text;
 
 using ConsoleGUI;
+using ConsoleGUI.Data;
 
 using Jumbee.Console.Snapshot;
-using Jumbee.Console.Terminal;
 
 using Xunit;
 
@@ -133,6 +133,43 @@ public class TerminalEmulatorTests
         var hasThumb = Enumerable.Range(0, buf.Size.Height).Any(y => buf[col, y].Character.Content == '█');
 
         Assert.True(hasThumb, "expected a scrollbar thumb in the last column once there is scrollback");
+    }
+
+    [Fact]
+    public void WindowTitle_SetByOsc_UpdatesPropertyAndEvent()
+    {
+        var t = Manual();
+        string? seen = null;
+        t.TitleChanged += s => seen = s;
+
+        t.Feed(Encoding.ASCII.GetBytes("\x1b]0;Hello Title\x07"));   // OSC 0 set window title (BEL-terminated)
+
+        Assert.Equal("Hello Title", t.WindowTitle);
+        Assert.Equal("Hello Title", seen);
+    }
+
+    [Fact]
+    public void Italic_Sgr_SetsItalicDecoration()
+    {
+        var t = Manual();
+        ConsoleSnapshot.ToText(t, 10, 2);
+        t.Feed(Encoding.ASCII.GetBytes("\x1b[3mI\x1b[0m"));   // italic 'I'
+
+        var deco = ConsoleSnapshot.Render(t, 10, 2)[0, 0].Character.Decoration ?? Decoration.None;
+        Assert.True((deco & Decoration.Italic) != 0);
+    }
+
+    [Fact]
+    public void HiddenCursor_Dectcem_NotDrawn()
+    {
+        var t = Manual();
+        ConsoleSnapshot.ToText(t, 10, 2);
+        t.Feed(Encoding.ASCII.GetBytes("hi"));
+        t.IsFocused = true;
+        Assert.NotNull(FindCursor(ConsoleSnapshot.Render(t, 10, 2)));   // visible by default
+
+        t.Feed(Encoding.ASCII.GetBytes("\x1b[?25l"));                    // DECTCEM hide
+        Assert.Null(FindCursor(ConsoleSnapshot.Render(t, 10, 2)));
     }
 
     [Fact]

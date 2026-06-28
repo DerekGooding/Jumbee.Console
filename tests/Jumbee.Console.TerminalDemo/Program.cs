@@ -4,7 +4,6 @@ using System;
 using System.IO;
 
 using Jumbee.Console;
-using Jumbee.Console.Terminal;
 
 using static Jumbee.Console.Style;
 
@@ -24,7 +23,11 @@ public static class Program
         var shell = args.Length > 0 ? args[0] : ResolveShell();
 
         var term = new TerminalEmulator(shell);
-        term.WithRoundedBorder(Cyan1).WithTitle($"{shell}  —  Ctrl+Q quits, or type 'exit'");
+        var baseTitle = $"{shell}  —  Ctrl+Q quits, or type 'exit'";
+        term.WithRoundedBorder(Cyan1).WithTitle(baseTitle);
+
+        // Reflect the program's OSC window title in the frame (falls back to the base title when cleared).
+        term.TitleChanged += t => term.Frame!.Title = string.IsNullOrWhiteSpace(t) ? baseTitle : $"{t}  —  Ctrl+Q quits";
 
         var status = new TextLabel(TextLabelOrientation.Horizontal,
             $"TerminalEmulator demo · shell: {shell} · ConPTY + VtNetCore".PadRight(96), Color.Grey);

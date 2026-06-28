@@ -1,4 +1,4 @@
-namespace Jumbee.Console.Terminal;
+namespace Jumbee.Console;
 
 using System;
 using System.ComponentModel;

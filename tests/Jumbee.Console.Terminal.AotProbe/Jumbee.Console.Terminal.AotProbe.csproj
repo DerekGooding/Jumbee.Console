@@ -12,7 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Jumbee.Console.Terminal\Jumbee.Console.Terminal.csproj" />
+    <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
+    <ProjectReference Include="..\..\ext\VtNetCore\VtNetCore\VtNetCore.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-namespace Jumbee.Console.Terminal;
+namespace Jumbee.Console;
 
 using System;
 using System.Globalization;
@@ -11,7 +11,12 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
 using VtNetCore.VirtualTerminal;
+using VtNetCore.VirtualTerminal.Enums;
 using VtNetCore.XTermParser;
+
+// In the Jumbee.Console namespace, unqualified Color is the Styles Color struct; the emulator paints ConsoleGUI
+// cells, so alias the cell colour type (the alias can't be named Color — that clashes with the namespace member).
+using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A control that runs a child process in a pseudo-console (<see cref="ConPty"/>), parses its ANSI output with
@@ -33,23 +38,31 @@ public class TerminalEmulator : Control
         _terminal = new VirtualTerminalController();
         _consumer = new DataConsumer(_terminal);
         _terminal.SendData += OnTerminalSendData;   // terminal responses (DSR/DA/…) → back to the process
+        _terminal.WindowTitleChanged += OnWindowTitleChanged;   // OSC 0/2 title set by the running program
     }
     #endregion
 
     #region Properties
     public override bool HandlesInput => true;
+
+    /// <summary>The window title the running program set via OSC 0/2, or <see langword="null"/> if none. Hosts can
+    /// bind this (or <see cref="TitleChanged"/>) to a frame title.</summary>
+    public string? WindowTitle { get; private set; }
     #endregion
 
     #region Events
     /// <summary>Raised on the UI thread after the child process exits (never for a manually-driven terminal).</summary>
     public event Action? Exited;
+
+    /// <summary>Raised on the UI thread when the running program changes the window title (OSC 0/2).</summary>
+    public event Action<string>? TitleChanged;
     #endregion
 
     #region Methods
     // A terminal owns its own scrollback, so it must fill the framing viewport rather than be given a frame's
     // unbounded scroll height — otherwise it balloons to ~1000 rows, oversizing the PTY and pushing live output
     // off-screen (no auto-scroll). Opting out makes the frame offer the bounded viewport height instead.
-    protected override bool FillsFrameViewport => true;
+    protected internal override bool FillsFrameViewport => true;
 
     // The cell columns the shell draws into: the control width minus the column reserved for the scrollbar.
     private int ContentWidth => Math.Max(1, ActualWidth - ScrollbarWidth);
@@ -114,6 +127,13 @@ public class TerminalEmulator : Control
     }
 
     private void OnTerminalSendData(object? sender, SendDataEventArgs e) => WriteToProcess(e.Data);
+
+    // Fired during _consumer.Push (already on the UI thread). Surface the new title to hosts.
+    private void OnWindowTitleChanged(object? sender, TextEventArgs e)
+    {
+        WindowTitle = e.Text;
+        TitleChanged?.Invoke(e.Text ?? string.Empty);
+    }
 
     private void WriteToProcess(byte[] data)
     {
@@ -272,6 +292,7 @@ public class TerminalEmulator : Control
                     var bg = ParseWebColor(span.BackgroundColor);
                     var deco = Decoration.None;
                     if (span.Bold) deco |= Decoration.Bold;
+                    if (span.Italic) deco |= Decoration.Italic;
                     if (span.Underline) deco |= Decoration.Underline;
                     if (span.Blink) deco |= Decoration.SlowBlink;
                     if (span.Hidden) deco |= Decoration.Conceal;
@@ -287,17 +308,20 @@ public class TerminalEmulator : Control
 
             DrawScrollBar(width - 1, height, top, floor, liveTop);
 
-            // The terminal cursor (CursorState row/col are viewport-relative to the live page); only show it when
-            // following the live bottom and focused. Only the focused control owns the real cursor (Character.IsCursor).
-            if (IsFocused && _follow)
+            // The terminal cursor (CursorState row/col are viewport-relative to the live page). Show it only when
+            // focused, following the live bottom, and the program hasn't hidden it (DECTCEM). Only the focused
+            // control owns the real cursor (Character.IsCursor); its DECSCUSR shape/blink rides the cell decoration.
+            var cursor = _terminal.CursorState;
+            if (IsFocused && _follow && cursor.ShowCursor)
             {
-                var cx = _terminal.CursorState.CurrentColumn;
-                var cy = _terminal.CursorState.CurrentRow;
+                var cx = cursor.CurrentColumn;
+                var cy = cursor.CurrentRow;
                 if (cx >= 0 && cx < contentWidth && cy >= 0 && cy < height)
                 {
                     var cell = consoleBuffer[cx, cy].Character;
+                    var deco = CursorEncoding.EncodeStyle(cell.Decoration ?? Decoration.None, CursorStyleValue(cursor));
                     consoleBuffer.Write(new Position(cx, cy),
-                        new Character(cell.Content ?? ' ', cell.Foreground, cell.Background, cell.Decoration, isCursor: true));
+                        new Character(cell.Content ?? ' ', cell.Foreground, cell.Background, deco, isCursor: true));
                 }
             }
         }
@@ -323,13 +347,21 @@ public class TerminalEmulator : Control
         }
     }
 
-    private static Color? ParseWebColor(string? web)
+    // Map VtNetCore's cursor shape + blink to a DECSCUSR style value (the CursorStyle enum mirrors DECSCUSR 0-6).
+    private static int CursorStyleValue(TerminalCursorState s) => s.CursorShape switch
+    {
+        ECursorShape.Underline => (int)(s.BlinkingCursor ? CursorStyle.BlinkingUnderline : CursorStyle.SteadyUnderline),
+        ECursorShape.Bar       => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBar : CursorStyle.SteadyBar),
+        _                      => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock),
+    };
+
+    private static CColor? ParseWebColor(string? web)
     {
         if (string.IsNullOrEmpty(web) || web[0] != '#' || web.Length < 7) return null;
         return byte.TryParse(web.AsSpan(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var r)
             && byte.TryParse(web.AsSpan(3, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var g)
             && byte.TryParse(web.AsSpan(5, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
-            ? new Color(r, g, b)
+            ? new CColor(r, g, b)
             : null;
     }
 
@@ -345,8 +377,8 @@ public class TerminalEmulator : Control
     #region Fields
     private const int ScrollbarWidth = 1;
     private static readonly Character Blank = new(' ');
-    private static readonly Character ScrollThumb = new('█', new Color(0x9e, 0x9e, 0x9e), null, Decoration.None);
-    private static readonly Character ScrollTrack = new('░', new Color(0x44, 0x44, 0x44), null, Decoration.None);
+    private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, Decoration.None);
+    private static readonly Character ScrollTrack = new('░', new CColor(0x44, 0x44, 0x44), null, Decoration.None);
     private readonly string? _commandLine;
     private readonly VirtualTerminalController _terminal;
     private readonly DataConsumer _consumer;

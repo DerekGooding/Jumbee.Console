@@ -3,7 +3,7 @@
 
 using System.Text;
 
-using Jumbee.Console.Terminal;
+using Jumbee.Console;
 
 using VtNetCore.VirtualTerminal;
 using VtNetCore.XTermParser;
