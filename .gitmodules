@@ -7,3 +7,6 @@
 [submodule "ext/NTokenizers.Extensions.Spectre.Console"]
 	path = ext/NTokenizers.Extensions.Spectre.Console
 	url = https://github.com/allisterb/NTokenizers.Extensions.Spectre.Console.git
+[submodule "ext/VtNetCore"]
+	path = ext/VtNetCore
+	url = https://github.com/allisterb/VtNetCore.git
