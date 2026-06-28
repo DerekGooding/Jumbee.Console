@@ -33,12 +33,13 @@ public sealed class VtInputSource : IInputSource, IDisposable
     {
         _idleFlushMs = idleFlushMs;
         _mode = TerminalInputMode.Enable(anyMotion);
-        // When stdin is redirected, the mode opened /dev/tty for raw input — read from that fd so keyboard input
-        // still flows (the `myapp < file` / `echo x | myapp` case). Otherwise read stdin as usual. ownsHandle:false
-        // because TerminalInputMode owns the fd and closes it on dispose.
-        _stdin = _mode.OwnsInputFd
+        // On Unix read the raw tty fd we put into raw mode DIRECTLY (stdin when it's a tty, else the /dev/tty we
+        // opened) rather than Console.OpenStandardInput() — .NET's Console stdin machinery doesn't reliably deliver
+        // raw, byte-at-a-time interactive input on Unix. ownsHandle:false: TerminalInputMode owns/closes the fd.
+        _stdin = (!OperatingSystem.IsWindows() && _mode.InputFd >= 0)
             ? new FileStream(new SafeFileHandle(new IntPtr(_mode.InputFd), ownsHandle: false), FileAccess.Read)
             : Console.OpenStandardInput();
+        Log($"start win={OperatingSystem.IsWindows()} fd={_mode.InputFd} owns={_mode.OwnsInputFd} raw={_mode.RawModeApplied} stream={_stdin.GetType().Name}");
         _reader = new Thread(ReaderLoop) { IsBackground = true, Name = "Jumbee.VtInput" };
         _reader.Start();
     }
@@ -63,6 +64,8 @@ public sealed class VtInputSource : IInputSource, IDisposable
         var utf8 = Encoding.UTF8.GetDecoder();
         Task<int>? read = null;
         var flushedWhileIdle = false;
+        var loggedEof = false;
+        Log("reader thread started");
 
         while (_running)
         {
@@ -71,9 +74,11 @@ public sealed class VtInputSource : IInputSource, IDisposable
             {
                 int n;
                 try { n = read.Result; }
-                catch { break; } // stream closed (dispose)
+                catch (Exception ex) { Log($"read threw: {ex.GetType().Name}: {ex.Message}"); break; } // stream closed (dispose)
                 read = null;
-                if (n <= 0) { Thread.Sleep(_idleFlushMs); continue; } // EOF / closed handle
+                if (n <= 0) { if (!loggedEof) { Log("read returned EOF (<=0)"); loggedEof = true; } Thread.Sleep(_idleFlushMs); continue; }
+                loggedEof = false;
+                if (LogPath is not null) Log($"read {n} bytes: {Convert.ToHexString(bytes, 0, Math.Min(n, 16))}");
 
                 int charCount = utf8.GetChars(bytes, 0, n, chars, 0);
                 if (charCount > 0)
@@ -93,6 +98,15 @@ public sealed class VtInputSource : IInputSource, IDisposable
     private void Enqueue(IReadOnlyList<TerminalInputEvent> events)
     {
         foreach (var e in events) _queue.Enqueue(e);
+    }
+
+    // Opt-in input diagnostics: set JUMBEE_INPUT_LOG=/path to capture what the reader thread sees (handy for the
+    // untested-on-this-host Unix input path). No-op when the env var is unset.
+    private static readonly string? LogPath = Environment.GetEnvironmentVariable("JUMBEE_INPUT_LOG");
+    private static void Log(string msg)
+    {
+        if (LogPath is null) return;
+        try { File.AppendAllText(LogPath, $"{DateTime.Now:HH:mm:ss.fff} {msg}{Environment.NewLine}"); } catch { }
     }
 
     public void Dispose()
@@ -199,6 +213,9 @@ internal sealed class TerminalInputMode : IDisposable
 
     /// <summary><see langword="true"/> when <see cref="InputFd"/> is a /dev/tty we opened (read from it, not stdin).</summary>
     public bool OwnsInputFd => _ownsInputFd;
+
+    /// <summary><see langword="true"/> when raw/VT input mode was successfully applied (Unix termios or Win console mode).</summary>
+    public bool RawModeApplied => _termiosChanged || _modeChanged;
 
     #region Win32
     private const int STD_INPUT_HANDLE = -10;
