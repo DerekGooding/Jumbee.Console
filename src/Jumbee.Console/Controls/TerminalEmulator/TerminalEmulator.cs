@@ -164,9 +164,53 @@ public class TerminalEmulator : Control
         }
     }
 
-    // Scroll the view by a number of lines (negative = up into history, positive = toward the live bottom). Reading
-    // older lines = walking VtNetCore's viewport (ViewPort.TopRow) up; no separate scrollback buffer of our own.
-    protected override void OnMouseWheel(Position position, int delta) => ScrollByLines(delta);
+    // Tag cells for mouse so motion/hover (not just clicks) reach the control — needed to forward the mouse to a
+    // program that requested tracking.
+    protected override bool WantsMouse => true;
+
+    // Forward a left-button press/release to the program when it is tracking the mouse and we're at the live view;
+    // otherwise let the base behavior stand (the press already focused us via click-to-focus). The framework's
+    // mouse events carry no button/modifier, so only the left button (0) with no modifiers is reported.
+    protected override void OnMousePress(Position position) => ForwardMouse(position, button: 0, press: true);
+    protected override void OnMouseRelease(Position position) => ForwardMouse(position, button: 0, press: false);
+
+    // When the program is tracking the mouse and we're following the live screen, the wheel belongs to it (e.g.
+    // scrolling inside less/vim); otherwise it scrolls our own scrollback.
+    protected override void OnMouseWheel(Position position, int delta)
+    {
+        if (_terminal.MouseTrackingEnabled && _follow && InContent(position))
+            SendMouseReport(button: delta < 0 ? 64 : 65, position.X, position.Y, press: true);   // wheel up=64, down=65
+        else
+            ScrollByLines(delta);
+    }
+
+    private void ForwardMouse(Position position, int button, bool press)
+    {
+        if (_terminal.MouseTrackingEnabled && _follow && InContent(position))
+            SendMouseReport(button, position.X, position.Y, press);
+    }
+
+    // Inside the cell area the shell draws into (excludes the reserved scrollbar column).
+    private bool InContent(Position p) => p.X >= 0 && p.X < ContentWidth && p.Y >= 0 && p.Y < ActualHeight;
+
+    // Emit a mouse report in the encoding the program negotiated (SGR 1006, else X10/X11). VtNetCore's own
+    // MousePress can't encode the wheel (it masks the button to 2 bits), so we build the sequence directly.
+    private void SendMouseReport(int button, int col, int row, bool press)
+    {
+        byte[]? data = null;
+        if (_terminal.SgrMouseMode)
+        {
+            data = Encoding.UTF8.GetBytes($"\x1b[<{button};{col + 1};{row + 1}{(press ? 'M' : 'm')}");
+        }
+        else if (_terminal.X10SendMouseXYOnButton || _terminal.X11SendMouseXYOnButton
+            || _terminal.CellMotionMouseTracking || _terminal.UseAllMouseTracking)
+        {
+            var cb = press ? button : 3;   // legacy encoding has no per-button release: button 3 = "released"
+            data = [0x1b, (byte)'[', (byte)'M',
+                (byte)Math.Min(255, 32 + cb), (byte)Math.Min(255, 32 + col + 1), (byte)Math.Min(255, 32 + row + 1)];
+        }
+        if (data is { Length: > 0 }) WriteToProcess(data);
+    }
 
     private void ScrollByLines(int lines)
     {

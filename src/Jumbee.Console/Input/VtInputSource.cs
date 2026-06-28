@@ -135,9 +135,10 @@ public sealed class VtInputSource : IInputSource, IDisposable
 /// are emitted as ANSI on all platforms.
 /// </summary>
 /// <remarks>
-/// Unix raw mode disables <c>ISIG</c>, so Ctrl+C arrives as the byte <c>0x03</c> (a key event) rather than raising
-/// SIGINT — the application is responsible for its own quit affordance on Unix (this differs from Windows, which
-/// leaves Ctrl+C signalling intact).
+/// Ctrl+C is delivered as the byte <c>0x03</c> (a key event) rather than raising SIGINT — on Unix because raw mode
+/// disables <c>ISIG</c>, on Windows because <c>ENABLE_PROCESSED_INPUT</c> is cleared. So it reaches the app/shell
+/// uniformly (a terminal forwards it to interrupt the foreground program); the app owns its own quit affordance
+/// (e.g. Ctrl+Q). Ctrl+Break still raises a console event on Windows, so a hard escape remains.
 /// </remarks>
 internal sealed class TerminalInputMode : IDisposable
 {
@@ -158,7 +159,10 @@ internal sealed class TerminalInputMode : IDisposable
             if (GetConsoleMode(_stdinHandle, out _originalMode))
             {
                 var mode = _originalMode;
-                mode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_QUICK_EDIT_MODE);
+                // Clear PROCESSED_INPUT too so Ctrl+C is delivered as the byte 0x03 (a key event) instead of being
+                // eaten as a console Ctrl+C signal — matching Unix raw mode, so a terminal can forward it to the
+                // shell. (Ctrl+Break is unaffected and still raises an event, leaving a hard Windows escape.)
+                mode &= ~(ENABLE_PROCESSED_INPUT | ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_QUICK_EDIT_MODE);
                 mode |= ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS;
                 _modeChanged = SetConsoleMode(_stdinHandle, mode);
             }
@@ -219,6 +223,7 @@ internal sealed class TerminalInputMode : IDisposable
 
     #region Win32
     private const int STD_INPUT_HANDLE = -10;
+    private const uint ENABLE_PROCESSED_INPUT = 0x0001;      // off → Ctrl+C arrives as a 0x03 byte, not a signal
     private const uint ENABLE_LINE_INPUT = 0x0002;
     private const uint ENABLE_ECHO_INPUT = 0x0004;
     private const uint ENABLE_EXTENDED_FLAGS = 0x0080;

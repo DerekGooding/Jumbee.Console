@@ -122,6 +122,25 @@ public class TerminalEmulatorTests
     }
 
     [Fact]
+    public void Wheel_ScrollsScrollback_UnlessProgramTracksMouse()
+    {
+        var t = Manual();
+        ConsoleSnapshot.ToText(t, 24, 6);
+        for (var i = 0; i < 30; i++) t.Feed(Encoding.ASCII.GetBytes($"L{i:00}\r\n"));
+
+        // No mouse tracking: the wheel scrolls our scrollback into history.
+        Wheel(t, -12);
+        Assert.DoesNotContain("L29", ConsoleSnapshot.ToText(t, 24, 6));
+        Wheel(t, +100);   // snap back to the live bottom
+        Assert.Contains("L29", ConsoleSnapshot.ToText(t, 24, 6));
+
+        // Program enables mouse tracking (DECSET 1000): the wheel is forwarded to it, not consumed as scrollback.
+        t.Feed(Encoding.ASCII.GetBytes("\x1b[?1000h"));
+        Wheel(t, -12);
+        Assert.Contains("L29", ConsoleSnapshot.ToText(t, 24, 6));   // view unchanged — wheel went to the program
+    }
+
+    [Fact]
     public void Scrollback_DrawsThumb_InLastColumn_WhenHistoryExists()
     {
         var t = Manual();
