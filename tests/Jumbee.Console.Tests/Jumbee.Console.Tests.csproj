@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
     <ProjectReference Include="..\..\src\Jumbee.Console.Snapshot\Jumbee.Console.Snapshot.csproj" />
+    <ProjectReference Include="..\..\src\Jumbee.Console.Terminal\Jumbee.Console.Terminal.csproj" />
   </ItemGroup>
 
   <ItemGroup>

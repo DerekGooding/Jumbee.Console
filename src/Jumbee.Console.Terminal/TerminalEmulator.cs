@@ -21,7 +21,13 @@ using VtNetCore.XTermParser;
 public class TerminalEmulator : Control
 {
     #region Constructors
-    public TerminalEmulator(string commandLine = "cmd.exe")
+    /// <summary>
+    /// Creates a terminal. With a <paramref name="commandLine"/> the control launches that process in a pseudo
+    /// console once it is sized. Pass <see langword="null"/> (or whitespace) to skip spawning and drive the
+    /// emulator manually by pushing bytes through <see cref="Feed"/> — useful for embedding an existing stream
+    /// (e.g. an SSH channel) or for headless tests.
+    /// </summary>
+    public TerminalEmulator(string? commandLine = "cmd.exe")
     {
         _commandLine = commandLine;
         _terminal = new VirtualTerminalController();
@@ -34,20 +40,36 @@ public class TerminalEmulator : Control
     public override bool HandlesInput => true;
     #endregion
 
+    #region Events
+    /// <summary>Raised on the UI thread after the child process exits (never for a manually-driven terminal).</summary>
+    public event Action? Exited;
+    #endregion
+
     #region Methods
+    // A terminal owns its own scrollback, so it must fill the framing viewport rather than be given a frame's
+    // unbounded scroll height — otherwise it balloons to ~1000 rows, oversizing the PTY and pushing live output
+    // off-screen (no auto-scroll). Opting out makes the frame offer the bounded viewport height instead.
+    protected override bool FillsFrameViewport => true;
+
+    // The cell columns the shell draws into: the control width minus the column reserved for the scrollbar.
+    private int ContentWidth => Math.Max(1, ActualWidth - ScrollbarWidth);
+
     // Start (or re-size) the PTY once the control has a real cell area. Runs on the UI thread.
     protected override void Control_OnInitialization()
     {
-        var cols = (short)Math.Max(1, ActualWidth);
+        var cols = (short)Math.Max(1, ContentWidth);
         var rows = (short)Math.Max(1, ActualHeight);
         if (cols <= 1 && rows <= 1) return;
 
-        _terminal.ResizeView(ActualWidth, ActualHeight);
+        _terminal.ResizeView(ContentWidth, ActualHeight);
+
+        // No command line → manual-drive mode (bytes arrive via Feed); nothing to spawn or resize.
+        if (string.IsNullOrWhiteSpace(_commandLine)) { Invalidate(); return; }
 
         if (_pty is null)
         {
             _pty = ConPty.Start(_commandLine, cols, rows);
-            _pty.Exited += () => UI.Post(Invalidate);
+            _pty.Exited += () => UI.Post(() => { Invalidate(); Exited?.Invoke(); });
             _cts = new CancellationTokenSource();
             _ = ReadLoopAsync(_pty, _cts.Token);
         }
@@ -56,6 +78,21 @@ public class TerminalEmulator : Control
             _pty.Resize(cols, rows);
         }
         Invalidate();
+    }
+
+    /// <summary>
+    /// Pushes raw terminal output bytes into the emulator and repaints. Called by the PTY read loop, and available
+    /// for manually-driven terminals (see the <see langword="null"/>-command-line constructor). Safe to call from
+    /// any thread — the work is marshaled onto the UI thread.
+    /// </summary>
+    public void Feed(byte[] data)
+    {
+        if (data is null || data.Length == 0) return;
+        UI.Invoke(() =>
+        {
+            _consumer.Push(data);
+            Invalidate();
+        });
     }
 
     // Drains the child's output on a background thread and marshals each chunk onto the UI thread, where the
@@ -69,12 +106,7 @@ public class TerminalEmulator : Control
             {
                 var n = await pty.Output.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false);
                 if (n <= 0) break;
-                var chunk = buffer[..n];
-                UI.Post(() =>
-                {
-                    _consumer.Push(chunk);
-                    Invalidate();
-                });
+                Feed(buffer[..n]);
             }
         }
         catch (OperationCanceledException) { }
@@ -93,41 +125,114 @@ public class TerminalEmulator : Control
 
     protected override void OnInput(InputEvent inputEvent)
     {
-        var bytes = KeyToBytes(inputEvent.Key);
+        var key = inputEvent.Key;
+        // Shift+PageUp/PageDown scroll the scrollback (the Shift tier = view/scroll, per the framework's nav
+        // convention) instead of reaching the shell.
+        if ((key.Modifiers & ConsoleModifiers.Shift) != 0 && key.Key is ConsoleKey.PageUp or ConsoleKey.PageDown)
+        {
+            ScrollByLines(key.Key == ConsoleKey.PageUp ? -(ActualHeight - 1) : ActualHeight - 1);
+            inputEvent.Handled = true;
+            return;
+        }
+
+        var bytes = TranslateKey(key);
         if (bytes is { Length: > 0 })
         {
+            SnapToBottom();   // typing returns the view to the live prompt, as terminals do
             WriteToProcess(bytes);
             inputEvent.Handled = true;
         }
     }
 
-    public override void OnPaste(string text) => WriteToProcess(Encoding.UTF8.GetBytes(text));
+    // Scroll the view by a number of lines (negative = up into history, positive = toward the live bottom). Reading
+    // older lines = walking VtNetCore's viewport (ViewPort.TopRow) up; no separate scrollback buffer of our own.
+    protected override void OnMouseWheel(Position position, int delta) => ScrollByLines(delta);
 
-    // Map a key event to the bytes a terminal application expects. A first-pass subset — printable text, the common
-    // editing keys, arrows, and Ctrl+letter — enough to drive a shell; app-cursor-mode/keypad/F-keys come later.
-    private static byte[]? KeyToBytes(ConsoleKeyInfo key)
+    private void ScrollByLines(int lines)
     {
+        var liveTop = _terminal.ViewPort.TopRow;
+        var floor = Math.Max(0, liveTop - _terminal.MaximumHistoryLines);
+        var current = _follow ? liveTop : Math.Clamp(_viewTop, floor, liveTop);
+        var next = Math.Clamp(current + lines, floor, liveTop);
+        _follow = next >= liveTop;
+        _viewTop = next;
+        Invalidate();
+    }
+
+    private void SnapToBottom()
+    {
+        if (!_follow) { _follow = true; Invalidate(); }
+    }
+
+    public override void OnPaste(string text)
+    {
+        var body = Encoding.UTF8.GetBytes(text);
+        SnapToBottom();
+        // Bracketed paste (DECSET 2004): wrap the payload so the application can tell pasted text from typing.
+        WriteToProcess(_terminal.BracketedPasteMode ? [.. Esc("[200~"), .. body, .. Esc("[201~")] : body);
+    }
+
+    /// <summary>
+    /// Translates a key event into the bytes to send the process, honoring the emulator's current modes
+    /// (application-cursor mode, keypad, …). Navigation/function keys are mapped by VtNetCore so the sequences
+    /// track those modes; Enter/Escape/printables are handled here. Returns <see langword="null"/> for a key that
+    /// produces no input.
+    /// </summary>
+    public byte[]? TranslateKey(ConsoleKeyInfo key)
+    {
+        // Keys VtNetCore's table gets wrong: it emits LF for Enter (a shell wants CR) and a doubled ESC for Escape.
         switch (key.Key)
         {
             case ConsoleKey.Enter: return [(byte)'\r'];
-            case ConsoleKey.Backspace: return [0x7f];
-            case ConsoleKey.Tab: return [(byte)'\t'];
             case ConsoleKey.Escape: return [0x1b];
-            case ConsoleKey.UpArrow: return Esc("[A");
-            case ConsoleKey.DownArrow: return Esc("[B");
-            case ConsoleKey.RightArrow: return Esc("[C");
-            case ConsoleKey.LeftArrow: return Esc("[D");
-            case ConsoleKey.Home: return Esc("[H");
-            case ConsoleKey.End: return Esc("[F");
-            case ConsoleKey.Delete: return Esc("[3~");
         }
 
-        if ((key.Modifiers & ConsoleModifiers.Control) != 0 && key.KeyChar == '\0'
-            && key.Key is >= ConsoleKey.A and <= ConsoleKey.Z)
-            return [(byte)(key.Key - ConsoleKey.A + 1)];   // Ctrl+A..Z → 0x01..0x1A
+        var control = (key.Modifiers & ConsoleModifiers.Control) != 0;
+        var shift = (key.Modifiers & ConsoleModifiers.Shift) != 0;
+
+        // Named special keys → mode-aware sequence (arrows flip to SS3 under app-cursor mode, F-keys, Shift+Tab, …).
+        if (KeyName(key.Key) is { } name)
+        {
+            var seq = _terminal.GetKeySequence(name, control, shift);
+            if (seq is { Length: > 0 }) return seq;
+        }
+
+        // Ctrl+A..Z → 0x01..0x1A (when it didn't arrive as a control char in KeyChar).
+        if (control && key.KeyChar == '\0' && key.Key is >= ConsoleKey.A and <= ConsoleKey.Z)
+            return [(byte)(key.Key - ConsoleKey.A + 1)];
 
         return key.KeyChar != '\0' ? Encoding.UTF8.GetBytes([key.KeyChar]) : null;
     }
+
+    // ConsoleKey → the key name VtNetCore's translation table understands (null = not a special key).
+    private static string? KeyName(ConsoleKey key) => key switch
+    {
+        ConsoleKey.UpArrow => "Up",
+        ConsoleKey.DownArrow => "Down",
+        ConsoleKey.LeftArrow => "Left",
+        ConsoleKey.RightArrow => "Right",
+        ConsoleKey.Home => "Home",
+        ConsoleKey.End => "End",
+        ConsoleKey.PageUp => "PageUp",
+        ConsoleKey.PageDown => "PageDown",
+        ConsoleKey.Insert => "Insert",
+        ConsoleKey.Delete => "Delete",
+        ConsoleKey.Backspace => "Back",
+        ConsoleKey.Tab => "Tab",
+        ConsoleKey.F1 => "F1",
+        ConsoleKey.F2 => "F2",
+        ConsoleKey.F3 => "F3",
+        ConsoleKey.F4 => "F4",
+        ConsoleKey.F5 => "F5",
+        ConsoleKey.F6 => "F6",
+        ConsoleKey.F7 => "F7",
+        ConsoleKey.F8 => "F8",
+        ConsoleKey.F9 => "F9",
+        ConsoleKey.F10 => "F10",
+        ConsoleKey.F11 => "F11",
+        ConsoleKey.F12 => "F12",
+        _ => null,
+    };
 
     private static byte[] Esc(string tail)
     {
@@ -142,6 +247,7 @@ public class TerminalEmulator : Control
         var width = ActualWidth;
         var height = ActualHeight;
         if (width <= 0 || height <= 0) return;
+        var contentWidth = ContentWidth;
 
         // Blank the area first (the emulator only describes occupied spans).
         for (var y = 0; y < height; y++)
@@ -150,8 +256,13 @@ public class TerminalEmulator : Control
 
         try
         {
-            // GetPageSpans takes an absolute buffer line; ViewPort.TopRow is the top of the visible page.
-            var rows = _terminal.ViewPort.GetPageSpans(_terminal.ViewPort.TopRow, height);
+            // Resolve the page to show: follow the live bottom, or a fixed absolute line when scrolled into history.
+            var liveTop = _terminal.ViewPort.TopRow;
+            var floor = Math.Max(0, liveTop - _terminal.MaximumHistoryLines);
+            var top = _follow ? liveTop : Math.Clamp(_viewTop, floor, liveTop);
+
+            // GetPageSpans takes an absolute buffer line.
+            var rows = _terminal.ViewPort.GetPageSpans(top, height);
             for (var y = 0; y < rows.Count && y < height; y++)
             {
                 var x = 0;
@@ -167,20 +278,22 @@ public class TerminalEmulator : Control
 
                     foreach (var ch in span.Text)
                     {
-                        if (x >= width) break;
+                        if (x >= contentWidth) break;
                         consoleBuffer.Write(new Position(x, y), new Character(ch, fg, bg, deco));
                         x++;
                     }
                 }
             }
 
-            // The terminal cursor (CursorState row/col are already viewport-relative); only the focused control
-            // owns the real cursor (Character.IsCursor).
-            if (IsFocused)
+            DrawScrollBar(width - 1, height, top, floor, liveTop);
+
+            // The terminal cursor (CursorState row/col are viewport-relative to the live page); only show it when
+            // following the live bottom and focused. Only the focused control owns the real cursor (Character.IsCursor).
+            if (IsFocused && _follow)
             {
                 var cx = _terminal.CursorState.CurrentColumn;
                 var cy = _terminal.CursorState.CurrentRow;
-                if (cx >= 0 && cx < width && cy >= 0 && cy < height)
+                if (cx >= 0 && cx < contentWidth && cy >= 0 && cy < height)
                 {
                     var cell = consoleBuffer[cx, cy].Character;
                     consoleBuffer.Write(new Position(cx, cy),
@@ -189,6 +302,25 @@ public class TerminalEmulator : Control
             }
         }
         catch (Exception) { /* tolerate transient emulator state during resize */ }
+    }
+
+    // Draws the scrollback indicator in column <paramref name="col"/>: a thumb sized/positioned to the visible
+    // window within the (history + screen) content. Drawn only when there is scrollback to show.
+    private void DrawScrollBar(int col, int height, int top, int floor, int liveTop)
+    {
+        var available = liveTop - floor;          // history rows reachable above the live page
+        if (available <= 0 || col < 0) return;    // nothing scrolled off yet → leave the gutter blank
+
+        var total = available + height;           // full scrollable content height
+        var thumbSize = Math.Clamp((int)((long)height * height / total), 1, height);
+        var viewOffset = Math.Clamp(top - floor, 0, available);
+        var thumbStart = (int)((long)(height - thumbSize) * viewOffset / available);
+
+        for (var y = 0; y < height; y++)
+        {
+            var isThumb = y >= thumbStart && y < thumbStart + thumbSize;
+            consoleBuffer.Write(new Position(col, y), isThumb ? ScrollThumb : ScrollTrack);
+        }
     }
 
     private static Color? ParseWebColor(string? web)
@@ -211,11 +343,17 @@ public class TerminalEmulator : Control
     #endregion
 
     #region Fields
+    private const int ScrollbarWidth = 1;
     private static readonly Character Blank = new(' ');
-    private readonly string _commandLine;
+    private static readonly Character ScrollThumb = new('█', new Color(0x9e, 0x9e, 0x9e), null, Decoration.None);
+    private static readonly Character ScrollTrack = new('░', new Color(0x44, 0x44, 0x44), null, Decoration.None);
+    private readonly string? _commandLine;
     private readonly VirtualTerminalController _terminal;
     private readonly DataConsumer _consumer;
     private ConPty? _pty;
     private CancellationTokenSource? _cts;
+    // Scrollback view state: _follow pins the view to the live bottom; when false, _viewTop is the absolute top line.
+    private bool _follow = true;
+    private int _viewTop;
     #endregion
 }

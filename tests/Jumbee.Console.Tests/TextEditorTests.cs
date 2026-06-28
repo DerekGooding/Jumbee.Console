@@ -38,6 +38,20 @@ public class TextEditorTests
         Assert.Equal("x\ny", ed.Text);
         Assert.DoesNotContain('\r', ed.Text);
     }
+
+    [Fact]
+    public void Paste_TunnelsThroughFrame_ToWrappedControl()
+    {
+        // A framed control: the frame is the focus/routing node, so paste delivered to it (as the layout does)
+        // must still tunnel to the wrapped editor — previously it hit the IFocusable default no-op and was dropped.
+        var ed = new TextEditor();
+        ed.WithFrame(title: "framed");
+        ed.IsFocused = true;
+
+        ed.Frame!.OnPaste("pasted text");
+
+        Assert.Equal("pasted text", ed.Text);
+    }
     #endregion
 
     #region Tab key (indent)

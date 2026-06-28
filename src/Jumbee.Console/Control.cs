@@ -471,6 +471,15 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected virtual int MeasureHeight(int width) => 0;
 
     /// <summary>
+    /// When <see langword="true"/>, a wrapping <see cref="ControlFrame"/> sizes this control to its visible
+    /// viewport (a bounded height) instead of the frame's usual unbounded scroll height — so the control fills the
+    /// frame and the frame never scrolls it. For controls that manage their own scrolling internally (e.g. a
+    /// terminal emulator, which owns its scrollback); ballooning them to the scroll height would oversize them and
+    /// push live content out of view. Default <see langword="false"/> (normal frame-scrolling behavior).
+    /// </summary>
+    protected internal virtual bool FillsFrameViewport => false;
+
+    /// <summary>
     /// An intrinsic, fixed width in cells this control always wants regardless of the space its parent offers, or
     /// 0 (the default) to fill the parent's width. Unlike <see cref="MeasureHeight"/> — a content height honored
     /// only when the parent is unbounded — an intrinsic size is authoritative even under a finite parent. Override

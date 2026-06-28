@@ -96,6 +96,10 @@ public sealed class ConPty : IDisposable
         {
             var startup = new STARTUPINFOEX();
             startup.StartupInfo.cb = Marshal.SizeOf<STARTUPINFOEX>();
+            // STARTF_USESTDHANDLES with NULL std handles: the PSEUDOCONSOLE attribute redirects the child's std
+            // handles to the PTY. Without this flag the child attaches to the *parent's* console instead (its
+            // output never reaches our pipe) — this is the combination Microsoft's own vs-pty.net uses.
+            startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
             startup.lpAttributeList = attrList;
 
             if (!InitializeProcThreadAttributeList(attrList, 1, 0, ref attrSize))
@@ -132,6 +136,7 @@ public sealed class ConPty : IDisposable
     private readonly SafeProcessHandle _process;
 
     private const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
+    private const int STARTF_USESTDHANDLES = 0x00000100;
     private static readonly IntPtr PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
     private const uint INFINITE = 0xFFFFFFFF;
     #endregion
@@ -173,16 +178,18 @@ public sealed class ConPty : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct PROCESS_INFORMATION { public IntPtr hProcess; public IntPtr hThread; public int dwProcessId; public int dwThreadId; }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Unicode)]
     private struct STARTUPINFOEX { public STARTUPINFO StartupInfo; public IntPtr lpAttributeList; }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    // Blittable layout (IntPtr for the reserved/desktop/title strings) so marshalling STARTUPINFOEX by ref hands
+    // the native side a stable pointer with the attribute list intact — mirrors Microsoft's vs-pty.net.
+    [StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Unicode)]
     private struct STARTUPINFO
     {
         public int cb;
-        public string? lpReserved;
-        public string? lpDesktop;
-        public string? lpTitle;
+        public IntPtr lpReserved;
+        public IntPtr lpDesktop;
+        public IntPtr lpTitle;
         public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
         public short wShowWindow, cbReserved2;
         public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;

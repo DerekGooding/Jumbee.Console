@@ -520,6 +520,11 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    // Bracketed paste, like OnInput, must tunnel through the frame to the focused descendant — the routing layer
+    // delivers it to the frame (the focus node), not the wrapped control. Without this it hits the IFocusable
+    // default no-op and pasted text is silently dropped for any framed control.
+    public void OnPaste(string text) => (_control.FocusedControl ?? (IFocusable)_control).OnPaste(text);
+
     public void OnInput(InputEvent inputEvent)
     {
         if (inputEvent.Key == ScrollUpKey)
@@ -553,11 +558,19 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                 // Allow infinite height for scrolling, but constrain width to make space for scrollbar
                 // If MaxSize.Width is infinite, we don't constrain width (except by MinSize/Control)
                 // But we generally want to fit in MaxSize.                        
-                var limitWidth = Math.Max(0, controlLimitsMax.Width - 1);
+                // Reserve a column for the vertical scrollbar — except for a fill-viewport control, which never
+                // shows one, so giving up the column would just leave a blank gutter.
+                var fills = _control.FillsFrameViewport;
+                var limitWidth = Math.Max(0, controlLimitsMax.Width - (fills ? 0 : 1));
+
+                // Normally the child gets unbounded height so it can grow and be scrolled. A control that fills the
+                // viewport itself (e.g. a terminal managing its own scrollback) instead gets the bounded viewport
+                // height, so it sizes to the visible area and the frame never scrolls it.
+                var limitHeight = fills ? Math.Max(0, controlLimitsMax.Height) : int.MaxValue;
 
                 ControlContext?.SetLimits(
-                    new Size(Math.Max(0, controlLimitsMin.Width - 1), Math.Max(0, controlLimitsMin.Height)), 
-                    new Size(limitWidth, int.MaxValue)
+                    new Size(Math.Max(0, controlLimitsMin.Width - 1), Math.Max(0, controlLimitsMin.Height)),
+                    new Size(limitWidth, limitHeight)
                 );
 
                 // Clamp Top

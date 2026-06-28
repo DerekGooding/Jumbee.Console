@@ -347,10 +347,12 @@ public static class UI
     }
        
     /// <summary>
-    /// Executes an action within the UI lock, ensuring thread safety for UI updates.
+    /// Runs an action on the UI thread, marshaling automatically: inline when already on the UI thread (or when no
+    /// UI thread is running, e.g. headless/initialization), otherwise posted to the dispatcher queue. The primary
+    /// way to mutate control/layout state from another thread; requests a redraw afterwards.
     /// </summary>
     /// <param name="action">The action to execute.</param>
-    internal static void Invoke(Action action)
+    public static void Invoke(Action action)
     {
         // Auto-marshal: run inline when already on the UI thread (or when no UI thread is running, e.g.
         // headless/initialization), otherwise post the mutation to the UI thread. Layout/geometry changes
