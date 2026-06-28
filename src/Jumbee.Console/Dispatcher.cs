@@ -47,6 +47,12 @@ public sealed class Dispatcher
         ArgumentNullException.ThrowIfNull(frame);
         if (_running) return;
 
+        // A previous loop stopped from the UI thread itself does not Join (a thread cannot join itself), so it may
+        // still be unwinding when we restart. Wait for it to fully exit first — otherwise the old and new loops would
+        // briefly drain the same queue concurrently and could run posted work out of order.
+        var previous = _thread;
+        if (previous is not null && previous != Thread.CurrentThread) previous.Join(1000);
+
         _frame = frame;
         _frameIntervalMs = frameIntervalMs;
         _running = true;

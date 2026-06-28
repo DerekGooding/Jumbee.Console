@@ -295,7 +295,7 @@ public class Program
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+arrows: between regions", Color.White),
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+N/P: within a region", Color.White),
             new TextLabel(TextLabelOrientation.Horizontal, "F1: help   Ctrl+O: dialog", Color.White),
-            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+Q: quit", Color.White));
+            new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+T: theme   Ctrl+Q: quit", Color.White));
 
         // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it. Each button is
         // framed with a neutral (grey) square border; the focused one's border turns cyan (theme BorderFocusedText).
@@ -353,6 +353,17 @@ public class Program
         }
         openBtn.Activated += (_, _) => OpenDialog();
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.O), OpenDialog);   // Ctrl+Q quits (default); Esc closes the dialog
+
+        // Theme switch (Ctrl+T): toggles cool <-> retro, re-skinning the frames in place AND changing the modal scrim
+        // tint/dim — open a dialog (Ctrl+O) or help (F1) after switching to see the see-through scrim differ.
+        var retro = false;
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.T), () =>
+        {
+            retro = !retro;
+            UI.SetTheme(
+                retro ? new RetroStyleTheme() : new CoolStyleTheme(),
+                retro ? new RetroGlyphTheme() : new DefaultGlyphTheme());
+        });
 
         var run = UI.Start(overlay, width: 84, height: 17, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(bA);   // start on the first action button
@@ -920,6 +931,9 @@ file sealed class CoolStyleTheme : IStyleTheme
     public Style Primary => Style.White | Style.Bg(new Color(40, 70, 120));
     public Style PrimaryHover => Style.White | Style.Bg(new Color(60, 90, 150));
     public Style PrimaryActive => Style.White | Style.Bg(new Color(90, 130, 200));
+    // A cool blue-tinted modal scrim, lightly dimmed so the controls behind stay clearly visible.
+    public Style Scrim => Style.Bg(new Color(10, 15, 30));
+    public float ScrimDim => 0.5f;
 }
 
 file sealed class RetroStyleTheme : IStyleTheme
@@ -932,6 +946,9 @@ file sealed class RetroStyleTheme : IStyleTheme
     public Style Primary => Style.White | Style.Bg(new Color(90, 30, 90));
     public Style PrimaryHover => Style.White | Style.Bg(new Color(120, 45, 120));
     public Style PrimaryActive => Style.White | Style.Bg(new Color(160, 70, 160));
+    // A magenta-tinted modal scrim, more heavily dimmed for the retro look.
+    public Style Scrim => Style.Bg(new Color(35, 10, 35));
+    public float ScrimDim => 0.8f;
 }
 
 file sealed class RetroGlyphTheme : IGlyphTheme

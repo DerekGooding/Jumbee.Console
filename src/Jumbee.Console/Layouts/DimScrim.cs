@@ -34,12 +34,17 @@ internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListe
     {
         get
         {
-            // The popup on top wherever it has real content — kept verbatim so it carries its own mouse listener
-            // and stays clickable/interactive.
+            // The popup on top wherever it has real content — kept (with its own mouse listener) so it stays
+            // clickable/interactive. A popup cell with NO background of its own is composed over the scrim: it takes
+            // the dimmed backdrop instead of leaving a null background, which the renderer would emit as the
+            // terminal-default colour (black). So a transparent dialog shows the dimmed UI through it, never black.
             if (_popupContext.Contains(position))
             {
                 var cell = _popupContext[position];
-                if (cell.Character != Character.Empty) return cell;
+                if (cell.Character != Character.Empty)
+                    return cell.Character.Background.HasValue
+                        ? cell
+                        : new Cell(cell.Character.WithBackground(Dim(position).Character.Background), cell.MouseListener);
             }
 
             // Otherwise the layer beneath, dimmed and listener-less (so the scrim swallows the click → modal).

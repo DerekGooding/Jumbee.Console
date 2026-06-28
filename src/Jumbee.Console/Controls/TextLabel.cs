@@ -17,10 +17,14 @@ public enum TextLabelOrientation
 public class TextLabel : Control
 {
     #region Constructors
-    public TextLabel(TextLabelOrientation orientation, string text, Color fgcolor = default, Color bgcolor = default)
+    // Colours are nullable and default to transparent (null): an unset foreground inherits the terminal default and
+    // an unset background lets whatever is behind show through. Passing the non-nullable default(Color) here would
+    // paint an opaque BLACK background — invisible on a black terminal, but it dims to near-black under an overlay
+    // scrim (and blocks compositing), which is rarely what a plain label wants.
+    public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor = null, Color? bgcolor = null)
     {
         _orientation = orientation;
-        _text = text;        
+        _text = text;
         _fgcolor = fgcolor;
         _bgcolor = bgcolor;
         chars = new Cell[_text.Length];
@@ -28,15 +32,17 @@ public class TextLabel : Control
         Resize(size);
     }
     #endregion
-            
+
     #region Properties
-    public Color FgColor
+    /// <summary>Foreground colour, or <see langword="null"/> for the terminal default.</summary>
+    public Color? FgColor
     {
         get => _fgcolor;
         set => SetAtomicProperty(ref _fgcolor, value);
     }
 
-    public Color BgColor
+    /// <summary>Background colour, or <see langword="null"/> for transparent (shows whatever is behind).</summary>
+    public Color? BgColor
     {
         get => _bgcolor;
         set => SetAtomicProperty(ref _bgcolor, value);
@@ -111,8 +117,8 @@ public class TextLabel : Control
     #region Fields
     private TextLabelOrientation _orientation;
     private string _text = "";
-    private Color _fgcolor;
-    private Color _bgcolor;
+    private Color? _fgcolor;
+    private Color? _bgcolor;
     private Size size;
     private Cell[] chars = [];
     #endregion

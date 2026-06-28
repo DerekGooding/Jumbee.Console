@@ -129,9 +129,14 @@ public static class UI
         if (!isRunning) return;
         isRunning = false;
         cts.Cancel();
-        (inputSource as IDisposable)?.Dispose();   // restores terminal mode for a VtInputSource
-        dispatcher.Stop();
+        (inputSource as IDisposable)?.Dispose();   // restores terminal mode for a VtInputSource; helps unblock a reader
+        // Wait for the input reader thread to actually exit before returning. It reads the static `inputSource`, so a
+        // reader left running from a previous Start would otherwise keep consuming — and reorder — a later run's input
+        // (two consumers on one queue). It is a background thread and never the caller, so this join is safe/bounded.
+        var reader = inputThread;
         inputThread = null;
+        if (reader is not null && reader != Thread.CurrentThread) reader.Join(1000);
+        dispatcher.Stop();
         controls.Clear();
         ProcessMetrics.Stop();
         runCompletion.TrySetResult();

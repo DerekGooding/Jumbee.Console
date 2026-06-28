@@ -9,6 +9,8 @@ using Jumbee.Console.Snapshot;
 
 using Xunit;
 
+using CColor = ConsoleGUI.Data.Color;
+
 public class OverlayTests
 {
     private static (Overlay overlay, Button bottom) MakeOverlay()
@@ -145,6 +147,60 @@ public class OverlayTests
 
         Assert.Contains("MODALX", text);               // the popup
         Assert.Contains("bottom", text);               // the layer behind shows through the dimmed scrim
+    }
+
+    [Fact]
+    public void ModalScrim_DimsContent_AndVeilsTransparentCells_NotBlack()
+    {
+        // The exact path F1 help uses: UI.ShowHelp() compiles the help and calls overlay.ShowModal(...). Here we
+        // snapshot the composed overlay and evaluate the scrim's actual cell colours.
+        UI.StyleTheme = new DefaultStyleTheme();   // deterministic: tint (10,10,15), dim 0.6
+
+        // Bottom layer: a label with an explicit background at the top-left; everything else is transparent.
+        var label = new TextLabel(TextLabelOrientation.Horizontal, "AB", CColor.White, new CColor(200, 100, 50));
+        var overlay = new Overlay(new Grid([1], [6], [[label]]));
+
+        overlay.ShowModal(new Button("OK"));
+
+        var buf = ConsoleSnapshot.Render(overlay, 30, 10);
+
+        var tint = new CColor(10, 10, 15);       // DefaultStyleTheme.Scrim (ModalDim 0.6)
+
+        // 1) A transparent scrim cell (no control, away from the popup) is filled with the tint — a real colour, so it
+        //    renders as that colour rather than the terminal-default (which a null background would emit as black).
+        var backdrop = buf[25, 8].Background!.Value;
+        Assert.Equal(tint, backdrop);
+        Assert.NotNull(buf[25, 8].Background);   // a concrete colour, not a null/transparent (default-bg) cell
+
+        // 2) A real background dims toward the tint: content shows through darkened — between its colour and the tint.
+        var content = buf[0, 0].Background!.Value;
+        Assert.Equal(new CColor(200, 100, 50).Mix(tint, 0.6f), content);
+        Assert.True(content.Red is > 15 and < 200, $"content red {content.Red} should be dimmed, not original/black");
+        Assert.Equal('A', buf[0, 0].Content);
+
+        // 3) The popup is composited verbatim over the scrim (its text is present).
+        Assert.Contains("OK", ConsoleSnapshot.ToText(buf));
+    }
+
+    [Fact]
+    public void ModalScrim_ComposesTransparentPopupCells_OverScrim_NeverNullBackground()
+    {
+        UI.StyleTheme = new DefaultStyleTheme();
+        var overlay = new Overlay(new Grid([1], [6], [[new TextLabel(TextLabelOrientation.Horizontal, "x")]]));
+        // A popup whose text has no background of its own (transparent). Without composition over the scrim its cells
+        // would carry a null background, which the renderer emits as the terminal default (black).
+        overlay.ShowModal(new TextLabel(TextLabelOrientation.Horizontal, "POPUP", CColor.White));
+
+        var buf = ConsoleSnapshot.Render(overlay, 30, 10);
+
+        // Under the modal, every glyph is composed over the scrim — none renders on a null (default-black) background.
+        for (var y = 0; y < buf.Size.Height; y++)
+            for (var x = 0; x < buf.Size.Width; x++)
+            {
+                var cell = buf[x, y];
+                if (cell.Content is char ch && ch != ' ' && ch != '\0')
+                    Assert.True(cell.Background is not null, $"glyph '{ch}' at {x},{y} has a null (default-black) background");
+            }
     }
 
     [Fact]

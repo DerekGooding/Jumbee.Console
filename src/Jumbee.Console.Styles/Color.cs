@@ -40,7 +40,9 @@ public readonly partial struct Color
     public ConsoleGUIColor ToConsoleGUIColor() => new ConsoleGUIColor(R, G, B);    
 
     public static Color FromConsoleGUIColor(ConsoleGUIColor color) => new Color(color.Red, color.Green, color.Blue);
-    
+
+    public static Color FromSystemConsoleColor(System.ConsoleColor color) => SpectreColor.FromConsoleColor(color); 
+
     #endregion
 
     #region Operators

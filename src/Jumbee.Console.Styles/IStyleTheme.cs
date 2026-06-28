@@ -32,7 +32,7 @@ public interface IStyleTheme
 
     #region Structural
     /// <summary>A panel/container fill.</summary>
-    Style Surface => Style.Bg(new Color(20, 20, 28));
+    Style Surface => Style.Bg(new Color(30, 30, 38));
 
     /// <summary>The text/character style of a frame border at rest (its colour). Distinct from <see cref="FrameBorder"/>,
     /// which selects the border <em>shape</em>.</summary>
