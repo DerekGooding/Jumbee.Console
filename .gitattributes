@@ -1,0 +1,4 @@
+# Keep shell scripts LF so they run on Linux/WSL even with core.autocrlf=true.
+build      text eol=lf
+testdemo   text eol=lf
+*.sh       text eol=lf

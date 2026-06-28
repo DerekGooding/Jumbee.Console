@@ -1,6 +1,7 @@
 namespace Jumbee.Console;
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -10,14 +11,13 @@ using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
 /// <summary>
-/// A Unix pseudo terminal (Linux/macOS) session: <c>forkpty</c> launches the child attached to a new pty, and the
-/// controller (master) fd is exposed as input/output streams. Pure managed P/Invoke against libc/libutil — no
+/// A Unix pseudo terminal (Linux/macOS) session. Opens a pty (<c>posix_openpt</c>) and launches the child with
+/// <c>posix_spawn</c> — which fork+execs atomically in native code, so NO managed code runs in a forked child
+/// (a raw <c>fork()</c>/<c>forkpty()</c> segfaults the .NET runtime). Pure managed P/Invoke against libc — no
 /// shipped native binaries, mirroring <see cref="ConPty"/> on Windows.
 /// </summary>
 /// <remarks>
-/// NOTE: this compiles on any OS (P/Invoke declarations are just metadata) but only runs on Linux/macOS, and must
-/// be validated on a real Linux/macOS host (the same way ConPTY needs a real Windows console). Modeled on
-/// Microsoft's vs-pty.net <c>Linux/</c>+<c>Mac/</c> providers.
+/// Compiles on any OS (P/Invoke declarations are metadata) but only runs on Linux/macOS.
 /// </remarks>
 public sealed class UnixPty : IPty
 {
@@ -44,37 +44,66 @@ public sealed class UnixPty : IPty
     /// <summary>Launches <paramref name="commandLine"/> in a new pty of the given size.</summary>
     public static UnixPty Start(string commandLine, short columns, short rows)
     {
-        // Split the command line into program + args (simple whitespace split — adequate for a shell path).
+        // Open the pty controller (master) and unlock + name the subordinate (slave) side.
+        var controller = posix_openpt(O_RDWR);
+        if (controller < 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "posix_openpt failed");
+        if (grantpt(controller) != 0 || unlockpt(controller) != 0)
+        {
+            close(controller);
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "grantpt/unlockpt failed");
+        }
+
+        var subName = Marshal.PtrToStringUTF8(ptsname(controller))
+            ?? throw new InvalidOperationException("ptsname returned null");
+
+        // Size the pty before the child starts so it lays out correctly.
+        var winSize = new WinSize((ushort)Math.Max((short)1, rows), (ushort)Math.Max((short)1, columns));
+        ioctl(controller, TIOCSWINSZ, ref winSize);
+
         var parts = commandLine.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         var app = parts.Length > 0 ? parts[0] : "/bin/sh";
 
-        // Build argv (argv[0] = app) and the TERM env pair as native memory BEFORE the fork, so the child only
-        // makes blittable libc calls (no managed allocation/GC between fork and exec — the classic fork hazard).
-        var (argvElems, argvPtr) = BuildArgv(app, parts);
-        var termName = Marshal.StringToCoTaskMemUTF8("TERM");
-        var termValue = Marshal.StringToCoTaskMemUTF8("xterm-256color");
+        var (argvElems, argvPtr) = BuildStringArray(parts.Length > 0 ? parts : [app]);
+        var (envElems, envPtr) = BuildStringArray(BuildEnvironment());
+        var appPtr = Marshal.StringToCoTaskMemUTF8(app);
+        var subPtr = Marshal.StringToCoTaskMemUTF8(subName);
 
-        var winSize = new WinSize((ushort)Math.Max((short)1, rows), (ushort)Math.Max((short)1, columns));
-        var controller = 0;
-        var pid = ForkPty(ref controller, ref winSize);
-
-        if (pid == 0)
+        // File actions: the child opens the subordinate as stdin (acquiring it as its controlling terminal once it
+        // is a session leader — see SETSID below), dups it to stdout/stderr, and closes the inherited controller.
+        // The opaque structs are zeroed native blobs sized for glibc (macOS uses far less).
+        var fa = Marshal.AllocHGlobal(FileActionsSize);
+        var at = Marshal.AllocHGlobal(SpawnAttrSize);
+        Marshal.Copy(new byte[FileActionsSize], 0, fa, FileActionsSize);
+        Marshal.Copy(new byte[SpawnAttrSize], 0, at, SpawnAttrSize);
+        var pid = 0;
+        try
         {
-            // CHILD: only async-signal-safe-ish blittable calls until exec. Give the shell a sane TERM, exec it,
-            // and bail if exec fails. (No managed allocation here on purpose.)
-            setenv(termName, termValue, 1);
-            execvp(argvElems[0], argvPtr);
-            _exit(127);   // unreachable unless exec failed
+            posix_spawn_file_actions_init(fa);
+            posix_spawn_file_actions_addopen(fa, 0, subPtr, O_RDWR, 0);
+            posix_spawn_file_actions_adddup2(fa, 0, 1);
+            posix_spawn_file_actions_adddup2(fa, 0, 2);
+            posix_spawn_file_actions_addclose(fa, controller);
+
+            posix_spawnattr_init(at);
+            posix_spawnattr_setflags(at, POSIX_SPAWN_SETSID);   // new session → the opened tty becomes controlling
+
+            var rc = posix_spawnp(out pid, appPtr, fa, at, argvPtr, envPtr);
+            if (rc != 0) throw new Win32Exception(rc, $"posix_spawnp('{app}') failed");
+        }
+        finally
+        {
+            posix_spawn_file_actions_destroy(fa);
+            posix_spawnattr_destroy(at);
+            Marshal.FreeHGlobal(fa);
+            Marshal.FreeHGlobal(at);
+            FreeAll(argvElems); Marshal.FreeCoTaskMem(argvPtr);
+            FreeAll(envElems); Marshal.FreeCoTaskMem(envPtr);
+            Marshal.FreeCoTaskMem(appPtr);
+            Marshal.FreeCoTaskMem(subPtr);
         }
 
-        // PARENT: the child has its own (copy-on-write) copy of the marshalled memory, so free ours now.
-        FreeNative(argvElems, argvPtr, termName, termValue);
-
-        if (pid == -1)
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "forkpty failed");
-
-        // The controller fd is bidirectional; use a duplicate so concurrent read (loop) and write (input) don't
-        // contend on one FileStream. Each FileStream owns its fd and closes it on Dispose.
+        // The controller fd is bidirectional; use a duplicate so the read loop and input writes don't contend on
+        // one FileStream. Each FileStream owns its fd and closes it on Dispose.
         var writeFd = dup(controller);
         var output = new FileStream(new SafeFileHandle((nint)controller, ownsHandle: true), FileAccess.Read);
         var input = new FileStream(new SafeFileHandle((nint)writeFd, ownsHandle: true), FileAccess.Write);
@@ -93,13 +122,12 @@ public sealed class UnixPty : IPty
 
     public void Dispose()
     {
-        if (_pid > 0) kill(_pid, SIGHUP);   // ask the child to exit
-        Input.Dispose();                    // closes the controller + its dup
+        if (_pid > 0) kill(_pid, SIGHUP);
+        Input.Dispose();    // closes the controller + its dup
         Output.Dispose();
         _controller = -1;
     }
 
-    // Blocks a background thread on the child until it exits, then raises Exited.
     private void WatchForExit()
     {
         var t = new Thread(() =>
@@ -112,30 +140,31 @@ public sealed class UnixPty : IPty
         t.Start();
     }
 
-    private static int ForkPty(ref int controller, ref WinSize winSize) =>
-        OperatingSystem.IsMacOS()
-            ? forkpty_mac(ref controller, IntPtr.Zero, IntPtr.Zero, ref winSize)
-            : forkpty_linux(ref controller, IntPtr.Zero, IntPtr.Zero, ref winSize);
-
-    private static (IntPtr[] elems, IntPtr argv) BuildArgv(string app, string[] parts)
+    // The child's environment: the current process env with TERM forced to a sane value.
+    private static string[] BuildEnvironment()
     {
-        // elems: app, parts[1..], null terminator.
-        var elems = new IntPtr[parts.Length + 1];
-        elems[0] = Marshal.StringToCoTaskMemUTF8(app);
-        for (var i = 1; i < parts.Length; i++) elems[i] = Marshal.StringToCoTaskMemUTF8(parts[i]);
-        elems[^1] = IntPtr.Zero;
-
-        var argv = Marshal.AllocCoTaskMem(IntPtr.Size * elems.Length);
-        Marshal.Copy(elems, 0, argv, elems.Length);
-        return (elems, argv);
+        var env = new List<string>();
+        foreach (DictionaryEntry e in Environment.GetEnvironmentVariables())
+            if (!string.Equals(e.Key as string, "TERM", StringComparison.Ordinal))
+                env.Add($"{e.Key}={e.Value}");
+        env.Add("TERM=xterm-256color");
+        return [.. env];
     }
 
-    private static void FreeNative(IntPtr[] argvElems, IntPtr argv, IntPtr termName, IntPtr termValue)
+    // Marshals a managed string[] to a null-terminated native char** (each element UTF-8).
+    private static (IntPtr[] elems, IntPtr array) BuildStringArray(string[] items)
     {
-        foreach (var p in argvElems) if (p != IntPtr.Zero) Marshal.FreeCoTaskMem(p);
-        Marshal.FreeCoTaskMem(argv);
-        Marshal.FreeCoTaskMem(termName);
-        Marshal.FreeCoTaskMem(termValue);
+        var elems = new IntPtr[items.Length + 1];
+        for (var i = 0; i < items.Length; i++) elems[i] = Marshal.StringToCoTaskMemUTF8(items[i]);
+        elems[^1] = IntPtr.Zero;
+        var array = Marshal.AllocCoTaskMem(IntPtr.Size * elems.Length);
+        Marshal.Copy(elems, 0, array, elems.Length);
+        return (elems, array);
+    }
+
+    private static void FreeAll(IntPtr[] elems)
+    {
+        foreach (var p in elems) if (p != IntPtr.Zero) Marshal.FreeCoTaskMem(p);
     }
     #endregion
 
@@ -145,39 +174,40 @@ public sealed class UnixPty : IPty
 
     private const int EINTR = 4;
     private const int SIGHUP = 1;
-    // ioctl request to set the window size; the encoding differs between macOS and Linux.
+    private const int O_RDWR = 2;
+
+    // posix_spawn opaque structs: allocate the (larger) glibc sizes with headroom; macOS uses far less.
+    private const int FileActionsSize = 128;   // glibc posix_spawn_file_actions_t ≈ 80
+    private const int SpawnAttrSize = 512;      // glibc posix_spawnattr_t ≈ 336
+
+    // POSIX_SPAWN_SETSID differs by libc; TIOCSWINSZ ioctl request likewise.
+    private static short POSIX_SPAWN_SETSID => (short)(OperatingSystem.IsMacOS() ? 0x0400 : 0x80);
     private static ulong TIOCSWINSZ => OperatingSystem.IsMacOS() ? 0x80087467UL : 0x5414UL;
     #endregion
 
-    #region Native
-    // forkpty lives in libutil on Linux but in libc (libSystem) on macOS.
-    [DllImport("libutil.so.1", EntryPoint = "forkpty", SetLastError = true)]
-    private static extern int forkpty_linux(ref int amaster, IntPtr name, IntPtr termp, ref WinSize winp);
+    #region Native  (all in libc; on macOS "libc" resolves to libSystem)
+    [DllImport("libc", SetLastError = true)] private static extern int posix_openpt(int flags);
+    [DllImport("libc", SetLastError = true)] private static extern int grantpt(int fd);
+    [DllImport("libc", SetLastError = true)] private static extern int unlockpt(int fd);
+    [DllImport("libc", SetLastError = true)] private static extern IntPtr ptsname(int fd);
 
-    [DllImport("libc", EntryPoint = "forkpty", SetLastError = true)]
-    private static extern int forkpty_mac(ref int amaster, IntPtr name, IntPtr termp, ref WinSize winp);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_init(IntPtr fileActions);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addopen(IntPtr fileActions, int fd, IntPtr path, int oflag, uint mode);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_adddup2(IntPtr fileActions, int fd, int newFd);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addclose(IntPtr fileActions, int fd);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_destroy(IntPtr fileActions);
 
-    // The rest are in libc on both (on macOS "libc" resolves to libSystem).
-    [DllImport("libc", SetLastError = true)]
-    private static extern int execvp(IntPtr file, IntPtr argv);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_init(IntPtr attr);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_setflags(IntPtr attr, short flags);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_destroy(IntPtr attr);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int setenv(IntPtr name, IntPtr value, int overwrite);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawnp(out int pid, IntPtr file, IntPtr fileActions, IntPtr attr, IntPtr argv, IntPtr envp);
 
-    [DllImport("libc", EntryPoint = "_exit")]
-    private static extern void _exit(int status);
-
-    [DllImport("libc", SetLastError = true)]
-    private static extern int ioctl(int fd, ulong request, ref WinSize winSize);
-
-    [DllImport("libc", SetLastError = true)]
-    private static extern int dup(int fd);
-
-    [DllImport("libc", SetLastError = true)]
-    private static extern int waitpid(int pid, ref int status, int options);
-
-    [DllImport("libc", SetLastError = true)]
-    private static extern int kill(int pid, int sig);
+    [DllImport("libc", SetLastError = true)] private static extern int ioctl(int fd, ulong request, ref WinSize winSize);
+    [DllImport("libc", SetLastError = true)] private static extern int dup(int fd);
+    [DllImport("libc", SetLastError = true)] private static extern int close(int fd);
+    [DllImport("libc", SetLastError = true)] private static extern int waitpid(int pid, ref int status, int options);
+    [DllImport("libc", SetLastError = true)] private static extern int kill(int pid, int sig);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct WinSize
