@@ -19,9 +19,9 @@ using static Jumbee.Console.Style;
 public class Program
 {
     static async Task Main(string[] args)
-    {
-        //ConsoleManager.EmulateBlinkingCursor = true;
-        NavigationDemo(args);
+    {        
+        TerminalDemo(args);
+        //NavigationDemo(args);
         //TabsDemo(args);
         //CodeEditorDemo(args);
         //LinkDemo(args);
@@ -370,6 +370,105 @@ public class Program
         var run = UI.Start(overlay, width: 84, height: 17, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(bA);   // start on the first action button
         run.Wait();
+    }
+
+    // Terminal playground: a live shell (TerminalEmulator) framed alongside an interactive command list, action
+    // buttons, an animated Spinner, and a modal dialog — to shake out interactive/rendering bugs when a real
+    // subprocess, an animation, focus navigation, and a modal overlay all share the single UI thread.
+    //   * Type into the terminal; mouse-wheel / Shift+PageUp-Down scrolls its scrollback.
+    //   * Ctrl+arrows move between regions (terminal ⇄ commands ⇄ buttons); Ctrl+N/P within the button stack.
+    //   * Focus the Commands list and press Enter to run the selected command in the terminal.
+    //   * Buttons run a command / open a modal (also Ctrl+O). The Spinner keeps animating throughout.
+    //   * Ctrl+Q quits; typing 'exit' in the shell also closes it. Needs a VT terminal (e.g. Windows Terminal).
+    static void TerminalDemo(string[] args)
+    {
+        ConsoleManager.EmulateBlinkingCursor = true;
+        var shell = args.Length > 0 ? args[0] : ResolveShell();
+
+        var term = new TerminalEmulator(shell);
+        var baseTitle = $"{shell}  —  Ctrl+arrows to leave · type 'exit'";
+        // Neutral border (no explicit colour) so it turns the focus colour when focused, like the other regions —
+        // hard-coding it to Cyan1 (the focus colour) would make the frame look focused at all times.
+        term.WithRoundedBorder().WithTitle(baseTitle);
+        // The running program's window title (OSC 0/2) flows into the frame title.
+        term.TitleChanged += t => term.Frame!.Title = string.IsNullOrWhiteSpace(t) ? baseTitle : t;
+
+        var focusLabel = new TextLabel(TextLabelOrientation.Horizontal, "", Cyan1);
+        void ShowFocus(string n) => focusLabel.Text = $"Focused: {n}".PadRight(28);
+        term.OnFocus += () => ShowFocus("Terminal");
+
+        // Interactive command list — Enter runs the selected command in the terminal (then returns focus to it).
+        var commands = new[] { "dir", "git status -s", "echo hello from Jumbee", "$PSVersionTable" };
+        var cmds = new ListBox(commands) { SelectedForegroundColor = Color.White, SelectedBackgroundColor = Color.Blue };
+        cmds.OnFocus += () => ShowFocus("Commands (Enter runs)");
+        cmds.Committed += (_, _) =>
+        {
+            var i = cmds.SelectedIndex;
+            if (i >= 0 && i < commands.Length) { term.SendText(commands[i] + "\r"); UI.SetFocus(term); }
+        };
+        cmds.WithSquareBorder().WithTitle("Commands (Enter)");
+
+        // Action buttons (a multi-focusable region: Ctrl+N/P cycles within it).
+        var clearBtn = new Button("Clear (cls)"); clearBtn.Style = clearBtn.Style.WithShape(ButtonShape.Modern);
+        var aboutBtn = new Button("About ▸");     aboutBtn.Style = aboutBtn.Style.WithShape(ButtonShape.Modern);
+        clearBtn.OnFocus += () => ShowFocus("Clear button");
+        aboutBtn.OnFocus += () => ShowFocus("About button");
+        clearBtn.Activated += (_, _) => { term.SendText("cls\r"); UI.SetFocus(term); };
+        var actions = new Jumbee.Console.VerticalStackPanel(clearBtn, aboutBtn);
+
+        // Animated, non-focusable Spinner (navigation skips it) — proves the animation keeps ticking alongside the
+        // live terminal, the modal, and focus changes.
+        var spin = new Spinner { SpinnerType = Spectre.Console.Spinner.Known.Dots, Text = "live" };
+        spin.Start();
+        spin.WithSquareBorder().WithTitle("Spinner");
+
+        var hints = new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+O modal · Ctrl+Q quit", Color.Grey);
+
+        var grid = new Jumbee.Console.Grid(
+            [18, 7, 1],
+            [70, 28],
+            [
+                [term,        cmds],
+                [actions,     spin],
+                [focusLabel,  hints],
+            ]);
+        var overlay = new Overlay(grid);
+
+        // Modal dialog over the live terminal (the terminal keeps reading/rendering behind the scrim; input is
+        // exclusive until the dialog closes).
+        void OpenAbout()
+        {
+            var ok = new Button("OK   (Enter / Esc to close)");
+            ok.Activated += (_, _) => { overlay.Hide(); UI.SetFocus(term); };
+            ok.WithRoundedBorder(Yellow).WithTitle("Terminal demo — live PTY + VtNetCore");
+            overlay.ShowModal(ok);
+        }
+        aboutBtn.Activated += (_, _) => OpenAbout();
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.O), OpenAbout);
+
+        // Quit the UI loop when the child process exits (e.g. the user typed 'exit').
+        term.Exited += UI.Stop;
+
+        var run = UI.Start(overlay, width: 100, height: 28, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(term);
+        run.Wait();
+        term.Dispose();
+    }
+
+    // First shell on PATH from the preference list (cmd.exe is the guaranteed fallback).
+    static string ResolveShell()
+    {
+        foreach (var candidate in new[] { "pwsh.exe", "powershell.exe", "cmd.exe" })
+            if (OnPath(candidate)) return candidate;
+        return "cmd.exe";
+    }
+
+    static bool OnPath(string exe)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in path.Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+            try { if (System.IO.File.Exists(System.IO.Path.Combine(dir.Trim(), exe))) return true; } catch { }
+        return false;
     }
 
     // Interactive toggle-widgets demo: a Checkbox, a Switch, a single-select RadioSet and a multi-select

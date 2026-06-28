@@ -192,6 +192,15 @@ public class TerminalEmulator : Control
         WriteToProcess(_terminal.BracketedPasteMode ? [.. Esc("[200~"), .. body, .. Esc("[201~")] : body);
     }
 
+    /// <summary>Sends text to the process as if typed (UTF-8, no bracketed-paste wrapping). Include a trailing
+    /// <c>"\r"</c> to submit a line. Snaps the view back to the live bottom.</summary>
+    public void SendText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        SnapToBottom();
+        WriteToProcess(Encoding.UTF8.GetBytes(text));
+    }
+
     /// <summary>
     /// Translates a key event into the bytes to send the process, honoring the emulator's current modes
     /// (application-cursor mode, keypad, …). Navigation/function keys are mapped by VtNetCore so the sequences
