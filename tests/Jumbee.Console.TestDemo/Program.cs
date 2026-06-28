@@ -297,13 +297,15 @@ public class Program
             new TextLabel(TextLabelOrientation.Horizontal, "F1: help   Ctrl+O: dialog", Color.White),
             new TextLabel(TextLabelOrientation.Horizontal, "Ctrl+T: theme   Ctrl+Q: quit", Color.White));
 
-        // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it. Each button is
-        // framed with a neutral (grey) square border; the focused one's border turns cyan (theme BorderFocusedText).
+        // [0,0] Actions: a multi-focusable region (a stack of buttons) -> Ctrl+N/P cycles within it. The buttons use
+        // the modern raised bevel; the focused one reverses its label.
         var bA = new Button("Action A"); var bB = new Button("Action B"); var bC = new Button("Action C");
         bA.OnFocus += () => ShowFocus("Action A");
         bB.OnFocus += () => ShowFocus("Action B");
         bC.OnFocus += () => ShowFocus("Action C");
-        bA.WithSquareBorder(); bB.WithSquareBorder(); bC.WithSquareBorder();
+        bA.Style = bA.Style.WithShape(ButtonShape.Modern);
+        bB.Style = bB.Style.WithShape(ButtonShape.Modern);
+        bC.Style = bC.Style.WithShape(ButtonShape.Modern);
         var actions = new Jumbee.Console.VerticalStackPanel(bA, bB, bC);
 
         // [0,1] Files: a single interactive control -> plain Up/Down navigate; Ctrl+N/P is a no-op here. A neutral
@@ -320,8 +322,8 @@ public class Program
         // [1,0] Dock: a DockPanel (a different layout type) — a non-focusable header docked on top + a focusable
         // button filling below, so arrows enter the button and Ctrl+N/P is a no-op (one focusable in the region).
         var openBtn = new Button("Open dialog");
-        openBtn.OnFocus += () => ShowFocus("Open-dialog button");
-        openBtn.WithSquareBorder();   // neutral border; turns cyan when the button is focused
+        openBtn.Style = openBtn.Style.WithShape(ButtonShape.Modern);
+        openBtn.OnFocus += () => ShowFocus("Open-dialog button");   // focused button reverses its label
         var dockHeader = new TextLabel(TextLabelOrientation.Horizontal, "— dock region —", Color.White) { Height = 1 };
         var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Top, dockHeader, openBtn);
 
@@ -346,7 +348,7 @@ public class Program
         // Modal dialog: a framed OK button. While shown it has exclusive input (Enter activates, Esc = CloseKey).
         void OpenDialog()
         {
-            var ok = new Button("OK   (Enter / Esc to close)");
+            var ok = new Button("OK   (Enter / Esc to close)");   // borderless (default); the frame supplies border + title
             ok.Activated += (_, _) => overlay.Hide();
             ok.WithRoundedBorder(Cyan1).WithTitle("Modal — input is exclusive until closed");
             overlay.ShowModal(ok);
@@ -414,7 +416,7 @@ public class Program
         toppings.SelectionChanged += (_, _) => status.Text = ("Toppings: " + string.Join(", ", toppings.SelectedValues)).PadRight(44);
 
         var grid = new Jumbee.Console.Grid(
-            [2, 1, 1, 5, 6, 2],
+            [2, 1, 1, 5, 6, 3],   // last row 3 tall for the bordered button
             [46],
             [
                 [status],
@@ -437,9 +439,12 @@ public class Program
     // control can still depart from the active theme via its style setters).
     static Button ColorButton(string text, Color baseColor) => new Button(text)
     {
-        NormalStyle = Style.White | Style.Bg(baseColor),
-        HoverStyle = Style.White | Style.Bg(Lighten(baseColor, 25)),
-        PressStyle = Style.White | Style.Bg(Lighten(baseColor, 55)),
+        Style = new ButtonStyle(
+            normal: Style.White | Style.Bg(baseColor),
+            hover: Style.White | Style.Bg(Lighten(baseColor, 25)),
+            press: Style.White | Style.Bg(Lighten(baseColor, 55)),
+            shape: ButtonShape.Modern,   // opt into the modern raised look; edge highlights derive from the fill
+            minWidth: 16),
     };
 
     static Color Lighten(Color c, int by) =>
@@ -454,6 +459,7 @@ public class Program
         var overlay = new Overlay(bottom);
 
         var closeBtn = ColorButton("Close (or press Esc)", new Color(110, 40, 40));
+        closeBtn.Style = closeBtn.Style with { Shape = ButtonShape.Flat };   // the frame supplies the border + title
         closeBtn.WithRoundedBorder(Yellow).WithTitle("Modal dialog");
 
         openBtn.Activated += (_, _) => { status.Text = "Modal open — Close or Esc (bg blocked).".PadRight(40); overlay.ShowModal(closeBtn); };

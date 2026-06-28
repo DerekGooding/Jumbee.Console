@@ -65,6 +65,25 @@ public interface IStyleTheme
 
     /// <summary>A primary action surface while pressed/active.</summary>
     Style PrimaryActive => Style.White | Style.Bg(new Color(90, 130, 200));
+
+    /// <summary>A secondary/neutral action surface at rest.</summary>
+    Style Secondary => Style.Grey93 | Style.Bg(new Color(55, 55, 65));
+
+    /// <summary>A secondary action surface under the pointer.</summary>
+    Style SecondaryHover => Style.White | Style.Bg(new Color(75, 75, 88));
+
+    /// <summary>A secondary action surface while pressed/active.</summary>
+    Style SecondaryActive => Style.White | Style.Bg(new Color(100, 100, 115));
+    #endregion
+
+    #region Buttons
+    /// <summary>The default style for a primary <c>Button</c> (its per-state fills, border mode, and width).
+    /// Composed from the <see cref="Primary"/> family so a theme that recolours those gets a matching button for free.
+    /// Flat by default; a button can opt into <see cref="ButtonShape.Modern"/> for the raised look.</summary>
+    ButtonStyle PrimaryButton => new(Primary, PrimaryHover, PrimaryActive, minWidth: 16);
+
+    /// <summary>The default style for a secondary <c>Button</c>. Composed from the <see cref="Secondary"/> family.</summary>
+    ButtonStyle SecondaryButton => new(Secondary, SecondaryHover, SecondaryActive, minWidth: 16);
     #endregion
 
     #region Status

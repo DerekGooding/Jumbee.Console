@@ -41,7 +41,22 @@ public readonly partial struct Color
 
     public static Color FromConsoleGUIColor(ConsoleGUIColor color) => new Color(color.Red, color.Green, color.Blue);
 
-    public static Color FromSystemConsoleColor(System.ConsoleColor color) => SpectreColor.FromConsoleColor(color); 
+    public static Color FromSystemConsoleColor(System.ConsoleColor color) => SpectreColor.FromConsoleColor(color);
+
+    /// <summary>A copy of this colour blended <paramref name="amount"/> (0..1) of the way toward white.</summary>
+    public Color Lighten(double amount) => Lerp(this, White, amount);
+
+    /// <summary>A copy of this colour blended <paramref name="amount"/> (0..1) of the way toward black.</summary>
+    public Color Darken(double amount) => Lerp(this, Black, amount);
+
+    private static Color Lerp(Color a, Color b, double t)
+    {
+        t = System.Math.Clamp(t, 0.0, 1.0);
+        return new Color(
+            (byte)(a.R + (b.R - a.R) * t),
+            (byte)(a.G + (b.G - a.G) * t),
+            (byte)(a.B + (b.B - a.B) * t));
+    }
 
     #endregion
 

@@ -6,21 +6,28 @@ using System.Collections.Generic;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
-using Spectre.Console;
 using Spectre.Console.Rendering;
 
+// The button styles its label with the text Style type while exposing a themeable ButtonStyle named `Style`; alias
+// the text type so the property name doesn't shadow it inside this file.
+using TextStyle = Jumbee.Console.Style;
+
 /// <summary>
-/// A focusable, clickable button that renders a text label. Activates on a mouse click or on Enter/Space while
-/// focused, raising <see cref="Activated"/>. The background reflects hover and press state.
+/// A focusable, clickable button that renders a fixed-width text label. Activates on a mouse click or on
+/// Enter/Space while focused, raising <see cref="Activated"/>. Its appearance — per-state fills, border mode, and
+/// width — comes from a themeable <see cref="ButtonStyle"/> (<see cref="Style"/>): a flat single row by default,
+/// or a modern raised <see cref="ButtonShape.Modern"/> tile. Use <see cref="Primary"/>/<see cref="Secondary"/> to
+/// build one styled from the theme.
 /// </summary>
 public class Button : RenderableControl
 {
     #region Constructors
-    public Button(string text)
+    public Button(string text) : this(text, ButtonRole.Primary) { }
+
+    private Button(string text, ButtonRole role)
     {
         _text = text;
-        Width = LabelWidth(text);
-        Height = 1;
+        _role = role;
         ApplyTheme();
     }
     #endregion
@@ -40,40 +47,90 @@ public class Button : RenderableControl
     public string Text
     {
         get => _text;
-        set => SetAtomicProperty(ref _text, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth(_text));
+        set => SetAtomicProperty(ref _text, value, updatesLayout: true);
     }
 
-    /// <summary>Style at rest. Defaults to <see cref="IStyleTheme.Primary"/>.</summary>
-    public Style NormalStyle { get => _normalStyle; set => SetAtomicProperty(ref _normalStyle, value, themeOverride: true); }
-
-    /// <summary>Style while hovered. Defaults to <see cref="IStyleTheme.PrimaryHover"/>.</summary>
-    public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true); }
-
-    /// <summary>Style while pressed. Defaults to <see cref="IStyleTheme.PrimaryActive"/>.</summary>
-    public Style PressStyle { get => _pressStyle; set => SetAtomicProperty(ref _pressStyle, value, themeOverride: true); }
+    /// <summary>The button's whole appearance. Defaults to the theme's <see cref="IStyleTheme.PrimaryButton"/> (or
+    /// <see cref="IStyleTheme.SecondaryButton"/> for a <see cref="Secondary"/> button); setting it departs from the
+    /// theme. Changing the border or width re-lays the button out.</summary>
+    public ButtonStyle Style
+    {
+        get => _style;
+        set => SetAtomicProperty(ref _style, value, updatesLayout: true, themeOverride: true);
+    }
     #endregion
 
     #region Methods
+    /// <summary>Creates a primary-styled button (the theme's <see cref="IStyleTheme.PrimaryButton"/>).</summary>
+    public static Button Primary(string text) => new(text, ButtonRole.Primary);
+
+    /// <summary>Creates a secondary-styled button (the theme's <see cref="IStyleTheme.SecondaryButton"/>).</summary>
+    public static Button Secondary(string text) => new(text, ButtonRole.Secondary);
+
     /// <summary>Programmatically activate the button (the same path as a click).</summary>
     public void Activate() => Activated?.Invoke(this, EventArgs.Empty);
 
     protected override void ApplyTheme()
     {
-        if (!IsThemeOverridden(nameof(NormalStyle))) _normalStyle = UI.StyleTheme.Primary;
-        if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.PrimaryHover;
-        if (!IsThemeOverridden(nameof(PressStyle))) _pressStyle = UI.StyleTheme.PrimaryActive;
+        if (!IsThemeOverridden(nameof(Style)))
+            _style = _role == ButtonRole.Secondary ? UI.StyleTheme.SecondaryButton : UI.StyleTheme.PrimaryButton;
     }
+
+    protected override int IntrinsicWidth() => OuterWidth();
+
+    protected override int IntrinsicHeight() => _style.IsModern ? 3 : 1;
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var style = IsMousePressed ? _pressStyle : IsMouseOver ? _hoverStyle : _normalStyle;
+        var fill = IsMousePressed ? _style.Press : IsMouseOver ? _style.Hover : _style.Normal;
+        var label = _style.Bold ? fill | TextStyle.Bold : fill;
 
-        var label = $" {_text} ";
-        if (label.Length < maxWidth) label = label.PadRight(maxWidth);
-        else if (label.Length > maxWidth) label = label[..Math.Max(0, maxWidth)];
+        var outer = Math.Clamp(OuterWidth(), 0, maxWidth);
+        if (outer <= 0) return [];
 
-        yield return new Segment(label, style);
+        return _style.IsModern ? RenderBevel(fill, label, outer) : RenderFlat(label, outer);
     }
+
+    // A single-row text button (no border). Focus shows by reversing the label.
+    private IEnumerable<Segment> RenderFlat(TextStyle label, int outer)
+    {
+        yield return new Segment(Center(_text, outer), Focused(label));
+    }
+
+    // The modern, raised-tile look: a solid 3-row fill with a lighter top edge and darker bottom edge (the bevel
+    // colours derive from the fill background unless set). Pressing inverts the bevel for a "pushed in" feel;
+    // focus reverses the label.
+    private IEnumerable<Segment> RenderBevel(TextStyle fill, TextStyle label, int outer)
+    {
+        label = Focused(label);
+
+        if (fill.BackgroundColor is not { } bg)
+        {
+            // No fill background to derive a bevel from — fall back to a plain 3-row fill.
+            yield return new Segment(new string(' ', outer), fill);
+            yield return Segment.LineBreak;
+            yield return new Segment(Center(_text, outer), label);
+            yield return Segment.LineBreak;
+            yield return new Segment(new string(' ', outer), fill);
+            yield break;
+        }
+
+        var light = _style.BevelLight ?? bg.Lighten(0.30);
+        var dark = _style.BevelDark ?? bg.Darken(0.30);
+        if (IsMousePressed) (light, dark) = (dark, light);
+
+        var top = (TextStyle)light | TextStyle.Bg(bg);
+        var bottom = (TextStyle)dark | TextStyle.Bg(bg);
+
+        yield return new Segment(new string('▔', outer), top);
+        yield return Segment.LineBreak;
+        yield return new Segment(Center(_text, outer), label);
+        yield return Segment.LineBreak;
+        yield return new Segment(new string('▁', outer), bottom);
+    }
+
+    // Reverse the label while focused (matching Textual's focused buttons), a strong, font-independent focus cue.
+    private TextStyle Focused(TextStyle label) => IsFocused ? label | TextStyle.Invert : label;
 
     // Mouse click (press+release on this control) is synthesized by the base Control.
     protected override void OnClick(Position position) => Activate();
@@ -87,13 +144,31 @@ public class Button : RenderableControl
         }
     }
 
-    private static int LabelWidth(string text) => text.Length + 2;   // a space of padding either side
+    // The outer width: an explicit ButtonStyle.Width, else the label plus padding, never below ButtonStyle.MinWidth.
+    private int OuterWidth()
+    {
+        if (_style.Width > 0) return _style.Width;
+        return Math.Max(_text.Length + 2, _style.MinWidth);   // a space of padding either side
+    }
+
+    // Centres text within width, padding with spaces (or truncating when it doesn't fit).
+    private static string Center(string text, int width)
+    {
+        if (width <= 0) return string.Empty;
+        if (text.Length >= width) return text[..width];
+        var pad = width - text.Length;
+        var left = pad / 2;
+        return new string(' ', left) + text + new string(' ', pad - left);
+    }
     #endregion
 
     #region Fields
     private string _text;
-    private Style _normalStyle;
-    private Style _hoverStyle;
-    private Style _pressStyle;
+    private ButtonStyle _style;
+    private readonly ButtonRole _role;
+    #endregion
+
+    #region Types
+    private enum ButtonRole { Primary, Secondary }
     #endregion
 }
