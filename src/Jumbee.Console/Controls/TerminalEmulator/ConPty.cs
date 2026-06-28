@@ -14,7 +14,7 @@ using Microsoft.Win32.SafeHandles;
 /// stdin/stdout as streams. Pure managed P/Invoke against the OS conhost (Windows 10 1809+) — no shipped native
 /// binaries, so it is trim/single-file/AOT clean (unlike winpty-based wrappers).
 /// </summary>
-public sealed class ConPty : IDisposable
+public sealed class ConPty : IPty
 {
     #region Constructors
     private ConPty(IntPtr handle, Stream input, Stream output, SafeProcessHandle process)

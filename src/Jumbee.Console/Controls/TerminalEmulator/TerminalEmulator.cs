@@ -81,7 +81,7 @@ public class TerminalEmulator : Control
 
         if (_pty is null)
         {
-            _pty = ConPty.Start(_commandLine, cols, rows);
+            _pty = Pty.Start(_commandLine, cols, rows);
             _pty.Exited += () => UI.Post(() => { Invalidate(); Exited?.Invoke(); });
             _cts = new CancellationTokenSource();
             _ = ReadLoopAsync(_pty, _cts.Token);
@@ -110,7 +110,7 @@ public class TerminalEmulator : Control
 
     // Drains the child's output on a background thread and marshals each chunk onto the UI thread, where the
     // emulator is mutated and the control repainted (VtNetCore, like all UI state, is single-threaded here).
-    private async Task ReadLoopAsync(ConPty pty, CancellationToken ct)
+    private async Task ReadLoopAsync(IPty pty, CancellationToken ct)
     {
         var buffer = new byte[4096];
         try
@@ -391,7 +391,7 @@ public class TerminalEmulator : Control
     private readonly string? _commandLine;
     private readonly VirtualTerminalController _terminal;
     private readonly DataConsumer _consumer;
-    private ConPty? _pty;
+    private IPty? _pty;
     private CancellationTokenSource? _cts;
     // Scrollback view state: _follow pins the view to the live bottom; when false, _viewTop is the absolute top line.
     private bool _follow = true;

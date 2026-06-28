@@ -1,0 +1,26 @@
+namespace Jumbee.Console;
+
+using System;
+
+/// <summary>
+/// Factory that opens an <see cref="IPty"/> using the right backend for the current OS: the Windows pseudo console
+/// (<see cref="ConPty"/>) or a Unix pseudo terminal (<see cref="UnixPty"/>).
+/// </summary>
+public static class Pty
+{
+    /// <summary>Launches <paramref name="commandLine"/> in a new pseudo terminal of the given size.</summary>
+    public static IPty Start(string commandLine, short columns, short rows)
+    {
+        if (OperatingSystem.IsWindows())
+            return ConPty.Start(commandLine, columns, rows);
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            return UnixPty.Start(commandLine, columns, rows);
+        throw new PlatformNotSupportedException("A pseudo terminal requires Windows (ConPTY) or Linux/macOS.");
+    }
+
+    /// <summary>The OS default interactive shell: <c>cmd.exe</c> on Windows, <c>$SHELL</c> (or <c>/bin/bash</c>)
+    /// on Unix. Handy as the command line for <see cref="TerminalEmulator"/> on a non-Windows host.</summary>
+    public static string DefaultShell => OperatingSystem.IsWindows()
+        ? "cmd.exe"
+        : Environment.GetEnvironmentVariable("SHELL") is { Length: > 0 } shell ? shell : "/bin/bash";
+}
