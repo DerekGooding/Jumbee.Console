@@ -11,6 +11,11 @@ using Jumbee.Console.Snapshot;
 
 using Xunit;
 
+using CColor = ConsoleGUI.Data.Color;
+using CCharacter = ConsoleGUI.Data.Character;
+using CCell = ConsoleGUI.Data.Cell;
+using CDecoration = ConsoleGUI.Data.Decoration;
+
 /// <summary>
 /// Tests of the real ANSI render path (ConsoleManager → escape sequences → parsed screen) via
 /// <see cref="AnsiConsoleSnapshot"/>. These exercise the encoding/diff/cursor + serialized async output that the
@@ -99,4 +104,75 @@ public class AnsiSnapshotTests
         Assert.NotNull(c);
         Assert.Equal((r, g, b), ((int)c!.Value.Red, (int)c.Value.Green, (int)c.Value.Blue));
     }
+
+    [Fact]
+    public async Task Ansi_ColourSurvivesDecorationReset()
+    {
+        // Two adjacent cells, same colours, but the decoration drops Bold→None. The None case emits ESC[m which
+        // resets fg/bg in the terminal, so the encoder must re-emit the colours on the next cell even though they
+        // "didn't change". Regression for that latent bug.
+        var red = new CColor(200, 0, 0);
+        var blue = new CColor(0, 0, 200);
+        var grid = new CellGrid(new[,]
+        {
+            { Glyph('A', red, blue, CDecoration.Bold), Glyph('B', red, blue, CDecoration.None) },
+        });
+
+        var screen = await AnsiConsoleSnapshot.RenderAsync(grid, 2, 1);
+        var b = screen.Buffer[1, 0].Character;
+
+        Assert.Equal('B', b.Content);
+        Assert.NotNull(b.Foreground);
+        Assert.Equal((200, 0, 0), ((int)b.Foreground!.Value.Red, (int)b.Foreground.Value.Green, (int)b.Foreground.Value.Blue));
+        Assert.NotNull(b.Background);
+        Assert.Equal((0, 0, 200), ((int)b.Background!.Value.Red, (int)b.Background.Value.Green, (int)b.Background.Value.Blue));
+    }
+
+    [Fact]
+    public async Task Ansi_DecorationsDoNotAccumulate()
+    {
+        // Bold then Italic on adjacent cells. SGR codes accumulate in a terminal, so the encoder must clear the old
+        // decoration — otherwise the second cell becomes Bold+Italic. Regression for that latent bug.
+        var grid = new CellGrid(new[,]
+        {
+            { Glyph('A', null, null, CDecoration.Bold), Glyph('B', null, null, CDecoration.Italic) },
+        });
+
+        var screen = await AnsiConsoleSnapshot.RenderAsync(grid, 2, 1);
+        var b = screen.Buffer[1, 0].Character;
+
+        Assert.Equal(CDecoration.Italic, b.Decoration);   // not Bold | Italic
+    }
+
+    [Fact]
+    public async Task Ansi_ModernButton_BottomBevelKeepsFillBackground()
+    {
+        // The bottom bevel row follows the Bold label row (Bold→None), so it triggers the colour-after-reset bug:
+        // its fill background must survive. Regression for the visible "black bottom edge" glitch.
+        var btn = new Button("OK") { Style = ButtonStyle.Primary.WithShape(ButtonShape.Modern) };
+
+        var screen = await AnsiConsoleSnapshot.RenderAsync(btn, 18, 3);
+        var bg = screen.Buffer[2, 2].Character.Background;   // bottom row, inside the bevel
+
+        Assert.NotNull(bg);
+        Assert.Equal((40, 70, 120), ((int)bg!.Value.Red, (int)bg.Value.Green, (int)bg.Value.Blue));
+    }
+
+    private static CCell Glyph(char c, CColor? fg, CColor? bg, CDecoration deco) =>
+        new(new CCharacter(c, fg, bg, deco));
+}
+
+/// <summary>A fixed-size control that returns caller-specified cells, for testing the ANSI encoder with precise
+/// cell patterns. <c>cells[y, x]</c>.</summary>
+internal sealed class CellGrid(CCell[,] cells) : ConsoleGUI.Common.Control
+{
+    private readonly int _height = cells.GetLength(0);
+    private readonly int _width = cells.GetLength(1);
+
+    public override CCell this[ConsoleGUI.Space.Position position] =>
+        position.X >= 0 && position.X < _width && position.Y >= 0 && position.Y < _height
+            ? cells[position.Y, position.X]
+            : new CCell(CCharacter.Empty);
+
+    protected override void Initialize() => Resize(new ConsoleGUI.Space.Size(_width, _height));
 }

@@ -43,14 +43,11 @@ public static class AnsiConsoleSnapshot
             };
             ConsoleManager.Console = new HeadlessConsole { Size = new Size(width, height) };
             ConsoleManager.Setup();             // size the buffer to the console (resets the diff)
-            ConsoleManager.Content = content;   // lay the control out
+            ConsoleManager.Content = content;   // lay the control out (and emit it, if it renders eagerly)
 
-            UI.PaintFrame();                    // controls render into their own buffers
-            await ConsoleManager.OutputIdle.ConfigureAwait(false);   // let the setup/layout writes land
-            lock (capture) capture.Clear();     // discard them: we only want the final, full frame
-
-            ConsoleManager.Redraw();            // composite the painted buffers and emit one complete frame
-            await ConsoleManager.OutputIdle.ConfigureAwait(false);
+            UI.PaintFrame();                    // controls that paint into their own buffers (Jumbee) render now
+            ConsoleManager.Redraw();            // composite + emit the final frame (a diff; the parser accumulates)
+            await ConsoleManager.OutputIdle.ConfigureAwait(false);   // wait for the serialized writes to land
         }
         finally
         {

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- AOT is a first-class goal for Jumbee. The ConPTY backend is pure P/Invoke and VtNetCore is pure managed,
+         so this assembly is trim/AOT clean; the analyzers run on build to keep it that way. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jumbee.Console\Jumbee.Console.csproj" />
+    <PackageReference Include="VtNetCore" Version="1.0.30" />
+  </ItemGroup>
+
+</Project>
