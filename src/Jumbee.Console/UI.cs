@@ -8,8 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;   
+using System.Threading.Tasks;
 
 /// <summary>
 /// Manages the overall UI and provides a paint event for controls to subscribe to.
@@ -62,7 +63,30 @@ public static class UI
         // Start the input thread which blocks on the console and marshals each key onto the UI thread.
         inputThread = new Thread(InputLoop) { IsBackground = true, Name = "Jumbee.Console.Input" };
         inputThread.Start();
+        RegisterSignalHandlers();
         return runCompletion.Task;
+    }
+
+    // Safety hatch: catch external stop signals so a `kill`/`pkill` from another terminal (or the terminal window
+    // closing) ALWAYS restores the terminal and exits — even when the UI/input pipeline is wedged and no in-app
+    // quit (Ctrl+Q) can fire. Raw mode means Ctrl+C arrives as a byte (it reaches the app/shell, not us), so these
+    // handlers respond only to actual signals, not interactive keys.
+    private static void RegisterSignalHandlers()
+    {
+        signalRegistrations = [];
+        foreach (var signal in new[] { PosixSignal.SIGTERM, PosixSignal.SIGINT, PosixSignal.SIGQUIT, PosixSignal.SIGHUP })
+        {
+            try { signalRegistrations.Add(PosixSignalRegistration.Create(signal, OnSignal)); }
+            catch (Exception) { /* signal not supported on this platform (e.g. SIGHUP/SIGQUIT on Windows) */ }
+        }
+    }
+
+    private static void OnSignal(PosixSignalContext context)
+    {
+        // Restore the terminal synchronously (best effort) so it happens before the process terminates, then let
+        // the signal's default action stop us — we do NOT Cancel, so exit is guaranteed even if the loop is stuck.
+        isRunning = false;
+        try { (inputSource as IDisposable)?.Dispose(); } catch { /* best effort */ }
     }
 
     /// <summary>
@@ -137,6 +161,11 @@ public static class UI
         inputThread = null;
         if (reader is not null && reader != Thread.CurrentThread) reader.Join(1000);
         dispatcher.Stop();
+        if (signalRegistrations is not null)   // not disposed from a signal callback, so this never self-deadlocks
+        {
+            foreach (var r in signalRegistrations) r.Dispose();
+            signalRegistrations = null;
+        }
         controls.Clear();
         ProcessMetrics.Stop();
         runCompletion.TrySetResult();
@@ -516,6 +545,7 @@ public static class UI
     private static IGlyphTheme _glyphTheme = new DefaultGlyphTheme();
     private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
+    private static List<PosixSignalRegistration>? signalRegistrations;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     private static CancellationTokenSource cts = new CancellationTokenSource();
     private static CancellationToken cancellationToken = cts.Token;
