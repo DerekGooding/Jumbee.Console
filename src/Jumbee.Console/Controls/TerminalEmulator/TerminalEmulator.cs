@@ -147,21 +147,30 @@ public class TerminalEmulator : Control
         if (schedule) UI.Post(DrainOutput);
     }
 
-    // Apply all queued output to the emulator and repaint once. Runs on the UI thread; bounded in size because the
-    // read loop applies backpressure at OutputHighWater.
+    // Apply a BOUNDED batch of queued output to the emulator, then repaint. Parsing a flood (e.g. `yes`) is itself
+    // expensive — each "y\n" scrolls VtNetCore's history — so we cap the bytes parsed per call and, if more remains,
+    // re-post ourselves. Each re-post goes to the dispatcher queue's tail, so pending input interleaves between
+    // batches and the UI stays responsive (Ctrl+C still gets through to kill the flood). Runs on the UI thread.
     private void DrainOutput()
     {
-        List<byte[]> batch;
+        var batch = new List<byte[]>();
+        var pushed = 0;
+        bool more;
         lock (_outLock)
         {
-            batch = new List<byte[]>(_outChunks);
-            _outChunks.Clear();
-            _outBytes = 0;
-            _drainScheduled = false;
+            while (_outChunks.Count > 0 && pushed < OutputDrainCap)
+            {
+                var c = _outChunks.Dequeue();
+                _outBytes -= c.Length;
+                pushed += c.Length;
+                batch.Add(c);
+            }
+            more = _outChunks.Count > 0;
+            _drainScheduled = more;   // keep the chain alive while data remains; else let EnqueueOutput re-arm
         }
-        if (batch.Count == 0) return;
         foreach (var c in batch) _consumer.Push(c);
-        Invalidate();
+        if (batch.Count > 0) Invalidate();
+        if (more) UI.Post(DrainOutput);
     }
 
     private void OnTerminalSendData(object? sender, SendDataEventArgs e) => WriteToProcess(e.Data);
@@ -478,8 +487,9 @@ public class TerminalEmulator : Control
     // Scrollback view state: _follow pins the view to the live bottom; when false, _viewTop is the absolute top line.
     private bool _follow = true;
     private int _viewTop;
-    // Flow-controlled output: chunks from the read loop, applied to the emulator in one coalesced UI-thread drain.
+    // Flow-controlled output: chunks from the read loop, applied to the emulator on the UI thread in bounded batches.
     private const int OutputHighWater = 256 * 1024;   // pending bytes above which the read loop backs off
+    private const int OutputDrainCap = 16 * 1024;     // max bytes parsed per UI-thread batch (keeps input responsive)
     private readonly object _outLock = new();
     private readonly Queue<byte[]> _outChunks = new();
     private int _outBytes;
