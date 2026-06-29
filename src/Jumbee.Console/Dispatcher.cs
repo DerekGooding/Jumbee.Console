@@ -217,7 +217,11 @@ public sealed class Dispatcher
         while (_running)
         {
             _wake.WaitOne(_frameIntervalMs);
-            ProcessQueue();
+            // Process only the work already queued at frame start; work posted DURING the drain is deferred to the
+            // next frame. This is what keeps the render below from being starved by a producer that re-feeds the
+            // queue as fast as we drain it — e.g. the terminal output pump (DrainOutput re-posts itself under a
+            // `yes`-style flood). Without the bound, ProcessQueue never empties and the UI freezes.
+            ProcessQueue(_queue.Count);
             if (!_running) break;
 
             try { _frame?.Invoke(); }
@@ -229,9 +233,12 @@ public sealed class Dispatcher
         _thread = null;
     }
 
-    private void ProcessQueue()
+    // Runs queued actions. <paramref name="maxItems"/> caps how many are processed in this call (default: all),
+    // so the per-frame call can drain only what was pending at frame start and let work re-posted during the
+    // drain wait for the next frame — see UIFrameLoop.
+    private void ProcessQueue(int maxItems = int.MaxValue)
     {
-        while (_queue.TryDequeue(out var action))
+        while (maxItems-- > 0 && _queue.TryDequeue(out var action))
         {
             try { action(); }
             catch { /* a posted action error must not kill the UI thread */ }

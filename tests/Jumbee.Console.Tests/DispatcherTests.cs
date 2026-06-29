@@ -169,6 +169,30 @@ public class DispatcherTests
     }
 
     [Fact]
+    public void SelfRepostingWork_DoesNotStarveFrames()
+    {
+        // Reproduces the terminal flood freeze: the output pump (DrainOutput) re-posts itself while the producer
+        // keeps the queue fed, so a "drain until empty" frame loop never reaches the render. The frame must keep
+        // firing because the per-frame drain is bounded to the work pending at frame start.
+        var frames = 0;
+        using var firstFrame = new ManualResetEventSlim(false);
+        var d = new Dispatcher();
+        d.Start(() => { Interlocked.Increment(ref frames); firstFrame.Set(); }, frameIntervalMs: 5);
+        try
+        {
+            void Pump() { Thread.SpinWait(50); d.Post(Pump); }   // re-posts itself forever, like the flood pump
+            d.Post(Pump);
+
+            Assert.True(firstFrame.Wait(2000), "a frame must run even while self-reposting work floods the queue");
+            var before = Volatile.Read(ref frames);
+            Thread.Sleep(200);
+            Assert.True(Volatile.Read(ref frames) > before + 2,
+                $"frames must keep advancing under a self-reposting flood (before={before}, after={Volatile.Read(ref frames)})");
+        }
+        finally { d.Stop(); }
+    }
+
+    [Fact]
     public void Start_IsIdempotent_WhileRunning()
     {
         StartIdle(out var d);
