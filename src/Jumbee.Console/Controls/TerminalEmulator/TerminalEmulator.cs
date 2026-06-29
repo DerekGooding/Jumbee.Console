@@ -1,6 +1,7 @@
 namespace Jumbee.Console;
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Threading;
@@ -94,9 +95,9 @@ public class TerminalEmulator : Control
     }
 
     /// <summary>
-    /// Pushes raw terminal output bytes into the emulator and repaints. Called by the PTY read loop, and available
-    /// for manually-driven terminals (see the <see langword="null"/>-command-line constructor). Safe to call from
-    /// any thread — the work is marshaled onto the UI thread.
+    /// Pushes raw terminal output bytes into the emulator and repaints. Available for manually-driven terminals
+    /// (see the <see langword="null"/>-command-line constructor). Safe to call from any thread — the work is
+    /// marshaled onto the UI thread. (The PTY read loop uses the flow-controlled path, not this.)
     /// </summary>
     public void Feed(byte[] data)
     {
@@ -108,22 +109,59 @@ public class TerminalEmulator : Control
         });
     }
 
-    // Drains the child's output on a background thread and marshals each chunk onto the UI thread, where the
-    // emulator is mutated and the control repainted (VtNetCore, like all UI state, is single-threaded here).
+    // Drains the child's output on a background thread. To stay responsive under a flood (e.g. `yes`, which emits
+    // megabytes/sec), output is FLOW-CONTROLLED: chunks are queued and applied to the emulator in a single
+    // coalesced UI-thread drain (not one post per chunk, which would bury input in the dispatcher queue), and the
+    // loop stops reading once too far ahead so the PTY buffer fills and the producer blocks on write.
     private async Task ReadLoopAsync(IPty pty, CancellationToken ct)
     {
-        var buffer = new byte[4096];
+        var buffer = new byte[16384];
         try
         {
             while (!ct.IsCancellationRequested)
             {
                 var n = await pty.Output.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false);
                 if (n <= 0) break;
-                Feed(buffer[..n]);
+                EnqueueOutput(buffer[..n]);
+                while (!ct.IsCancellationRequested && PendingOutputBytes >= OutputHighWater)
+                    await Task.Delay(2, ct).ConfigureAwait(false);   // backpressure: let rendering catch up
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception) { /* pipe closed on exit */ }
+    }
+
+    private int PendingOutputBytes { get { lock (_outLock) return _outBytes; } }
+
+    // Queue a chunk for the UI thread, scheduling a single coalesced drain regardless of how many chunks pile up.
+    private void EnqueueOutput(byte[] chunk)
+    {
+        bool schedule;
+        lock (_outLock)
+        {
+            _outChunks.Enqueue(chunk);
+            _outBytes += chunk.Length;
+            schedule = !_drainScheduled;
+            _drainScheduled = true;
+        }
+        if (schedule) UI.Post(DrainOutput);
+    }
+
+    // Apply all queued output to the emulator and repaint once. Runs on the UI thread; bounded in size because the
+    // read loop applies backpressure at OutputHighWater.
+    private void DrainOutput()
+    {
+        List<byte[]> batch;
+        lock (_outLock)
+        {
+            batch = new List<byte[]>(_outChunks);
+            _outChunks.Clear();
+            _outBytes = 0;
+            _drainScheduled = false;
+        }
+        if (batch.Count == 0) return;
+        foreach (var c in batch) _consumer.Push(c);
+        Invalidate();
     }
 
     private void OnTerminalSendData(object? sender, SendDataEventArgs e) => WriteToProcess(e.Data);
@@ -440,5 +478,11 @@ public class TerminalEmulator : Control
     // Scrollback view state: _follow pins the view to the live bottom; when false, _viewTop is the absolute top line.
     private bool _follow = true;
     private int _viewTop;
+    // Flow-controlled output: chunks from the read loop, applied to the emulator in one coalesced UI-thread drain.
+    private const int OutputHighWater = 256 * 1024;   // pending bytes above which the read loop backs off
+    private readonly object _outLock = new();
+    private readonly Queue<byte[]> _outChunks = new();
+    private int _outBytes;
+    private bool _drainScheduled;
     #endregion
 }
