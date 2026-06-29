@@ -192,6 +192,29 @@ public class TerminalEmulatorTests
     }
 
     [Fact]
+    public void Flood_LargeOutput_DrainsThroughEmulator_WithoutHanging()
+    {
+        // A `yes`-style flood pushed THROUGH the emulator (parser + controller + history trim) — the path the
+        // BashIntegrationTests flood does NOT exercise (it reads the PTY bytes directly). Guards against the
+        // pathological histories that made this scenario peg the CPU (O(n^2) scrollback trim, per-glyph parser
+        // allocations). The ceiling is generous: it only fails if the pipeline regresses to non-linear behavior.
+        var t = Manual();
+        ConsoleSnapshot.ToText(t, 20, 6);   // init the viewport
+
+        const int lines = 200_000;
+        var line = Encoding.ASCII.GetBytes("y\r\n");
+        var payload = new byte[lines * line.Length];
+        for (var i = 0; i < lines; i++) Array.Copy(line, 0, payload, i * line.Length, line.Length);
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        t.Feed(payload);   // single parse pass over ~600 KB
+        sw.Stop();
+
+        Assert.True(sw.ElapsedMilliseconds < 5000, $"flood took {sw.ElapsedMilliseconds} ms — expected a linear drain");
+        Assert.Contains("y", ConsoleSnapshot.ToText(t, 20, 6));   // the live bottom still shows the flood
+    }
+
+    [Fact]
     public void Framed_SizesToViewport_NotScrollBalloon()
     {
         // A scrolling ControlFrame offers unbounded height; without MeasureHeight the terminal would balloon to
