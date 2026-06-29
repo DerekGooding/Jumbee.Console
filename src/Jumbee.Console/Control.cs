@@ -123,7 +123,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
                     OnLostFocus?.Invoke();
                 // Repaint so RenderCursor runs for both the old and new focus: only the focused control owns the
                 // terminal cursor, so the defocused one must clear its IsCursor cell.
-                Invalidate();
+                InvalidateInteractive();
             }
         }
     }
@@ -185,7 +185,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         IsMouseOver = true;
         OnMouseEnter();
         MouseEntered?.Invoke(this, EventArgs.Empty);
-        Invalidate();
+        InvalidateInteractive();
     }
 
     void IMouseListener.OnMouseLeave()
@@ -194,7 +194,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         IsMousePressed = false;
         OnMouseLeave();
         MouseLeft?.Invoke(this, EventArgs.Empty);
-        Invalidate();
+        InvalidateInteractive();
     }
 
     void IMouseListener.OnMouseMove(Position position)
@@ -209,7 +209,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         if (Focusable) UI.SetFocus(this);
         OnMousePress(position);
         MousePressed?.Invoke(this, position);
-        Invalidate();
+        InvalidateInteractive();
     }
 
     void IMouseListener.OnMouseUp(Position position)
@@ -235,7 +235,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             OnClick(position);
             Clicked?.Invoke(this, position);
         }
-        Invalidate();
+        InvalidateInteractive();
     }
     #endregion
 
@@ -362,6 +362,14 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         Interlocked.Increment(ref paintRequests);
         UI.MarkDirty();
     }
+
+    /// <summary>
+    /// Requests a repaint in response to an <em>interactive-state</em> change (focus gained/lost, mouse
+    /// enter/leave/press/release) rather than a content change. Defaults to <see cref="Invalidate"/>, so controls
+    /// behave exactly as before. <see cref="RenderableControl"/> overrides this to skip the (expensive) re-render
+    /// of its wrapped renderable when that renderable's output does not depend on interactive state.
+    /// </summary>
+    protected virtual void InvalidateInteractive() => Invalidate();
 
     /// <summary>
     /// Assigns a backing field and requests a redraw, but only when the value actually changes.

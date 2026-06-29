@@ -66,6 +66,9 @@ public class LineNumberGutter : RenderableControl
         if (!IsThemeOverridden(nameof(ActiveStyle))) _activeStyle = UI.StyleTheme.TextAccent;
     }
 
+    // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
+    protected override bool RendersInteractiveState => false;
+
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var width = Math.Min(ActualWidth > 0 ? ActualWidth : maxWidth, maxWidth);

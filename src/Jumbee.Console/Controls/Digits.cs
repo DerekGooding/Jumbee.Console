@@ -40,6 +40,9 @@ public class Digits : RenderableControl
         if (!IsThemeOverridden(nameof(DigitStyle))) _digitStyle = UI.StyleTheme.TextAccent;
     }
 
+    // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
+    protected override bool RendersInteractiveState => false;
+
     protected override Measurement Measure(RenderOptions options, int maxWidth)
     {
         var width = Math.Min(_text.Length * GlyphWidth, maxWidth);

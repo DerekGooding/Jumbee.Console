@@ -23,6 +23,37 @@ public abstract class RenderableControl : Control, IRenderable
     [DebuggerStepThrough]
     protected virtual Measurement Measure(RenderOptions options, int maxWidth) => new Measurement(maxWidth, maxWidth);
 
+    /// <summary>
+    /// Whether this control's rendered output depends on interactive state (focus / mouse hover / press) — i.e.
+    /// whether <see cref="Render(RenderOptions, int)"/> reads <see cref="Control.IsFocused"/>, <c>IsMouseOver</c>,
+    /// or <c>IsMousePressed</c>. When <see langword="false"/>, focus/mouse changes skip the (expensive) Spectre
+    /// re-render and reuse the cached buffer — the retained-mode fast path. Defaults to <see langword="true"/>
+    /// (always re-render), so controls that highlight on hover/focus keep working without opting in.
+    /// </summary>
+    protected virtual bool RendersInteractiveState => true;
+
+    // Content changes go through Invalidate(), which marks the buffer stale so the next paint re-runs the Spectre
+    // pipeline. Interactive-state changes route through InvalidateInteractive() below, which (for content-only
+    // controls) requests a repaint WITHOUT re-rendering.
+    protected override void Invalidate()
+    {
+        _contentDirty = true;
+        base.Invalidate();
+    }
+
+    protected override void InvalidateInteractive()
+    {
+        if (RendersInteractiveState)
+        {
+            Invalidate();
+        }
+        else
+        {
+            // Output is independent of focus/hover: keep the cached render, just request the cheap repaint/composite.
+            base.Invalidate();
+        }
+    }
+
     protected override void Initialize()
     {        
         UI.Invoke(() => 
@@ -50,10 +81,25 @@ public abstract class RenderableControl : Control, IRenderable
     /// </summary>
     protected sealed override void Render()
     {
+        // Retained-mode fast path: re-run the Spectre pipeline only when the content (or size/theme) actually
+        // changed. Interactive-state-only repaints (hover/focus on a content-only control) leave _contentDirty
+        // false, so the cached cells already in consoleBuffer are reused — see InvalidateInteractive.
+        if (!_contentDirty)
+        {
+            return;
+        }
+
+        _contentDirty = false;
         ansiConsole.Clear(true);
         // We probably want to render with the full width of the control
         // Spectre will look at the Profile.Width which comes from the IConsole.Size (BufferConsole.Size)
         ansiConsole.Write(this);
     }
+    #endregion
+
+    #region Fields
+    // True when the wrapped renderable must be re-rendered into consoleBuffer on the next paint. Set by Invalidate
+    // (content/size/theme changes); cleared after a render. Starts true so the first paint renders.
+    private bool _contentDirty = true;
     #endregion
 }

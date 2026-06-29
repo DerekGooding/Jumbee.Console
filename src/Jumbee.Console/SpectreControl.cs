@@ -53,7 +53,12 @@ public class SpectreControl<T> : RenderableControl where T : IRenderable
 
     protected override Measurement Measure(RenderOptions options, int maxWidth) => _content.Measure(options, maxWidth);
 
-    protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth) => _content.Render(options, maxWidth);  
+    protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth) => _content.Render(options, maxWidth);
+
+    // Output is purely the wrapped content (Render never reads focus/hover), so skip re-rendering on interactive
+    // state changes and reuse the cached buffer. Content changes still go through the Content setter / UpdateContent
+    // (both call Invalidate).
+    protected override bool RendersInteractiveState => false;
     
     #endregion
 

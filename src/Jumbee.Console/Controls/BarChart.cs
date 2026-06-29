@@ -405,6 +405,9 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         Invalidate();
     }
 
+    // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
+    protected override bool RendersInteractiveState => false;
+
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         // Rebuild structure lazily on the UI thread, coalescing any structural changes since the last render.

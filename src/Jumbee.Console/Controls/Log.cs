@@ -45,6 +45,9 @@ public class Log : RenderableControl
         Invalidate();
     });
 
+    // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
+    protected override bool RendersInteractiveState => false;
+
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (_entries.Count == 0) return [];
