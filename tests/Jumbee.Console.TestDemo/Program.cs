@@ -20,7 +20,7 @@ public class Program
 {
     static async Task Main(string[] args)
     {        
-        TerminalDemo(args);
+        //TerminalDemo(args);
         //NavigationDemo(args);
         //TabsDemo(args);
         //CodeEditorDemo(args);
@@ -35,6 +35,7 @@ public class Program
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
+        InputsDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
@@ -548,6 +549,105 @@ public class Program
 
     static Color Lighten(Color c, int by) =>
         new((byte)Math.Min(255, c.R + by), (byte)Math.Min(255, c.G + by), (byte)Math.Min(255, c.B + by));
+
+    // Phase 1 controls (TextInput, Badge, Footer) in a "Posting"-style request bar.
+    //   * Click the URL field (or Tab to it) and type; arrows/Shift+arrows/Ctrl+A edit & select; Enter sends.
+    //   * Click "Send" (or press Enter in the URL) -> the status Badge turns green "200 OK" and the request is logged.
+    //   * Fill the Header / Value fields and click "Add" -> the header is appended to the Activity log.
+    //   * Ctrl+M opens the method dropdown. Tab / Shift+Tab move focus; Ctrl+Q quits; F1 help.
+    // Needs a VT terminal (e.g. Windows Terminal).
+    static void InputsDemo(string[] args)
+    {
+        var method = new Select("GET", "POST", "PUT", "DELETE", "PATCH") { Placeholder = "GET" };
+        var url = new TextInput(placeholder: "https://api.example.com/…   (Enter to send)");
+        var send = new Button("Send");
+        var statusBadge = new Badge("—");
+        var reqRow = new Jumbee.Console.Grid([1], [12, 50, 8, 12], [[method, url, send, statusBadge]]);
+
+        var keyInput = new TextInput(placeholder: "Header");
+        var valueInput = new TextInput(placeholder: "Value");
+        var addBtn = new Button("Add");
+        var addRow = new Jumbee.Console.Grid([1], [26, 40, 8], [[keyInput, valueInput, addBtn]]);
+
+        var log = new Log();
+        var logFramed = log.WithSquareBorder().WithTitle("Activity");
+
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Type a URL and press Enter (or click Send).".PadRight(80), Color.White);
+
+        // Declared before the menu bar so its item actions can close over them.
+        var currentMethod = "GET";
+        var methods = new[] { "GET", "POST", "PUT", "DELETE", "PATCH" };
+
+        // A menu bar across the top: click a title (or Tab to the bar and press Enter/Down) to drop a non-modal
+        // menu; clicking elsewhere or pressing Esc dismisses it. Items run the same actions as the buttons.
+        var menuBar = new MenuBar()
+            .Add("Request",
+                new MenuItem("Send", () => Send()) { Shortcut = "Enter" },
+                new MenuItem("Add header", () => AddHeader()),
+                MenuItem.Separator,
+                new MenuItem("Quit", () => UI.Stop()) { Shortcut = "^c" })
+            .Add("Method",
+                new MenuItem("GET", () => SetMethod("GET")),
+                new MenuItem("POST", () => SetMethod("POST")),
+                new MenuItem("PUT", () => SetMethod("PUT")),
+                new MenuItem("DELETE", () => SetMethod("DELETE")),
+                new MenuItem("PATCH", () => SetMethod("PATCH")))
+            .Add("View",
+                new MenuItem("Clear activity log", () => log.Clear()));
+
+        var body = new Jumbee.Console.Grid(
+            [1, 1, 1, 1, 1, 10, 1],
+            [82],
+            [
+                [menuBar],
+                [reqRow],
+                [new TextLabel(TextLabelOrientation.Horizontal, "", Color.White)],
+                [new TextLabel(TextLabelOrientation.Horizontal, "Add a header:", Color.White)],
+                [addRow],
+                [logFramed],
+                [status],
+            ]);
+
+        var footer = new Footer(
+            new FooterHint("Enter", "Send"), new FooterHint("^m", "Method"),
+            new FooterHint("Tab", "Move"), new FooterHint("^c", "Quit"), new FooterHint("f1", "Help"));
+
+        var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Bottom, footer, body);
+        var overlay = new Overlay(dock);
+        method.Overlay = overlay;    // the method dropdown floats into the overlay
+        menuBar.Overlay = overlay;   // so do the menu bar's drop-downs
+
+        method.SelectionChanged += (_, v) => { currentMethod = v; status.Text = $"Method: {v}".PadRight(80); };
+
+        void SetMethod(string m) { var i = Array.IndexOf(methods, m); if (i >= 0) method.SelectedIndex = i; }
+
+        void Send()
+        {
+            statusBadge.Text = "200 OK";
+            statusBadge.Variant = BadgeVariant.Success;
+            log.Write($"[green]{currentMethod}[/] {Spectre.Console.Markup.Escape(url.Text)}  →  [green]200 OK[/]");
+            status.Text = $"Sent {currentMethod} {url.Text}".PadRight(80);
+        }
+
+        void AddHeader()
+        {
+            if (string.IsNullOrWhiteSpace(keyInput.Text)) { status.Text = "Enter a header name first.".PadRight(80); return; }
+            log.Write($"[cyan]{Spectre.Console.Markup.Escape(keyInput.Text)}[/]: {Spectre.Console.Markup.Escape(valueInput.Text)}");
+            status.Text = $"Added header {keyInput.Text}".PadRight(80);
+            keyInput.Text = "";
+            valueInput.Text = "";
+        }
+
+        send.Activated += (_, _) => Send();
+        url.Submitted += (_, _) => Send();
+        addBtn.Activated += (_, _) => AddHeader();
+        valueInput.Submitted += (_, _) => AddHeader();
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
+
+        var run = UI.Start(overlay, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(url);
+        run.Wait();
+    }
 
     static void OverlayDemo(string[] args)
     {

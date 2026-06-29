@@ -120,10 +120,18 @@ public class Overlay : Layout<COverlay>
         Content = popup.FocusableControl,
     };
 
+    // Anchor the popup at (x, y). The inner CBox (Left/Top, not Stretch) lets the popup keep its own preferred
+    // size instead of being stretched to the container's bottom-right edge by the margin — so dropdowns/menus are
+    // snug to their content rather than full-width.
     private static IControl AnchorAt(Control popup, int x, int y) => new CMargin
     {
         Offset = new Offset(x, y, 0, 0),
-        Content = popup.FocusableControl,
+        Content = new CBox
+        {
+            HorizontalContentPlacement = CBox.HorizontalPlacement.Left,
+            VerticalContentPlacement = CBox.VerticalPlacement.Top,
+            Content = popup.FocusableControl,
+        },
     };
 
     // Full-area scrim with the popup centered on it. The scrim shows the layer beneath dimmed (see DimScrim) and its
