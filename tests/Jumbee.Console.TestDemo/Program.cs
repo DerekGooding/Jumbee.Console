@@ -569,8 +569,8 @@ public class Program
         var addBtn = new Button("Add");
         var addRow = new Jumbee.Console.Grid([1], [26, 40, 8], [[keyInput, valueInput, addBtn]]);
 
-        var log = new Log();
-        var logFramed = log.WithSquareBorder().WithTitle("Activity");
+        // The added request headers, as an interactive grid: Up/Down select, Enter deletes the selected header.
+        var headersTable = new DataTable("Header", "Value");
 
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Type a URL and press Enter (or click Send).".PadRight(80), Color.White);
 
@@ -593,7 +593,7 @@ public class Program
                 new MenuItem("DELETE", () => SetMethod("DELETE")),
                 new MenuItem("PATCH", () => SetMethod("PATCH")))
             .Add("View",
-                new MenuItem("Clear activity log", () => log.Clear()));
+                new MenuItem("Clear headers", () => headersTable.Clear()));
 
         var body = new Jumbee.Console.Grid(
             [1, 1, 1, 1, 1, 10, 1],
@@ -604,7 +604,7 @@ public class Program
                 [new TextLabel(TextLabelOrientation.Horizontal, "", Color.White)],
                 [new TextLabel(TextLabelOrientation.Horizontal, "Add a header:", Color.White)],
                 [addRow],
-                [logFramed],
+                [headersTable],
                 [status],
             ]);
 
@@ -617,6 +617,12 @@ public class Program
         method.Overlay = overlay;    // the method dropdown floats into the overlay
         menuBar.Overlay = overlay;   // so do the menu bar's drop-downs
 
+        // Type-ahead on the Header field: a passive popup of common header names floats under the caret while the
+        // field keeps focus. Type (e.g. "acc"), Down/Up to pick, Enter/Tab to accept, Esc to dismiss.
+        _ = new Autocomplete(keyInput, overlay,
+            "Accept", "Accept-Encoding", "Accept-Language", "Authorization", "Cache-Control", "Connection",
+            "Content-Type", "Cookie", "Host", "If-None-Match", "Origin", "Referer", "User-Agent");
+
         method.SelectionChanged += (_, v) => { currentMethod = v; status.Text = $"Method: {v}".PadRight(80); };
 
         void SetMethod(string m) { var i = Array.IndexOf(methods, m); if (i >= 0) method.SelectedIndex = i; }
@@ -625,14 +631,13 @@ public class Program
         {
             statusBadge.Text = "200 OK";
             statusBadge.Variant = BadgeVariant.Success;
-            log.Write($"[green]{currentMethod}[/] {Spectre.Console.Markup.Escape(url.Text)}  →  [green]200 OK[/]");
-            status.Text = $"Sent {currentMethod} {url.Text}".PadRight(80);
+            status.Text = $"Sent {currentMethod} {url.Text} ({headersTable.RowCount} headers)".PadRight(80);
         }
 
         void AddHeader()
         {
             if (string.IsNullOrWhiteSpace(keyInput.Text)) { status.Text = "Enter a header name first.".PadRight(80); return; }
-            log.Write($"[cyan]{Spectre.Console.Markup.Escape(keyInput.Text)}[/]: {Spectre.Console.Markup.Escape(valueInput.Text)}");
+            headersTable.AddRow(keyInput.Text, valueInput.Text);
             status.Text = $"Added header {keyInput.Text}".PadRight(80);
             keyInput.Text = "";
             valueInput.Text = "";
@@ -642,6 +647,8 @@ public class Program
         url.Submitted += (_, _) => Send();
         addBtn.Activated += (_, _) => AddHeader();
         valueInput.Submitted += (_, _) => AddHeader();
+        // Enter on a selected header row deletes it.
+        headersTable.RowActivated += (_, i) => { var h = headersTable.SelectedRow?[0]; headersTable.RemoveRow(i); status.Text = $"Removed header {h}".PadRight(80); };
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
 
         var run = UI.Start(overlay, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));

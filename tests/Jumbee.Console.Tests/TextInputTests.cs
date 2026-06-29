@@ -110,6 +110,13 @@ public class TextInputTests
     }
 
     [Fact]
+    public void TextThatExactlyFits_IsNotScrolled()   // regression: accepting a word the width of the field hid its first char
+    {
+        var t = new TextInput("Authorization");        // 13 chars, caret at end
+        Assert.Contains("Authorization", ConsoleSnapshot.ToText(t, 13, 1));   // field exactly as wide -> whole word shown
+    }
+
+    [Fact]
     public void LongText_ScrollsToKeepCaretVisible()
     {
         var t = new TextInput(new string('a', 30) + "END");   // caret at the end

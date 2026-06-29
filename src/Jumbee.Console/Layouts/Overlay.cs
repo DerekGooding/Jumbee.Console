@@ -82,8 +82,26 @@ public class Overlay : Layout<COverlay>
     /// <summary>Close the popup and restore focus to whatever was focused before it was shown.</summary>
     public void Hide() => Close(restoreFocus: true);
 
+    /// <summary>
+    /// Shows <paramref name="popup"/> anchored at (<paramref name="x"/>, <paramref name="y"/>) as a <em>passive</em>
+    /// layer: it is drawn over (and is mouse-clickable), but does NOT take focus and does NOT capture keyboard
+    /// routing/navigation — the layer beneath keeps focus and keeps receiving keys. The caller owns dismissal (e.g.
+    /// an <see cref="Autocomplete"/> popup that floats under a still-focused text field). Use <see cref="Hide"/> to
+    /// close it.
+    /// </summary>
+    public void ShowPassive(Control popup, int x, int y) => UI.Invoke(() =>
+    {
+        if (_top is not null) Detach(_top);
+        _top = popup;
+        _modal = false;
+        _passive = true;
+        control.TopContent = AnchorAt(popup, x, y);
+        // No focus change, no OnLostFocus wiring: a non-capturing visual layer; the caller manages dismissal.
+    });
+
     private void Show(Control popup, IControl positioned, bool modal) => UI.Invoke(() =>
     {
+        _passive = false;
         if (_top is not null) Detach(_top);
         _previousFocus = UI.Focused;
         _top = popup;
@@ -100,6 +118,7 @@ public class Overlay : Layout<COverlay>
         Detach(_top);
         _top = null;
         _modal = false;
+        _passive = false;
         control.TopContent = null;   // empty top -> bottom shows through (DrawingContext treats null as transparent)
         if (restoreFocus && _previousFocus is not null) UI.SetFocus(_previousFocus);
         _previousFocus = null;
@@ -143,7 +162,7 @@ public class Overlay : Layout<COverlay>
     // Tunnel phase (see Layout.OnInput): close any open popup on CloseKey before the popup itself sees the key.
     protected override bool InterceptInput(UI.InputEventArgs inputEventArgs)
     {
-        if (IsShowing && CloseKey is { } key && inputEventArgs.InputEvent?.Key.Key == key)
+        if (IsShowing && !_passive && CloseKey is { } key && inputEventArgs.InputEvent?.Key.Key == key)
         {
             Hide();
             return true;
@@ -157,9 +176,10 @@ public class Overlay : Layout<COverlay>
     // With no popup the overlay is transparent to navigation and input routing — it delegates its 2-D cell grid to
     // the bottom layer, so spatial nav (Ctrl+arrows) and routing see the bottom's real structure. While a popup is
     // shown it presents ONLY the popup (a single cell), so focus/input/nav are exclusive to it until it closes.
-    public override int Rows => _top is not null ? 1 : _bottom.Rows;
-    public override int Columns => _top is not null ? 1 : _bottom.Columns;
-    public override IFocusable this[int row, int column] => _top is not null ? _top : _bottom[row, column];
+    // A passive top is drawn but never captures routing/nav, so the bottom layer stays addressable beneath it.
+    public override int Rows => _top is not null && !_passive ? 1 : _bottom.Rows;
+    public override int Columns => _top is not null && !_passive ? 1 : _bottom.Columns;
+    public override IFocusable this[int row, int column] => _top is not null && !_passive ? _top : _bottom[row, column];
     #endregion
 
     #region Fields
@@ -167,6 +187,7 @@ public class Overlay : Layout<COverlay>
     private readonly ILayout _bottom;
     private Control? _top;
     private bool _modal;
+    private bool _passive;   // a non-capturing visual layer (e.g. an autocomplete popup); see ShowPassive
     private IFocusable? _previousFocus;
     private Color? _modalScrim;   // null = use the theme's Scrim colour
     private float? _modalDim;     // null = use the theme's ScrimDim

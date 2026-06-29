@@ -153,13 +153,34 @@ public class TextInput : Control
     // Keep the caret within the visible window by scrolling horizontally (no wrap on a single line).
     private void EnsureCaretVisible(int width)
     {
+        // The whole text fits: show it from the start (don't scroll the first char off just to seat the
+        // end-of-text caret in its own column — that hid the leading character after accepting a suggestion).
+        if (_text.Length <= width)
+        {
+            _scroll = 0;
+            return;
+        }
+
         if (_caret < _scroll) _scroll = _caret;
-        else if (_caret > _scroll + width - 1) _scroll = _caret - (width - 1);
-        _scroll = Math.Clamp(_scroll, 0, Math.Max(0, _text.Length));
+        else if (_caret >= _scroll + width) _scroll = _caret - (width - 1);
+        _scroll = Math.Clamp(_scroll, 0, Math.Max(0, _text.Length - 1));
     }
+
+    /// <summary>
+    /// Optional first look at each key, before the field's own handling. Return <see langword="true"/> to consume
+    /// the key (the field ignores it). An attached <see cref="Autocomplete"/> uses this to grab Up/Down/Enter/Esc
+    /// for its suggestion popup while the field keeps focus and continues to edit on other keys.
+    /// </summary>
+    public Func<InputEvent, bool>? KeyInterceptor { get; set; }
 
     protected override void OnInput(InputEvent inputEvent)
     {
+        if (KeyInterceptor is { } intercept && intercept(inputEvent))
+        {
+            inputEvent.Handled = true;
+            return;
+        }
+
         var key = inputEvent.Key;
         var shift = (key.Modifiers & ConsoleModifiers.Shift) != 0;
         var ctrl = (key.Modifiers & ConsoleModifiers.Control) != 0;
