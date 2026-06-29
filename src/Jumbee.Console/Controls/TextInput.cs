@@ -137,17 +137,16 @@ public class TextInput : Control
 
     private void RenderCursor(int width)
     {
+        if (!IsFocused) return;   // only the focused control owns the caret
+
+        // Mark the caret cell with IsCursor directly (preserving its glyph/colours), like TerminalEmulator, rather
+        // than via the AnsiConsoleBuffer cursor's save/restore — that path restores a stale saved cell after the
+        // text is rewritten each frame and wiped the first character.
         var caretCol = Math.Clamp(_caret - _scroll, 0, Math.Max(0, width - 1));
-        ansiConsole.SetCursorPosition(caretCol, 0);
-        if (IsFocused)
-        {
-            ansiConsole.BufferCursor.Style = CursorStyle.SteadyBlock;
-            ansiConsole.Cursor.Show();
-        }
-        else
-        {
-            ansiConsole.Cursor.Hide();
-        }
+        var cell = consoleBuffer[caretCol, 0].Character;
+        var deco = CursorEncoding.EncodeStyle(cell.Decoration ?? ConsoleGUI.Data.Decoration.None, (int)CursorStyle.SteadyBlock);
+        consoleBuffer.Write(new Position(caretCol, 0),
+            new Character(cell.Content ?? ' ', cell.Foreground, cell.Background, deco, isCursor: true));
     }
 
     // Keep the caret within the visible window by scrolling horizontally (no wrap on a single line).
