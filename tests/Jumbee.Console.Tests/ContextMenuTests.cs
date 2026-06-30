@@ -17,7 +17,8 @@ public class ContextMenuTests
     private static Overlay ShowMenu(ContextMenu menu)
     {
         var overlay = new Overlay(new Grid([1], [20], [[new TextLabel(TextLabelOrientation.Horizontal, "bg", Color.White)]]));
-        menu.Show(overlay, 0, 0);
+        UI.Overlay = overlay;   // ambient host (headless: no UI.Start)
+        menu.Show(0, 0);
         return overlay;
     }
 

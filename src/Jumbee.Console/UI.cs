@@ -403,6 +403,22 @@ public static class UI
     public static ILayout Layout => layout!;
 
     /// <summary>
+    /// The root overlay host, available once <see cref="Start"/> has run. <see cref="Start"/> wraps the app's root
+    /// in this overlay (reusing it if the root already is an <see cref="Overlay"/>), so there is always a layer for
+    /// pop-ups (dropdowns, menus, autocomplete, modals). Controls that show pop-ups — <see cref="Select"/>,
+    /// <see cref="MenuBar"/>, <see cref="ContextMenu"/>, <see cref="Autocomplete"/> — show into this automatically,
+    /// so there is no per-control overlay to wire up. <see langword="null"/> before <see cref="Start"/>.
+    /// </summary>
+    /// <remarks>Normally you never set this — <see cref="Start"/> does. The setter exists for advanced hosting (and
+    /// tests) that need to designate the overlay pop-ups show into without going through <see cref="Start"/>; the
+    /// value must be the overlay that is actually being rendered as the root, or pop-ups won't be visible.</remarks>
+    public static Overlay? Overlay
+    {
+        get => systemOverlay;
+        set => systemOverlay = value;
+    }
+
+    /// <summary>
     /// The active style theme. Controls capture their default colours/decorations from it. Assigning raises
     /// <see cref="ThemeChanged"/> (on the UI thread), so every live control re-captures — i.e. assigning it is a
     /// runtime theme switch. Defaults to <see cref="DefaultStyleTheme"/>.

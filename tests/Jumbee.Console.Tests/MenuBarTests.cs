@@ -18,7 +18,7 @@ public class MenuBarTests
             .Add("File", new MenuItem("New"), new MenuItem("Open"), MenuItem.Separator, new MenuItem("Quit"))
             .Add("Edit", new MenuItem("Cut"), new MenuItem("Copy"), new MenuItem("Paste"));
         var overlay = new Overlay(new Grid([1], [40], [[bar]]));
-        bar.Overlay = overlay;
+        UI.Overlay = overlay;   // ambient host the drop-downs float into (headless: no UI.Start)
         return (bar, overlay);
     }
 

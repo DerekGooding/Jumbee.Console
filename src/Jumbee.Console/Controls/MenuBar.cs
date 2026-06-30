@@ -13,7 +13,7 @@ using Spectre.Console.Rendering;
 /// A horizontal bar of top-level menu titles (e.g. <c>File  Edit  View</c>). Clicking a title — or focusing the
 /// bar and pressing Enter / Down — opens that title's items as a non-modal <see cref="ContextMenu"/> anchored just
 /// below it (so the rest of the app stays live; clicking elsewhere dismisses the menu). Left/Right move between
-/// titles. Requires an <see cref="Overlay"/> host for the drop-downs. Choosing an item runs its
+/// titles. The drop-downs float in the ambient <see cref="UI.Overlay"/>. Choosing an item runs its
 /// <see cref="MenuItem.Action"/> and raises <see cref="ItemActivated"/>.
 /// </summary>
 public class MenuBar : RenderableControl
@@ -28,9 +28,6 @@ public class MenuBar : RenderableControl
     #endregion
 
     #region Properties
-    /// <summary>The overlay host the drop-down menus float into. Must be set before a menu can open.</summary>
-    public Overlay? Overlay { get; set; }
-
     public override bool HandlesInput => true;
     protected override bool WantsMouse => true;
     #endregion
@@ -78,10 +75,11 @@ public class MenuBar : RenderableControl
         .WithKey("Left / Right", "Move between menus")
         .WithKey("Enter / Down", "Open a menu");
 
-    /// <summary>Opens the currently-active title's menu (no-op without an <see cref="Overlay"/> host or menus).</summary>
+    /// <summary>Opens the currently-active title's menu in the ambient <see cref="UI.Overlay"/> (no-op before
+    /// <see cref="UI.Start"/> or with no menus).</summary>
     public void OpenActive()
     {
-        if (Overlay is null || _menus.Count == 0) return;
+        if (UI.Overlay is null || _menus.Count == 0) return;
         var (_, items) = _menus[_active];
 
         var menu = new ContextMenu(items);
@@ -90,7 +88,7 @@ public class MenuBar : RenderableControl
 
         _openIndex = _active;
         Invalidate();
-        menu.Show(Overlay, _originX + TitleOffset(_active), _originY + 1);   // just below the bar
+        menu.Show(_originX + TitleOffset(_active), _originY + 1);   // just below the bar
     }
 
     private void MoveActive(int dir) => SetActive(Math.Clamp(_active + dir, 0, Math.Max(0, _menus.Count - 1)));

@@ -68,7 +68,14 @@ public class SelectTests
     #endregion
 
     #region Select
-    private static Overlay HostOverlay() => new(new Grid([1], [10], [[new Button("host")]]));
+    // Builds the host overlay and registers it as the ambient UI.Overlay the dropdown shows into (these headless
+    // tests don't start the UI loop, so they set UI.Overlay directly).
+    private static Overlay HostOverlay()
+    {
+        var overlay = new Overlay(new Grid([1], [10], [[new Button("host")]]));
+        UI.Overlay = overlay;
+        return overlay;
+    }
 
     [Fact]
     public void Select_Closed_RendersPlaceholderAndArrow()
@@ -85,7 +92,7 @@ public class SelectTests
     public void Select_Open_ShowsDropdownWithOptions()
     {
         var overlay = HostOverlay();
-        var select = new Select("Red", "Green", "Blue") { Overlay = overlay };
+        var select = new Select("Red", "Green", "Blue");
 
         select.Open();
 
@@ -100,7 +107,7 @@ public class SelectTests
     public void Select_CommitFromDropdown_SetsValueClosesAndRaisesChange()
     {
         var overlay = HostOverlay();
-        var select = new Select("Red", "Green", "Blue") { Overlay = overlay };
+        var select = new Select("Red", "Green", "Blue");
         string? changed = null;
         select.SelectionChanged += (_, v) => changed = v;
 
@@ -118,7 +125,7 @@ public class SelectTests
     public void Select_EscapeInDropdown_ClosesWithoutChanging()
     {
         var overlay = HostOverlay();
-        var select = new Select("Red", "Green", "Blue") { Overlay = overlay };
+        var select = new Select("Red", "Green", "Blue");
 
         select.Open();
         UI.SendInput((ListBox)overlay.Top!, ConsoleKey.Escape);
@@ -130,9 +137,10 @@ public class SelectTests
     [Fact]
     public void Select_Open_WithoutOverlayHost_IsNoOp()
     {
+        UI.Overlay = null;   // no ambient overlay (e.g. before UI.Start)
         var select = new Select("Red", "Green");
 
-        select.Open();   // no Overlay set
+        select.Open();
 
         Assert.Null(select.SelectedValue);
     }

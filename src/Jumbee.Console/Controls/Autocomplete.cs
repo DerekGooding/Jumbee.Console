@@ -18,10 +18,11 @@ using Spectre.Console.Rendering;
 public sealed class Autocomplete
 {
     #region Constructors
-    public Autocomplete(TextInput input, Overlay overlay, Func<string, IEnumerable<string>> suggest)
+    /// <summary>Attaches type-ahead to <paramref name="input"/>, floating suggestions in the ambient
+    /// <see cref="UI.Overlay"/> just below the caret.</summary>
+    public Autocomplete(TextInput input, Func<string, IEnumerable<string>> suggest)
     {
         _input = input ?? throw new ArgumentNullException(nameof(input));
-        _overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
         _suggest = suggest ?? throw new ArgumentNullException(nameof(suggest));
 
         _list.Accepted += (_, s) => Accept(s);
@@ -31,8 +32,8 @@ public sealed class Autocomplete
     }
 
     /// <summary>Convenience: suggests from a fixed candidate list (case-insensitive substring match, prefix matches first).</summary>
-    public Autocomplete(TextInput input, Overlay overlay, params string[] candidates)
-        : this(input, overlay, DefaultFilter(candidates)) { }
+    public Autocomplete(TextInput input, params string[] candidates)
+        : this(input, DefaultFilter(candidates)) { }
     #endregion
 
     #region Properties
@@ -46,7 +47,7 @@ public sealed class Autocomplete
     {
         if (!_open) return;
         _open = false;
-        _overlay.Hide();
+        UI.Overlay?.Hide();
     }
 
     private static Func<string, IEnumerable<string>> DefaultFilter(string[] candidates) => text =>
@@ -70,9 +71,10 @@ public sealed class Autocomplete
             return;
         }
 
+        if (UI.Overlay is not { } host) return;   // no overlay available yet (e.g. before UI.Start)
         _list.SetItems(matches);
         var (x, y) = AnchorBelowCaret();
-        _overlay.ShowPassive(_list, x, y);
+        host.ShowPassive(_list, x, y);
         _open = true;
     }
 
@@ -111,7 +113,6 @@ public sealed class Autocomplete
 
     #region Fields
     private readonly TextInput _input;
-    private readonly Overlay _overlay;
     private readonly Func<string, IEnumerable<string>> _suggest;
     private readonly SuggestionList _list = new();
     private bool _open;

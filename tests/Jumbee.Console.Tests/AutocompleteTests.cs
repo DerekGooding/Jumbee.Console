@@ -21,7 +21,8 @@ public class AutocompleteTests
     {
         var input = new TextInput();
         var overlay = new Overlay(new Grid([1], [40], [[input]]));
-        var ac = new Autocomplete(input, overlay, Headers);
+        UI.Overlay = overlay;                       // ambient host the suggestions float into (headless: no UI.Start)
+        var ac = new Autocomplete(input, Headers);
         ConsoleSnapshot.Render(overlay, 40, 12);   // size the field
         UI.SetFocus(input);
         return (input, overlay, ac);

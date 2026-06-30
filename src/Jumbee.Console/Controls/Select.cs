@@ -12,8 +12,8 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// A drop-down selector. Closed, it shows the current value with a ▼ marker; clicking it (or Enter/Space while
-/// focused) opens its options in the <see cref="Overlay"/> host, anchored just below. Choosing an option (click
-/// or Enter) commits it; Escape or a click outside cancels. Requires an <see cref="Overlay"/> host to be set.
+/// focused) opens its options in the ambient <see cref="UI.Overlay"/>, anchored just below. Choosing an option
+/// (click or Enter) commits it; Escape or a click outside cancels.
 /// </summary>
 public class Select : RenderableControl
 {
@@ -32,9 +32,6 @@ public class Select : RenderableControl
     #endregion
 
     #region Properties
-    /// <summary>The overlay host the dropdown is floated into. Must be set before the dropdown can open.</summary>
-    public Overlay? Overlay { get; set; }
-
     public IReadOnlyList<string> Options => _options;
 
     public string Placeholder { get; set; } = "Select…";
@@ -61,10 +58,11 @@ public class Select : RenderableControl
     #endregion
 
     #region Methods
-    /// <summary>Opens the dropdown (no-op without an <see cref="Overlay"/> host or options).</summary>
+    /// <summary>Opens the dropdown into the ambient <see cref="UI.Overlay"/> (no-op before <see cref="UI.Start"/>
+    /// or with no options).</summary>
     public void Open()
     {
-        if (Overlay is null || _options.Count == 0) return;
+        if (UI.Overlay is not { } host || _options.Count == 0) return;
 
         var list = new ListBox(_options.ToArray())
         {
@@ -84,8 +82,8 @@ public class Select : RenderableControl
         };
         list.Cancelled += (_, _) => Close();
 
-        if (_anchorX >= 0) Overlay.Show(list, _anchorX, _anchorY);
-        else Overlay.Show(list);
+        if (_anchorX >= 0) host.Show(list, _anchorX, _anchorY);
+        else host.Show(list);
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
@@ -123,7 +121,7 @@ public class Select : RenderableControl
 
     private void Close()
     {
-        Overlay?.Hide();
+        UI.Overlay?.Hide();
         UI.SetFocus(this);
     }
 

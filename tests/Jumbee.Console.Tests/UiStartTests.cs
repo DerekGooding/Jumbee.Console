@@ -211,6 +211,40 @@ public class UiStartTests
     }
 
     [Fact]
+    public void Start_WrapsPlainRootInOverlay_AndOverlayControlsDefaultToIt()
+    {
+        var originalOut = Console.Out;
+        Console.SetOut(TextWriter.Null);
+
+        var select = new Select("Alpha", "Beta", "Gamma");   // note: no explicit .Overlay set
+        var grid = new Grid([3], [20], [[select]]);          // a plain layout, not an Overlay
+        Task run;
+
+        try
+        {
+            run = UI.Start(grid, width: 20, height: 8, paintInterval: 20,
+                console: new ConsoleBuffer { Size = new Size(20, 8) }, input: new FakeInputSource());
+
+            // Start wraps a non-Overlay root in a UI-owned overlay, exposed as UI.Overlay.
+            Assert.NotNull(UI.Overlay);
+            Assert.Null(UI.Overlay!.Top);   // nothing shown yet
+
+            // Opening the dropdown with no explicit host must fall back to the ambient UI.Overlay.
+            UI.Invoke(() => select.Open());
+            Assert.True(
+                WaitUntil(() => UI.Overlay!.Top is not null, 2000),
+                "A Select with no explicit Overlay should open its dropdown into the ambient UI.Overlay.");
+        }
+        finally
+        {
+            UI.Stop();
+            Console.SetOut(originalOut);
+        }
+
+        Assert.True(run.Wait(2000), "Stop() should complete the run task.");
+    }
+
+    [Fact]
     public void Stop_InvokedOnUiThread_DoesNotSelfJoinHang_AndCompletesRunTask()
     {
         var originalOut = Console.Out;

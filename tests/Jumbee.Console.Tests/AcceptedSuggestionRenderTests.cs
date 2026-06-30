@@ -23,7 +23,8 @@ public class AcceptedSuggestionRenderTests
         var addRow = new Grid([1], [26, 40, 8],
             [[keyInput, new TextInput(placeholder: "Value"), new Button("Add")]]);
         var overlay = new Overlay(new Grid([1, 1], [82], [[addRow], [new TextLabel(TextLabelOrientation.Horizontal, "", Color.White)]]));
-        var ac = new Autocomplete(keyInput, overlay, "Authorization", "Accept", "Content-Type");
+        UI.Overlay = overlay;   // ambient host (headless: no UI.Start)
+        var ac = new Autocomplete(keyInput, "Authorization", "Accept", "Content-Type");
 
         ConsoleSnapshot.Render(overlay, 90, 6);
         UI.SetFocus(keyInput);

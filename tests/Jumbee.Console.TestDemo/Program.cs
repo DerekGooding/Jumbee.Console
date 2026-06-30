@@ -91,12 +91,10 @@ public class Program
         var select = new Select("Red", "Green", "Blue", "Magenta", "Cyan", "Yellow") { Placeholder = "Choose a colour ▾" };
 
         var bottom = new Jumbee.Console.Grid([2, 1], [38], [[status], [select]]);
-        var overlay = new Overlay(bottom);
-        select.Overlay = overlay;   // the dropdown floats into this overlay
-
+        // UI.Start wraps the root in UI.Overlay; the dropdown floats into it automatically (no wiring needed).
         select.SelectionChanged += (_, value) => status.Text = $"You picked: {value}".PadRight(36);
 
-        var run = UI.Start(overlay, width: 42, height: 14, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        var run = UI.Start(bottom, width: 42, height: 14, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(select);
         run.Wait();
     }
@@ -614,13 +612,12 @@ public class Program
             new FooterHint("Tab", "Move"), new FooterHint("^c", "Quit"), new FooterHint("f1", "Help"));
 
         var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Bottom, footer, body);
-        var overlay = new Overlay(dock);
-        method.Overlay = overlay;    // the method dropdown floats into the overlay
-        menuBar.Overlay = overlay;   // so do the menu bar's drop-downs
+        // UI.Start wraps the root in UI.Overlay; the method dropdown, the menu bar's drop-downs, and the Autocomplete
+        // below all float into it automatically — no per-control wiring.
 
         // Type-ahead on the Header field: a passive popup of common header names floats under the caret while the
         // field keeps focus. Type (e.g. "acc"), Down/Up to pick, Enter/Tab to accept, Esc to dismiss.
-        _ = new Autocomplete(keyInput, overlay,
+        _ = new Autocomplete(keyInput,
             "Accept", "Accept-Encoding", "Accept-Language", "Authorization", "Cache-Control", "Connection",
             "Content-Type", "Cookie", "Host", "If-None-Match", "Origin", "Referer", "User-Agent");
 
@@ -652,7 +649,7 @@ public class Program
         headersTable.RowActivated += (_, i) => { var h = headersTable.SelectedRow?[0]; headersTable.RemoveRow(i); status.Text = $"Removed header {h}".PadRight(80); };
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
 
-        var run = UI.Start(overlay, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        var run = UI.Start(dock, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(url);
         run.Wait();
     }
@@ -660,8 +657,8 @@ public class Program
     // The full multi-pane "Posting"-style HTTP-client TUI, assembling the controls built this cycle: a Collection
     // Tree, a method Select + URL TextInput + Send Button + status Badge, a Request panel (TabPanel of Headers
     // DataTable + add-row + Autocomplete / Body / Query / Auth) and a Response panel (status Badge + TabPanel of a
-    // read-only JSON CodeEditor / Headers / Cookies), with a Footer docked along the bottom. Root is an Overlay so
-    // the method dropdown and header Autocomplete popup float above everything.
+    // read-only JSON CodeEditor / Headers / Cookies), with a Footer docked along the bottom. The method dropdown,
+    // and header Autocomplete popup float in the ambient UI.Overlay (UI.Start wraps the root in it automatically).
     static void PostingDemo(string[] args)
     {
         // ----- Header bar -----
@@ -743,12 +740,11 @@ public class Program
             new FooterHint("^c", "Quit"), new FooterHint("f1", "Help"));
 
         var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Bottom, footer, body);
-        var overlay = new Overlay(dock);
-        method.Overlay = overlay;       // method dropdown floats over the overlay
-        authType.Overlay = overlay;
+        // No manual Overlay: UI.Start wraps the root in one (UI.Overlay), and the dropdown Selects, the menu bar,
+        // and the Autocomplete below all default to it — no per-control wiring needed.
 
-        // Type-ahead on the header name field.
-        _ = new Autocomplete(keyInput, overlay,
+        // Type-ahead on the header name field (floats in the ambient UI.Overlay).
+        _ = new Autocomplete(keyInput,
             "Accept", "Accept-Encoding", "Accept-Language", "Authorization", "Cache-Control", "Connection",
             "Content-Type", "Cookie", "Host", "If-None-Match", "Origin", "Referer", "User-Agent");
 
@@ -790,7 +786,7 @@ public class Program
         };
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
 
-        var run = UI.Start(overlay, width: 112, height: 38, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        var run = UI.Start(dock, width: 112, height: 38, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(url);
         run.Wait();
     }

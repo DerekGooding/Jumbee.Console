@@ -31,8 +31,8 @@ public sealed class MenuItem
 }
 
 /// <summary>
-/// A floating, keyboard-navigable menu of <see cref="MenuItem"/>s, shown anchored in an <see cref="Overlay"/> (it
-/// frames itself). Up/Down move the highlight (skipping separators and disabled items), Enter/Space choose, Escape
+/// A floating, keyboard-navigable menu of <see cref="MenuItem"/>s, shown anchored in the ambient <see cref="UI.Overlay"/>
+/// (it frames itself). Up/Down move the highlight (skipping separators and disabled items), Enter/Space choose, Escape
 /// or a click outside dismiss. Choosing an item runs its <see cref="MenuItem.Action"/> and raises
 /// <see cref="ItemActivated"/>; <see cref="Closed"/> fires whenever the menu closes (chosen or dismissed). This is
 /// the shared primitive behind drop-downs / context menus / a <see cref="MenuBar"/>'s menus.
@@ -66,12 +66,11 @@ public class ContextMenu : RenderableControl
     #endregion
 
     #region Methods
-    /// <summary>Frames and floats the menu in <paramref name="overlay"/> with its top-left at (<paramref name="x"/>,
-    /// <paramref name="y"/>), then focuses it.</summary>
-    public void Show(Overlay overlay, int x, int y)
+    /// <summary>Frames and floats the menu in the ambient <see cref="UI.Overlay"/> with its top-left at
+    /// (<paramref name="x"/>, <paramref name="y"/>), then focuses it (no-op before <see cref="UI.Start"/>).</summary>
+    public void Show(int x, int y)
     {
-        _overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
-        overlay.Show(this, x, y);
+        UI.Overlay?.Show(this, x, y);
     }
 
     protected override void OnInput(InputEvent inputEvent)
@@ -120,7 +119,7 @@ public class ContextMenu : RenderableControl
         var item = _items[index];
         if (!item.Selectable) return;
 
-        _overlay?.Hide();   // close first (restores focus), then run the effect
+        UI.Overlay?.Hide();   // close first (restores focus), then run the effect
         item.Action?.Invoke();
         ItemActivated?.Invoke(this, item);
     }
@@ -188,6 +187,5 @@ public class ContextMenu : RenderableControl
     #region Fields
     private readonly List<MenuItem> _items;
     private int _highlighted;
-    private Overlay? _overlay;
     #endregion
 }
