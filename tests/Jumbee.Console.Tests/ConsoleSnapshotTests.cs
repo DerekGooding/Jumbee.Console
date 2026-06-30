@@ -215,6 +215,71 @@ public class ConsoleSnapshotTests
     }
 
     [Fact]
+    public void Tree_NodeActivated_FiresForLeaf_OnEnterAndDoubleClick_ButNotForParents()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");
+        var alpha = folder.AddChild("Alpha");
+        ConsoleSnapshot.Render(tree, 24, 10);
+
+        var activated = new System.Collections.Generic.List<Tree.TreeNode>();
+        tree.NodeActivated += (_, n) => activated.Add(n);
+
+        // Enter on a selected parent toggles (no activation); Enter on a selected leaf activates.
+        Press(tree, ConsoleKey.DownArrow);   // root
+        Press(tree, ConsoleKey.DownArrow);   // Folder (parent)
+        Press(tree, ConsoleKey.Enter);       // toggles Folder, no activation
+        Assert.Empty(activated);
+
+        Press(tree, ConsoleKey.RightArrow);  // re-expand Folder
+        Press(tree, ConsoleKey.DownArrow);   // Alpha (leaf)
+        Press(tree, ConsoleKey.Enter);       // activates Alpha
+        Assert.Equal(new[] { alpha }, activated);
+
+        // Double-clicking a leaf also activates it.
+        ClickTree(tree, 8, 2);               // single click Alpha
+        ClickTree(tree, 8, 2);               // -> double click
+        Assert.Equal(new[] { alpha, alpha }, activated);
+    }
+
+    [Fact]
+    public void Tree_Hover_TintsHoveredRow_AndClearsOnLeave()
+    {
+        var tree = new Tree("Root") { HoverHighlighting = true };   // opt in (off by default)
+        var folder = tree.AddNode("Folder");
+        folder.AddChild("Alpha");   // row 2
+        folder.AddChild("Beta");    // row 3
+        var ml = (ConsoleGUI.Input.IMouseListener)tree;
+
+        // No hover yet: no leaf bullet carries a background.
+        var idle = LeafBulletBackgrounds(ConsoleSnapshot.Render(tree, 24, 10));
+        Assert.All(idle, bg => Assert.Null(bg));
+
+        // Hover Alpha's row: exactly its bullet (folded with the label) gets the hover background.
+        ml.OnMouseMove(new ConsoleGUI.Space.Position(8, 2));
+        var hovering = LeafBulletBackgrounds(ConsoleSnapshot.Render(tree, 24, 10));
+        Assert.Single(hovering, bg => bg is not null);
+
+        // Pointer leaves: the tint is cleared.
+        ml.OnMouseLeave();
+        var left = LeafBulletBackgrounds(ConsoleSnapshot.Render(tree, 24, 10));
+        Assert.All(left, bg => Assert.Null(bg));
+    }
+
+    [Fact]
+    public void Tree_Hover_IsIgnored_WhenHighlightingDisabled()
+    {
+        var tree = new Tree("Root");   // HoverHighlighting defaults to false
+        var folder = tree.AddNode("Folder");
+        folder.AddChild("Alpha");
+
+        ((ConsoleGUI.Input.IMouseListener)tree).OnMouseMove(new ConsoleGUI.Space.Position(8, 2));
+
+        // Moving the pointer over a row tints nothing while highlighting is off.
+        Assert.All(LeafBulletBackgrounds(ConsoleSnapshot.Render(tree, 24, 10)), bg => Assert.Null(bg));
+    }
+
+    [Fact]
     public void Tree_Navigation_SkipsCollapsedChildren()
     {
         var tree = new Tree("Root");

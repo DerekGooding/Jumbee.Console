@@ -127,8 +127,40 @@ public partial class Tree : RenderableControl
         set => SetAtomicProperty(ref _leafGlyphColor, value, themeOverride: true);
     }
 
+    /// <summary>When <see langword="true"/>, the node under the mouse pointer is tinted with <see cref="HoverStyle"/>.
+    /// Defaults to <see langword="false"/> (off — pointer movement is ignored so it doesn't distract from selection).</summary>
+    public bool HoverHighlighting
+    {
+        get => _hoverHighlighting;
+        set
+        {
+            if (_hoverHighlighting == value) return;
+            _hoverHighlighting = value;
+            // Drop any existing tint when turning it off so a stale hovered row doesn't linger.
+            if (!value && _hoveredNode is not null) _hoveredNode = null;
+            Invalidate();
+        }
+    }
+
+    /// <summary>The style applied to the node under the mouse pointer when <see cref="HoverHighlighting"/> is on
+    /// (typically a background tint). Defaults to the theme's <see cref="IStyleTheme.Hover"/>. Like selection, it
+    /// tints the glyph + label of text nodes only.</summary>
+    public Style HoverStyle
+    {
+        get => _hoverStyle;
+        set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true);
+    }
+
     public override bool HandlesInput => true;
 
+    protected override bool WantsMouse => true;   // click to select/toggle, hover to highlight
+
+    #endregion
+
+    #region Events
+    /// <summary>Raised when a leaf node (one with no children) is activated — double-clicked, or Enter/Space pressed
+    /// while it is selected. Parent nodes toggle expansion instead of raising this.</summary>
+    public event EventHandler<TreeNode>? NodeActivated;
     #endregion
 
     #region Indexers
@@ -148,6 +180,7 @@ public partial class Tree : RenderableControl
         _treeCollapsed = UI.GlyphTheme.TreeCollapsed;
         if (!IsThemeOverridden(nameof(LeafGlyph))) _leafGlyph = UI.GlyphTheme.TreeLeaf;
         if (!IsThemeOverridden(nameof(LeafGlyphColor))) _leafGlyphColor = UI.StyleTheme.TreeLeaf.ForegroundColor;
+        if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.Hover;
     }
 
     public TreeNode AddNode(IRenderable label) => _root.AddChild(label);
@@ -200,7 +233,12 @@ public partial class Tree : RenderableControl
                 break;
             case ConsoleKey.Enter:
             case ConsoleKey.Spacebar:
-                if (SelectedNode is { Nodes.Count: > 0 } t) t.Expanded = !t.Expanded;
+                // A parent toggles; a leaf activates.
+                if (SelectedNode is { } t)
+                {
+                    if (t.Nodes.Count > 0) t.Expanded = !t.Expanded;
+                    else NodeActivated?.Invoke(this, t);
+                }
                 inputEvent.Handled = true;
                 break;
         }
@@ -223,9 +261,39 @@ public partial class Tree : RenderableControl
     protected override void OnDoubleClick(Position position)
     {
         if (NodeAt(position.Y) is not { } node) return;
-        // A glyph click was already toggled by the preceding single-click; only toggle here for a label double-click.
-        if (node.Nodes.Count > 0 && !OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
+        if (node.Nodes.Count > 0)
+        {
+            // A glyph click was already toggled by the preceding single-click; only toggle here for a label double-click.
+            if (!OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
+        }
+        else
+        {
+            NodeActivated?.Invoke(this, node);   // double-clicking a leaf activates it
+        }
         SelectNode(node);
+    }
+
+    // Hover: track the node under the pointer and repaint so its row is tinted; clear it when the pointer leaves.
+    // Opt-in via HoverHighlighting (off by default) — when disabled we ignore pointer movement entirely.
+    protected override void OnMouseMove(Position position)
+    {
+        if (!_hoverHighlighting) return;
+        var node = NodeAt(position.Y);
+        if (!ReferenceEquals(node, _hoveredNode))
+        {
+            _hoveredNode = node;
+            Invalidate();
+        }
+    }
+
+    protected override void OnMouseLeave()
+    {
+        if (!_hoverHighlighting) return;
+        if (_hoveredNode is not null)
+        {
+            _hoveredNode = null;
+            Invalidate();
+        }
     }
 
     // The visible node at a content row, or null if the row is past the tree.
@@ -308,21 +376,30 @@ public partial class Tree : RenderableControl
                 : Style.SpectreConsoleStyle;
 
             var caret = _selectionStyle == SelectionStyle.Caret;
-            // A node with Text renders through Markup, so a selected text node folds the icon INTO the highlighted
-            // markup — the glyph is highlighted together with the text "in the usual manner". An IRenderable-only node
-            // can't be folded or highlighted: its icon is drawn as a separate (coloured) segment and the label as-is.
-            var selectedText = current.Selected && !string.IsNullOrEmpty(current.Text);
+            var caretPad = caret ? _selectionCaret.GetCellWidth() : 0;
+            // A node with Text renders through Markup, so when it's selected (or hovered) we fold the icon INTO a
+            // styled markup — the glyph is highlighted/tinted together with the text "in the usual manner". Selection
+            // wins over hover. An IRenderable-only node can't be folded, so (like selection) it shows no hover either:
+            // its icon is drawn as a separate (coloured) segment and the label renders as-is.
+            var isTextNode = !string.IsNullOrEmpty(current.Text);
+            var hovered = !current.Selected && ReferenceEquals(current, _hoveredNode);
 
             IRenderable renderable = current.Renderable;
-            if (selectedText)
+            var folded = false;
+            if (isTextNode && current.Selected)
             {
                 var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
                 renderable = new Markup(_selectionStyle.Prefix(_selectionCaret) + Markup.Escape(icon) + current.Text, style);
+                folded = true;
+            }
+            else if (isTextNode && hovered)
+            {
+                // Tint the same region selection would (icon + label), keeping the caret gutter reserved in caret mode.
+                renderable = new Markup(new string(' ', caretPad) + Markup.Escape(icon) + current.Text, _hoverStyle.SpectreConsoleStyle);
+                folded = true;
             }
 
-            // In Caret mode reserve a caret-width gutter on every non-selected row so labels don't jump as selection moves.
-            var caretPad = caret && !current.Selected ? _selectionCaret.GetCellWidth() : 0;
-            var labelWidth = maxWidth - Segment.CellCount(prefix) - (selectedText ? 0 : iconWidth) - caretPad;
+            var labelWidth = maxWidth - Segment.CellCount(prefix) - (folded ? 0 : iconWidth + caretPad);
             var renderableLines = Segment.SplitLines(renderable.Render(options, labelWidth));
 
             foreach (var (_, isFirstLine, _, line) in renderableLines.Enumerate())
@@ -334,7 +411,7 @@ public partial class Tree : RenderableControl
 
                 // For a non-folded node, draw the caret reservation (caret mode) then the gutter icon — the glyph on
                 // the first line, a width-matched spacer on wrapped continuation lines.
-                if (!selectedText)
+                if (!folded)
                 {
                     if (caretPad > 0) result.Add(new Segment(new string(' ', caretPad)));
                     result.Add(isFirstLine ? new Segment(icon, iconStyle) : new Segment(new string(' ', iconWidth)));
@@ -466,5 +543,8 @@ public partial class Tree : RenderableControl
     private string _treeCollapsed = "";
     private string _leafGlyph = "";
     private Color? _leafGlyphColor;
+    private Style _hoverStyle;
+    private bool _hoverHighlighting;
+    private TreeNode? _hoveredNode;
     #endregion
 }

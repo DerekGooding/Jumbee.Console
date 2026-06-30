@@ -776,6 +776,18 @@ public class Program
         addBtn.Activated += (_, _) => AddHeader();
         valueInput.Submitted += (_, _) => AddHeader();
         headersTable.RowActivated += (_, i) => headersTable.RemoveRow(i);
+        // Activate a request leaf (double-click or Enter) to load its method + URL into the request bar.
+        var methodNames = new[] { "GET", "POST", "PUT", "DELETE", "PATCH" };
+        tree.NodeActivated += (_, node) =>
+        {
+            if (string.IsNullOrWhiteSpace(node.Text)) return;
+            var parts = node.Text.Split(' ', 2);
+            var verb = parts[0] == "DEL" ? "DELETE" : parts[0];
+            var mi = Array.IndexOf(methodNames, verb);
+            if (mi >= 0) method.SelectedIndex = mi;
+            var resource = parts.Length > 1 ? parts[1].Split(' ')[^1] : "";
+            url.Text = $"https://api.example.com/{resource}";
+        };
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
 
         var run = UI.Start(overlay, width: 112, height: 38, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
