@@ -111,6 +111,11 @@ public class TextEditor : Control
         }
     }
 
+    /// <summary>When <see langword="true"/>, edit keys (typing, Backspace/Delete/Enter/Tab) and paste are ignored;
+    /// navigation (arrows/Home/End/PgUp/PgDn) and the caret still work. Use for read-only viewers (e.g. a response
+    /// body). Does not change appearance.</summary>
+    public bool ReadOnly { get; set; }
+
     /// <summary>The number of lines (newline count + 1).</summary>
     public int LineCount
     {
@@ -206,7 +211,7 @@ public class TextEditor : Control
     // Insert a whole paste at the caret in one shot (no per-key re-interpretation; newlines kept verbatim).
     public override void OnPaste(string text)
     {
-        if (string.IsNullOrEmpty(text)) return;
+        if (ReadOnly || string.IsNullOrEmpty(text)) return;
         text = NormalizeNewlines(text);
         input = input.Insert(caretPosition, text);
         caretPosition += text.Length;
@@ -269,37 +274,43 @@ public class TextEditor : Control
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.Backspace:
-                if (caretPosition > 0)
+                if (!ReadOnly && caretPosition > 0)
                 {
                     input = input.Remove(--caretPosition, 1);
-                    newInput = true;                    
+                    newInput = true;
                     inputEvent.Handled = true;
                 }
                 break;
             case ConsoleKey.Delete:
-                if (caretPosition < input.Length)
+                if (!ReadOnly && caretPosition < input.Length)
                 {
                     input = input.Remove(caretPosition, 1);
-                    newInput = true;                    
+                    newInput = true;
                     inputEvent.Handled = true;
                 }
                 break;
             case ConsoleKey.Enter:
-                input = input.Insert(caretPosition++, "\n");
-                newInput = true;
-                inputEvent.Handled = true;
+                if (!ReadOnly)
+                {
+                    input = input.Insert(caretPosition++, "\n");
+                    newInput = true;
+                    inputEvent.Handled = true;
+                }
                 break;
             case ConsoleKey.Tab:
                 // Plain Tab now reaches the editor (focus traversal moved to Ctrl+arrows), so indent with it.
                 // Insert spaces rather than a literal '\t' so the wrap/caret column math stays simple and exact.
-                var indent = new string(' ', Math.Max(0, TabWidth));
-                input = input.Insert(caretPosition, indent);
-                caretPosition += indent.Length;
-                newInput = true;
-                inputEvent.Handled = true;
+                if (!ReadOnly)
+                {
+                    var indent = new string(' ', Math.Max(0, TabWidth));
+                    input = input.Insert(caretPosition, indent);
+                    caretPosition += indent.Length;
+                    newInput = true;
+                    inputEvent.Handled = true;
+                }
                 break;
             default:
-                if (!char.IsControl(inputEvent.Key.KeyChar))
+                if (!ReadOnly && !char.IsControl(inputEvent.Key.KeyChar))
                 {
                     input = input.Insert(caretPosition++, inputEvent.Key.KeyChar.ToString());
                     newInput = true;

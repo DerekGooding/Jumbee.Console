@@ -3,6 +3,7 @@ namespace Jumbee.Console.Tests;
 using System;
 using System.Threading;
 
+using ConsoleGUI;
 using ConsoleGUI.Input;
 
 using Jumbee.Console;
@@ -60,6 +61,114 @@ public class ConsoleSnapshotTests
         Assert.Contains("Root", text);
         Assert.Contains("Folder", text);
         Assert.Contains("Leaf1", text);
+    }
+
+    [Fact]
+    public void Tree_ShowsDisclosureGlyphs_ForNodesWithChildren()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");
+        folder.AddChildren("Leaf1", "Leaf2");
+
+        var text = ConsoleSnapshot.ToText(tree, 24, 10);
+
+        // Root and Folder have children -> expanded glyph; the glyph isn't shown on leaves.
+        Assert.Contains("▼ Root", text);
+        Assert.Contains("▼ Folder", text);
+        Assert.Contains("Leaf1", text);
+    }
+
+    [Fact]
+    public void Tree_CollapseAndExpand_HidesAndShowsChildren()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");
+        folder.AddChildren("Leaf1", "Leaf2");
+
+        // Select the Folder then collapse it with Left: its children disappear and the glyph flips to collapsed.
+        // (The first Down selects the root when nothing is selected yet, so a second Down reaches the Folder.)
+        Press(tree, ConsoleKey.DownArrow);   // select root
+        Press(tree, ConsoleKey.DownArrow);   // select Folder
+        Press(tree, ConsoleKey.LeftArrow);   // collapse Folder
+        var collapsed = ConsoleSnapshot.ToText(tree, 24, 10);
+        Assert.Contains("► Folder", collapsed);
+        Assert.DoesNotContain("Leaf1", collapsed);
+
+        // Re-expand with Right: children come back and the glyph flips back.
+        Press(tree, ConsoleKey.RightArrow);
+        var expanded = ConsoleSnapshot.ToText(tree, 24, 10);
+        Assert.Contains("▼ Folder", expanded);
+        Assert.Contains("Leaf1", expanded);
+    }
+
+    // The cells whose glyph is the default leaf bullet "•", with their background colour (null = no highlight).
+    private static System.Collections.Generic.List<ConsoleGUI.Data.Color?> LeafBulletBackgrounds(ConsoleBuffer buf)
+    {
+        var found = new System.Collections.Generic.List<ConsoleGUI.Data.Color?>();
+        for (var y = 0; y < buf.Size.Height; y++)
+            for (var x = 0; x < buf.Size.Width; x++)
+                if (buf[x, y].Character.Content == '•') found.Add(buf[x, y].Character.Background);
+        return found;
+    }
+
+    [Fact]
+    public void Tree_TextLeaf_ShowsLeafGlyph_AndFoldsItIntoSelectionHighlight()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");
+        folder.AddChild("Alpha");
+        folder.AddChild("Beta");
+
+        // Text leaves render the themed leaf glyph; selecting one highlights the glyph together with its text.
+        var text = ConsoleSnapshot.ToText(tree, 24, 10);
+        Assert.Contains("• Alpha", text);
+        Assert.Contains("• Beta", text);
+
+        // Select Alpha (Down x3: root, Folder, Alpha) and confirm exactly one bullet carries the selection
+        // background — i.e. the glyph is folded into the highlight, not left as a separate plain marker.
+        Press(tree, ConsoleKey.DownArrow);
+        Press(tree, ConsoleKey.DownArrow);
+        Press(tree, ConsoleKey.DownArrow);
+        var buf = ConsoleSnapshot.Render(tree, 24, 10);
+        var backgrounds = LeafBulletBackgrounds(buf);
+        Assert.Equal(2, backgrounds.Count);                          // two leaf bullets drawn
+        Assert.Single(backgrounds, bg => bg is not null);            // only the selected leaf's bullet is highlighted
+    }
+
+    [Fact]
+    public void Tree_IRenderableLeaf_ShowsGlyph_ButIsNotHighlighted()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");
+        folder.AddChild(new Spectre.Console.Markup("[green]GET[/] x"));   // IRenderable leaf, no Text
+
+        // The leaf glyph is still drawn before an IRenderable label...
+        Assert.Contains("•", ConsoleSnapshot.ToText(tree, 24, 10));
+
+        // ...but selecting it can't highlight (no text to wrap), so no bullet gets a selection background.
+        Press(tree, ConsoleKey.DownArrow);
+        Press(tree, ConsoleKey.DownArrow);
+        Press(tree, ConsoleKey.DownArrow);
+        var buf = ConsoleSnapshot.Render(tree, 24, 10);
+        Assert.All(LeafBulletBackgrounds(buf), bg => Assert.Null(bg));
+    }
+
+    [Fact]
+    public void Tree_Navigation_SkipsCollapsedChildren()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");
+        folder.AddChildren("Leaf1", "Leaf2");
+        var sibling = tree.AddNode("Sibling");
+
+        // Collapse Folder, then Down should land on Sibling (not the hidden Leaf1).
+        Press(tree, ConsoleKey.DownArrow);   // select root
+        Press(tree, ConsoleKey.DownArrow);   // select Folder
+        Press(tree, ConsoleKey.LeftArrow);   // collapse it
+        Press(tree, ConsoleKey.DownArrow);   // next visible node
+
+        Assert.True(sibling.Selected);
+        Assert.False(folder.Selected);
     }
 
     [Fact]

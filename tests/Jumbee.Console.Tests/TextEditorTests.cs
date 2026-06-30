@@ -77,6 +77,28 @@ public class TextEditorTests
     }
     #endregion
 
+    #region ReadOnly
+    [Fact]
+    public void ReadOnly_IgnoresEdits_ButNavigationStillMovesCaret()
+    {
+        var ed = new TextEditor { Text = "abc", ReadOnly = true };
+        ed.CaretIndex = 3;
+
+        // Edit keys are all ignored: typing, Backspace, Delete, Enter, Tab, paste.
+        UI.SendInput(ed, new ConsoleKeyInfo('x', ConsoleKey.X, false, false, false));
+        UI.SendInput(ed, new ConsoleKeyInfo('\b', ConsoleKey.Backspace, false, false, false));
+        UI.SendInput(ed, new ConsoleKeyInfo('\r', ConsoleKey.Enter, false, false, false));
+        UI.SendInput(ed, new ConsoleKeyInfo('\t', ConsoleKey.Tab, false, false, false));
+        ed.OnPaste("zzz");
+
+        Assert.Equal("abc", ed.Text);
+
+        // Navigation still works (caret moves), so it's a viewer, not inert.
+        UI.SendInput(ed, new ConsoleKeyInfo('\0', ConsoleKey.LeftArrow, false, false, false));
+        Assert.Equal(2, ed.CaretIndex);
+    }
+    #endregion
+
     #region Cursor drawing / tracking
     [Fact]
     public void Cursor_DrawnAtCaretPosition()

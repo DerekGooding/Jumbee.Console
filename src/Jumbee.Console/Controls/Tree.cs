@@ -109,6 +109,23 @@ public partial class Tree : RenderableControl
         set => SetAtomicProperty(ref _selectionStyle, value, themeOverride: true);
     }
 
+    /// <summary>The glyph shown before a node that has no children (a leaf), including trailing spacing. Defaults to
+    /// the theme's <see cref="IGlyphTheme.TreeLeaf"/>. Keep its width equal to the disclosure glyphs so labels align.</summary>
+    public string LeafGlyph
+    {
+        get => _leafGlyph;
+        set => SetAtomicProperty(ref _leafGlyph, value, themeOverride: true);
+    }
+
+    /// <summary>Foreground colour of the <see cref="LeafGlyph"/>, or <see langword="null"/> for the default text
+    /// colour. Defaults to the theme's <see cref="IStyleTheme.TreeLeaf"/> colour. When a (text) leaf is selected the
+    /// glyph is highlighted together with the text instead of using this colour.</summary>
+    public Color? LeafGlyphColor
+    {
+        get => _leafGlyphColor;
+        set => SetAtomicProperty(ref _leafGlyphColor, value, themeOverride: true);
+    }
+
     public override bool HandlesInput => true;
 
     #endregion
@@ -126,6 +143,10 @@ public partial class Tree : RenderableControl
         if (!IsThemeOverridden(nameof(SelectedBackgroundColor))) _selectedBackgroundColor = UI.StyleTheme.Selection.BackgroundColor;
         if (!IsThemeOverridden(nameof(SelectionStyle))) _selectionStyle = UI.StyleTheme.SelectionStyle;
         _selectionCaret = UI.GlyphTheme.SelectionCaret;
+        _treeExpanded = UI.GlyphTheme.TreeExpanded;
+        _treeCollapsed = UI.GlyphTheme.TreeCollapsed;
+        if (!IsThemeOverridden(nameof(LeafGlyph))) _leafGlyph = UI.GlyphTheme.TreeLeaf;
+        if (!IsThemeOverridden(nameof(LeafGlyphColor))) _leafGlyphColor = UI.StyleTheme.TreeLeaf.ForegroundColor;
     }
 
     public TreeNode AddNode(IRenderable label) => _root.AddChild(label);
@@ -148,17 +169,44 @@ public partial class Tree : RenderableControl
 
     protected override void OnInput(InputEvent inputEvent)
     {
-        if (inputEvent.Key.Key == ConsoleKey.DownArrow)
+        switch (inputEvent.Key.Key)
         {
-            NavigateTree(1);
-            inputEvent.Handled = true;
-        }
-        else if (inputEvent.Key.Key == ConsoleKey.UpArrow)
-        {
-            NavigateTree(-1);
-            inputEvent.Handled = true;
+            case ConsoleKey.DownArrow:
+                NavigateTree(1);
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.UpArrow:
+                NavigateTree(-1);
+                inputEvent.Handled = true;
+                break;
+            // Right: expand a collapsed parent, else step into its first child. Left: collapse an expanded parent,
+            // else step out to the parent. Enter/Space toggle the selected parent. (No-op on a leaf with no parent.)
+            case ConsoleKey.RightArrow:
+                if (SelectedNode is { Nodes.Count: > 0 } r)
+                {
+                    if (!r.Expanded) r.Expanded = true;
+                    else SelectNode(r.Nodes.OrderBy(n => n.Index).First());
+                }
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.LeftArrow:
+                if (SelectedNode is { } l)
+                {
+                    if (l.Nodes.Count > 0 && l.Expanded) l.Expanded = false;
+                    else if (l.Parent is { } parent) SelectNode(parent);
+                }
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.Enter:
+            case ConsoleKey.Spacebar:
+                if (SelectedNode is { Nodes.Count: > 0 } t) t.Expanded = !t.Expanded;
+                inputEvent.Handled = true;
+                break;
         }
     }
+
+    /// <summary>The currently selected visible node, or <see langword="null"/> if none is selected.</summary>
+    public TreeNode? SelectedNode => Flatten(_root).FirstOrDefault(n => n.Selected);
     
     internal void Update() => this.Invalidate();
 
@@ -203,30 +251,47 @@ public partial class Tree : RenderableControl
 
             var prefix = levels.Skip(1).ToList();
             
-            IRenderable renderable = current.Renderable;
-            // In Caret mode reserve a caret-width gutter on every node so the labels don't jump as the selection moves.
+            // The gutter icon drawn before the label: a disclosure glyph for a parent (expanded/collapsed), or the
+            // leaf glyph for a childless node. The leaf glyph carries its own foreground colour; the disclosure glyph
+            // uses the guide style. Both should share a cell width so labels stay aligned.
+            var hasChildren = current.Nodes.Count > 0;
+            var icon = hasChildren ? (current.Expanded ? _treeExpanded : _treeCollapsed) : _leafGlyph;
+            var iconWidth = icon.GetCellWidth();
+            var iconStyle = !hasChildren && _leafGlyphColor is { } leafColor
+                ? new Spectre.Console.Style(foreground: leafColor)
+                : Style.SpectreConsoleStyle;
+
             var caret = _selectionStyle == SelectionStyle.Caret;
-            if (!string.IsNullOrEmpty(current.Text))
+            // A node with Text renders through Markup, so a selected text node folds the icon INTO the highlighted
+            // markup — the glyph is highlighted together with the text "in the usual manner". An IRenderable-only node
+            // can't be folded or highlighted: its icon is drawn as a separate (coloured) segment and the label as-is.
+            var selectedText = current.Selected && !string.IsNullOrEmpty(current.Text);
+
+            IRenderable renderable = current.Renderable;
+            if (selectedText)
             {
-                if (current.Selected)
-                {
-                    // Indicate the selected node per SelectionStyle: a highlight, an underline, or a caret prefix.
-                    var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
-                    renderable = new Markup(_selectionStyle.Prefix(_selectionCaret) + current.Text, style);
-                }
-                else if (caret)
-                {
-                    renderable = new Markup(new string(' ', _selectionCaret.GetCellWidth()) + current.Text);
-                }
+                var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
+                renderable = new Markup(_selectionStyle.Prefix(_selectionCaret) + Markup.Escape(icon) + current.Text, style);
             }
 
-            var renderableLines = Segment.SplitLines(renderable.Render(options, maxWidth - Segment.CellCount(prefix)));
+            // In Caret mode reserve a caret-width gutter on every non-selected row so labels don't jump as selection moves.
+            var caretPad = caret && !current.Selected ? _selectionCaret.GetCellWidth() : 0;
+            var labelWidth = maxWidth - Segment.CellCount(prefix) - (selectedText ? 0 : iconWidth) - caretPad;
+            var renderableLines = Segment.SplitLines(renderable.Render(options, labelWidth));
 
             foreach (var (_, isFirstLine, _, line) in renderableLines.Enumerate())
             {
                 if (prefix.Count > 0)
                 {
                     result.AddRange(prefix.ToList());
+                }
+
+                // For a non-folded node, draw the caret reservation (caret mode) then the gutter icon — the glyph on
+                // the first line, a width-matched spacer on wrapped continuation lines.
+                if (!selectedText)
+                {
+                    if (caretPad > 0) result.Add(new Segment(new string(' ', caretPad)));
+                    result.Add(isFirstLine ? new Segment(icon, iconStyle) : new Segment(new string(' ', iconWidth)));
                 }
 
                 result.AddRange(line);
@@ -289,6 +354,18 @@ public partial class Tree : RenderableControl
         AutoScroll(nextIndex);
     }
 
+    // Move the selection to a specific (visible) node, clearing any previous selection and scrolling it into view.
+    private void SelectNode(TreeNode node)
+    {
+        var nodes = Flatten(_root).ToList();
+        var index = nodes.IndexOf(node);
+        if (index < 0) return;   // not currently visible (e.g. under a collapsed ancestor)
+
+        foreach (var n in nodes) if (n.Selected && !ReferenceEquals(n, node)) n.Selected = false;
+        node.Selected = true;
+        AutoScroll(index);
+    }
+
     /// <summary>
     /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the row at <paramref name="y"/>
     /// (the selected node's position in the flattened, visible tree) stays within the viewport.
@@ -339,5 +416,9 @@ public partial class Tree : RenderableControl
     private Color? _selectedBackgroundColor;
     private SelectionStyle _selectionStyle;
     private string _selectionCaret = "";
+    private string _treeExpanded = "";
+    private string _treeCollapsed = "";
+    private string _leafGlyph = "";
+    private Color? _leafGlyphColor;
     #endregion
 }

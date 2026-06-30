@@ -58,9 +58,22 @@ public partial class Tree
         public ICollection<TreeNode> Children => _children.Values;
 
         /// <summary>
-        /// Gets or sets a value indicating whether or not the tree node is expanded or not.
+        /// Gets or sets a value indicating whether or not the tree node is expanded. Collapsing hides this node's
+        /// children (they no longer render and are skipped by navigation); expanding shows them again. Toggling
+        /// redraws the tree.
         /// </summary>
-        public bool Expanded { get; set; } = true;
+        public bool Expanded
+        {
+            get => _expanded;
+            set
+            {
+                if (_expanded != value)
+                {
+                    _expanded = value;
+                    UpdateTree();
+                }
+            }
+        }
 
         public bool IsRemoved { get; internal set; } = false;
 
@@ -148,6 +161,7 @@ public partial class Tree
         private Dictionary<uint, TreeNode> _children = new();
         private uint childIndex = 0;
         private bool _selected;
+        private bool _expanded = true;
         #endregion
     }
 }

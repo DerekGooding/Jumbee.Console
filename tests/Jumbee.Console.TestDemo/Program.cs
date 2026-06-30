@@ -35,7 +35,8 @@ public class Program
         //GridTest(args);
         //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
-        InputsDemo(args);
+        //InputsDemo(args);
+        PostingDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
@@ -652,6 +653,132 @@ public class Program
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
 
         var run = UI.Start(overlay, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(url);
+        run.Wait();
+    }
+
+    // The full multi-pane "Posting"-style HTTP-client TUI, assembling the controls built this cycle: a Collection
+    // Tree, a method Select + URL TextInput + Send Button + status Badge, a Request panel (TabPanel of Headers
+    // DataTable + add-row + Autocomplete / Body / Query / Auth) and a Response panel (status Badge + TabPanel of a
+    // read-only JSON CodeEditor / Headers / Cookies), with a Footer docked along the bottom. Root is an Overlay so
+    // the method dropdown and header Autocomplete popup float above everything.
+    static void PostingDemo(string[] args)
+    {
+        // ----- Header bar -----
+        var appTitle = new TextLabel(TextLabelOrientation.Horizontal, " Posting 2.3.0", new Color(150, 170, 255));
+        var userLabel = new TextLabel(TextLabelOrientation.Horizontal, "user@host ", new Color(120, 130, 150));
+        var header = new Jumbee.Console.Grid([1], [60, 50], [[appTitle, userLabel]]);
+
+        // ----- URL bar -----
+        var method = new Select("GET", "POST", "PUT", "DELETE", "PATCH") { Placeholder = "GET" };
+        var url = new TextInput(placeholder: "https://api.example.com/users   (Enter to send)");
+        var send = new Button("Send");
+        var statusBadge = new Badge("—");
+        var urlRow = new Jumbee.Console.Grid([1], [12, 78, 8, 12], [[method, url, send, statusBadge]]);
+
+        // ----- Left: Collection tree. Parent nodes show a disclosure glyph (expand/collapse with ←/→/Enter);
+        // leaf nodes use plain text so they get the themed leaf glyph and highlight when selected (Up/Down). -----
+        var tree = new Tree("sample-collections");
+        var users = tree.AddNode("users");
+        var posts = tree.AddNode("posts");
+        users.AddChild("GET list users");
+        users.AddChild("POST create user");
+        users.AddChild("DEL delete user");
+        posts.AddChild("GET list posts");
+        posts.AddChild("PUT update post");
+        var treeFrame = tree.WithRoundedBorder(new Color(80, 90, 110)).WithTitle("Collection");
+
+        // ----- Request panel: Headers tab = add-row + DataTable, plus Body / Query / Auth -----
+        var keyInput = new TextInput(placeholder: "Header");
+        var valueInput = new TextInput(placeholder: "Value");
+        var addBtn = new Button("Add");
+        var addRow = new Jumbee.Console.Grid([1], [24, 34, 8], [[keyInput, valueInput, addBtn]]);
+        var headersTable = new DataTable("Header", "Value");
+        var headersContent = new Jumbee.Console.Grid([1, 12], [68], [[addRow], [headersTable]]);
+
+        var reqBody = new CodeEditor(Language.Json) { Text = "{\n  \"name\": \"Ada\"\n}" };
+        var queryTable = new DataTable("Param", "Value");
+        var authType = new Select("None", "Bearer", "Basic", "API Key") { Placeholder = "None" };
+        var authToken = new TextInput(placeholder: "token");
+        var authContent = new Jumbee.Console.Grid([1, 1], [68], [[authType], [authToken]]);
+
+        var reqTabs = new TabPanel(TabBarDock.Top,
+            ("Headers", headersContent),
+            ("Body", reqBody.WithFrame()),
+            ("Query", queryTable),
+            ("Auth", authContent));
+        // Layouts can't carry a ControlFrame (only Controls can), so the Request/Response panels are labeled with a
+        // styled title row rather than a bordered box; the Collection tree (a Control) keeps its real frame.
+        var reqTitle = new TextLabel(TextLabelOrientation.Horizontal, "Request", new Color(150, 170, 255));
+        var reqPanel = new Jumbee.Console.Grid([1, 15], [72], [[reqTitle], [reqTabs]]);
+
+        // ----- Response panel: status Badge + TabPanel (read-only JSON body / Headers / Cookies) -----
+        var respStatus = new Badge("200 OK") { Variant = BadgeVariant.Success };
+        var respBody = new CodeEditor(Language.Json)
+        {
+            Text = "{\n  \"id\": 1,\n  \"name\": \"Ada Lovelace\",\n  \"email\": \"ada@example.com\"\n}",
+            ReadOnly = true,
+        };
+        var respHeaders = new DataTable("Header", "Value");
+        respHeaders.AddRow("Content-Type", "application/json");
+        respHeaders.AddRow("Server", "Jumbee/1.0");
+        var respCookies = new DataTable("Name", "Value");
+        var respTabs = new TabPanel(TabBarDock.Top,
+            ("Body", respBody.WithFrame()),
+            ("Headers", respHeaders),
+            ("Cookies", respCookies));
+        var responseContent = new Jumbee.Console.Grid([1, 11], [68], [[respStatus], [respTabs]]);
+        var respTitle = new TextLabel(TextLabelOrientation.Horizontal, "Response", new Color(150, 170, 255));
+        var respPanel = new Jumbee.Console.Grid([1, 13], [72], [[respTitle], [responseContent]]);
+
+        // ----- Compose: right column (Request over Response), then the two-column body -----
+        var rightGrid = new Jumbee.Console.Grid([16, 15], [72], [[reqPanel], [respPanel]]);
+        var bodyGrid = new Jumbee.Console.Grid([31], [38, 72], [[treeFrame, rightGrid]]);
+
+        var body = new Jumbee.Console.Grid([1, 1, 31], [110], [[header], [urlRow], [bodyGrid]]);
+
+        var footer = new Footer(
+            new FooterHint("Enter", "Send"), new FooterHint("^m", "Method"),
+            new FooterHint("Alt+←→", "Tabs"), new FooterHint("Tab", "Move"),
+            new FooterHint("^c", "Quit"), new FooterHint("f1", "Help"));
+
+        var dock = new Jumbee.Console.DockPanel(DockedControlPlacement.Bottom, footer, body);
+        var overlay = new Overlay(dock);
+        method.Overlay = overlay;       // method dropdown floats over the overlay
+        authType.Overlay = overlay;
+
+        // Type-ahead on the header name field.
+        _ = new Autocomplete(keyInput, overlay,
+            "Accept", "Accept-Encoding", "Accept-Language", "Authorization", "Cache-Control", "Connection",
+            "Content-Type", "Cookie", "Host", "If-None-Match", "Origin", "Referer", "User-Agent");
+
+        var currentMethod = "GET";
+        method.SelectionChanged += (_, v) => currentMethod = v;
+
+        void Send()
+        {
+            respStatus.Text = "200 OK";
+            respStatus.Variant = BadgeVariant.Success;
+            statusBadge.Text = "200 OK";
+            statusBadge.Variant = BadgeVariant.Success;
+        }
+
+        void AddHeader()
+        {
+            if (string.IsNullOrWhiteSpace(keyInput.Text)) return;
+            headersTable.AddRow(keyInput.Text, valueInput.Text);
+            keyInput.Text = "";
+            valueInput.Text = "";
+        }
+
+        send.Activated += (_, _) => Send();
+        url.Submitted += (_, _) => Send();
+        addBtn.Activated += (_, _) => AddHeader();
+        valueInput.Submitted += (_, _) => AddHeader();
+        headersTable.RowActivated += (_, i) => headersTable.RemoveRow(i);
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
+
+        var run = UI.Start(overlay, width: 112, height: 38, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(url);
         run.Wait();
     }

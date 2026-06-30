@@ -38,6 +38,20 @@ public interface IGlyphTheme
     string SelectionCaret => "▶ ";
     #endregion
 
+    #region Tree
+    /// <summary>Disclosure glyph shown before an <em>expanded</em> node that has children (includes trailing
+    /// spacing). Defaults to <c>"▼ "</c>. Both tree glyphs should share a cell width so labels stay aligned.</summary>
+    string TreeExpanded => "▼ ";
+    /// <summary>Disclosure glyph shown before a <em>collapsed</em> node that has children (includes trailing
+    /// spacing). Defaults to <c>"► "</c> (U+25BA — the text-presentation counterpart of <c>▼</c>; the emoji-variant
+    /// <c>▶</c> U+25B6 tofus in some fonts).</summary>
+    string TreeCollapsed => "► ";
+
+    /// <summary>Glyph shown before a node that has <em>no</em> children (a leaf), including trailing spacing. Should
+    /// share a cell width with the disclosure glyphs so labels stay aligned. Defaults to <c>"• "</c>.</summary>
+    string TreeLeaf => "• ";
+    #endregion
+
     #region Helpers
     /// <summary>The cell width of the widest of two state glyphs (both states of a toggle should be equal width;
     /// this guards against a theme that isn't).</summary>

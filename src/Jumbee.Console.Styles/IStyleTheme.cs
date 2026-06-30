@@ -54,6 +54,10 @@ public interface IStyleTheme
     /// highlight, an underline, or a caret prefix. Defaults to <see cref="SelectionStyle.Highlight"/>.</summary>
     SelectionStyle SelectionStyle => SelectionStyle.Highlight;
 
+    /// <summary>The colour of a <see cref="Jumbee.Console.Tree"/>'s leaf glyph (the marker before a childless node);
+    /// only its foreground is used. Defaults to <see cref="TextAccent"/>.</summary>
+    Style TreeLeaf => TextAccent;
+
     /// <summary>A row/control under the pointer (background tint).</summary>
     Style Hover => Style.Bg(new Color(45, 45, 60));
 

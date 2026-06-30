@@ -46,6 +46,14 @@ public class CodeEditor : CompositeControl
     /// <summary>The line-number gutter.</summary>
     public LineNumberGutter Gutter => _gutter;
 
+    /// <summary>When <see langword="true"/>, the editor ignores edits (typing/Backspace/Delete/Enter/Tab/paste) but
+    /// still navigates and scrolls — a read-only code viewer. Passthrough to <see cref="TextEditor.ReadOnly"/>.</summary>
+    public bool ReadOnly
+    {
+        get => _editor.ReadOnly;
+        set => _editor.ReadOnly = value;
+    }
+
     /// <summary>The editor's text. Setting it loads the document with the caret at the start (top of the file).</summary>
     public string Text
     {
