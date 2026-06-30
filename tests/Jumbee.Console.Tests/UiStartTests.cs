@@ -245,6 +245,51 @@ public class UiStartTests
     }
 
     [Fact]
+    public void RightClick_OnTreeNode_SelectsIt_RaisesOpening_AndShowsContextMenu()
+    {
+        var originalOut = Console.Out;
+        Console.SetOut(TextWriter.Null);
+
+        var tree = new Tree("Root");        // row 0
+        var alpha = tree.AddNode("Alpha");  // row 1
+        tree.AddNode("Beta");               // row 2
+        var menu = new ContextMenu([new MenuItem("Delete")]);
+        tree.ContextMenu = menu;
+        Tree.TreeNode? opened = null;
+        tree.ContextMenuOpening += (_, n) => opened = n;
+
+        var grid = new Grid([6], [24], [[tree]]);
+        var screen = new ConsoleBuffer { Size = new Size(24, 6) };
+        var input = new FakeInputSource();
+        Task run;
+
+        try
+        {
+            // Non-ANSI so rendering lands in `screen`, letting us wait for the tree to actually paint (so its cells
+            // carry mouse listeners) before injecting the click.
+            run = UI.Start(grid, width: 24, height: 6, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            UI.Invoke(() => UI.SetFocus(tree));
+            Assert.True(WaitUntil(() => screen[0, 0].Content == '▼', 3000), "tree should render before the click");
+
+            // Right-press then release on Alpha's row (y = 1).
+            input.Push(new MouseInputEvent(5, 1, TerminalMouseButton.Right, TerminalMouseKind.Down, TerminalModifiers.None));
+            input.Push(new MouseInputEvent(5, 1, TerminalMouseButton.Right, TerminalMouseKind.Up, TerminalModifiers.None));
+
+            Assert.True(WaitUntil(() => opened is not null, 3000), "right-click should raise ContextMenuOpening");
+            Assert.Same(alpha, opened);                 // the right-clicked node, now selected
+            Assert.Same(alpha, tree.SelectedNode);
+            Assert.True(WaitUntil(() => UI.Overlay?.Top is not null, 2000), "the context menu should be shown");
+        }
+        finally
+        {
+            UI.Stop();
+            Console.SetOut(originalOut);
+        }
+
+        Assert.True(run.Wait(2000), "Stop() should complete the run task.");
+    }
+
+    [Fact]
     public void Stop_InvokedOnUiThread_DoesNotSelfJoinHang_AndCompletesRunTask()
     {
         var originalOut = Console.Out;

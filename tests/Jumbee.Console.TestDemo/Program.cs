@@ -774,7 +774,7 @@ public class Program
         headersTable.RowActivated += (_, i) => headersTable.RemoveRow(i);
         // Activate a request leaf (double-click or Enter) to load its method + URL into the request bar.
         var methodNames = new[] { "GET", "POST", "PUT", "DELETE", "PATCH" };
-        tree.NodeActivated += (_, node) =>
+        void LoadRequest(Jumbee.Console.Tree.TreeNode node)
         {
             if (string.IsNullOrWhiteSpace(node.Text)) return;
             var parts = node.Text.Split(' ', 2);
@@ -783,7 +783,17 @@ public class Program
             if (mi >= 0) method.SelectedIndex = mi;
             var resource = parts.Length > 1 ? parts[1].Split(' ')[^1] : "";
             url.Text = $"https://api.example.com/{resource}";
-        };
+        }
+        tree.NodeActivated += (_, node) => LoadRequest(node);
+
+        // Right-click a request to act on it. The menu's items read tree.SelectedNode (the right-clicked node).
+        tree.ContextMenu = new ContextMenu(
+        [
+            new MenuItem("Open", () => { if (tree.SelectedNode is { } n) LoadRequest(n); }),
+            MenuItem.Separator,
+            new MenuItem("Delete", () => { if (tree.SelectedNode is { Parent: { } p } n) p.RemoveChild(n.Index); }),
+        ]);
+
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.M), () => method.Open());
 
         var run = UI.Start(dock, width: 112, height: 38, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));

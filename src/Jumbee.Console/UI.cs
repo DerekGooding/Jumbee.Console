@@ -125,6 +125,9 @@ public static class UI
                 break;
             case MouseInputEvent m:
                 ConsoleManager.MousePosition = new Position(m.X, m.Y);
+                // Latch the pressed button so the click handlers that fire on the matching Up (OnClick/OnDoubleClick,
+                // dispatched synchronously when MouseDown flips to false) can tell a right-click from a left-click.
+                if (m.Kind == TerminalMouseKind.Down) MouseButton = m.Button;
                 switch (m.Kind)
                 {
                     case TerminalMouseKind.Down: ConsoleManager.MouseDown = true; break;
@@ -167,6 +170,7 @@ public static class UI
             signalRegistrations = null;
         }
         controls.Clear();
+        MouseButton = TerminalMouseButton.None;   // clear transient input state so it can't leak into a later session
         ProcessMetrics.Stop();
         runCompletion.TrySetResult();
     }
@@ -417,6 +421,11 @@ public static class UI
         get => systemOverlay;
         set => systemOverlay = value;
     }
+
+    /// <summary>The mouse button of the most recent press, latched until the next press. A control's
+    /// <c>OnClick</c>/<c>OnDoubleClick</c> reads this to distinguish a right-click (e.g. to open a context menu)
+    /// from a left-click — the dispatch itself carries only a position, not a button.</summary>
+    public static TerminalMouseButton MouseButton { get; private set; }
 
     /// <summary>
     /// The active style theme. Controls capture their default colours/decorations from it. Assigning raises

@@ -151,6 +151,11 @@ public partial class Tree : RenderableControl
         set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true);
     }
 
+    /// <summary>An optional menu shown when a node is right-clicked. The right-click first selects that node and
+    /// raises <see cref="ContextMenuOpening"/> (with the node), then the menu floats at the pointer. Item handlers
+    /// can read <see cref="SelectedNode"/> to act on the right-clicked node. Left <see langword="null"/> = no menu.</summary>
+    public ContextMenu? ContextMenu { get; set; }
+
     public override bool HandlesInput => true;
 
     protected override bool WantsMouse => true;   // click to select/toggle, hover to highlight
@@ -161,6 +166,11 @@ public partial class Tree : RenderableControl
     /// <summary>Raised when a leaf node (one with no children) is activated — double-clicked, or Enter/Space pressed
     /// while it is selected. Parent nodes toggle expansion instead of raising this.</summary>
     public event EventHandler<TreeNode>? NodeActivated;
+
+    /// <summary>Raised just before <see cref="ContextMenu"/> is shown for a right-clicked node, with that node (now
+    /// the selected one). Use it to tailor the menu to the node, or read <see cref="SelectedNode"/> from the menu's
+    /// own item handlers. Only fires when <see cref="ContextMenu"/> is set.</summary>
+    public event EventHandler<TreeNode>? ContextMenuOpening;
     #endregion
 
     #region Indexers
@@ -253,6 +263,7 @@ public partial class Tree : RenderableControl
     // scrolling is the inherited default: OnMouseWheel -> Frame.Scroll.)
     protected override void OnClick(Position position)
     {
+        if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position); return; }
         if (NodeAt(position.Y) is not { } node) return;
         if (node.Nodes.Count > 0 && OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
         SelectNode(node);
@@ -260,6 +271,8 @@ public partial class Tree : RenderableControl
 
     protected override void OnDoubleClick(Position position)
     {
+        // A fast double right-click still just opens the menu (don't toggle/activate underneath it).
+        if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position); return; }
         if (NodeAt(position.Y) is not { } node) return;
         if (node.Nodes.Count > 0)
         {
@@ -271,6 +284,18 @@ public partial class Tree : RenderableControl
             NodeActivated?.Invoke(this, node);   // double-clicking a leaf activates it
         }
         SelectNode(node);
+    }
+
+    // Right-click: select the node under the pointer, announce it, then float ContextMenu at the pointer. The menu
+    // shows in the ambient UI.Overlay (ContextMenu.Show), and item handlers can read SelectedNode. No-op if no menu
+    // is set or the click missed every node.
+    private void OpenContextMenu(Position contentPos)
+    {
+        if (ContextMenu is null || NodeAt(contentPos.Y) is not { } node) return;
+        SelectNode(node);
+        ContextMenuOpening?.Invoke(this, node);
+        if (ConsoleGUI.ConsoleManager.MousePosition is { } m) ContextMenu.Show(m.X, m.Y);
+        else ContextMenu.Show(contentPos.X, contentPos.Y);
     }
 
     // Hover: track the node under the pointer and repaint so its row is tinted; clear it when the pointer leaves.
