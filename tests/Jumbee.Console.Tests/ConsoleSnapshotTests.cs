@@ -153,6 +153,67 @@ public class ConsoleSnapshotTests
         Assert.All(LeafBulletBackgrounds(buf), bg => Assert.Null(bg));
     }
 
+    // A click at a content-space position routed through the tree's mouse listener.
+    private static void ClickTree(Tree tree, int x, int y)
+    {
+        var ml = (ConsoleGUI.Input.IMouseListener)tree;
+        var pos = new ConsoleGUI.Space.Position(x, y);
+        ml.OnMouseDown(pos);
+        ml.OnMouseUp(pos);
+    }
+
+    [Fact]
+    public void Tree_Click_SelectsNodeUnderPointer()
+    {
+        var tree = new Tree("Root");          // row 0
+        var folder = tree.AddNode("Folder");  // row 1
+        var alpha = folder.AddChild("Alpha"); // row 2
+        folder.AddChild("Beta");              // row 3
+        ConsoleSnapshot.Render(tree, 24, 10); // establish layout
+
+        ClickTree(tree, 8, 2);                // on Alpha's label
+
+        Assert.True(alpha.Selected);
+        Assert.True(folder.Expanded);         // a label click doesn't toggle
+    }
+
+    [Fact]
+    public void Tree_Click_OnDisclosureGlyph_TogglesNode()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");  // row 1, depth 1 -> glyph at x = 4
+        folder.AddChild("Alpha");
+        ConsoleSnapshot.Render(tree, 24, 10);
+
+        ClickTree(tree, 4, 1);                // on Folder's "▼" glyph
+        Assert.False(folder.Expanded);        // collapsed
+        Assert.True(folder.Selected);
+        Assert.DoesNotContain("Alpha", ConsoleSnapshot.ToText(tree, 24, 10));
+
+        // A label click in between (a different position) so the next glyph click is a fresh single click, not a
+        // double — re-expanding the node.
+        ClickTree(tree, 8, 1);                // Folder's label: selects, no toggle (still collapsed)
+        Assert.False(folder.Expanded);
+        ClickTree(tree, 4, 1);                // glyph again -> re-expand
+        Assert.True(folder.Expanded);
+        Assert.Contains("Alpha", ConsoleSnapshot.ToText(tree, 24, 10));
+    }
+
+    [Fact]
+    public void Tree_DoubleClick_OnLabel_TogglesNode()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");  // row 1
+        folder.AddChild("Alpha");
+        ConsoleSnapshot.Render(tree, 24, 10);
+
+        // Two clicks on the label at the same position register as a double-click (toggles once).
+        ClickTree(tree, 8, 1);
+        ClickTree(tree, 8, 1);
+
+        Assert.False(folder.Expanded);
+    }
+
     [Fact]
     public void Tree_Navigation_SkipsCollapsedChildren()
     {

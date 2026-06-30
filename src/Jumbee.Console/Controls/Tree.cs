@@ -9,6 +9,7 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 using Spectre.Console.Interop;
 using ConsoleGUI.Input;
+using ConsoleGUI.Space;
 
 using CircularTreeException = Spectre.Console.Interop.CircularTreeException;
 
@@ -207,7 +208,52 @@ public partial class Tree : RenderableControl
 
     /// <summary>The currently selected visible node, or <see langword="null"/> if none is selected.</summary>
     public TreeNode? SelectedNode => Flatten(_root).FirstOrDefault(n => n.Selected);
-    
+
+    // Mouse: each visible node is one row, so the listener's content-space Y is the flattened-node index (the frame
+    // adjusts for scroll). A single click selects; clicking a parent's disclosure glyph toggles it; double-clicking
+    // a parent's label toggles it — so a double-click anywhere on a parent row ends up toggled exactly once. (Wheel
+    // scrolling is the inherited default: OnMouseWheel -> Frame.Scroll.)
+    protected override void OnClick(Position position)
+    {
+        if (NodeAt(position.Y) is not { } node) return;
+        if (node.Nodes.Count > 0 && OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
+        SelectNode(node);
+    }
+
+    protected override void OnDoubleClick(Position position)
+    {
+        if (NodeAt(position.Y) is not { } node) return;
+        // A glyph click was already toggled by the preceding single-click; only toggle here for a label double-click.
+        if (node.Nodes.Count > 0 && !OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
+        SelectNode(node);
+    }
+
+    // The visible node at a content row, or null if the row is past the tree.
+    private TreeNode? NodeAt(int row)
+    {
+        var nodes = Flatten(_root).ToList();
+        return row >= 0 && row < nodes.Count ? nodes[row] : null;
+    }
+
+    // True when content-space X falls within the node's gutter glyph (drawn at depth * guide-part width).
+    private bool OnGlyph(TreeNode node, int x)
+    {
+        var glyphStart = Depth(node) * GuidePartWidth();
+        var glyph = node.Nodes.Count > 0 ? (node.Expanded ? _treeExpanded : _treeCollapsed) : _leafGlyph;
+        return x >= glyphStart && x < glyphStart + glyph.GetCellWidth();
+    }
+
+    // The node's depth (root = 0); its guide prefix is this many fixed-width guide parts.
+    private static int Depth(TreeNode node)
+    {
+        var d = 0;
+        for (var p = node.Parent; p is not null; p = p.Parent) d++;
+        return d;
+    }
+
+    // The cell width of one guide part (e.g. "├── "); constant across parts for a given guide.
+    private int GuidePartWidth() => scguide.GetSafeTreeGuide(safe: false).GetPart(TreeGuidePart.Continue).GetCellWidth();
+
     internal void Update() => this.Invalidate();
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
