@@ -309,7 +309,19 @@ public static class UI
     /// <summary>Throws when the caller is not on the UI thread.</summary>
     public static void VerifyAccess() => dispatcher.VerifyAccess();
 
-    /// <summary>Queues an action to run on the UI thread.</summary>
+    /// <summary>
+    /// Queues <paramref name="action"/> to run on the UI thread on a later turn of the frame loop, and returns
+    /// immediately (never blocks, never runs inline). Unlike <see cref="Invoke"/>, it <em>always</em> defers — even
+    /// when the caller is already on the UI thread — so the action runs after the current work/layout/paint settles
+    /// (work posted while the queue is draining waits for the next frame; see <see cref="Dispatcher"/>).
+    /// </summary>
+    /// <remarks>
+    /// Use this — rather than <see cref="Invoke"/> — when you specifically want to defer: to break re-entrancy (e.g.
+    /// run something <em>after</em> the current input/layout pass), or for a self-feeding pump that must not starve
+    /// rendering. It is the low-level primitive: it does NOT request a redraw, so if the action changes visual state
+    /// it must invalidate itself (or call <see cref="MarkDirty"/>). For "run on the UI thread, now if I already am,"
+    /// use <see cref="Invoke"/> instead.
+    /// </remarks>
     public static void Post(Action action) => dispatcher.Post(action);
 
     /// <summary>Runs an action on the UI thread and returns a task that completes when it finishes.</summary>
@@ -380,11 +392,21 @@ public static class UI
     }
        
     /// <summary>
-    /// Runs an action on the UI thread, marshaling automatically: inline when already on the UI thread (or when no
-    /// UI thread is running, e.g. headless/initialization), otherwise posted to the dispatcher queue. The primary
-    /// way to mutate control/layout state from another thread; requests a redraw afterwards.
+    /// Runs <paramref name="action"/> on the UI thread, marshaling automatically: <em>inline and immediately</em>
+    /// when the caller is already on the UI thread (or no UI thread is running, e.g. headless/initialization),
+    /// otherwise posted to the dispatcher queue. Then requests a redraw. This is the primary, default way to mutate
+    /// control/layout state from anywhere — the change always ends up serialized on the UI thread with rendering, so
+    /// no lock is needed.
     /// </summary>
-    /// <param name="action">The action to execute.</param>
+    /// <remarks>
+    /// Does NOT block: off-thread it is fire-and-forget (the action runs later on the UI thread) — it does not wait
+    /// for completion or surface the action's exception to the caller. That is unlike the blocking, WPF-style
+    /// <see cref="Dispatcher.Invoke(Action)"/>; if you need to wait for the result use <see cref="InvokeAsync(Action)"/>.
+    /// Differs from <see cref="Post"/> in two ways: (1) it runs inline when already on the UI thread instead of
+    /// always deferring to a later frame, and (2) it requests a redraw afterwards. Prefer this for state changes;
+    /// reach for <see cref="Post"/> only when you deliberately want to defer to a later frame.
+    /// </remarks>
+    /// <param name="action">The action to execute on the UI thread.</param>
     public static void Invoke(Action action)
     {
         // Auto-marshal: run inline when already on the UI thread (or when no UI thread is running, e.g.
