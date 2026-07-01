@@ -82,6 +82,14 @@ public class Overlay : Layout<COverlay>
     /// <summary>Close the popup and restore focus to whatever was focused before it was shown.</summary>
     public void Hide() => Close(restoreFocus: true);
 
+    /// <summary>Re-anchors the current (non-passive) popup at (<paramref name="x"/>, <paramref name="y"/>) without
+    /// touching focus. A popup that changes its own size while open (e.g. a <see cref="ContextMenu"/> opening a
+    /// submenu) calls this so the overlay re-measures and re-lays-out the popup at its new size.</summary>
+    public void Reanchor(int x, int y) => UI.Invoke(() =>
+    {
+        if (_top is { } t && !_passive) control.TopContent = AnchorAt(t, x, y);
+    });
+
     /// <summary>
     /// Shows <paramref name="popup"/> anchored at (<paramref name="x"/>, <paramref name="y"/>) as a <em>passive</em>
     /// layer: it is drawn over (and is mouse-clickable), but does NOT take focus and does NOT capture keyboard

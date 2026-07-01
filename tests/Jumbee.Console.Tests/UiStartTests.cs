@@ -70,6 +70,21 @@ public class UiStartTests
         public override void OnPaste(string text) => Pasted.Enqueue(text);
     }
 
+    private static bool ScreenContains(ConsoleBuffer screen, string text)
+    {
+        for (var y = 0; y < screen.Size.Height; y++)
+        {
+            var row = new System.Text.StringBuilder();
+            for (var x = 0; x < screen.Size.Width; x++)
+            {
+                var c = screen[x, y].Character.Content;
+                row.Append(c is null or '\0' ? ' ' : c.Value);
+            }
+            if (row.ToString().Contains(text)) return true;
+        }
+        return false;
+    }
+
     private static bool WaitUntil(Func<bool> condition, int timeoutMs)
     {
         var sw = Stopwatch.StartNew();
@@ -279,6 +294,81 @@ public class UiStartTests
             Assert.Same(alpha, opened);                 // the right-clicked node, now selected
             Assert.Same(alpha, tree.SelectedNode);
             Assert.True(WaitUntil(() => UI.Overlay?.Top is not null, 2000), "the context menu should be shown");
+        }
+        finally
+        {
+            UI.Stop();
+            Console.SetOut(originalOut);
+        }
+
+        Assert.True(run.Wait(2000), "Stop() should complete the run task.");
+    }
+
+    [Fact]
+    public void RightClick_OnListBoxRow_SelectsIt_RaisesOpening_AndShowsContextMenu()
+    {
+        var originalOut = Console.Out;
+        Console.SetOut(TextWriter.Null);
+
+        var list = new ListBox("Alpha", "Beta", "Gamma");   // rows 0,1,2
+        var menu = new ContextMenu([new MenuItem("Delete")]);
+        list.ContextMenu = menu;
+        ListBox.ListBoxItem? opened = null;
+        list.ContextMenuOpening += (_, item) => opened = item;
+
+        var grid = new Grid([6], [24], [[list]]);
+        var screen = new ConsoleBuffer { Size = new Size(24, 6) };
+        var input = new FakeInputSource();
+        Task run;
+
+        try
+        {
+            run = UI.Start(grid, width: 24, height: 6, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            UI.Invoke(() => UI.SetFocus(list));
+            Assert.True(WaitUntil(() => screen[0, 0].Content == 'A', 3000), "list should render before the click");
+
+            // Right-press then release on Beta's row (y = 1).
+            input.Push(new MouseInputEvent(2, 1, TerminalMouseButton.Right, TerminalMouseKind.Down, TerminalModifiers.None));
+            input.Push(new MouseInputEvent(2, 1, TerminalMouseButton.Right, TerminalMouseKind.Up, TerminalModifiers.None));
+
+            Assert.True(WaitUntil(() => opened is not null, 3000), "right-click should raise ContextMenuOpening");
+            Assert.Equal("Beta", opened!.Text);
+            Assert.Equal(1, list.SelectedIndex);
+            Assert.True(WaitUntil(() => UI.Overlay?.Top is not null, 2000), "the context menu should be shown");
+        }
+        finally
+        {
+            UI.Stop();
+            Console.SetOut(originalOut);
+        }
+
+        Assert.True(run.Wait(2000), "Stop() should complete the run task.");
+    }
+
+    [Fact]
+    public void ContextMenu_Submenu_OpensLive_AndRendersIntoScreen()
+    {
+        var originalOut = Console.Out;
+        Console.SetOut(TextWriter.Null);
+
+        var menu = new ContextMenu([new MenuItem("Recent", new MenuItem[] { new("alpha.cs"), new("beta.cs") })]);
+        var grid = new Grid([12], [40], [[new TextLabel(TextLabelOrientation.Horizontal, "bg".PadRight(40), Color.White)]]);
+        var screen = new ConsoleBuffer { Size = new Size(40, 14) };
+        var input = new FakeInputSource();
+        Task run;
+
+        try
+        {
+            // Non-ANSI so rendering lands in `screen`, and a persistent (not re-created-per-frame) layout — the very
+            // conditions under which a self-resizing popup previously failed to re-lay-out when its submenu opened.
+            run = UI.Start(grid, width: 40, height: 14, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            UI.Invoke(() => menu.Show(1, 1));   // shows + focuses the menu in the ambient overlay
+            Assert.True(WaitUntil(() => ScreenContains(screen, "Recent"), 3000), "the menu should render");
+
+            // Open the submenu (Right on the highlighted "Recent"); it must appear in the live screen buffer.
+            input.Push(ConsoleKey.RightArrow);
+            Assert.True(WaitUntil(() => ScreenContains(screen, "alpha.cs"), 3000),
+                "opening a submenu must re-lay-out the popup so the child items render live");
         }
         finally
         {

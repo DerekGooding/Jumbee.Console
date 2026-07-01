@@ -105,6 +105,61 @@ public class ContextMenuTests
     }
 
     [Fact]
+    public void Submenu_OpensOnRight_NavigatesInto_AndActivatesLeaf()
+    {
+        var ran = false;
+        MenuItem? activated = null;
+        var menu = new ContextMenu([
+            new MenuItem("File"),
+            new MenuItem("Recent", new MenuItem[] { new("a.cs"), new("b.cs", () => ran = true) }),
+        ]);
+        menu.ItemActivated += (_, it) => activated = it;
+        var overlay = ShowMenu(menu);
+
+        SendKey(menu, ConsoleKey.DownArrow);    // highlight "Recent"
+        SendKey(menu, ConsoleKey.RightArrow);   // open its submenu (highlights "a.cs")
+        SendKey(menu, ConsoleKey.DownArrow);    // highlight "b.cs"
+        SendKey(menu, ConsoleKey.Enter);        // activate it
+
+        Assert.True(ran);
+        Assert.Equal("b.cs", activated?.Text);
+        Assert.False(overlay.IsShowing);        // whole menu closes on leaf activation
+    }
+
+    [Fact]
+    public void Submenu_Left_ClosesBackToParent()
+    {
+        MenuItem? activated = null;
+        var menu = new ContextMenu([
+            new MenuItem("Recent", new MenuItem[] { new("a.cs") }),
+            new MenuItem("Quit"),
+        ]);
+        menu.ItemActivated += (_, it) => activated = it;
+        ShowMenu(menu);
+
+        SendKey(menu, ConsoleKey.RightArrow);   // open "Recent" submenu
+        SendKey(menu, ConsoleKey.LeftArrow);    // back to the root level
+        SendKey(menu, ConsoleKey.DownArrow);    // now moves within the root -> "Quit"
+        SendKey(menu, ConsoleKey.Enter);
+
+        Assert.Equal("Quit", activated?.Text);
+    }
+
+    [Fact]
+    public void Submenu_Renders_MarkerAndChildItems_WhenOpen()
+    {
+        var menu = new ContextMenu([new MenuItem("Recent", new MenuItem[] { new("alpha.cs") })]);
+        var overlay = ShowMenu(menu);
+        ConsoleSnapshot.Render(overlay, 40, 10);   // establish layout so Right can open the submenu
+        Assert.Contains("►", ConsoleSnapshot.ToText(overlay, 40, 10));   // submenu marker on the parent
+
+        SendKey(menu, ConsoleKey.RightArrow);       // open it
+        var text = ConsoleSnapshot.ToText(overlay, 40, 10);
+        Assert.Contains("Recent", text);
+        Assert.Contains("alpha.cs", text);          // the child item is now drawn alongside the parent
+    }
+
+    [Fact]
     public void Click_ActivatesRow()
     {
         MenuItem? activated = null;
@@ -113,9 +168,11 @@ public class ContextMenuTests
         var overlay = ShowMenu(menu);
         ConsoleSnapshot.Render(overlay, 24, 10);   // size the menu so its rows have coordinates
 
+        // The menu now draws its own border, so item rows/cols are offset by 1: row 0 = top border, row 1 = "New",
+        // row 2 = "Open"; col 0 = left border. Click inside the "Open" row.
         var ml = (ConsoleGUI.Input.IMouseListener)menu;
-        ml.OnMouseDown(new ConsoleGUI.Space.Position(0, 1));   // second row
-        ml.OnMouseUp(new ConsoleGUI.Space.Position(0, 1));
+        ml.OnMouseDown(new ConsoleGUI.Space.Position(1, 2));
+        ml.OnMouseUp(new ConsoleGUI.Space.Position(1, 2));
 
         Assert.Equal("Open", activated?.Text);
     }

@@ -247,7 +247,7 @@ public class Program
             files.AddItem(f);
 
         var status = new TextLabel(TextLabelOrientation.Horizontal, "Build: OK    Tests: 202 passing", Color.White);
-        var about = new TextLabel(TextLabelOrientation.Horizontal, "Click a tab or Alt+Left/Right.  Ctrl+N/P focus.  Esc quits.", Color.White);
+        var about = new TextLabel(TextLabelOrientation.Horizontal, "Click a tab or Alt+Left/Right.  Right-click a file for a menu.  Esc quits.", Color.White);
 
         var tabs = new TabPanel(TabBarDock.Top,
             ("Files", files),
@@ -255,6 +255,17 @@ public class Program
             ("About", about));
 
         var hint = new TextLabel(TextLabelOrientation.Horizontal, "".PadRight(54), Color.White);
+
+        // Right-click a file for a context menu. The right-click selects that row first, so the menu's items act on
+        // files.SelectedItem; ContextMenuOpening reports which file was clicked.
+        files.ContextMenu = new ContextMenu(
+        [
+            new MenuItem("Open", () => { if (files.SelectedItem is { } f) hint.Text = $"Opened {f.Text}".PadRight(54); }),
+            new MenuItem("Rename"),
+            MenuItem.Separator,
+            new MenuItem("Delete", () => { if (files.SelectedItem is { } f) files.RemoveItem(f); }),
+        ]);
+        files.ContextMenuOpening += (_, item) => hint.Text = $"Right-clicked {item.Text}".PadRight(54);
 
         // Cycle the selection style (Highlight -> Underline -> Caret) on Ctrl+T so the three modes can be eyeballed
         // on both the list (selected row) and the tab bar (active tab) at once.
@@ -787,9 +798,16 @@ public class Program
         tree.NodeActivated += (_, node) => LoadRequest(node);
 
         // Right-click a request to act on it. The menu's items read tree.SelectedNode (the right-clicked node).
+        // "Copy as ▸" opens a submenu (Right/Enter or hover to expand, Left to go back).
         tree.ContextMenu = new ContextMenu(
         [
             new MenuItem("Open", () => { if (tree.SelectedNode is { } n) LoadRequest(n); }),
+            new MenuItem("Copy as", new MenuItem[]
+            {
+                new("cURL"),
+                new("HTTPie"),
+                new("fetch()"),
+            }),
             MenuItem.Separator,
             new MenuItem("Delete", () => { if (tree.SelectedNode is { Parent: { } p } n) p.RemoveChild(n.Index); }),
         ]);

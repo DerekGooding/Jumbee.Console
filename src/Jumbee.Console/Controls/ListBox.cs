@@ -75,6 +75,11 @@ public partial class ListBox : RenderableControl
         }
     }
 
+    /// <summary>An optional menu shown when a row is right-clicked. The right-click first selects that row and
+    /// raises <see cref="ContextMenuOpening"/> (with the item), then the menu floats at the pointer. Item handlers
+    /// can read <see cref="SelectedItem"/> to act on the right-clicked row. Left <see langword="null"/> = no menu.</summary>
+    public ContextMenu? ContextMenu { get; set; }
+
     public override bool HandlesInput => true;
     #endregion
 
@@ -85,6 +90,10 @@ public partial class ListBox : RenderableControl
     public event EventHandler<ListBoxItem>? Committed;
     /// <summary>Raised when the list is cancelled (Escape).</summary>
     public event EventHandler? Cancelled;
+    /// <summary>Raised just before <see cref="ContextMenu"/> is shown for a right-clicked row, with that item (now
+    /// the selected one). Use it to tailor the menu, or read <see cref="SelectedItem"/> from the menu's own item
+    /// handlers. Only fires when <see cref="ContextMenu"/> is set.</summary>
+    public event EventHandler<ListBoxItem>? ContextMenuOpening;
     #endregion
 
     #region Methods        
@@ -217,10 +226,11 @@ public partial class ListBox : RenderableControl
         }
     }
 
-    // A click selects the row under the pointer and commits it. Each item is one row, and the listener position
-    // is in the list's own content coordinates, so the row index is position.Y.
+    // A left click selects the row under the pointer and commits it; a right click selects it and opens the context
+    // menu instead. Each item is one row, and the listener position is in content coordinates, so the row is position.Y.
     protected override void OnClick(Position position)
     {
+        if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position.Y); return; }
         var count = _items.Count;
         var index = position.Y;
         if (index < 0 || index >= count) return;
@@ -228,9 +238,26 @@ public partial class ListBox : RenderableControl
         Commit();
     }
 
+    // A fast double right-click still just (re)opens the menu rather than committing underneath it.
+    protected override void OnDoubleClick(Position position)
+    {
+        if (UI.MouseButton == TerminalMouseButton.Right) OpenContextMenu(position.Y);
+    }
+
     private void Commit()
     {
         if (SelectedItem is { } item) Committed?.Invoke(this, item);
+    }
+
+    // Right-click: select the row, announce it, then float ContextMenu at the pointer (in the ambient UI.Overlay).
+    // Item handlers can read SelectedItem. No-op if no menu is set or the click missed every row.
+    private void OpenContextMenu(int row)
+    {
+        if (ContextMenu is null || row < 0 || row >= _items.Count) return;
+        SelectedIndex = row;
+        if (SelectedItem is { } item) ContextMenuOpening?.Invoke(this, item);
+        if (ConsoleGUI.ConsoleManager.MousePosition is { } m) ContextMenu.Show(m.X, m.Y);
+        else ContextMenu.Show(0, row);
     }
 
     private ListBoxItem[] OrderedItems() => _items.Values.OrderBy(i => i.Index).ToArray();
