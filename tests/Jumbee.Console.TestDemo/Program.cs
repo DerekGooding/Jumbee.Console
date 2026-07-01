@@ -36,7 +36,8 @@ public class Program
         //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //InputsDemo(args);
-        ChatPromptDemo(args);
+        DialogDemo(args);
+        //ChatPromptDemo(args);
         //PostingDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
@@ -663,6 +664,49 @@ public class Program
 
         var run = UI.Start(dock, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(url);
+        run.Wait();
+    }
+
+    // Dialog demo: modal popups over the ambient overlay. A column of buttons opens each dialog kind — a Yes/No
+    // Confirm, an OK Message, and a custom-content modal (a rename field with OK/Cancel). Each dialog dims and
+    // blocks the background until dismissed (←/→ or Tab between buttons, Enter/Space activates, Esc cancels); the
+    // status line shows the result. Ctrl+N/P move between the launcher buttons; Ctrl+Q quits. Needs a VT terminal.
+    static void DialogDemo(string[] args)
+    {
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "Click a button (or Ctrl+N/P then Enter) to open a dialog.".PadRight(56), Cyan1);
+        void SetStatus(string s) => status.Text = s.PadRight(56);
+
+        var confirmBtn = new Button("Confirm (Yes / No)");
+        var messageBtn = new Button("Message (OK)");
+        var renameBtn = new Button("Custom content — Rename…");
+        var quitBtn = new Button("Quit");
+        foreach (var b in new[] { confirmBtn, messageBtn, renameBtn, quitBtn })
+            b.Style = b.Style.WithShape(ButtonShape.Modern);
+
+        confirmBtn.Activated += (_, _) =>
+            Dialog.Confirm("Delete file", "Delete report.pdf? This action cannot be undone.",
+                yes => SetStatus(yes ? "You chose: Yes (deleted)" : "You chose: No (kept)"));
+
+        messageBtn.Activated += (_, _) =>
+            Dialog.Message("About", "Jumbee.Console dialogs — modal windows over the system overlay.",
+                () => SetStatus("Message dismissed."));
+
+        renameBtn.Activated += (_, _) =>
+        {
+            var field = new TextInput("report.pdf");
+            Dialog.Show("Rename file", field, DialogButtons.OkCancel, result =>
+                SetStatus(result == DialogResult.Ok ? $"Renamed to: {field.Text}" : "Rename cancelled."));
+        };
+
+        quitBtn.Activated += (_, _) =>
+            Dialog.Confirm("Quit", "Exit the demo?", yes => { if (yes) UI.Stop(); });
+
+        var buttons = new Jumbee.Console.VerticalStackPanel(confirmBtn, messageBtn, renameBtn, quitBtn);
+        var root = new Jumbee.Console.Grid([2, 13], [60], [[status], [buttons]]);
+
+        // Note: no global Escape hotkey here — the dialog uses Escape to cancel. Ctrl+Q quits (registered by default).
+        var run = UI.Start(root, width: 64, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(confirmBtn);
         run.Wait();
     }
 
