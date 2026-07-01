@@ -36,7 +36,8 @@ public class Program
         //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //InputsDemo(args);
-        PostingDemo(args);
+        ChatPromptDemo(args);
+        //PostingDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
@@ -662,6 +663,64 @@ public class Program
 
         var run = UI.Start(dock, width: 90, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(url);
+        run.Wait();
+    }
+
+    // ChatPrompt demo: the input area of an agent CLI (Claude Code / Gemini CLI) — a prompt glyph that turns into a
+    // busy spinner while a request "runs", a bordered TextInput below a scrolling transcript, and slash-command
+    // type-ahead.
+    //   * Type a message and press Enter -> it's echoed into the transcript, the gutter spins for ~1.5s (as if the
+    //     agent were working), then a canned reply appears and the spinner reverts to the prompt glyph.
+    //   * Type "/" for slash-command type-ahead (/help, /clear, /model, /quit); Down/Up pick, Enter/Tab accept.
+    //   * "/clear" empties the transcript, "/quit" (or Ctrl+Q) exits. Needs a VT terminal (e.g. Windows Terminal).
+    static void ChatPromptDemo(string[] args)
+    {
+        var log = new Log();
+        log.Write("[grey]Welcome. Ask a question, or type [/][cyan]/[/][grey] for commands.[/]");
+
+        // A rounded border, no title: the prompt is a single input row, and the default titled-frame style spends a
+        // dedicated title row + separator on top — which would squeeze the one content row out of a short cell.
+        var chat = new ChatPrompt(placeholder: "Send a message…  (Enter to submit, / for commands)");
+        chat.WithRoundedBorder(new Color(90, 120, 200));
+        chat.WithSuggestions("/help", "/clear", "/model", "/quit");
+
+        void Reply(string text) => log.Write($"[green]● agent[/]  {Spectre.Console.Markup.Escape(text)}");
+
+        chat.Submitted += async (_, msg) =>
+        {
+            if (string.IsNullOrWhiteSpace(msg)) return;
+            chat.Text = "";
+
+            switch (msg.Trim())
+            {
+                case "/quit": UI.Stop(); return;
+                case "/clear": log.Clear(); return;
+                case "/help":
+                    Reply("Commands: /help  /clear  /model  /quit. Otherwise just type a message.");
+                    return;
+                case "/model":
+                    Reply("Current model: claude-opus-4-8.");
+                    return;
+            }
+
+            log.Write($"[cyan]❯ you[/]    {Spectre.Console.Markup.Escape(msg)}");
+
+            // Simulate an in-flight request: spin the gutter, then answer. The await resumes on the UI thread (the
+            // dispatcher installs a SynchronizationContext), so the post-await updates need no explicit marshaling.
+            chat.Busy = true;
+            await Task.Delay(1500);
+            Reply($"You said: \"{msg}\". (This is a canned reply — wire me to a real backend.)");
+            chat.Busy = false;
+        };
+
+        var transcript = log.WithRoundedBorder(new Color(60, 70, 90)).WithTitle("Conversation");
+        // Transcript fills the top; the framed prompt is a fixed 3 rows (1 input row + border) at the bottom.
+        var root = new Jumbee.Console.Grid([20, 3], [78], [[transcript], [chat]]);
+
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var run = UI.Start(root, width: 82, height: 25, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(chat);
         run.Wait();
     }
 
