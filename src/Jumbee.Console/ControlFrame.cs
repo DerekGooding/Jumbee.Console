@@ -85,57 +85,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                     var viewportHeight = controlBottom - controlTop + 1;
                     var controlHeight = ControlContext.Size.Height;
 
-                    // Only draw scrollbar if control is larger than viewport
+                    // Only draw the scrollbar when the content is taller than the viewport.
                     if (controlHeight > viewportHeight)
-                    {
-                        // Calculate thumb position
-                        // Relative Y in viewport
-                        var relY = position.Y - controlTop;
-
-                        if (relY == 0)
-                        {
-                            return ScrollBarUpArrow;
-                        }
-                        else if (relY == viewportHeight - 1)
-                        {
-                            return ScrollBarDownArrow;
-                        }
-
-                        var trackHeight = viewportHeight - 2;
-                        if (trackHeight > 0)
-                        {
-                            var maxScroll = controlHeight - viewportHeight;
-                            var currentScroll = Math.Clamp(_top, 0, maxScroll);
-
-                            // Calculate thumb size based on visible proportion
-                            var thumbSize = Math.Max(1, (int)((long)trackHeight * viewportHeight / controlHeight));
-                            thumbSize = Math.Max(1, thumbSize);
-
-                            var availableTrack = trackHeight - thumbSize;
-
-                            // Calculate thumb position based on scroll proportion                      
-                            var thumbOffset = (int)((long)currentScroll * availableTrack / maxScroll);
-                            var thumbStart = 1 + thumbOffset;
-
-                            if (relY >= thumbStart && relY < thumbStart + thumbSize)
-                            {
-                                return ScrollBarForeground;
-                            }
-                        }
-                        return ScrollBarBackground;
-                    }
-                    else
-                    {
-                        // No scrollbar needed -> allow control to draw here?
-                        // Current design reserves the column. 
-                        // If we reserved the column in Initialize (limitWidth), control shouldn't be here.
-                        // But for aesthetic, maybe draw empty or background?
-                        // If we return Character.Empty, we see background.
-                        // Let's return Character.Empty so control *could* extend if we changed limits,
-                        // but currently it acts as padding.
-                        // Actually, if we don't return here, it falls through to ControlContext.Contains
-                        // which might return true if we didn't limit width
-                    }
+                        return ScrollBarCell(position.Y - controlTop, viewportHeight, controlHeight);
+                    // Otherwise the reserved column is padding; fall through so the control (or empty) shows.
                 }
 
                 if (ControlContext.Contains(position))
@@ -742,13 +695,78 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         _focusedBorderFgColor = UI.StyleTheme.BorderFocusedText.ForegroundColor;
     }
 
-    // Rebuilds the four scrollbar part cells from the current glyphs (glyph theme) and styles (style theme).
+    // Rebuilds the scrollbar part cells from the current glyphs (glyph theme) and styles (style theme). Composes both
+    // the classic four-part cells and the smooth-bar solid thumb/track blocks + raw thumb/track colours, so the
+    // render path only reads precomputed values.
     private void RecomposeScrollBar()
     {
+        _scrollBarSmooth = _scrollBarGlyphs.Mode == ScrollBarMode.Smooth;
+
         _scrollBarForeground = Compose(_scrollBarGlyphs.Thumb, _scrollBarStyle.Thumb);
         _scrollBarBackground = Compose(_scrollBarGlyphs.Track, _scrollBarStyle.Track);
         _scrollBarUpArrow = Compose(_scrollBarGlyphs.UpArrow, _scrollBarStyle.UpArrow);
         _scrollBarDownArrow = Compose(_scrollBarGlyphs.DownArrow, _scrollBarStyle.DownArrow);
+
+        // Smooth-bar colours + solid cells. A fully-covered cell is drawn as a space with the colour in the
+        // BACKGROUND (not a '█' glyph) so it fills seamlessly regardless of the terminal font — some render stacked
+        // full blocks with vertical seams, which turns a solid track into a dashed line. Only the fractional edge
+        // cells (below) use eighth-block glyphs, where a tiny seam on the moving edge is imperceptible.
+        _thumbColor = _scrollBarStyle.Thumb.ForegroundColor is { } tf ? tf.ToConsoleGUIColor() : null;
+        _trackColor = _scrollBarStyle.Track.ForegroundColor is { } rf ? rf.ToConsoleGUIColor() : null;
+        var deco = _scrollBarStyle.Thumb.SpectreConsoleStyle?.Decoration ?? Spectre.Console.Decoration.None;
+        _scrollBarDeco = deco == Spectre.Console.Decoration.None ? null : (Decoration)deco;
+        _scrollBarThumbFull = new Character(' ', null, _thumbColor, _scrollBarDeco);
+        _scrollBarTrackFull = new Character(' ', null, _trackColor, _scrollBarDeco);
+    }
+
+    // The scrollbar cell at viewport row <paramref name="relY"/> (0 at the top), given the viewport and content
+    // heights. Dispatches to the smooth block bar or the classic three-part bar.
+    private Character ScrollBarCell(int relY, int viewportHeight, int controlHeight)
+    {
+        var maxScroll = controlHeight - viewportHeight;
+        var currentScroll = Math.Clamp(_top, 0, maxScroll);
+
+        if (_scrollBarSmooth)
+            return SmoothScrollBarCell(relY, viewportHeight, controlHeight, currentScroll, maxScroll);
+
+        // Classic: end arrows, then a whole-cell thumb on the inner track.
+        if (relY == 0) return _scrollBarUpArrow;
+        if (relY == viewportHeight - 1) return _scrollBarDownArrow;
+
+        var trackHeight = viewportHeight - 2;
+        if (trackHeight > 0)
+        {
+            var thumbSize = Math.Max(1, (int)((long)trackHeight * viewportHeight / controlHeight));
+            var availableTrack = trackHeight - thumbSize;
+            var thumbStart = 1 + (maxScroll > 0 ? (int)((long)currentScroll * availableTrack / maxScroll) : 0);
+            if (relY >= thumbStart && relY < thumbStart + thumbSize) return _scrollBarForeground;
+        }
+        return _scrollBarBackground;
+    }
+
+    // A Textual-style bar cell: the thumb spans the full [0, size) column with a fractional length/position, and the
+    // rows where its top/bottom edge falls mid-cell are drawn with an eighth-block so the thumb glides smoothly.
+    private Character SmoothScrollBarCell(int relY, int size, int controlHeight, int currentScroll, int maxScroll)
+    {
+        // Fractional thumb: length proportional to the visible fraction (min one cell), top proportional to scroll.
+        double thumbLen = Math.Clamp((double)size * size / controlHeight, 1.0, size);
+        double top = maxScroll > 0 ? currentScroll / (double)maxScroll * (size - thumbLen) : 0.0;
+        double bottom = top + thumbLen;
+
+        double covered = Math.Min(relY + 1, bottom) - Math.Max(relY, top);   // thumb coverage of this cell (0..1)
+        if (covered <= 0.0) return _scrollBarTrackFull;
+        if (covered >= 1.0) return _scrollBarThumbFull;
+
+        var eighths = (int)Math.Round(covered * 8);
+        if (eighths <= 0) return _scrollBarTrackFull;
+        if (eighths >= 8) return _scrollBarThumbFull;
+
+        // The thumb's top edge sits in this cell -> it fills the LOWER part: a lower block in thumb colour over the
+        // track. Otherwise its bottom edge sits here -> it fills the UPPER part: draw the leftover track as a lower
+        // block (track colour) over a thumb background, so the thumb shows above it.
+        return top > relY
+            ? new Character(Eighths[eighths], _thumbColor, _trackColor, _scrollBarDeco)
+            : new Character(Eighths[8 - eighths], _trackColor, _thumbColor, _scrollBarDeco);
     }
 
     // Composes a single scrollbar cell: the first cell of the glyph string carrying the token's fg/bg/decoration.
@@ -856,7 +874,20 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private Character _scrollBarForeground;
     private Character _scrollBarBackground;
     private Character _scrollBarUpArrow;
-    private Character _scrollBarDownArrow; 
+    private Character _scrollBarDownArrow;
+    // Smooth-bar state, also precomputed by RecomposeScrollBar: whether the smooth renderer is active, the solid
+    // thumb/track blocks, and the raw thumb/track colours + decoration the eighth-block edge cells blend.
+    private bool _scrollBarSmooth;
+    private Character _scrollBarThumbFull;
+    private Character _scrollBarTrackFull;
+    private Color? _thumbColor;
+    private Color? _trackColor;
+    private Decoration? _scrollBarDeco;
     #endregion
 
+    #region Types
+    // Lower eighth-blocks indexed by eighths filled from the bottom (0 = empty, 8 = full block); used for the
+    // fractional thumb edges. Fully-covered cells use a background-filled space instead (see RecomposeScrollBar).
+    private static readonly char[] Eighths = [' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+    #endregion
 }

@@ -48,10 +48,11 @@ public readonly struct ScrollBarStyle
     #endregion
 
     #region Presets
-    /// <summary>The original default colours: a blue thumb on a grey track with terminal-default arrows.</summary>
+    /// <summary>The default colours: a medium-grey thumb on a dim dark-grey track (a neutral, modern groove that
+    /// reads clearly under the smooth block bar), with terminal-default arrows for the classic bar.</summary>
     public static ScrollBarStyle Default { get; } = new(
-        thumb: new Color(100, 100, 255),
-        track: new Color(100, 100, 100),
+        thumb: new Color(158, 158, 158),
+        track: new Color(68, 68, 68),
         upArrow: Style.Plain,
         downArrow: Style.Plain);
     #endregion

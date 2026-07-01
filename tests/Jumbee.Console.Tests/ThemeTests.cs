@@ -172,10 +172,10 @@ public class ThemeTests
 
     #region Scrollbar theming (glyphs from glyph theme, colours from style theme)
     [Fact]
-    public void DefaultGlyphTheme_ScrollBar_IsDefaultGlyphs()
+    public void DefaultGlyphTheme_ScrollBar_IsSmoothByDefault()
     {
         IGlyphTheme g = new DefaultGlyphTheme();
-        Assert.Equal(ScrollBarGlyphs.Default.Thumb, g.ScrollBar.Thumb);   // "#"
+        Assert.Equal(ScrollBarMode.Smooth, g.ScrollBar.Mode);   // the modern block bar is the default
     }
 
     [Fact]
