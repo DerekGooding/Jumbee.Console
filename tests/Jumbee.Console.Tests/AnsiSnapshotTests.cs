@@ -82,8 +82,10 @@ public class AnsiSnapshotTests
 
         ((IMouseListener)btn).OnMouseUp(new Position(3, 1));
         await session.FrameAsync();
-        AssertBg(session, 2, 1, 40, 70, 120);     // released: back to Normal fill (no stale pressed cells)
-        AssertFg(session, 2, 0, 104, 125, 160);   // released: bevel un-inverted (lighter edge on top)
+        // The click left the button focused, so the released tile is the focus-brightened Normal fill (no stale
+        // pressed cells) — Normal (40,70,120) lightened 0.22, with its bevel derived from that.
+        AssertBg(session, 2, 1, 87, 110, 149);    // released: focus-brightened Normal fill
+        AssertFg(session, 2, 0, 137, 153, 180);   // released: lighter bevel edge on top, derived from the bright fill
 
         var lines = ConsoleSnapshot.ToText(session.Screen.Buffer).Split('\n');
         Assert.Contains("OK", lines[1]);

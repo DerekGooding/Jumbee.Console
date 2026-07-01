@@ -98,22 +98,28 @@ public class Button : RenderableControl
     }
 
     // The modern, raised-tile look: a solid 3-row fill with a lighter top edge and darker bottom edge (the bevel
-    // colours derive from the fill background unless set). Pressing inverts the bevel for a "pushed in" feel;
-    // focus reverses the label.
+    // colours derive from the fill background unless set). Pressing inverts the bevel for a "pushed in" feel; focus
+    // brightens the whole tile (a clean cue) and bolds the label.
     private IEnumerable<Segment> RenderBevel(TextStyle fill, TextStyle label, int outer)
     {
-        label = Focused(label);
-
-        if (fill.BackgroundColor is not { } bg)
+        if (fill.BackgroundColor is not { } fillBg)
         {
-            // No fill background to derive a bevel from — fall back to a plain 3-row fill.
+            // No fill background to brighten/bevel — fall back to a plain 3-row fill, reversing the label on focus.
+            var flatLabel = Focused(label);
             yield return new Segment(new string(' ', outer), fill);
             yield return Segment.LineBreak;
-            yield return new Segment(Center(_text, outer), label);
+            yield return new Segment(Center(_text, outer), flatLabel);
             yield return Segment.LineBreak;
             yield return new Segment(new string(' ', outer), fill);
             yield break;
         }
+
+        // Focus lightens the tile instead of inverting the label to a stark white band; a raised bevel derives from
+        // the (possibly brightened) fill. Pressing keeps its own darker fill (crisp press feedback), so focus doesn't
+        // brighten while pressed.
+        var bg = IsFocused && !IsMousePressed ? fillBg.Lighten(0.22) : fillBg;
+        var faceLabel = label | TextStyle.Bg(bg);
+        if (IsFocused) faceLabel |= TextStyle.Bold;
 
         var light = _style.BevelLight ?? bg.Lighten(0.30);
         var dark = _style.BevelDark ?? bg.Darken(0.30);
@@ -124,7 +130,7 @@ public class Button : RenderableControl
 
         yield return new Segment(new string('▔', outer), top);
         yield return Segment.LineBreak;
-        yield return new Segment(Center(_text, outer), label);
+        yield return new Segment(Center(_text, outer), faceLabel);
         yield return Segment.LineBreak;
         yield return new Segment(new string('▁', outer), bottom);
     }

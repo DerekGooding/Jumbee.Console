@@ -58,6 +58,18 @@ public class DialogTests
             for (var x = 0; x < d.ActualWidth; x++)
                 Assert.NotNull(d[new ConsoleGUI.Space.Position(x, y)].Character.Background);
     }
+
+    [Fact]
+    public void Frame_ReservesNoScrollbarGutter()
+    {
+        var overlay = Host();
+        var d = new Dialog("Title", "A short message.", DialogButtons.Ok);
+        d.Show();
+        ConsoleSnapshot.Render(overlay, 62, 18);
+
+        // The frame adds only the border (no reserved vertical-scrollbar column), so there's no blank right gutter.
+        Assert.Equal(d.ActualWidth + 2, d.Frame!.Size.Width);
+    }
     #endregion
 
     #region Results

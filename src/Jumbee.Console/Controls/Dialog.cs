@@ -183,6 +183,10 @@ public class Dialog : CompositeControl
     // frame in the overlay sizes to the box instead of ballooning to the scroll clamp.
     protected override int MeasureHeight(int width) => Math.Max(1, Height);
 
+    // A dialog never scrolls, so tell the frame not to reserve the vertical-scrollbar column — otherwise it leaves a
+    // blank gutter down the right of the content. (The composite's explicit Width/Height still drive its real size.)
+    protected internal override bool FillsFrameViewport => true;
+
     private void OnDialogLostFocus()
     {
         // Escape (the overlay's CloseKey) or any other dismissal drops focus; report the cancel result once.

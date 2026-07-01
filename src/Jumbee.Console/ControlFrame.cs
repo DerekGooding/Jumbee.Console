@@ -563,8 +563,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                 var controlSize = ControlContext?.Size ?? Size.Empty;
 
                         
-                // Calculate desired size including margins, borders, and scrollbar (1 extra width)
-                var desiredControlSize = controlSize.Expand(1, 0); // +1 Width for scrollbar
+                // Calculate desired size including margins, borders, and (for a scrolling control) the scrollbar
+                // column. A fill-viewport control reserves no scrollbar column (it draws its own within its width, or
+                // has none), so don't widen the frame for it — otherwise it leaves a blank gutter down the right.
+                var desiredControlSize = controlSize.Expand(fills ? 0 : 1, 0);
                 var sizeRect = desiredControlSize.AsRect().Add(totalOffset);    
                 Resize(Size.Clip(MinSize, sizeRect.Size, MaxSize));
                         
