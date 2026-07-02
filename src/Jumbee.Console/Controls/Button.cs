@@ -135,7 +135,7 @@ public class Button : RenderableControl
         yield return new Segment(new string('▁', outer), bottom);
     }
 
-    // Reverse the label while focused (matching Textual's focused buttons), a strong, font-independent focus cue.
+    // Reverse the label while focused a strong, font-independent focus cue.
     private TextStyle Focused(TextStyle label) => IsFocused ? label | TextStyle.Invert : label;
 
     // Mouse click (press+release on this control) is synthesized by the base Control.

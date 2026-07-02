@@ -223,6 +223,22 @@ public partial class Tree : RenderableControl
                 NavigateTree(-1);
                 inputEvent.Handled = true;
                 break;
+            case ConsoleKey.Home:
+                SelectVisibleIndex(0);
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.End:
+                SelectVisibleIndex(int.MaxValue);
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.PageUp:
+                SelectVisibleIndex(CurrentVisibleIndex() - TreePage());
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.PageDown:
+                SelectVisibleIndex(CurrentVisibleIndex() + TreePage());
+                inputEvent.Handled = true;
+                break;
             // Right: expand a collapsed parent, else step into its first child. Left: collapse an expanded parent,
             // else step out to the parent. Enter/Space toggle the selected parent. (No-op on a leaf with no parent.)
             case ConsoleKey.RightArrow:
@@ -478,6 +494,29 @@ public partial class Tree : RenderableControl
         var guide = scguide.GetSafeTreeGuide(safe: !options.Unicode);
         return new Segment(guide.GetPart(part), Style);
     }
+
+    // Select the visible node at a clamped flattened index (used by Home/End/PageUp/PageDown); does not wrap.
+    private void SelectVisibleIndex(int index)
+    {
+        var nodes = Flatten(_root).ToList();
+        if (nodes.Count == 0) return;
+        index = Math.Clamp(index, 0, nodes.Count - 1);
+        var current = nodes.FirstOrDefault(n => n.Selected);
+        if (current is not null && !ReferenceEquals(current, nodes[index])) current.Selected = false;
+        nodes[index].Selected = true;
+        AutoScroll(index);
+    }
+
+    // The flattened (visible) index of the selected node, or 0 when nothing is selected.
+    private int CurrentVisibleIndex()
+    {
+        var nodes = Flatten(_root).ToList();
+        var current = nodes.FirstOrDefault(n => n.Selected);
+        return current is null ? 0 : nodes.IndexOf(current);
+    }
+
+    // A page for PageUp/PageDown: the visible viewport when framed, else a sensible default.
+    private int TreePage() => Math.Max(1, Frame?.ViewportSize.Height ?? 10);
 
     private void NavigateTree(int direction)
     {

@@ -746,7 +746,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         return _scrollBarBackground;
     }
 
-    // A Textual-style bar cell: the thumb spans the full [0, size) column with a fractional length/position, and the
+    // A smooth bar cell: the thumb spans the full [0, size) column with a fractional length/position, and the
     // rows where its top/bottom edge falls mid-cell are drawn with an eighth-block so the thumb glides smoothly.
     private Character SmoothScrollBarCell(int relY, int size, int controlHeight, int currentScroll, int maxScroll)
     {

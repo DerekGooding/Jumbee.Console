@@ -21,7 +21,7 @@ public class Program
     static async Task Main(string[] args)
     {        
         //TerminalDemo(args);
-        //NavigationDemo(args);
+        NavigationDemo(args);
         //TabsDemo(args);
         //CodeEditorDemo(args);
         //LinkDemo(args);
@@ -36,7 +36,7 @@ public class Program
         //SpectreControlTests.LiveDisplayTests();
         //InputDemo(args);
         //InputsDemo(args);
-        DialogDemo(args);
+        //DialogDemo(args);
         //ChatPromptDemo(args);
         //PostingDemo(args);
         //DockPanelTest(args);

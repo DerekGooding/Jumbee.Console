@@ -1,6 +1,6 @@
 namespace Jumbee.Console;
 
-/// <summary>The overall shape of a <c>Button</c> (mirrors Textual's Flat vs Standard split).</summary>
+/// <summary>The overall shape of a <c>Button</c>.</summary>
 public enum ButtonShape
 {
     /// <summary>A single-row text button. The simple default.</summary>

@@ -3,7 +3,7 @@ namespace Jumbee.Console;
 /// <summary>How a control frame renders its vertical scrollbar.</summary>
 public enum ScrollBarMode
 {
-    /// <summary>Modern, Textual-style bar: a solid thumb over a solid track whose ends render at <em>sub-cell</em>
+    /// <summary>Modern-style bar: a solid thumb over a solid track whose ends render at <em>sub-cell</em>
     /// resolution using eighth-block glyphs (<c>▁▂▃▄▅▆▇█</c>) so the thumb glides smoothly rather than snapping to
     /// whole rows. No end arrows; the thumb spans the whole column. Assumes a terminal with block-glyph support
     /// (Windows Terminal and most modern emulators). The thumb/track <em>glyphs</em> in this struct are ignored in

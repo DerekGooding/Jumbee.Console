@@ -283,8 +283,11 @@ irrelevant.
 ```
 
 If instead a **tab header** is focused (e.g. right after start, or after clicking a label), `TabPanel.FocusedControl`
-resolves to that header, and `↓`/`→` switch tabs rather than scrolling the list. Clicking back into the list moves
-focus there again — the single global focus is the switch between "drive the tabs" and "drive the content".
+resolves to that header, and the **plain arrows** along the bar's axis switch tabs (Left/Right on a top/bottom bar,
+Up/Down on a left/right bar), keeping focus on the header for continued arrowing — the standard tab-strip behaviour,
+handled in `TabPanel.InterceptInput` gated on "a header has focus". (`Alt`+arrows switch tabs from *anywhere* in the
+panel, including while the content is focused.) Clicking back into the list moves focus there again — the single
+global focus is the switch between "drive the tabs" and "drive the content".
 
 ## 9. Invariants & pitfalls
 

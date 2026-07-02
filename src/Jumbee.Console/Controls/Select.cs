@@ -112,7 +112,8 @@ public class Select : RenderableControl
 
     protected override void OnInput(InputEvent inputEvent)
     {
-        if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
+        // Enter/Space or Down/Up open the dropdown (the standard combobox keys); the open list then navigates.
+        if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar or ConsoleKey.DownArrow or ConsoleKey.UpArrow)
         {
             Open();
             inputEvent.Handled = true;

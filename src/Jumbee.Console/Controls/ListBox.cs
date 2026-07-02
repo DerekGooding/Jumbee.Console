@@ -199,6 +199,8 @@ public partial class ListBox : RenderableControl
 
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("List", "List", "A scrollable list of items; the selected item is highlighted.")
         .WithKey("↑ / ↓", "Move the selection")
+        .WithKey("Home / End", "First / last item")
+        .WithKey("PgUp / PgDn", "Move by a page")
         .WithKey("Enter", "Choose the selected item")
         .WithKey("Click", "Select an item");
 
@@ -215,6 +217,22 @@ public partial class ListBox : RenderableControl
                 SelectedIndex = (_selectionIndex + 1) % count;
                 inputEvent.Handled = true;
                 break;
+            case ConsoleKey.Home when count > 0:
+                SelectedIndex = 0;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.End when count > 0:
+                SelectedIndex = count - 1;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.PageUp when count > 0:
+                SelectedIndex = _selectionIndex - Page();
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.PageDown when count > 0:
+                SelectedIndex = _selectionIndex + Page();
+                inputEvent.Handled = true;
+                break;
             case ConsoleKey.Enter when count > 0:
                 Commit();
                 inputEvent.Handled = true;
@@ -225,6 +243,9 @@ public partial class ListBox : RenderableControl
                 break;
         }
     }
+
+    // A page for PageUp/PageDown: the visible viewport when framed, else a sensible default. SelectedIndex clamps.
+    private int Page() => Math.Max(1, Frame?.ViewportSize.Height ?? 10);
 
     // A left click selects the row under the pointer and commits it; a right click selects it and opens the context
     // menu instead. Each item is one row, and the listener position is in content coordinates, so the row is position.Y.

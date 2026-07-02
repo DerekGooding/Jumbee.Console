@@ -58,4 +58,4 @@ Note the following important considerations when deriving from these classes:
 - Group members with the same visibility together. The reading order should be public -> internal -> protected -> private.
 
 ## Project documentation style
-- Avoid verbose documentation on members. Try to be as terse as possible while giving all relevant information about usage.
+- Avoid verbose documentation on members. Try to be as terse as possible while giving all relevant information about usage. Avoid mentioning other TUI libraries unless it is relevant to the usage of the class or member.

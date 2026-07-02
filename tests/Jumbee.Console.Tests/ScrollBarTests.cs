@@ -7,7 +7,7 @@ using Jumbee.Console.Snapshot;
 
 using Xunit;
 
-/// <summary>Tests for the vertical scrollbar rendering: the modern smooth (Textual-style, sub-cell block) bar that
+/// <summary>Tests for the vertical scrollbar rendering: the modern smooth bar that
 /// is now the default, and the classic three-part glyph bar retained for legacy terminals.</summary>
 public class ScrollBarTests
 {

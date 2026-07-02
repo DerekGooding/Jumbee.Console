@@ -129,12 +129,34 @@ public class TabPanel : Layout<TabPanelDockPanel>
     protected override bool InterceptInput(UI.InputEventArgs inputEventArgs)
     {
         if (inputEventArgs.InputEvent is not { } e) return false;
-        var delta = _horizontal
+
+        // Alt+arrows switch tabs from anywhere in the panel — even while the active tab's content is focused.
+        var altDelta = _horizontal
             ? (e.Key == UI.HotKeys.AltLeft ? -1 : e.Key == UI.HotKeys.AltRight ? +1 : 0)
             : (e.Key == UI.HotKeys.AltUp ? -1 : e.Key == UI.HotKeys.AltDown ? +1 : 0);
-        if (delta == 0) return false;
-        MoveSelection(delta);
-        return true;
+        if (altDelta != 0) { MoveSelection(altDelta); return true; }
+
+        // Plain arrows move between tabs while a header has focus (the standard tab-strip behaviour), keeping focus on
+        // the header so the user can keep arrowing. When the content is focused instead, plain arrows belong to it.
+        if (AnyHeaderFocused())
+        {
+            var delta = _horizontal
+                ? (e.Key.Key == ConsoleKey.LeftArrow ? -1 : e.Key.Key == ConsoleKey.RightArrow ? +1 : 0)
+                : (e.Key.Key == ConsoleKey.UpArrow ? -1 : e.Key.Key == ConsoleKey.DownArrow ? +1 : 0);
+            if (delta != 0)
+            {
+                var target = Math.Clamp(_selectedIndex + delta, 0, _tabs.Count - 1);
+                if (target != _selectedIndex) { SelectedIndex = target; UI.SetFocus(_tabs[target].Header); }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private bool AnyHeaderFocused()
+    {
+        foreach (var t in _tabs) if (t.Header.IsFocused) return true;
+        return false;
     }
 
     private void AddTabInternal(string name, IFocusable content)

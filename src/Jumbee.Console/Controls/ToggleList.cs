@@ -115,6 +115,14 @@ public abstract class ToggleList : RenderableControl
                 CursorIndex = (_cursor + 1) % count;
                 inputEvent.Handled = true;
                 break;
+            case ConsoleKey.Home:
+                CursorIndex = 0;
+                inputEvent.Handled = true;
+                break;
+            case ConsoleKey.End:
+                CursorIndex = count - 1;
+                inputEvent.Handled = true;
+                break;
             case ConsoleKey.Enter:
             case ConsoleKey.Spacebar:
                 Activate(_cursor);
