@@ -227,7 +227,13 @@ public class DataTable : Control
         // Count rendered rows by newlines (how the buffer writer advances), not SplitLines. The table emits a
         // trailing newline after its bottom border, so the newline count equals the visible line count:
         // top + header + separator + row + bottom = 5 for this one-row probe.
-        var lines = Math.Max(1, probe.GetSegments(ansiConsole).Sum(s => s.Text.Count(ch => ch == '\n')));
+        var newlines = 0;
+        foreach (var s in probe.GetSegments(ansiConsole))
+        {
+            newlines += s.TextSpan.Count('\n');
+        }
+
+        var lines = Math.Max(1, newlines);
         _chromeTotal = Math.Max(0, lines - 1);   // everything that isn't the data row
         _chromeTop = Math.Max(0, lines - 2);     // everything above the data row
         _measuredWidth = ContentWidth;

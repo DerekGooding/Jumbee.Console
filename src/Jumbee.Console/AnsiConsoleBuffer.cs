@@ -85,7 +85,10 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         // Render to segments on the calling thread (which owns/mutates the renderable), then apply them to the
         // buffer. When marshaling, only the apply runs on the UI thread — so the UI thread never enumerates a
         // renderable the producer is concurrently mutating (e.g. a LiveDisplay Table rebuilt each tick).
-        var segments = new List<Segment>(renderable.GetSegments(this));
+        // GetSegments already returns a fully-materialized private List (via Segment.Merge), so reuse it directly
+        // instead of copying the whole segment set again; the fallback only fires if that ever changes.
+        var produced = renderable.GetSegments(this);
+        var segments = produced as List<Segment> ?? [.. produced];
         if (marshal)
         {
             UI.Invoke(() => _Write(segments));
@@ -104,7 +107,9 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         {
             if (segment.IsControlCode)
             {
-                foreach (var c in segment.Text)
+                // Iterate the span, not .Text: segments are often ReadOnlyMemory<char> slices of a source string
+                // (Split/Truncate, Paragraph word slices), and reading .Text would materialize a substring here.
+                foreach (var c in segment.TextSpan)
                 {
                     var position = new Position(_cursorX, _cursorY);
                     if (IsValidPosition(position))
@@ -123,6 +128,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                         else
                         {
                             //_console.Write(position, new Character(c, isControl: true));
+                            continue;
                         }
                     }
                     
@@ -162,7 +168,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                         var position = new Position(_cursorX, _cursorY);
                         if (IsValidPosition(position))
                         {
-                            _console.Write(position, new Character(c, fg, bg, decoration));
+                            _console.Write(position, new Character(c, fg, bg, decoration));             
                             _cursorX += width;
                         }
                     }
