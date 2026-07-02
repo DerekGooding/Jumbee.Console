@@ -51,6 +51,7 @@ public class TextEditor : Control
         this._showCursor = showCursor;
         this._blinkCursor = blinkCursor;
         ansiConsole.wrap = true;   // character-level soft wrap at the buffer's right edge
+        ApplyTheme();
     }
     #endregion
 
@@ -104,6 +105,7 @@ public class TextEditor : Control
         {
             input = NormalizeNewlines(value);
             caretPosition = input.Length;
+            _selAnchor = -1;
             _desiredColumn = -1;
             newInput = true;
             Initialize();   // new content -> re-measure the row count (for a framed editor's scroll range)
@@ -135,10 +137,25 @@ public class TextEditor : Control
         set
         {
             caretPosition = Math.Clamp(value, 0, input.Length);
+            _selAnchor = -1;
+            _selectionDirty = true;
             _desiredColumn = -1;
             Invalidate();
             Changed?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>The selected text, or empty when there is no selection.</summary>
+    public string SelectedText => HasSelection ? input.Substring(SelStart, SelEnd - SelStart) : string.Empty;
+
+    /// <summary>Selects the whole document (the same as Ctrl+A).</summary>
+    public void SelectAll()
+    {
+        _selAnchor = 0;
+        caretPosition = input.Length;
+        _selectionDirty = true;
+        Invalidate();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>The zero-based logical line the caret is on (newline count before it).</summary>
@@ -183,36 +200,74 @@ public class TextEditor : Control
     #endregion
 
     #region Methods   
+    protected override void ApplyTheme() =>
+        _selectionBg = UI.StyleTheme.Selection.BackgroundColor?.ToConsoleGUIColor();
+
     protected override void Control_OnInitialization()
     {
         if (!string.IsNullOrEmpty(input))
         {
             ansiConsole.Clear(true);
             WriteText(_language, input);
+            HighlightSelection();
         }
         // Draw the cursor as part of initialization too, so a focused editor shows it on the very first paint
         // (Render is otherwise skipped once Validate clears the paint request).
         RenderCursor();
         Validate();
+        _selectionDirty = false;
     }
 
     protected override void Render()
     {
-        if (newInput)
+        // Rebuild the buffer when the text changed (newInput) OR the selection changed (so the old highlight is
+        // cleared and the new range painted); a pure caret move needs only the cursor redrawn.
+        if (newInput || _selectionDirty)
         {
             ansiConsole.Clear(true);
             WriteText(_language, input);
+            HighlightSelection();
             newInput = false;
+            _selectionDirty = false;
         }
         RenderCursor();
     }
-    
-    
+
+    // Paints the selection background over the (already syntax-coloured) buffer cells, keeping each glyph's
+    // foreground so highlighting doesn't lose the syntax colours. Maps the selected [start, end) index range to
+    // per-visual-row column spans via the same wrap the renderer uses.
+    private void HighlightSelection()
+    {
+        if (_selectionBg is not { } bg || !HasSelection) return;
+        int s = SelStart, e = SelEnd;
+        var rows = BuildVisualRows();
+        int h = consoleBuffer.Size.Height, w = consoleBuffer.Size.Width;
+        for (int r = 0; r < rows.Count && r < h; r++)
+        {
+            var (start, end) = rows[r];
+            int a = Math.Max(s, start);
+            int b = Math.Min(e, end);
+            // A selected line break extends the highlight one cell past the row's last glyph (a visual cue that the
+            // newline is included), so an empty selected line still shows a mark.
+            bool newlineSelected = end < input.Length && input[end] == '\n' && s <= end && e > end;
+            if (a >= b && !newlineSelected) continue;
+            int colStart = ColumnOf(start, a);
+            int colEnd = ColumnOf(start, Math.Max(a, b));
+            if (newlineSelected) colEnd = Math.Min(w, colEnd + 1);
+            for (int x = colStart; x < colEnd && x < w; x++)
+            {
+                var ch = consoleBuffer[x, r].Character;
+                consoleBuffer.Write(new ConsoleGUI.Space.Position(x, r), ch.WithBackground(bg));
+            }
+        }
+    }
+
     // Insert a whole paste at the caret in one shot (no per-key re-interpretation; newlines kept verbatim).
     public override void OnPaste(string text)
     {
         if (ReadOnly || string.IsNullOrEmpty(text)) return;
         text = NormalizeNewlines(text);
+        if (HasSelection) DeleteSelection();   // a paste replaces the selection
         input = input.Insert(caretPosition, text);
         caretPosition += text.Length;
         _desiredColumn = -1;
@@ -231,88 +286,103 @@ public class TextEditor : Control
 
     protected override void OnInput(InputEvent inputEvent)
     {
-        var vertical = inputEvent.Key.Key is ConsoleKey.UpArrow or ConsoleKey.DownArrow
+        var key = inputEvent.Key;
+        var shift = (key.Modifiers & ConsoleModifiers.Shift) != 0;
+        var ctrl = (key.Modifiers & ConsoleModifiers.Control) != 0;
+        var vertical = key.Key is ConsoleKey.UpArrow or ConsoleKey.DownArrow
             or ConsoleKey.PageUp or ConsoleKey.PageDown;
-        switch (inputEvent.Key.Key)
+        var hadSelection = HasSelection;
+        var selStart = SelStart;   // valid only when hadSelection; captured before the anchor is cleared below
+        var selEnd = SelEnd;
+
+        switch (key.Key)
         {
+            case ConsoleKey.A when ctrl:
+                _selAnchor = 0;
+                caretPosition = input.Length;
+                _selectionDirty = true;
+                inputEvent.Handled = true;
+                break;
+
             case ConsoleKey.LeftArrow:
-                if (caretPosition > 0)
-                {
-                    caretPosition--;                    
-                }
+                // Without Shift, an existing selection collapses to its start rather than moving the caret.
+                if (!shift && hadSelection) { caretPosition = selStart; ClearSelection(); }
+                else { ExtendOrClear(shift); if (caretPosition > 0) caretPosition--; }
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.RightArrow:
-                if (caretPosition < input.Length)
-                {
-                    caretPosition++;                    
-                }
+                if (!shift && hadSelection) { caretPosition = selEnd; ClearSelection(); }
+                else { ExtendOrClear(shift); if (caretPosition < input.Length) caretPosition++; }
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.UpArrow:
+                ExtendOrClear(shift);
                 MoveCaretVertically(-1);
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.DownArrow:
+                ExtendOrClear(shift);
                 MoveCaretVertically(1);
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.PageUp:
+                ExtendOrClear(shift);
                 MoveCaretVertically(-(Frame?.ViewportSize.Height ?? 10));
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.PageDown:
+                ExtendOrClear(shift);
                 MoveCaretVertically(Frame?.ViewportSize.Height ?? 10);
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.Home:
-                MoveCaretHome();                
+                ExtendOrClear(shift);
+                MoveCaretHome();
                 inputEvent.Handled = true;
                 break;
             case ConsoleKey.End:
-                MoveCaretEnd();                
+                ExtendOrClear(shift);
+                MoveCaretEnd();
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Backspace:
-                if (!ReadOnly && caretPosition > 0)
-                {
-                    input = input.Remove(--caretPosition, 1);
-                    newInput = true;
-                    inputEvent.Handled = true;
-                }
+                if (ReadOnly) break;
+                if (HasSelection) DeleteSelection();
+                else if (caretPosition > 0) { input = input.Remove(--caretPosition, 1); newInput = true; }
+                else break;
+                inputEvent.Handled = true;
                 break;
             case ConsoleKey.Delete:
-                if (!ReadOnly && caretPosition < input.Length)
-                {
-                    input = input.Remove(caretPosition, 1);
-                    newInput = true;
-                    inputEvent.Handled = true;
-                }
+                if (ReadOnly) break;
+                if (HasSelection) DeleteSelection();
+                else if (caretPosition < input.Length) { input = input.Remove(caretPosition, 1); newInput = true; }
+                else break;
+                inputEvent.Handled = true;
                 break;
             case ConsoleKey.Enter:
-                if (!ReadOnly)
-                {
-                    input = input.Insert(caretPosition++, "\n");
-                    newInput = true;
-                    inputEvent.Handled = true;
-                }
+                if (ReadOnly) break;
+                if (HasSelection) DeleteSelection();
+                input = input.Insert(caretPosition++, "\n");
+                newInput = true;
+                inputEvent.Handled = true;
                 break;
             case ConsoleKey.Tab:
                 // Plain Tab now reaches the editor (focus traversal moved to Ctrl+arrows), so indent with it.
                 // Insert spaces rather than a literal '\t' so the wrap/caret column math stays simple and exact.
-                if (!ReadOnly)
-                {
-                    var indent = new string(' ', Math.Max(0, TabWidth));
-                    input = input.Insert(caretPosition, indent);
-                    caretPosition += indent.Length;
-                    newInput = true;
-                    inputEvent.Handled = true;
-                }
+                if (ReadOnly) break;
+                if (HasSelection) DeleteSelection();
+                var indent = new string(' ', Math.Max(0, TabWidth));
+                input = input.Insert(caretPosition, indent);
+                caretPosition += indent.Length;
+                newInput = true;
+                inputEvent.Handled = true;
                 break;
             default:
-                if (!ReadOnly && !char.IsControl(inputEvent.Key.KeyChar))
+                if (!ReadOnly && !char.IsControl(key.KeyChar))
                 {
-                    input = input.Insert(caretPosition++, inputEvent.Key.KeyChar.ToString());
+                    if (HasSelection) DeleteSelection();   // typing replaces the selection
+                    input = input.Insert(caretPosition++, key.KeyChar.ToString());
                     newInput = true;
                     inputEvent.Handled = true;
                 }
@@ -325,6 +395,36 @@ public class TextEditor : Control
         if (newInput) Initialize(); else Invalidate();
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    // Shift+navigation extends the selection (starting an anchor if none); an unmodified move drops it. Marks the
+    // selection dirty so the highlight is re-rendered even when the text itself is unchanged.
+    private void ExtendOrClear(bool shift)
+    {
+        if (shift) { if (_selAnchor < 0) _selAnchor = caretPosition; _selectionDirty = true; }
+        else if (_selAnchor >= 0) ClearSelection();
+    }
+
+    private void ClearSelection()
+    {
+        if (_selAnchor < 0) return;
+        _selAnchor = -1;
+        _selectionDirty = true;
+    }
+
+    // Removes the selected span, leaves the caret at its start, and drops the selection. Marks newInput (the text
+    // changed) so the buffer is rebuilt and the row count re-measured.
+    private void DeleteSelection()
+    {
+        int s = SelStart, e = SelEnd;
+        input = input.Remove(s, e - s);
+        caretPosition = s;
+        _selAnchor = -1;
+        newInput = true;
+    }
+
+    private bool HasSelection => _selAnchor >= 0 && _selAnchor != caretPosition;
+    private int SelStart => Math.Min(_selAnchor < 0 ? caretPosition : _selAnchor, caretPosition);
+    private int SelEnd => Math.Max(_selAnchor < 0 ? caretPosition : _selAnchor, caretPosition);
 
     protected void RenderCursor()
     {
@@ -350,6 +450,8 @@ public class TextEditor : Control
 
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editor", "Editor", "A multi-line text editor.")
         .WithKey("Arrows", "Move the caret")
+        .WithKey("Shift+Arrows", "Select text")
+        .WithKey("Ctrl+A", "Select all")
         .WithKey("Tab", "Indent")
         .WithKey("Enter", "New line");
 
@@ -591,6 +693,13 @@ public class TextEditor : Control
     // The visual column a vertical (Up/Down) move aims for, preserved across a run of them; -1 = recompute from
     // the caret's current column on the next vertical move. Reset by any horizontal move or edit.
     private int _desiredColumn = -1;
+    // Selection anchor index (-1 = no selection); the selection is [min(anchor,caret), max(anchor,caret)).
+    private int _selAnchor = -1;
+    // True when the selection range changed without a text change (a Shift-move, or a cleared selection), so Render
+    // rebuilds the buffer to repaint/clear the highlight even though newInput is false.
+    private bool _selectionDirty;
+    // The selection highlight background (captured from the theme in ApplyTheme), or null if the theme sets none.
+    private ConsoleGUI.Data.Color? _selectionBg;
 
     SpectreMarkupFormatter ccFormatter = new SpectreMarkupFormatter() ;
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
