@@ -87,7 +87,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         // renderable the producer is concurrently mutating (e.g. a LiveDisplay Table rebuilt each tick).
         // GetSegments already returns a fully-materialized private List (via Segment.Merge), so reuse it directly
         // instead of copying the whole segment set again; the fallback only fires if that ever changes.
-        var produced = renderable.GetSegments(this);
+        var produced = renderable.GetSegments(this, GetRenderOptions());
         var segments = produced as List<Segment> ?? [.. produced];
         if (marshal)
         {
@@ -97,6 +97,21 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         {
             _Write(segments);
         }
+    }
+
+    // RenderOptions is immutable and depends only on the (fixed) capabilities and the current buffer size, so cache
+    // it and rebuild only when the buffer is resized — avoiding a per-render RenderOptions allocation on every frame.
+    private RenderOptions GetRenderOptions()
+    {
+        var size = _console.Size;
+        if (_renderOptions is null || _renderOptionsWidth != size.Width || _renderOptionsHeight != size.Height)
+        {
+            _renderOptions = RenderOptions.Create(this, _profile.Capabilities);
+            _renderOptionsWidth = size.Width;
+            _renderOptionsHeight = size.Height;
+        }
+
+        return _renderOptions;
     }
 
     private void _Write(IReadOnlyList<Segment> segments)
@@ -292,6 +307,9 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     private readonly IAnsiConsoleInput _input;
     private readonly IExclusivityMode _exclusivityMode;
     private readonly RenderPipeline _pipeline;
+    private RenderOptions? _renderOptions;
+    private int _renderOptionsWidth = -1;
+    private int _renderOptionsHeight = -1;
     private readonly Profile _profile;
     private int _cursorX;
     private int _cursorY;

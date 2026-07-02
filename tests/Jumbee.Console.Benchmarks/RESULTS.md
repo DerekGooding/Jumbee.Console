@@ -166,8 +166,29 @@ measure/resize) but removes the same `.Text`-on-slices anti-pattern.
 `ParseCodeDocument` (143 KB / 79 µs for ~60 styled lines) is the new document-scale baseline for markup parsing,
 already reflecting sections 3–4. Compare future parser changes against it.
 
-### Still open (from the render-path trace, §4): candidates #2 (cache `RenderOptions`), #3 (`Merge` double-list),
-#4 (`Pipeline.Process` 0-hook fast path).
+### Still open (from the render-path trace, §4): candidates #3 (`Merge` double-list), #4 (`Pipeline.Process`
+0-hook fast path). #2 done in §6.
+
+---
+
+## 6. Candidate #2 — cache `RenderOptions` per console
+
+`RenderOptions` is immutable (`init`-only; widgets create variants via `with`) and depends only on the fixed
+capabilities + current buffer size. `AnsiConsoleBuffer` now caches it and rebuilds only on resize, via a new public
+Spectre overload `GetSegments(this IRenderable, IAnsiConsole, RenderOptions)` that skips `RenderOptions.Create`.
+Test-green: 968 Spectre + 406 Jumbee.
+
+### Combined effect of #1 + #2 (Write-path overhead eliminated)
+
+| Benchmark   | Baseline (§2/3) | #1+#2   | GetSegments floor |
+|-------------|----------------:|--------:|------------------:|
+| RenderTable | 268.43 KB       | **266.78 KB** | 266.80 KB (GetTableSegments) |
+| RenderTree  |  80.25 KB       | **78.81 KB**  |  78.76 KB (GetTreeSegments)  |
+
+Both render benchmarks now allocate essentially exactly what `GetSegments` produces — the redundant `List<Segment>`
+copy (#1) and the per-frame `RenderOptions` allocation (#2) are gone (~1.5 KB/frame each). Absolute size is small,
+but it's now provably at the floor (RenderTable == GetTableSegments), and it scales with control count and redraw
+frequency (each control's `Write` previously allocated both per frame).
 
 ---
 
