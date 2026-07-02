@@ -37,7 +37,7 @@ public static class UI
             // below) since VT mouse/paste/focus aren't available.
             ConsoleManager.Console = new SimplifiedConsole();
         }
-        inputSource = input ?? new ConsoleInputSource();
+        inputSource = input ?? DefaultInputSource(isAnsiTerminal);
         ConsoleManager.Setup();
         ConsoleManager.Resize(new Size(width, height));
         // Wrap the app's root in a UI-owned system overlay so global modals (the F1 help dialog, and any future
@@ -65,6 +65,49 @@ public static class UI
         inputThread.Start();
         RegisterSignalHandlers();
         return runCompletion.Task;
+    }
+
+    /// <summary>
+    /// Chooses the input source when the caller passed none: the raw <see cref="VtInputSource"/> (so mouse, paste,
+    /// and focus reporting work) on an <em>interactive</em> ANSI terminal, otherwise the keyboard-only
+    /// <see cref="ConsoleInputSource"/>. "Interactive" means neither stdin nor stdout is redirected — so a piped or
+    /// redirected run (a test host, CI, `app &lt; file`, `app | tee`) keeps the safe keyboard-only source and never
+    /// flips a non-terminal into raw mode. Pass an explicit <c>input:</c> to <see cref="Start"/> to override.
+    /// </summary>
+    internal static IInputSource DefaultInputSource(bool isAnsiTerminal)
+    {
+        if (isAnsiTerminal && IsInteractiveTerminal() && !NonInteractiveEnvironment())
+        {
+            // Guard against raw-mode setup failing on an odd host (e.g. no controlling terminal): fall back rather
+            // than leaving the app with no working input.
+            try { return new VtInputSource(); }
+            catch { /* fall through to the keyboard-only source */ }
+        }
+        return new ConsoleInputSource();
+    }
+
+    // A cheap gate on top of the tty check for the common "looks like a terminal but no human is driving it" cases:
+    // a CI runner (which allocates a pty yet sets CI), or an explicitly dumb terminal. It is a conservative NEGATIVE
+    // signal only — false keeps the door open, true forces keyboard-only. The fully reliable positive test is an ANSI
+    // query handshake (write DSR `ESC[6n` / DA `ESC[c`, wait briefly for the terminal's reply); not done here because
+    // it costs startup latency and a raw-mode probe. Pass an explicit input source to Start to bypass all of this.
+    private static bool NonInteractiveEnvironment()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI"))) return true;   // GitHub/GitLab/Circle/…
+            return Environment.GetEnvironmentVariable("TERM") is "dumb";
+        }
+        catch { return false; }
+    }
+
+    /// <summary><see langword="true"/> when both console input and output are real terminals (not redirected/piped),
+    /// so it is safe to put the terminal into raw VT input mode. This is what <see cref="Start"/> uses to decide
+    /// whether to default to a mouse-capable <see cref="VtInputSource"/> when no <c>input</c> is supplied.</summary>
+    public static bool IsInteractiveTerminal()
+    {
+        try { return !Console.IsInputRedirected && !Console.IsOutputRedirected; }
+        catch { return false; }
     }
 
     // Safety hatch: catch external stop signals so a `kill`/`pkill` from another terminal (or the terminal window

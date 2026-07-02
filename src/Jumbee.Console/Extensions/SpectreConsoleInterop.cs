@@ -5,6 +5,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
+using Spectre.Console.Rendering;
+
+internal static class SegmentExtensions
+{
+    /// <summary>
+    /// Returns a copy of the segment with its <see cref="Segment.Style"/> replaced by <paramref name="style"/>,
+    /// keeping its text. Line-break and control-code segments (which carry no visible glyph to restyle) are returned
+    /// unchanged. Handy for overlaying a highlight/selection style onto already-rendered <see cref="Segment"/>s.
+    /// </summary>
+    public static Segment WithStyle(this Segment segment, Style style) =>
+        segment.IsLineBreak || segment.IsControlCode ? segment : new Segment(segment.Text, style);
+}
+
 internal static class ListExtensions
 {
     public static void RemoveLast<T>(this List<T> list)

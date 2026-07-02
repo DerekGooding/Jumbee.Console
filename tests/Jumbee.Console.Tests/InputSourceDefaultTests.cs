@@ -1,0 +1,33 @@
+namespace Jumbee.Console.Tests;
+
+using System.Reflection;
+
+using Jumbee.Console;
+
+using Xunit;
+
+/// <summary>Covers the auto-selected default input source: an interactive ANSI terminal gets the mouse-capable
+/// <see cref="VtInputSource"/>; everything else (non-ANSI, or redirected/piped like this test host) keeps the safe
+/// keyboard-only <see cref="ConsoleInputSource"/>.</summary>
+public class InputSourceDefaultTests
+{
+    private static object? DefaultInputSource(bool isAnsiTerminal) =>
+        typeof(UI).GetMethod("DefaultInputSource", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, [isAnsiTerminal]);
+
+    [Fact]
+    public void NonAnsiTerminal_AlwaysKeyboardOnly()
+    {
+        // A non-ANSI terminal never gets the VT source (no mouse/paste sequences to speak) — regardless of tty state.
+        Assert.IsType<ConsoleInputSource>(DefaultInputSource(false));
+    }
+
+    [Fact]
+    public void RedirectedHost_KeepsKeyboardOnly_EvenWhenAnsi()
+    {
+        // The test host redirects stdin/stdout, so it is not an interactive terminal and must not be flipped into raw
+        // VT input mode — the default stays the keyboard-only source even for an "ANSI" run.
+        Assert.False(UI.IsInteractiveTerminal());
+        Assert.IsType<ConsoleInputSource>(DefaultInputSource(true));
+    }
+}

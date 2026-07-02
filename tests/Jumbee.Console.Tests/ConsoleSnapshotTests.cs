@@ -136,22 +136,42 @@ public class ConsoleSnapshotTests
     }
 
     [Fact]
-    public void Tree_IRenderableLeaf_ShowsGlyph_ButIsNotHighlighted()
+    public void Tree_IRenderableLeaf_IsHighlighted_WhenSelected_PreservingItsColours()
     {
         var tree = new Tree("Root");
         var folder = tree.AddNode("Folder");
         folder.AddChild(new Spectre.Console.Markup("[green]GET[/] x"));   // IRenderable leaf, no Text
 
-        // The leaf glyph is still drawn before an IRenderable label...
+        // The leaf glyph is drawn before the IRenderable label...
         Assert.Contains("•", ConsoleSnapshot.ToText(tree, 24, 10));
 
-        // ...but selecting it can't highlight (no text to wrap), so no bullet gets a selection background.
+        // ...and selecting it now highlights: the selection style is overlaid on its rendered segments. The bullet
+        // carries the selection background, and the "GET" label keeps its own green foreground under that background.
         Press(tree, ConsoleKey.DownArrow);
         Press(tree, ConsoleKey.DownArrow);
         Press(tree, ConsoleKey.DownArrow);
         var buf = ConsoleSnapshot.Render(tree, 24, 10);
-        Assert.All(LeafBulletBackgrounds(buf), bg => Assert.Null(bg));
+
+        Assert.Single(LeafBulletBackgrounds(buf), bg => bg is not null);   // the selected leaf's bullet is highlighted
+
+        var g = FirstCellWithContent(buf, 'G');   // the 'G' of the green "GET"
+        Assert.NotNull(g);
+        Assert.NotNull(g!.Value.Character.Background);                                   // has the selection background
+        Assert.Equal((40, 50, 80), ToRgb(g.Value.Character.Background!.Value));          // default IStyleTheme.Selection bg
+        Assert.NotNull(g.Value.Character.Foreground);
+        Assert.True(g.Value.Character.Foreground!.Value.Green > g.Value.Character.Foreground.Value.Red,
+            "the label keeps its green foreground (not replaced by the selection foreground)");
     }
+
+    private static ConsoleGUI.Data.Cell? FirstCellWithContent(ConsoleBuffer buf, char c)
+    {
+        for (var y = 0; y < buf.Size.Height; y++)
+            for (var x = 0; x < buf.Size.Width; x++)
+                if (buf[x, y].Character.Content == c) return buf[x, y];
+        return null;
+    }
+
+    private static (int, int, int) ToRgb(ConsoleGUI.Data.Color c) => (c.Red, c.Green, c.Blue);
 
     // A click at a content-space position routed through the tree's mouse listener.
     private static void ClickTree(Tree tree, int x, int y)

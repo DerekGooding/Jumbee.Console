@@ -21,7 +21,7 @@ public class Program
     static async Task Main(string[] args)
     {        
         //TerminalDemo(args);
-        NavigationDemo(args);
+        //NavigationDemo(args);
         //TabsDemo(args);
         //CodeEditorDemo(args);
         //LinkDemo(args);
@@ -39,7 +39,7 @@ public class Program
         //DialogDemo(args);
         //ChatPromptDemo(args);
         //PostingDemo(args);
-        //DockPanelTest(args);
+        DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
@@ -1278,11 +1278,14 @@ public class Program
         var p = new TextEditor(Language.Markdown, blinkCursor: false)
            .WithRoundedBorder(Purple)
            .WithTitle("Editor");
-        var tree = new Tree("tree", TreeGuide.Line, Green | Dim) { Width = 20, Height=10 };
+        var tree = new Tree("tree", TreeGuide.Line, Green | Dim) { Width = 20, Height = 10 };//.WithHeavyBorder();
         tree.AddNodes("Y".WithStyle(Red | Dim), "Z".WithStyle(Blue | Underline)).WithTitle("Functions");
         p.Focus();
         var d = new DockPanel(DockedControlPlacement.Left, tree, p);
         //var g = new Grid([10], [100, 100], [p, tree.WithRoundedBorder(Blue)]);
+        // No explicit input source: UI.Start auto-selects a mouse-capable VtInputSource on an interactive terminal
+        // (so clicking the tree/editor focuses it), falling back to keyboard-only when redirected/non-ANSI. Pass an
+        // explicit VtInputSource(anyMotion: true) if you also want hover reporting.
         var t = UI.Start(d);
         t.Wait();
         Console.WriteLine("Average draw time: {0} Average paint time: {1}.", UI.AverageDrawTime, UI.AveragePaintTime);

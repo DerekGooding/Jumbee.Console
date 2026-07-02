@@ -418,19 +418,21 @@ public partial class Tree : RenderableControl
 
             var caret = _selectionStyle == SelectionStyle.Caret;
             var caretPad = caret ? _selectionCaret.GetCellWidth() : 0;
+            var selStyle = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
             // A node with Text renders through Markup, so when it's selected (or hovered) we fold the icon INTO a
             // styled markup — the glyph is highlighted/tinted together with the text "in the usual manner". Selection
-            // wins over hover. An IRenderable-only node can't be folded, so (like selection) it shows no hover either:
-            // its icon is drawn as a separate (coloured) segment and the label renders as-is.
+            // wins over hover. An IRenderable-only node can't be folded into markup, so a selected one is highlighted
+            // by RESTYLING its already-rendered segments (below): the selection style is overlaid on each segment,
+            // keeping the segment's own foreground so a colourful label stays colourful under the highlight.
             var isTextNode = !string.IsNullOrEmpty(current.Text);
             var hovered = !current.Selected && ReferenceEquals(current, _hoveredNode);
+            var highlightRenderable = !isTextNode && current.Selected;
 
             IRenderable renderable = current.Renderable;
             var folded = false;
             if (isTextNode && current.Selected)
             {
-                var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
-                renderable = new Markup(_selectionStyle.Prefix(_selectionCaret) + Markup.Escape(icon) + current.Text, style);
+                renderable = new Markup(_selectionStyle.Prefix(_selectionCaret) + Markup.Escape(icon) + current.Text, selStyle);
                 folded = true;
             }
             else if (isTextNode && hovered)
@@ -451,14 +453,27 @@ public partial class Tree : RenderableControl
                 }
 
                 // For a non-folded node, draw the caret reservation (caret mode) then the gutter icon — the glyph on
-                // the first line, a width-matched spacer on wrapped continuation lines.
+                // the first line, a width-matched spacer on wrapped continuation lines. A selected IRenderable row
+                // highlights its gutter too: the caret glyph (caret mode) or the selection style over the icon/spacer.
                 if (!folded)
                 {
-                    if (caretPad > 0) result.Add(new Segment(new string(' ', caretPad)));
-                    result.Add(isFirstLine ? new Segment(icon, iconStyle) : new Segment(new string(' ', iconWidth)));
+                    if (caretPad > 0)
+                        result.Add(highlightRenderable
+                            ? new Segment(isFirstLine ? _selectionCaret : new string(' ', caretPad), selStyle)
+                            : new Segment(new string(' ', caretPad)));
+                    if (isFirstLine)
+                        result.Add(new Segment(icon, highlightRenderable ? selStyle : iconStyle));
+                    else
+                        result.Add(highlightRenderable
+                            ? new Segment(new string(' ', iconWidth), selStyle)
+                            : new Segment(new string(' ', iconWidth)));
                 }
 
-                result.AddRange(line);
+                // Overlay the selection style on a selected IRenderable's label segments (keeping each segment's own
+                // foreground where set), so the label highlights like a text node's does.
+                result.AddRange(highlightRenderable
+                    ? line.Select(seg => seg.WithStyle(selStyle.Combine(seg.Style)))
+                    : line);
                 result.Add(Segment.LineBreak);
 
                 if (isFirstLine && prefix.Count > 0)
