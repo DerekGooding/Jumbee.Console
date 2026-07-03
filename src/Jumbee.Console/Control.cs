@@ -177,6 +177,17 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// scrolls the surrounding <see cref="Frame"/> if there is one; override to consume the wheel directly.
     /// </summary>
     protected virtual void OnMouseWheel(Position position, int delta) => Frame?.Scroll(delta);
+
+    /// <summary>
+    /// Grabs the mouse so this control receives all subsequent move/press/release (in its own frame) until
+    /// <see cref="ReleaseMouse"/>, even when the pointer leaves its cells — for drags (a splitter divider, a
+    /// scrollbar thumb, a slider). Call from <see cref="OnMousePress"/>; pair with <see cref="ReleaseMouse"/> in
+    /// <see cref="OnMouseRelease"/>.
+    /// </summary>
+    protected void CaptureMouse() => ConsoleGUI.ConsoleManager.CaptureMouse(this);
+
+    /// <summary>Releases a capture taken by <see cref="CaptureMouse"/>.</summary>
+    protected void ReleaseMouse() => ConsoleGUI.ConsoleManager.ReleaseMouseCapture();
     #endregion
 
     #region IMouseListener (dispatch sink: ConsoleManager calls these on the UI thread)

@@ -40,7 +40,8 @@ public class Program
         //DialogDemo(args);
         //ChatPromptDemo(args);
         //PostingDemo(args);
-        DynamicTabsDemo(args);
+        //DynamicTabsDemo(args);
+        ConsoleStudioDemo(args);
         //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
@@ -340,6 +341,45 @@ public class Program
         var grid = new Jumbee.Console.Grid([16, 1, 1], [72], [[tabs], [help], [hint]]);
         var run = UI.Start(grid, width: 76, height: 20, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(main);
+        run.Wait();
+    }
+
+    // Console Studio skeleton — the VS-Code-style shell from nested SplitPanels: an Explorer on the left, and on the
+    // right an editor tab group over an Output panel. Drag any divider (it captures, so the drag stays live), or click
+    // a divider and resize with the arrows (Shift = faster). Ctrl+B collapses/restores the Explorer; Alt+←/→ switch
+    // editor tabs; Esc quits. Exercises SplitPanel + TabPanel + ListBox + TextEditor composed together.
+    static void ConsoleStudioDemo(string[] args)
+    {
+        var explorer = new ListBox();
+        foreach (var f in new[] { "Program.cs", "SplitPanel.cs", "SplitDivider.cs", "TabPanel.cs", "TerminalEmulator.cs", "UI.cs", "README.md" })
+            explorer.AddItem(f);
+
+        var editors = new TabPanel(TabBarDock.Top,
+            ("Program.cs", new TextEditor { Text = "static void Main()\n{\n    Console.WriteLine(\"Console Studio\");\n}\n" }),
+            ("SplitPanel.cs", new TextEditor { Text = "public class SplitPanel : Layout<SplitPanelDockPanel>\n{\n}\n" }));
+
+        var output = new ListBox();
+        foreach (var line in new[] { "> dotnet build", "  Build succeeded.", "  0 Warning(s)   0 Error(s)", "> _" })
+            output.AddItem(line);
+
+        // Right column = editors over output; root = explorer | right.
+        var right = new SplitPanel(SplitOrientation.Vertical, editors, output.WithFrame(title: "Output"), 14);
+        var root = new SplitPanel(SplitOrientation.Horizontal, explorer.WithFrame(title: "Explorer"), right, 22);
+
+        var footer = new TextLabel(TextLabelOrientation.Horizontal,
+            "Drag a divider, or click one + arrows (Shift faster).  Ctrl+B toggle Explorer.  Alt+←/→ switch tabs.  Esc quits.", Color.White);
+        var grid = new Jumbee.Console.Grid([28, 1], [104], [[root], [footer]]);
+
+        var savedExplorerWidth = 22;
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.B), () =>
+        {
+            if (root.SplitPosition > root.MinFirst) { savedExplorerWidth = root.SplitPosition; root.SplitPosition = root.MinFirst; }
+            else root.SplitPosition = savedExplorerWidth;
+        });
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var run = UI.Start(grid, width: 104, height: 30, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(explorer);
         run.Wait();
     }
 
