@@ -6,29 +6,33 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 
 /// <summary>
-/// Collects live process/runtime performance metrics for the perf HUD by reading the same runtime APIs the
+/// Collects live process/runtime performance metrics for the perf HUD by reading the runtime APIs the
 /// <c>System.Runtime</c> meter wraps (<see cref="GC"/>, <see cref="Environment"/>, <see cref="ThreadPool"/>,
 /// <see cref="Monitor"/>) directly — no <c>MeterListener</c>, so there is nothing to sample-schedule and no
 /// observable-instrument staleness.
 /// </summary>
 /// <remarks>
-/// <para><see cref="Sample"/> is called once per frame from the UI loop; it is allocation-free so it does not
-/// pollute the per-frame allocation metric. Cumulative counters (CPU time, allocated bytes, GC pause time,
-/// exceptions) are differenced over a rolling ~1&#160;s window to yield rates; gauges (working set, heap, thread
-/// pool) are read live on demand.</para>
-/// <para>All state is written by <see cref="Sample"/> and read by the getters on the UI thread; only the
-/// first-chance exception count is cross-thread (it uses <see cref="Interlocked"/>).</para>
+/// <para>Two measurement styles: <see cref="RecordFrame"/> takes the <em>directly measured</em> cost of one
+/// draw/paint cycle (high-resolution wall time + allocation delta, bracketed around the render in the UI loop) —
+/// this is immune to the coarse (~15&#160;ms) resolution of process CPU time and, read as a <em>peak</em>, surfaces
+/// bursts an average would hide. <see cref="Sample"/> snapshots cumulative process counters (CPU time, GC pause,
+/// exceptions), differenced over a rolling window for whole-process rates.</para>
+/// <para>All state is written and read on the UI thread; only the first-chance exception count is cross-thread
+/// (it uses <see cref="Interlocked"/>).</para>
 /// </remarks>
 public sealed class ProcessMetrics : IDisposable
 {
     #region Constructors
-    /// <param name="capacity">Number of per-frame snapshots retained (must cover <paramref name="windowMs"/> at the
-    /// frame rate; the default covers ~6&#160;s at a 100&#160;ms tick).</param>
-    /// <param name="windowMs">Rolling window over which rates (CPU%, alloc/s, GC-pause%, exceptions/s) are measured.</param>
+    /// <param name="capacity">Number of snapshots/frames retained (covers <paramref name="windowMs"/> at the frame
+    /// rate; the default covers several seconds at a 100&#160;ms tick).</param>
+    /// <param name="windowMs">Rolling window over which whole-process rates (CPU%, GC-pause%, exceptions/s) are measured.</param>
     public ProcessMetrics(int capacity = 128, int windowMs = 1000)
     {
-        _samples = new Snapshot[Math.Max(2, capacity)];
-        _frameAlloc = new long[Math.Max(2, capacity)];
+        capacity = Math.Max(2, capacity);
+        _samples = new Snapshot[capacity];
+        _frameRenderMs = new double[capacity];
+        _framePeriodMs = new double[capacity];
+        _frameAlloc = new long[capacity];
         _windowMs = windowMs;
         // dotnet.process.cpu.time is platform-guarded in the runtime; Environment.CpuUsage throws
         // PlatformNotSupportedException on Browser/WASI/tvOS/iOS(non-Catalyst). Mirror that guard.
@@ -37,18 +41,60 @@ public sealed class ProcessMetrics : IDisposable
     }
     #endregion
 
-    #region Properties
+    #region Properties — per-frame render cost (directly measured, high-resolution)
+    /// <summary>Mean draw/paint cycle wall time over the retained frames, in milliseconds.</summary>
+    public double RenderTimeMsAvg => Avg(_frameRenderMs);
+
+    /// <summary>Longest draw/paint cycle over the retained frames, in milliseconds — the peak render cost, which a
+    /// burst (e.g. a paste re-rendering the editor) pushes up and which lingers until it ages out of the window.</summary>
+    public double RenderTimeMsPeak => Max(_frameRenderMs);
+
+    /// <summary>Peak UI-thread utilisation over the retained frames (0..100): the busiest frame's render time as a
+    /// fraction of that frame's period. ~0 when idle (short render, long wait), rising toward 100 when frames run
+    /// back-to-back under load. High-resolution, so unlike process CPU% it reflects brief bursts.</summary>
+    public double BusyPercentPeak
+    {
+        get
+        {
+            double peak = 0;
+            for (int i = 0; i < _fCount; i++)
+            {
+                double period = _framePeriodMs[i];
+                if (period <= 0) continue;
+                double util = _frameRenderMs[i] / period * 100.0;
+                if (util > peak) peak = util;
+            }
+            return Math.Min(100, peak);
+        }
+    }
+
+    /// <summary>Mean bytes allocated on the managed heap per draw/paint cycle. The headline retained-mode number:
+    /// an idle UI allocates ~nothing per frame.</summary>
+    public double AllocatedBytesPerFrame => Avg(_frameAlloc);
+
+    /// <summary>Peak bytes allocated in a single draw/paint cycle over the retained frames — surfaces an allocation
+    /// burst an average would dilute away.</summary>
+    public long PeakAllocatedBytesPerFrame
+    {
+        get { long p = 0; for (int i = 0; i < _fCount; i++) if (_frameAlloc[i] > p) p = _frameAlloc[i]; return p; }
+    }
+    #endregion
+
+    #region Properties — whole-process rates & gauges
     /// <summary><see langword="true"/> if per-process CPU time is available on this OS (see the constructor guard).</summary>
     public bool CpuSupported => _cpuSupported;
 
-    /// <summary>Process CPU usage over the rolling window as a percentage of a single core (user + kernel). A busy
-    /// UI thread reads ~100%; multi-threaded work can exceed 100%. 0 when CPU time is unavailable.</summary>
+    /// <summary>Whole-process CPU usage over the rolling window, as a percentage of total machine capacity (user +
+    /// kernel, divided by <see cref="Environment.ProcessorCount"/>) — the same figure Task Manager shows for the
+    /// process. <em>Coarse</em>: process CPU time advances in ~15&#160;ms OS ticks, so it reflects sustained load but
+    /// not brief per-frame bursts (use <see cref="BusyPercentPeak"/> / <see cref="RenderTimeMsPeak"/> for those).
+    /// 0 when unavailable.</summary>
     public double CpuUsagePercent
     {
         get
         {
             if (!_cpuSupported || !TryWindow(out var o, out var n, out var ms)) return 0;
-            return Math.Max(0, (n.CpuMs - o.CpuMs) / ms * 100.0);
+            return Math.Max(0, (n.CpuMs - o.CpuMs) / ms * 100.0 / Math.Max(1, Environment.ProcessorCount));
         }
     }
 
@@ -58,68 +104,32 @@ public sealed class ProcessMetrics : IDisposable
     /// <summary>Current managed heap size (<see cref="GC.GetTotalMemory(bool)"/>), in bytes.</summary>
     public long ManagedHeapBytes => GC.GetTotalMemory(forceFullCollection: false);
 
-    /// <summary>Mean bytes allocated on the managed heap per frame, over the retained snapshots. The headline
-    /// retained-mode number: an idle UI should allocate ~nothing per frame.</summary>
-    public double AllocatedBytesPerFrame
-    {
-        get
-        {
-            if (_faCount == 0) return 0;
-            long total = 0;
-            for (int i = 0; i < _faCount; i++) total += _frameAlloc[i];
-            return (double)total / _faCount;
-        }
-    }
-
-    /// <summary>Peak bytes allocated in a single frame over the retained snapshots.</summary>
-    public long PeakAllocatedBytesPerFrame
-    {
-        get
-        {
-            long peak = 0;
-            for (int i = 0; i < _faCount; i++) if (_frameAlloc[i] > peak) peak = _frameAlloc[i];
-            return peak;
-        }
-    }
-
-    /// <summary>Managed heap allocation rate over the rolling window, in bytes per second.</summary>
+    /// <summary>Managed heap allocation rate over the rolling window, in bytes per second (whole process).</summary>
     public double AllocatedBytesPerSecond
-    {
-        get => TryWindow(out var o, out var n, out var ms) ? Math.Max(0, (n.Allocated - o.Allocated) / (ms / 1000.0)) : 0;
-    }
+        => TryWindow(out var o, out var n, out var ms) ? Math.Max(0, (n.Allocated - o.Allocated) / (ms / 1000.0)) : 0;
 
     /// <summary>Fraction of wall time (0..100) the runtime spent paused for GC over the rolling window — the
     /// clearest signal that GC is hitching the UI.</summary>
     public double GcPausePercent
-    {
-        get => TryWindow(out var o, out var n, out var ms) ? Math.Clamp((n.GcPauseMs - o.GcPauseMs) / ms * 100.0, 0, 100) : 0;
-    }
+        => TryWindow(out var o, out var n, out var ms) ? Math.Clamp((n.GcPauseMs - o.GcPauseMs) / ms * 100.0, 0, 100) : 0;
 
-    /// <summary>First-chance managed exceptions per second over the rolling window (thrown, caught or not). A
-    /// steady non-zero value flags swallowed-exception churn.</summary>
+    /// <summary>First-chance managed exceptions per second over the rolling window (thrown, caught or not).</summary>
     public double ExceptionsPerSecond
-    {
-        get => TryWindow(out var o, out var n, out var ms) ? Math.Max(0, (n.Exceptions - o.Exceptions) / (ms / 1000.0)) : 0;
-    }
+        => TryWindow(out var o, out var n, out var ms) ? Math.Max(0, (n.Exceptions - o.Exceptions) / (ms / 1000.0)) : 0;
 
-    /// <summary>Total monitor lock contentions since process start (<see cref="Monitor.LockContentionCount"/>) — the
-    /// no-lock-design dagger; stays at 0 for the single-threaded UI model.</summary>
+    /// <summary>Total monitor lock contentions since process start — the no-lock dagger; 0 for the single-threaded UI.</summary>
     public long LockContentions => Monitor.LockContentionCount;
 
-    /// <summary>Garbage collections since process start for gen 0 / 1 / 2.</summary>
     public int Gen0Collections => GC.CollectionCount(0);
     public int Gen1Collections => GC.CollectionCount(1);
     public int Gen2Collections => GC.CollectionCount(2);
 
-    /// <summary>Thread pool worker threads that currently exist.</summary>
     public int ThreadPoolThreadCount => ThreadPool.ThreadCount;
-
-    /// <summary>Work items currently queued to the thread pool.</summary>
     public long ThreadPoolQueueLength => ThreadPool.PendingWorkItemCount;
     #endregion
 
     #region Methods
-    /// <summary>Begins collection: subscribes to first-chance exceptions and takes a baseline sample.</summary>
+    /// <summary>Begins collection: subscribes to first-chance exceptions and takes a baseline cumulative sample.</summary>
     public void Start()
     {
         if (_started) return;
@@ -136,8 +146,26 @@ public sealed class ProcessMetrics : IDisposable
         AppDomain.CurrentDomain.FirstChanceException -= OnFirstChanceException;
     }
 
-    /// <summary>Records one per-frame snapshot of the cumulative counters. Allocation-free (so it does not distort
-    /// <see cref="AllocatedBytesPerFrame"/>); call once per frame on the UI thread.</summary>
+    /// <summary>Records the directly-measured cost of one draw/paint cycle (from the UI loop, which brackets the
+    /// render), and takes a cumulative sample for the windowed process rates. Call once per frame on the UI thread.
+    /// </summary>
+    /// <param name="renderMs">Wall time the draw/paint cycle took (high-resolution).</param>
+    /// <param name="periodMs">Wall time since the previous frame started (for utilisation).</param>
+    /// <param name="renderAllocBytes">Bytes allocated on the managed heap during the cycle.</param>
+    public void RecordFrame(double renderMs, double periodMs, long renderAllocBytes)
+    {
+        int idx = (_fStart + _fCount) % _frameRenderMs.Length;
+        _frameRenderMs[idx] = renderMs;
+        _framePeriodMs[idx] = periodMs;
+        _frameAlloc[idx] = renderAllocBytes < 0 ? 0 : renderAllocBytes;
+        if (_fCount < _frameRenderMs.Length) _fCount++;
+        else _fStart = (_fStart + 1) % _frameRenderMs.Length;
+
+        Sample();
+    }
+
+    /// <summary>Snapshots the cumulative process counters (for the windowed rates). Called by <see cref="RecordFrame"/>
+    /// once per frame; exposed for callers/tests without a frame loop.</summary>
     public void Sample()
     {
         long timestamp = Stopwatch.GetTimestamp();
@@ -145,12 +173,6 @@ public sealed class ProcessMetrics : IDisposable
         double cpuMs = _cpuSupported ? Environment.CpuUsage.TotalTime.TotalMilliseconds : 0;
         double gcPauseMs = GC.GetTotalPauseDuration().TotalMilliseconds;
         long exceptions = Interlocked.Read(ref _exceptions);
-
-        if (_count > 0)
-        {
-            long delta = allocated - Last().Allocated;
-            PushFrameAlloc(delta < 0 ? 0 : delta);
-        }
         Push(new Snapshot(timestamp, cpuMs, allocated, gcPauseMs, exceptions));
     }
 
@@ -162,8 +184,12 @@ public sealed class ProcessMetrics : IDisposable
 
     private void OnFirstChanceException(object? sender, FirstChanceExceptionEventArgs e) => Interlocked.Increment(ref _exceptions);
 
-    // The newest snapshot and the oldest snapshot still within the rolling window, plus the wall time between them.
-    // False until there are two snapshots spanning a non-zero interval.
+    private static double Avg(double[] ring, int count) { if (count == 0) return 0; double t = 0; for (int i = 0; i < count; i++) t += ring[i]; return t / count; }
+    private double Avg(double[] ring) => Avg(ring, _fCount);
+    private double Avg(long[] ring) { if (_fCount == 0) return 0; long t = 0; for (int i = 0; i < _fCount; i++) t += ring[i]; return (double)t / _fCount; }
+    private double Max(double[] ring) { double p = 0; for (int i = 0; i < _fCount; i++) if (ring[i] > p) p = ring[i]; return p; }
+
+    // The newest cumulative snapshot and the oldest still within the rolling window, plus the wall time between them.
     private bool TryWindow(out Snapshot oldest, out Snapshot newest, out double elapsedMs)
     {
         oldest = default;
@@ -171,7 +197,7 @@ public sealed class ProcessMetrics : IDisposable
         elapsedMs = 0;
         if (_count < 2) return false;
 
-        newest = Last();
+        newest = At(_count - 1);
         oldest = newest;
         double windowTicks = _windowMs * (Stopwatch.Frequency / 1000.0);
         for (int i = _count - 2; i >= 0; i--)
@@ -193,25 +219,20 @@ public sealed class ProcessMetrics : IDisposable
     }
 
     private Snapshot At(int i) => _samples[(_start + i) % _samples.Length];
-    private Snapshot Last() => At(_count - 1);
-
-    private void PushFrameAlloc(long bytes)
-    {
-        int idx = (_faStart + _faCount) % _frameAlloc.Length;
-        _frameAlloc[idx] = bytes;
-        if (_faCount < _frameAlloc.Length) _faCount++;
-        else _faStart = (_faStart + 1) % _frameAlloc.Length;
-    }
     #endregion
 
     #region Fields
+    // Cumulative-snapshot ring (whole-process window rates).
     private readonly Snapshot[] _samples;
     private int _start;
     private int _count;
 
+    // Per-frame render-cost rings (directly measured), pushed together under one index.
+    private readonly double[] _frameRenderMs;
+    private readonly double[] _framePeriodMs;
     private readonly long[] _frameAlloc;
-    private int _faStart;
-    private int _faCount;
+    private int _fStart;
+    private int _fCount;
 
     private readonly int _windowMs;
     private readonly bool _cpuSupported;

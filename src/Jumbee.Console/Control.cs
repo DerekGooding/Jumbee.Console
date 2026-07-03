@@ -533,7 +533,8 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             Paint();
             Validate();
             timer.Stop();
-            UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.ElapsedMilliseconds;            
+            // Fractional ms: most controls repaint in well under 1 ms; ElapsedMilliseconds would truncate them to 0.
+            UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.Elapsed.TotalMilliseconds;
             UI.MarkDirty();
         }
         else

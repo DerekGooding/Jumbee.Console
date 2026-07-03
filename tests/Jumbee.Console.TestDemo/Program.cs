@@ -40,9 +40,9 @@ public class Program
         //DialogDemo(args);
         //ChatPromptDemo(args);
         //PostingDemo(args);
-        DynamicTabsDemo(args);
+        //DynamicTabsDemo(args);
         //ConsoleStudioDemo(args);
-        //DockPanelTest(args);
+        DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
@@ -61,7 +61,8 @@ public class Program
         }
 
         var m = UI.ProcessMetrics;
-        Console.WriteLine($"CPU Usage: {m.CpuUsagePercent:F1}% (per core)");
+        Console.WriteLine($"Peak render: {m.RenderTimeMsPeak * 1000:F0} µs/frame, busy {m.BusyPercentPeak:F0}%");
+        Console.WriteLine($"CPU Usage: {m.CpuUsagePercent:F1}% (whole process, matches Task Manager)");
         Console.WriteLine($"Working Set: {m.WorkingSetBytes / 1024.0 / 1024:F1} MB");
         Console.WriteLine($"Managed Heap: {m.ManagedHeapBytes / 1024.0 / 1024:F1} MB");
         Console.WriteLine($"Alloc/frame: {m.AllocatedBytesPerFrame / 1024:F1} KB (peak {m.PeakAllocatedBytesPerFrame / 1024.0:F1} KB)");
@@ -342,11 +343,11 @@ public class Program
         UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 
         var grid = new Jumbee.Console.Grid([16, 1, 1], [72], [[tabs], [help], [hint]]);
-        var hud = new PerfHud();
+        
        
 
         var run = UI.Start(grid, width: 76, height: 20, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
-        hud.RegisterToggle();            // Ctrl+G toggles it in the top-right corner
+        //hud.RegisterToggle();            // Ctrl+G toggles it in the top-right corner
                                          // or: hud.RegisterToggle(UI.HotKeys.Ctrl(ConsoleKey.F));
         UI.SetFocus(main);
         run.Wait();

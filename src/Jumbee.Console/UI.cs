@@ -61,9 +61,10 @@ public static class UI
         // Start the single UI thread (reads the dispatcher queue, then renders each frame).
         dispatcher.Start(OnFrame, interval);
         // Start the input thread which blocks on the console and marshals each key onto the UI thread.
+        perfHud.RegisterToggle(HotKeys.CtrlF12);
         inputThread = new Thread(InputLoop) { IsBackground = true, Name = "Jumbee.Console.Input" };
         inputThread.Start();
-        RegisterSignalHandlers();
+        RegisterSignalHandlers();        
         return runCompletion.Task;
     }
 
@@ -409,34 +410,49 @@ public static class UI
     {
         // Runs on the UI thread after the dispatcher queue (mutations + input) has been drained, so all
         // layout/geometry changes for this frame have already been applied on this same thread.
-        if (needsDraw)
-        {
-            // Something changed: full draw (handles terminal resize, redraw, and draw timers).
-            needsDraw = false;
-            ConsoleManager.Draw();
-        }
-        else
-        {
-            // Idle: skip the full-screen scan but still detect a terminal resize cheaply
-            // (AdjustBufferSize only redraws when the size actually changed).
-            ConsoleManager.AdjustBufferSize();
-            // Keep a self-blinking ANSI cursor ticking even with no input/animation. Cheap: emits only the cursor
-            // visibility toggle when the blink phase flips (≈twice a second), not a full-screen redraw. Safe to call
-            // only here (the idle branch) — on drawn frames Update handles the cursor inline.
-            ConsoleManager.TickCursorBlink();
-        }
+        // Bracket the draw/paint cycle to measure its real cost directly: high-resolution wall time (immune to the
+        // ~15 ms coarseness of process CPU time) and the managed-heap allocation it caused. Also track the frame
+        // period for UI-thread utilisation. ProcessMetrics reads these as peaks so a burst (e.g. a paste) shows.
+        long frameStart = Stopwatch.GetTimestamp();
+        double periodMs = lastFrameStart != 0 ? (frameStart - lastFrameStart) * 1000.0 / Stopwatch.Frequency : 0;
+        lastFrameStart = frameStart;
+        long allocBefore = GC.GetTotalAllocatedBytes();
+        frameTimer.Restart();
 
-        // Invoke control paint events
-        paintTimer.Restart();
-        _Paint?.Invoke(null, paintEventArgs);
-        paintTimer.Stop();
-        // Fractional milliseconds: paints are typically sub-millisecond, which ElapsedMilliseconds truncates to 0.
-        paintTimes[paintTimeIndex] = paintTimer.Elapsed.TotalMilliseconds;
-        paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
+        try
+        {
+            if (needsDraw)
+            {
+                // Something changed: full draw (handles terminal resize, redraw, and draw timers).
+                needsDraw = false;
+                ConsoleManager.Draw();
+            }
+            else
+            {
+                // Idle: skip the full-screen scan but still detect a terminal resize cheaply
+                // (AdjustBufferSize only redraws when the size actually changed).
+                ConsoleManager.AdjustBufferSize();
+                // Keep a self-blinking ANSI cursor ticking even with no input/animation. Cheap: emits only the cursor
+                // visibility toggle when the blink phase flips (≈twice a second), not a full-screen redraw. Safe to
+                // call only here (the idle branch) — on drawn frames Update handles the cursor inline.
+                ConsoleManager.TickCursorBlink();
+            }
 
-        // Snapshot process/runtime counters once per frame (allocation-free) so per-frame allocation and windowed
-        // rates reflect real activity.
-        ProcessMetrics.Sample();
+            // Invoke control paint events
+            paintTimer.Restart();
+            _Paint?.Invoke(null, paintEventArgs);
+            paintTimer.Stop();
+            // Fractional milliseconds: paints are typically sub-millisecond, which ElapsedMilliseconds truncates to 0.
+            paintTimes[paintTimeIndex] = paintTimer.Elapsed.TotalMilliseconds;
+            paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
+        }
+        finally
+        {
+            // Record the frame even if the draw/paint threw, so the metrics keep working (and exceptions/s surfaces
+            // a per-frame throw) instead of silently freezing at 0.
+            frameTimer.Stop();
+            ProcessMetrics.RecordFrame(frameTimer.Elapsed.TotalMilliseconds, periodMs, GC.GetTotalAllocatedBytes() - allocBefore);
+        }
     }
        
     /// <summary>
@@ -576,7 +592,7 @@ public static class UI
             var d = new Dictionary<IFocusable, double>();   
             foreach(var c in controlPaintTimes)
             {
-                long total = 0;
+                double total = 0;
                 int count = 0;
                 foreach (var time in c.Value)
                 {
@@ -586,13 +602,13 @@ public static class UI
                         count++;
                     }
                 }
-                d[c.Key] = count > 0 ? (double)total / count : 0;
+                d[c.Key] = count > 0 ? total / count : 0;
             }
             return d;
         }
     }
 
-    public static IDictionary<IFocusable, long> MaxControlPaintTimes => controlPaintTimes
+    public static IDictionary<IFocusable, double> MaxControlPaintTimes => controlPaintTimes
         .Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Where(v => v.HasValue).Select(v => v!.Value).DefaultIfEmpty().Max()))
         .ToDictionary();
     #endregion
@@ -606,25 +622,36 @@ public static class UI
     public static event EventHandler<PaintEventArgs> Paint
     {
         add
-        {            
+        {
             if (value.Target is IFocusable c)
             {
+                // Track the control (for per-control paint timing / focus) once, but ALWAYS combine the handler:
+                // a control may legitimately add more than one Paint handler (e.g. PerfHud adds base Control.OnPaint
+                // and its own OnHudPaint). Gating the combine on "not already tracked" silently dropped the second,
+                // so such a control's extra handler never fired.
                 if (!controls.Contains(c))
                 {
-                    controls.Add(c);                 
+                    controls.Add(c);
                     controlPaintTimers[c] = new Stopwatch();
-                    controlPaintTimes[c] = new long?[paintTimeSamples];                    
-                    _Paint = (EventHandler<PaintEventArgs>?)Delegate.Combine(_Paint, value);
-                }                
-            }           
+                    controlPaintTimes[c] = new double?[paintTimeSamples];
+                }
+                _Paint = (EventHandler<PaintEventArgs>?)Delegate.Combine(_Paint, value);
+            }
         }
         remove
-        {            
+        {
             if (value.Target is IFocusable c)
             {
-                _Paint ??= (EventHandler<PaintEventArgs>?)Delegate.Remove(_Paint, value);
-                controls.Remove(c);
-            }           
+                _Paint = (EventHandler<PaintEventArgs>?)Delegate.Remove(_Paint, value);
+                // Untrack the control only once none of its Paint handlers remain (a control may have added several).
+                bool stillSubscribed = _Paint is not null && _Paint.GetInvocationList().Any(d => ReferenceEquals(d.Target, c));
+                if (!stillSubscribed)
+                {
+                    controls.Remove(c);
+                    controlPaintTimers.Remove(c);
+                    controlPaintTimes.Remove(c);
+                }
+            }
         }
     }
     #endregion
@@ -664,14 +691,23 @@ public static class UI
         { HotKeys.CtrlUp, FocusUp },
         { HotKeys.CtrlDown, FocusDown },
         // Global help dialog (toggles open/closed).
-        { HotKeys.F1, ShowHelp },
+        { HotKeys.F1, ShowHelp }       
+
     };
     private static readonly int paintTimeSamples = 60;
     private static readonly double[] paintTimes = new double[paintTimeSamples];
     private static readonly Stopwatch paintTimer = new Stopwatch();
+    // Measures the whole draw/paint cycle each frame (fed to ProcessMetrics.RecordFrame); lastFrameStart tracks the
+    // frame period for UI-thread utilisation.
+    private static readonly Stopwatch frameTimer = new Stopwatch();
+    private static long lastFrameStart;
     internal static int paintTimeIndex = 0;
     internal static readonly Dictionary<IFocusable, Stopwatch> controlPaintTimers = new();
-    internal static readonly Dictionary<IFocusable, long?[]> controlPaintTimes = new();
+    // Fractional milliseconds per control per frame (null when the control didn't repaint that frame). Fractional,
+    // not whole ms — most controls (buttons, tab items, labels) repaint in well under 1 ms and would otherwise all
+    // record 0, biasing every per-control average/peak to zero.
+    internal static readonly Dictionary<IFocusable, double?[]> controlPaintTimes = new();
+    private static readonly PerfHud perfHud = new PerfHud();
     #endregion
 
     #region Types
@@ -749,6 +785,7 @@ public static class UI
         public static ConsoleKeyInfo CtrlRight = Ctrl(ConsoleKey.RightArrow);
         public static ConsoleKeyInfo CtrlUp = Ctrl(ConsoleKey.UpArrow);
         public static ConsoleKeyInfo CtrlDown = Ctrl(ConsoleKey.DownArrow);
+        public static ConsoleKeyInfo CtrlF12 = Ctrl(ConsoleKey.F12);
         // Alt+arrows — the "Alt tier" layout navigation keys (e.g. TabPanel switches tabs on Alt+Left/Right).
         public static ConsoleKeyInfo AltUp = Alt(ConsoleKey.UpArrow);
         public static ConsoleKeyInfo AltDown = Alt(ConsoleKey.DownArrow);

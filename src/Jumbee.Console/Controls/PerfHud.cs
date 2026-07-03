@@ -54,22 +54,26 @@ public sealed class PerfHud : GlassPanel
     private static IRenderable Build()
     {
         var m = UI.ProcessMetrics;
-        double drawUs = UI.AverageDrawTime * 1000.0;
-        double paintUs = UI.AveragePaintTime * 1000.0;
+        // "frame"/"busy" are the high-resolution per-frame RENDER cost (peak-over-window) — near-0 for retained
+        // rendering, which is the point. "cpu" is whole-process (matches Task Manager); it captures work outside the
+        // render cycle (input, dispatcher, other threads) that the per-frame numbers don't.
+        double renderUs = m.RenderTimeMsPeak * 1000.0;
+        double busy = m.BusyPercentPeak;
+        double cpu = m.CpuUsagePercent;
         double memMb = m.WorkingSetBytes / 1048576.0;
-        double allocKb = m.AllocatedBytesPerFrame / 1024.0;
-        double gcPause = m.GcPausePercent;
+        double allocKb = m.PeakAllocatedBytesPerFrame / 1024.0;
+        double exc = m.ExceptionsPerSecond;
         long locks = m.LockContentions;
 
         var g = new S.Grid();
         g.AddColumn(new S.GridColumn { Padding = new S.Padding(0, 0, 2, 0) });
         g.AddColumn();
-        g.AddRow(new S.Markup("[grey62]draw[/]"), new S.Markup($"[#e8f0ff]{drawUs,6:F0} µs[/]"));
-        g.AddRow(new S.Markup("[grey62]paint[/]"), new S.Markup($"[#e8f0ff]{paintUs,6:F0} µs[/]"));
-        g.AddRow(new S.Markup("[grey62]cpu[/]"), new S.Markup($"[#e8f0ff]{m.CpuUsagePercent,6:F1} %[/]"));
+        g.AddRow(new S.Markup("[grey62]frame[/]"), new S.Markup($"[#e8f0ff]{renderUs,6:F0} µs[/]"));
+        g.AddRow(new S.Markup("[grey62]busy[/]"), new S.Markup($"[#e8f0ff]{busy,6:F0} %[/]"));
+        g.AddRow(new S.Markup("[grey62]cpu[/]"), new S.Markup($"[#e8f0ff]{cpu,6:F1} %[/]"));
         g.AddRow(new S.Markup("[grey62]mem[/]"), new S.Markup($"[#e8f0ff]{memMb,6:F1} MB[/]"));
         g.AddRow(new S.Markup("[grey62]alloc[/]"), new S.Markup($"[#e8f0ff]{allocKb,5:F1} KB/f[/]"));
-        g.AddRow(new S.Markup("[grey62]gc[/]"), new S.Markup($"[#e8f0ff]{gcPause,6:F1} %[/]"));
+        g.AddRow(new S.Markup("[grey62]exc/s[/]"), new S.Markup(exc > 0 ? $"[bold #ff6b6b]{exc,6:F0}[/]" : "[#e8f0ff]     0[/]"));
         // The dagger: a no-lock UI design holds contention at zero. Green 0 when true, red count otherwise.
         g.AddRow(new S.Markup("[grey62]locks[/]"), new S.Markup(locks == 0 ? "[bold #7CFC00]0 ✓[/]" : $"[bold #ff6b6b]{locks}[/]"));
 

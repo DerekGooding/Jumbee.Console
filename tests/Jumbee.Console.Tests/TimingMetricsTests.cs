@@ -48,6 +48,11 @@ public class TimingMetricsTests
             Assert.True(
                 WaitUntil(() => UI.AverageDrawTime > 0 && UI.AveragePaintTime > 0, 3000),
                 $"timers should record non-zero fractional ms (draw={UI.AverageDrawTime}, paint={UI.AveragePaintTime})");
+
+            // The per-frame render cost fed via ProcessMetrics.RecordFrame from OnFrame must also populate.
+            Assert.True(
+                WaitUntil(() => UI.ProcessMetrics.RenderTimeMsPeak > 0, 3000),
+                $"RecordFrame should populate per-frame render cost (peak={UI.ProcessMetrics.RenderTimeMsPeak})");
         }
         finally
         {

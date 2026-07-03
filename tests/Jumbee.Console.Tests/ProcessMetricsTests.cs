@@ -39,7 +39,7 @@ public class ProcessMetricsTests
         => Assert.True(new ProcessMetrics().CpuSupported);   // the test host is Windows/Linux/macOS
 
     [Fact]
-    public void Allocation_BetweenSamples_ShowsAsPerFrameAndRate()
+    public void Allocation_BetweenSamples_ShowsAsRate()
     {
         var m = new ProcessMetrics(windowMs: 1000);
         m.Sample();
@@ -49,10 +49,21 @@ public class ProcessMetricsTests
         Thread.Sleep(5);                                          // let wall time advance for the rate
         m.Sample();
 
-        Assert.True(m.AllocatedBytesPerFrame > 1_000_000, $"per-frame={m.AllocatedBytesPerFrame}");
         Assert.True(m.AllocatedBytesPerSecond > 0, $"per-second={m.AllocatedBytesPerSecond}");
-        Assert.True(m.PeakAllocatedBytesPerFrame >= m.AllocatedBytesPerFrame);
         GC.KeepAlive(sink);
+    }
+
+    [Fact]
+    public void RecordFrame_ExposesPerFramePeaks()
+    {
+        var m = new ProcessMetrics(windowMs: 1000);
+        m.RecordFrame(renderMs: 2.0, periodMs: 4.0, renderAllocBytes: 500_000);   // a busy frame (50% utilised)
+        m.RecordFrame(renderMs: 0.1, periodMs: 100.0, renderAllocBytes: 1_000);   // an idle frame
+
+        Assert.Equal(2.0, m.RenderTimeMsPeak, 3);                 // peak render survives the idle frame
+        Assert.Equal(500_000, m.PeakAllocatedBytesPerFrame);      // peak allocation survives the average
+        Assert.True(m.BusyPercentPeak is > 40 and <= 100, $"busy={m.BusyPercentPeak}");
+        Assert.Equal((500_000 + 1_000) / 2.0, m.AllocatedBytesPerFrame, 0);
     }
 
     [Fact]

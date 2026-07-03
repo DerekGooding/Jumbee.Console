@@ -153,7 +153,7 @@ public class GlassPanelTests
 
         var text = ConsoleSnapshot.ToText(overlay, 40, 12);
         Assert.Contains("perf", text);   // the panel header rendered (markup parsed without throwing)
-        Assert.Contains("draw", text);   // a telemetry label rendered
+        Assert.Contains("frame", text);  // a telemetry label rendered
         Assert.Contains("locks", text);  // the no-lock dagger row
         Assert.True(hud.IsShown);
     }
