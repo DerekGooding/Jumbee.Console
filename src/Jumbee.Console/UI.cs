@@ -430,8 +430,13 @@ public static class UI
         paintTimer.Restart();
         _Paint?.Invoke(null, paintEventArgs);
         paintTimer.Stop();
-        paintTimes[paintTimeIndex] = paintTimer.ElapsedMilliseconds;
+        // Fractional milliseconds: paints are typically sub-millisecond, which ElapsedMilliseconds truncates to 0.
+        paintTimes[paintTimeIndex] = paintTimer.Elapsed.TotalMilliseconds;
         paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
+
+        // Snapshot process/runtime counters once per frame (allocation-free) so per-frame allocation and windowed
+        // rates reflect real activity.
+        ProcessMetrics.Sample();
     }
        
     /// <summary>
@@ -548,7 +553,7 @@ public static class UI
     {
         get
         {
-            long total = 0;
+            double total = 0;
             int count = 0;
             foreach (var time in paintTimes)
             {
@@ -558,7 +563,7 @@ public static class UI
                     count++;
                 }
             }
-            return count > 0 ? (double)total / count : 0;
+            return count > 0 ? total / count : 0;
         }
     }
 
@@ -627,7 +632,7 @@ public static class UI
     #region Fields
     /// <summary>Lines scrolled per mouse-wheel notch.</summary>
     private const int WheelLines = 3;
-    public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics(300);
+    public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics();
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
     private static readonly Dispatcher dispatcher = new Dispatcher();
@@ -662,7 +667,7 @@ public static class UI
         { HotKeys.F1, ShowHelp },
     };
     private static readonly int paintTimeSamples = 60;
-    private static readonly long[] paintTimes = new long[paintTimeSamples];
+    private static readonly double[] paintTimes = new double[paintTimeSamples];
     private static readonly Stopwatch paintTimer = new Stopwatch();
     internal static int paintTimeIndex = 0;
     internal static readonly Dictionary<IFocusable, Stopwatch> controlPaintTimers = new();

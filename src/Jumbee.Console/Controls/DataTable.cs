@@ -113,10 +113,67 @@ public class DataTable : Control
 
     protected override void OnClick(Position position)
     {
+        // A press that landed on the scrollbar (page/drag) isn't a row click; nor is the reserved last column.
+        if (_pressedScrollbar) { _pressedScrollbar = false; return; }
+        if (position.X >= ContentWidth) return;
+
         // Map the clicked screen row back to a data row (the rows start below the header chrome).
         var dataRow = _scroll + (position.Y - ChromeTop());
         if (dataRow >= 0 && dataRow < _rows.Count) Select(dataRow);
     }
+
+    // True when `position` is on the active scrollbar column, yielding the thumb/track metrics for the current view
+    // (mirrors DrawScrollBar). `i` is the row within the bar (0 at the first data row).
+    private bool OnScrollbar(Position position, out int i, out int visible, out int thumb, out int thumbPos)
+    {
+        visible = VisibleRows();
+        i = thumb = thumbPos = 0;
+        if (position.X != ActualWidth - 1 || visible <= 0 || _rows.Count <= visible) return false;
+        i = position.Y - ChromeTop();
+        if (i < 0 || i >= visible) return false;
+        thumb = Math.Clamp((int)((long)visible * visible / _rows.Count), 1, visible);
+        var maxScroll = _rows.Count - visible;
+        thumbPos = maxScroll <= 0 ? 0 : (int)((long)(visible - thumb) * _scroll / maxScroll);
+        return true;
+    }
+
+    protected override void OnMousePress(Position position)
+    {
+        _pressedScrollbar = OnScrollbar(position, out var i, out var visible, out var thumb, out var thumbPos);
+        if (!_pressedScrollbar) return;
+
+        if (i >= thumbPos && i < thumbPos + thumb)
+        {
+            _scrollDragging = true;
+            _scrollGrabOffset = i - thumbPos;   // grab point within the thumb, so the drag doesn't jump
+            CaptureMouse();                     // keep the drag alive off the 1-col bar
+        }
+        else
+        {
+            SetScroll(_scroll + (i < thumbPos ? -visible : visible));   // click track above/below thumb -> page
+        }
+    }
+
+    protected override void OnMouseMove(Position position)
+    {
+        if (!_scrollDragging) return;
+        var visible = VisibleRows();
+        if (visible <= 0 || _rows.Count <= visible) return;
+        var thumb = Math.Clamp((int)((long)visible * visible / _rows.Count), 1, visible);
+        var available = visible - thumb;
+        if (available <= 0) return;
+        var desiredThumbPos = (position.Y - ChromeTop()) - _scrollGrabOffset;
+        SetScroll((int)Math.Round((double)desiredThumbPos / available * (_rows.Count - visible)));
+    }
+
+    protected override void OnMouseRelease(Position position)
+    {
+        if (!_scrollDragging) return;
+        _scrollDragging = false;
+        ReleaseMouse();
+    }
+
+    protected override void OnMouseWheel(Position position, int delta) => SetScroll(_scroll + delta);
 
     private void Select(int index)
     {
@@ -124,6 +181,7 @@ public class DataTable : Control
         index = Math.Clamp(index, 0, _rows.Count - 1);
         if (index == _selected) return;
         _selected = index;
+        ScrollToSelected();   // moving the selection keeps it in view (manual scroll doesn't)
         Invalidate();
         SelectionChanged?.Invoke(this, _selected);
     }
@@ -136,7 +194,7 @@ public class DataTable : Control
         if (width <= 0 || height <= 0 || _columns.Count == 0) return;
 
         var visible = VisibleRows();
-        EnsureSelectedVisible(visible);
+        ClampScroll(visible);
 
         // Lay out the visible window via a Spectre Table sized to leave the last column for the scrollbar.
         var shown = Math.Min(visible, Math.Max(0, _rows.Count - _scroll));
@@ -194,14 +252,36 @@ public class DataTable : Control
         return table;
     }
 
-    private void EnsureSelectedVisible(int visible)
+    // Keeps the scroll offset in range for the current row count / viewport (run every render). Does NOT force the
+    // selected row into view — manual scrolling (wheel / scrollbar drag) is free to move the view off the selection.
+    private void ClampScroll(int visible)
     {
         if (_rows.Count == 0) { _scroll = 0; return; }
+        _scroll = Math.Clamp(_scroll, 0, Math.Max(0, _rows.Count - visible));
+    }
+
+    // Auto-scrolls so the selected row is visible — run only when the selection moves (keys / click / programmatic),
+    // not every render, so a manual scroll persists.
+    private void ScrollToSelected()
+    {
+        if (_rows.Count == 0) { _scroll = 0; return; }
+        var visible = VisibleRows();
         _selected = Math.Clamp(_selected, 0, _rows.Count - 1);
         if (visible <= 0) { _scroll = _selected; return; }
         if (_selected < _scroll) _scroll = _selected;
         else if (_selected >= _scroll + visible) _scroll = _selected - visible + 1;
-        _scroll = Math.Clamp(_scroll, 0, Math.Max(0, _rows.Count - visible));
+        ClampScroll(visible);
+    }
+
+    // Sets the scroll offset directly (mouse wheel / scrollbar), clamped, without touching the selection.
+    private void SetScroll(int value)
+    {
+        if (_rows.Count == 0) return;
+        var visible = VisibleRows();
+        var clamped = Math.Clamp(value, 0, Math.Max(0, _rows.Count - visible));
+        if (clamped == _scroll) return;
+        _scroll = clamped;
+        Invalidate();
     }
 
     // Data rows that fit below the header chrome.
@@ -251,6 +331,9 @@ public class DataTable : Control
     private readonly List<string[]> _rows = new();
     private int _selected;
     private int _scroll;
+    private bool _scrollDragging;
+    private bool _pressedScrollbar;
+    private int _scrollGrabOffset;
     private int _chromeTotal = -1;   // -1 = not yet measured (re-measured when columns or width change)
     private int _chromeTop = -1;
     private int _measuredWidth = -1;

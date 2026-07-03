@@ -40,9 +40,9 @@ public class Program
         //DialogDemo(args);
         //ChatPromptDemo(args);
         //PostingDemo(args);
-        //DynamicTabsDemo(args);
+        DynamicTabsDemo(args);
         //ConsoleStudioDemo(args);
-        DockPanelTest(args);
+        //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
@@ -60,12 +60,15 @@ public class Program
             Console.WriteLine("{0}: {1}ms", c.Key.GetType().Name, c.Value);
         }
 
-        Console.WriteLine($"Average CPU Usage: {UI.ProcessMetrics.AverageCpuUsage:F2}%");
-        Console.WriteLine($"Average Memory Usage: {UI.ProcessMetrics.AverageMemoryUsage / 1024 / 1024:F2} MB");
-        Console.WriteLine($"Total Allocated: {UI.ProcessMetrics.TotalAllocatedBytes / 1024 / 1024:F2} MB");
-        Console.WriteLine($"GC Fragmentation: {UI.ProcessMetrics.GcFragmentation}");
-        Console.WriteLine($"Average ThreadPool Threads: {UI.ProcessMetrics.ThreadPoolThreads:F2}");
-        Console.WriteLine($"Total Lock Contentions: {UI.ProcessMetrics.TotalLockContentions}");
+        var m = UI.ProcessMetrics;
+        Console.WriteLine($"CPU Usage: {m.CpuUsagePercent:F1}% (per core)");
+        Console.WriteLine($"Working Set: {m.WorkingSetBytes / 1024.0 / 1024:F1} MB");
+        Console.WriteLine($"Managed Heap: {m.ManagedHeapBytes / 1024.0 / 1024:F1} MB");
+        Console.WriteLine($"Alloc/frame: {m.AllocatedBytesPerFrame / 1024:F1} KB (peak {m.PeakAllocatedBytesPerFrame / 1024.0:F1} KB)");
+        Console.WriteLine($"GC pause: {m.GcPausePercent:F2}% (gen0 {m.Gen0Collections}, gen1 {m.Gen1Collections}, gen2 {m.Gen2Collections})");
+        Console.WriteLine($"ThreadPool: {m.ThreadPoolThreadCount} threads, {m.ThreadPoolQueueLength} queued");
+        Console.WriteLine($"Exceptions/s: {m.ExceptionsPerSecond:F1}");
+        Console.WriteLine($"Lock Contentions: {m.LockContentions}");
     }
 
     // Step C demo: the VT input pipeline end-to-end. Click an editor to focus it (mouse), type, and paste
@@ -339,7 +342,12 @@ public class Program
         UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 
         var grid = new Jumbee.Console.Grid([16, 1, 1], [72], [[tabs], [help], [hint]]);
+        var hud = new PerfHud();
+       
+
         var run = UI.Start(grid, width: 76, height: 20, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        hud.RegisterToggle();            // Ctrl+G toggles it in the top-right corner
+                                         // or: hud.RegisterToggle(UI.HotKeys.Ctrl(ConsoleKey.F));
         UI.SetFocus(main);
         run.Wait();
     }

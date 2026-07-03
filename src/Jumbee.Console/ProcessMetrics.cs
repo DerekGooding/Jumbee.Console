@@ -1,248 +1,232 @@
 namespace Jumbee.Console;
 
 using System;
-using System.Diagnostics.Metrics;
-using System.Linq;
+using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 
 /// <summary>
-/// Collects and stores performance metrics (CPU and Memory usage) using System.Diagnostics.Metrics.
+/// Collects live process/runtime performance metrics for the perf HUD by reading the same runtime APIs the
+/// <c>System.Runtime</c> meter wraps (<see cref="GC"/>, <see cref="Environment"/>, <see cref="ThreadPool"/>,
+/// <see cref="Monitor"/>) directly — no <c>MeterListener</c>, so there is nothing to sample-schedule and no
+/// observable-instrument staleness.
 /// </summary>
-public class ProcessMetrics : IDisposable
+/// <remarks>
+/// <para><see cref="Sample"/> is called once per frame from the UI loop; it is allocation-free so it does not
+/// pollute the per-frame allocation metric. Cumulative counters (CPU time, allocated bytes, GC pause time,
+/// exceptions) are differenced over a rolling ~1&#160;s window to yield rates; gauges (working set, heap, thread
+/// pool) are read live on demand.</para>
+/// <para>All state is written by <see cref="Sample"/> and read by the getters on the UI thread; only the
+/// first-chance exception count is cross-thread (it uses <see cref="Interlocked"/>).</para>
+/// </remarks>
+public sealed class ProcessMetrics : IDisposable
 {
-    private readonly int _historySize;
-    private readonly double[] _cpuReadings;
-    private readonly long[] _memoryReadings;
-    private readonly long[] _heapAllocReadings;
-    private readonly long[] _fragmentationReadings;
-    private readonly long[] _threadPoolReadings;
-    private readonly long[] _lockContentionReadings;
-
-    private int _cpuIndex;
-    private int _memoryIndex;
-    private int _heapAllocIndex;
-    private int _fragmentationIndex;
-    private int _threadPoolIndex;
-    private int _lockContentionIndex;
-
-    private int _cpuCount;
-    private int _memoryCount;
-    private int _heapAllocCount;
-    private int _fragmentationCount;
-    private int _threadPoolCount;
-    private int _lockContentionCount;
-    
-    private MeterListener _listener = new MeterListener();
-    private bool _isDisposed;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ProcessMetrics"/> class.
-    /// </summary>
-    /// <param name="historySize">The number of most recent measurements to store for calculating averages.</param>
-    public ProcessMetrics(int historySize)
+    #region Constructors
+    /// <param name="capacity">Number of per-frame snapshots retained (must cover <paramref name="windowMs"/> at the
+    /// frame rate; the default covers ~6&#160;s at a 100&#160;ms tick).</param>
+    /// <param name="windowMs">Rolling window over which rates (CPU%, alloc/s, GC-pause%, exceptions/s) are measured.</param>
+    public ProcessMetrics(int capacity = 128, int windowMs = 1000)
     {
-        if (historySize <= 0) throw new ArgumentOutOfRangeException(nameof(historySize), "History size must be greater than zero.");
-
-        _historySize = historySize;
-        _cpuReadings = new double[historySize];
-        _memoryReadings = new long[historySize];
-        _heapAllocReadings = new long[historySize];
-        _fragmentationReadings = new long[historySize];
-        _threadPoolReadings = new long[historySize];
-        _lockContentionReadings = new long[historySize];
-       
+        _samples = new Snapshot[Math.Max(2, capacity)];
+        _frameAlloc = new long[Math.Max(2, capacity)];
+        _windowMs = windowMs;
+        // dotnet.process.cpu.time is platform-guarded in the runtime; Environment.CpuUsage throws
+        // PlatformNotSupportedException on Browser/WASI/tvOS/iOS(non-Catalyst). Mirror that guard.
+        _cpuSupported = !OperatingSystem.IsBrowser() && !OperatingSystem.IsWasi()
+            && !OperatingSystem.IsTvOS() && !(OperatingSystem.IsIOS() && !OperatingSystem.IsMacCatalyst());
     }
+    #endregion
 
-    /// <summary>
-    /// Starts recording performance metrics.
-    /// </summary>
-    internal void Start()
-    {
-        _listener.InstrumentPublished = (instrument, listener) =>
-        {
-            if (instrument.Meter.Name == "System.Runtime")
-            {
-                listener.EnableMeasurementEvents(instrument);
-            }
-        };
-       
-        _listener.SetMeasurementEventCallback<long>((instrument, measurement, tags, state) =>
-        {
-            if (instrument.Name == "dotnet.process.cpu.time")
-            {
-                lock (_cpuReadings)
-                {
-                    _cpuReadings[_cpuIndex] = measurement;
-                    _cpuIndex = (_cpuIndex + 1) % _historySize;
-                    if (_cpuCount < _historySize) _cpuCount++;
-                }
-            }
-            else if (instrument.Name == "dotnet.process.memory.working_set")
-            {
-                lock (_memoryReadings)
-                {
-                    _memoryReadings[_memoryIndex] = measurement;
-                    _memoryIndex = (_memoryIndex + 1) % _historySize;
-                    if (_memoryCount < _historySize) _memoryCount++;
-                }
-            }
-            else if (instrument.Name == "dotnet.gc.heap.total_allocated")
-            {
-                lock (_heapAllocReadings)
-                {
-                    _heapAllocReadings[_heapAllocIndex] = measurement;
-                    _heapAllocIndex = (_heapAllocIndex + 1) % _historySize;
-                    if (_heapAllocCount < _historySize) _heapAllocCount++;
-                }
-            }
-            else if (instrument.Name == "dotnet.gc.last_collection.heap.fragmentation.size")
-            {
-                lock (_fragmentationReadings)
-                {
-                    _fragmentationReadings[_fragmentationIndex] = measurement;
-                    _fragmentationIndex = (_fragmentationIndex + 1) % _historySize;
-                    if (_fragmentationCount < _historySize) _fragmentationCount++;
-                }
-            }
-            else if (instrument.Name == "dotnet.thread_pool.thread.count")
-            {
-                lock (_threadPoolReadings)
-                {
-                    _threadPoolReadings[_threadPoolIndex] = measurement;
-                    _threadPoolIndex = (_threadPoolIndex + 1) % _historySize;
-                    if (_threadPoolCount < _historySize) _threadPoolCount++;
-                }
-            }
-            else if (instrument.Name == "dotnet.monitor.lock_contentions")
-            {
-                lock (_lockContentionReadings)
-                {
-                    _lockContentionReadings[_lockContentionIndex] = measurement;
-                    _lockContentionIndex = (_lockContentionIndex + 1) % _historySize;
-                    if (_lockContentionCount < _historySize) _lockContentionCount++;
-                }
-            }
-        });
+    #region Properties
+    /// <summary><see langword="true"/> if per-process CPU time is available on this OS (see the constructor guard).</summary>
+    public bool CpuSupported => _cpuSupported;
 
-        _listener.Start();
-        _listener.RecordObservableInstruments();
-    }
-
-    /// <summary>
-    /// Stops recording performance metrics.
-    /// </summary>
-    internal void Stop()
-    {
-        _listener?.Dispose();
-    }
-
-    /// <summary>
-    /// Gets the average CPU usage percentage from the recorded history.
-    /// </summary>
-    public double AverageCpuUsage
+    /// <summary>Process CPU usage over the rolling window as a percentage of a single core (user + kernel). A busy
+    /// UI thread reads ~100%; multi-threaded work can exceed 100%. 0 when CPU time is unavailable.</summary>
+    public double CpuUsagePercent
     {
         get
         {
-            lock (_cpuReadings)
-            {
-                return _cpuCount > 0 ? _cpuReadings.Take(_cpuCount).Average() : 0;
-            }
+            if (!_cpuSupported || !TryWindow(out var o, out var n, out var ms)) return 0;
+            return Math.Max(0, (n.CpuMs - o.CpuMs) / ms * 100.0);
         }
     }
 
-    /// <summary>
-    /// Gets the average Working Set memory usage in bytes from the recorded history.
-    /// </summary>
-    public double AverageMemoryUsage
+    /// <summary>Physical memory mapped to the process (<see cref="Environment.WorkingSet"/>), in bytes.</summary>
+    public long WorkingSetBytes => Environment.WorkingSet;
+
+    /// <summary>Current managed heap size (<see cref="GC.GetTotalMemory(bool)"/>), in bytes.</summary>
+    public long ManagedHeapBytes => GC.GetTotalMemory(forceFullCollection: false);
+
+    /// <summary>Mean bytes allocated on the managed heap per frame, over the retained snapshots. The headline
+    /// retained-mode number: an idle UI should allocate ~nothing per frame.</summary>
+    public double AllocatedBytesPerFrame
     {
         get
         {
-            lock (_memoryReadings)
-            {
-                return _memoryCount > 0 ? _memoryReadings.Take(_memoryCount).Average() : 0;
-            }
+            if (_faCount == 0) return 0;
+            long total = 0;
+            for (int i = 0; i < _faCount; i++) total += _frameAlloc[i];
+            return (double)total / _faCount;
         }
     }
 
-    /// <summary>
-    /// Gets the total bytes allocated on the managed heap (latest recorded value).
-    /// </summary>
-    public long TotalAllocatedBytes
+    /// <summary>Peak bytes allocated in a single frame over the retained snapshots.</summary>
+    public long PeakAllocatedBytesPerFrame
     {
         get
         {
-            lock (_heapAllocReadings)
-            {
-                // Returns the last recorded value as this is a cumulative counter
-                if (_heapAllocCount == 0) return 0;
-                int lastIndex = (_heapAllocIndex - 1 + _historySize) % _historySize;
-                return _heapAllocReadings[lastIndex];
-            }
+            long peak = 0;
+            for (int i = 0; i < _faCount; i++) if (_frameAlloc[i] > peak) peak = _frameAlloc[i];
+            return peak;
         }
     }
 
-    /// <summary>
-    /// Gets the average GC heap fragmentation in bytes.
-    /// </summary>
-    public double GcFragmentation
+    /// <summary>Managed heap allocation rate over the rolling window, in bytes per second.</summary>
+    public double AllocatedBytesPerSecond
     {
-        get
+        get => TryWindow(out var o, out var n, out var ms) ? Math.Max(0, (n.Allocated - o.Allocated) / (ms / 1000.0)) : 0;
+    }
+
+    /// <summary>Fraction of wall time (0..100) the runtime spent paused for GC over the rolling window — the
+    /// clearest signal that GC is hitching the UI.</summary>
+    public double GcPausePercent
+    {
+        get => TryWindow(out var o, out var n, out var ms) ? Math.Clamp((n.GcPauseMs - o.GcPauseMs) / ms * 100.0, 0, 100) : 0;
+    }
+
+    /// <summary>First-chance managed exceptions per second over the rolling window (thrown, caught or not). A
+    /// steady non-zero value flags swallowed-exception churn.</summary>
+    public double ExceptionsPerSecond
+    {
+        get => TryWindow(out var o, out var n, out var ms) ? Math.Max(0, (n.Exceptions - o.Exceptions) / (ms / 1000.0)) : 0;
+    }
+
+    /// <summary>Total monitor lock contentions since process start (<see cref="Monitor.LockContentionCount"/>) — the
+    /// no-lock-design dagger; stays at 0 for the single-threaded UI model.</summary>
+    public long LockContentions => Monitor.LockContentionCount;
+
+    /// <summary>Garbage collections since process start for gen 0 / 1 / 2.</summary>
+    public int Gen0Collections => GC.CollectionCount(0);
+    public int Gen1Collections => GC.CollectionCount(1);
+    public int Gen2Collections => GC.CollectionCount(2);
+
+    /// <summary>Thread pool worker threads that currently exist.</summary>
+    public int ThreadPoolThreadCount => ThreadPool.ThreadCount;
+
+    /// <summary>Work items currently queued to the thread pool.</summary>
+    public long ThreadPoolQueueLength => ThreadPool.PendingWorkItemCount;
+    #endregion
+
+    #region Methods
+    /// <summary>Begins collection: subscribes to first-chance exceptions and takes a baseline sample.</summary>
+    public void Start()
+    {
+        if (_started) return;
+        _started = true;
+        AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
+        Sample();
+    }
+
+    /// <summary>Stops collection and unsubscribes.</summary>
+    public void Stop()
+    {
+        if (!_started) return;
+        _started = false;
+        AppDomain.CurrentDomain.FirstChanceException -= OnFirstChanceException;
+    }
+
+    /// <summary>Records one per-frame snapshot of the cumulative counters. Allocation-free (so it does not distort
+    /// <see cref="AllocatedBytesPerFrame"/>); call once per frame on the UI thread.</summary>
+    public void Sample()
+    {
+        long timestamp = Stopwatch.GetTimestamp();
+        long allocated = GC.GetTotalAllocatedBytes();                        // approximate, cheap, no allocation
+        double cpuMs = _cpuSupported ? Environment.CpuUsage.TotalTime.TotalMilliseconds : 0;
+        double gcPauseMs = GC.GetTotalPauseDuration().TotalMilliseconds;
+        long exceptions = Interlocked.Read(ref _exceptions);
+
+        if (_count > 0)
         {
-            lock (_fragmentationReadings)
-            {
-                if (_fragmentationCount == 0) return 0;
-                int lastIndex = (_fragmentationIndex - 1 + _historySize) % _historySize;
-                return _fragmentationReadings[lastIndex];
-            }
+            long delta = allocated - Last().Allocated;
+            PushFrameAlloc(delta < 0 ? 0 : delta);
         }
-    }
-
-    /// <summary>
-    /// Gets the average number of ThreadPool threads.
-    /// </summary>
-    public double ThreadPoolThreads
-    {
-        get
-        {
-            lock (_threadPoolReadings)
-            {
-                if (_threadPoolCount == 0) return 0;
-                int lastIndex = (_threadPoolIndex - 1 + _historySize) % _historySize;
-                return _threadPoolReadings[lastIndex];
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the total number of monitor lock contentions (latest recorded value).
-    /// </summary>
-    public long TotalLockContentions
-    {
-        get
-        {
-            lock (_lockContentionReadings)
-            {
-                // Returns the last recorded value as this is a cumulative counter
-                if (_lockContentionCount == 0) return 0;
-                int lastIndex = (_lockContentionIndex - 1 + _historySize) % _historySize;
-                return _lockContentionReadings[lastIndex];
-            }
-        }
-    }
-
-    /// <summary>
-    /// Manually triggers a measurement recording.
-    /// </summary>
-    public void Capture()
-    {
-        _listener?.RecordObservableInstruments();
+        Push(new Snapshot(timestamp, cpuMs, allocated, gcPauseMs, exceptions));
     }
 
     public void Dispose()
     {
-        if (_isDisposed) return;
         Stop();
-        _isDisposed = true;
         GC.SuppressFinalize(this);
     }
+
+    private void OnFirstChanceException(object? sender, FirstChanceExceptionEventArgs e) => Interlocked.Increment(ref _exceptions);
+
+    // The newest snapshot and the oldest snapshot still within the rolling window, plus the wall time between them.
+    // False until there are two snapshots spanning a non-zero interval.
+    private bool TryWindow(out Snapshot oldest, out Snapshot newest, out double elapsedMs)
+    {
+        oldest = default;
+        newest = default;
+        elapsedMs = 0;
+        if (_count < 2) return false;
+
+        newest = Last();
+        oldest = newest;
+        double windowTicks = _windowMs * (Stopwatch.Frequency / 1000.0);
+        for (int i = _count - 2; i >= 0; i--)
+        {
+            var s = At(i);
+            if (newest.Timestamp - s.Timestamp <= windowTicks) oldest = s;
+            else break;
+        }
+        elapsedMs = (newest.Timestamp - oldest.Timestamp) * 1000.0 / Stopwatch.Frequency;
+        return elapsedMs > 0;
+    }
+
+    private void Push(in Snapshot s)
+    {
+        int idx = (_start + _count) % _samples.Length;
+        _samples[idx] = s;
+        if (_count < _samples.Length) _count++;
+        else _start = (_start + 1) % _samples.Length;
+    }
+
+    private Snapshot At(int i) => _samples[(_start + i) % _samples.Length];
+    private Snapshot Last() => At(_count - 1);
+
+    private void PushFrameAlloc(long bytes)
+    {
+        int idx = (_faStart + _faCount) % _frameAlloc.Length;
+        _frameAlloc[idx] = bytes;
+        if (_faCount < _frameAlloc.Length) _faCount++;
+        else _faStart = (_faStart + 1) % _frameAlloc.Length;
+    }
+    #endregion
+
+    #region Fields
+    private readonly Snapshot[] _samples;
+    private int _start;
+    private int _count;
+
+    private readonly long[] _frameAlloc;
+    private int _faStart;
+    private int _faCount;
+
+    private readonly int _windowMs;
+    private readonly bool _cpuSupported;
+    private long _exceptions;
+    private bool _started;
+    #endregion
+
+    #region Types
+    private readonly struct Snapshot(long timestamp, double cpuMs, long allocated, double gcPauseMs, long exceptions)
+    {
+        public readonly long Timestamp = timestamp;     // Stopwatch.GetTimestamp ticks (high resolution)
+        public readonly double CpuMs = cpuMs;
+        public readonly long Allocated = allocated;
+        public readonly double GcPauseMs = gcPauseMs;
+        public readonly long Exceptions = exceptions;
+    }
+    #endregion
 }
