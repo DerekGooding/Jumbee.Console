@@ -18,7 +18,7 @@ using SpectreBoxBorderPart = Spectre.Console.Rendering.BoxBorderPart;
 /// <summary>
 /// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
 /// </summary>
-public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
+public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener, IMouseListener, IMouseWheelListener
 {
     #region Constructors
     public ControlFrame(Control control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title=null, Color? borderFgColor = null, Color? borderBgColor = null, TitleStyle? titleStyle = null)
@@ -85,9 +85,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                     var viewportHeight = controlBottom - controlTop + 1;
                     var controlHeight = ControlContext.Size.Height;
 
-                    // Only draw the scrollbar when the content is taller than the viewport.
+                    // Only draw the scrollbar when the content is taller than the viewport. Tag the cell with a mouse
+                    // listener so clicks/drags on the bar reach this frame (thumb drag, arrow step, track page).
                     if (controlHeight > viewportHeight)
-                        return ScrollBarCell(position.Y - controlTop, viewportHeight, controlHeight);
+                        return new Cell(ScrollBarCell(position.Y - controlTop, viewportHeight, controlHeight)).WithMouseListener(this, position);
                     // Otherwise the reserved column is padding; fall through so the control (or empty) shows.
                 }
 
@@ -835,7 +836,86 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             ControlContext = new DrawingContext(this, Control);
         else
             ControlContext = DrawingContext.Dummy;
-    }    
+    }
+
+    // --- Scrollbar mouse interaction: drag the thumb (captures so the drag survives leaving the 1-col bar), click
+    // the classic end arrows to step, click the track above/below the thumb to page. ---
+
+    private bool TryGetScrollMetrics(out int controlTop, out int viewportHeight, out int controlHeight)
+    {
+        controlTop = borderOffset.Top;
+        var controlBottom = Size.Height - 1 - borderOffset.Bottom;
+        viewportHeight = controlBottom - controlTop + 1;
+        controlHeight = ControlContext?.Size.Height ?? 0;
+        return Control != null && viewportHeight > 0 && controlHeight > viewportHeight;
+    }
+
+    // Thumb/track geometry in viewport-row units, matching the render math in ScrollBarCell / SmoothScrollBarCell.
+    private (int TrackTop, int TrackLen, double ThumbTop, double ThumbLen) ScrollbarGeometry(int viewportHeight, int controlHeight)
+    {
+        var maxScroll = Math.Max(0, controlHeight - viewportHeight);
+        var scroll = Math.Clamp(_top, 0, maxScroll);
+        if (_scrollBarSmooth)
+        {
+            var thumbLen = Math.Clamp((double)viewportHeight * viewportHeight / controlHeight, 1.0, viewportHeight);
+            var thumbTop = maxScroll > 0 ? scroll / (double)maxScroll * (viewportHeight - thumbLen) : 0.0;
+            return (0, viewportHeight, thumbTop, thumbLen);
+        }
+
+        var trackLen = Math.Max(0, viewportHeight - 2);   // classic: rows between the two end arrows
+        var thumbSize = trackLen > 0 ? Math.Max(1, (int)((long)trackLen * viewportHeight / controlHeight)) : 0;
+        var available = trackLen - thumbSize;
+        var thumbStart = 1 + (maxScroll > 0 ? (int)((long)scroll * available / maxScroll) : 0);
+        return (1, trackLen, thumbStart, thumbSize);
+    }
+
+    void IMouseListener.OnMouseEnter() { }
+
+    void IMouseListener.OnMouseLeave() { }
+
+    void IMouseListener.OnMouseMove(Position position)
+    {
+        if (!_scrollDragging) return;
+        if (!TryGetScrollMetrics(out var controlTop, out var vh, out var ch)) return;
+        var (trackTop, trackLen, _, thumbLen) = ScrollbarGeometry(vh, ch);
+        var available = trackLen - thumbLen;
+        if (available <= 0) return;
+        var desiredThumbTop = (position.Y - controlTop) - _scrollGrabOffset;
+        Top = (int)Math.Round((desiredThumbTop - trackTop) / available * (ch - vh));
+    }
+
+    void IMouseListener.OnMouseDown(Position position)
+    {
+        if (!TryGetScrollMetrics(out var controlTop, out var vh, out var ch)) return;
+        var relY = position.Y - controlTop;
+        if (relY < 0 || relY >= vh) return;
+
+        // Classic end arrows: single-row step.
+        if (!_scrollBarSmooth && relY == 0) { Top -= 1; return; }
+        if (!_scrollBarSmooth && relY == vh - 1) { Top += 1; return; }
+
+        var (_, _, thumbTop, thumbLen) = ScrollbarGeometry(vh, ch);
+        var thumbFirst = (int)Math.Floor(thumbTop);
+        var thumbLast = (int)Math.Ceiling(thumbTop + thumbLen) - 1;
+
+        if (relY >= thumbFirst && relY <= thumbLast)
+        {
+            _scrollDragging = true;
+            _scrollGrabOffset = relY - thumbTop;   // grab point within the thumb, so the drag doesn't jump
+            ConsoleGUI.ConsoleManager.CaptureMouse(this);
+        }
+        else if (relY < thumbFirst) Top -= Math.Max(1, vh - 1);   // page up
+        else Top += Math.Max(1, vh - 1);                          // page down
+    }
+
+    void IMouseListener.OnMouseUp(Position position)
+    {
+        if (!_scrollDragging) return;
+        _scrollDragging = false;
+        ConsoleGUI.ConsoleManager.ReleaseMouseCapture();
+    }
+
+    void IMouseWheelListener.OnMouseWheel(Position position, int delta) => Scroll(delta);
     #endregion
 
     #region Events
@@ -846,6 +926,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #endregion
 
     #region Fields
+    private bool _scrollDragging;
+    private double _scrollGrabOffset;
     public static Offset DefaultMargin { get; } = new Offset(0, 0, 0, 0);   
     private SpectreBoxBorder _boxBorder;
     private BorderStyle _borderStyle;

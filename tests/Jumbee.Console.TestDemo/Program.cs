@@ -41,8 +41,8 @@ public class Program
         //ChatPromptDemo(args);
         //PostingDemo(args);
         //DynamicTabsDemo(args);
-        ConsoleStudioDemo(args);
-        //DockPanelTest(args);
+        //ConsoleStudioDemo(args);
+        DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
