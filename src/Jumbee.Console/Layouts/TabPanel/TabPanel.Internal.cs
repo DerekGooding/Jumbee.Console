@@ -1,6 +1,7 @@
 namespace Jumbee.Console;
 
 using System;
+using System.Collections.Generic;
 
 using ConsoleGUI;
 using ConsoleGUI.Controls;
@@ -47,13 +48,24 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
     #endregion
 
     #region Methods
-    public void AddHeader(IControl header)
+    // Replace the whole bar with the given headers, in order — the single path for add/remove/reorder/hide, since the
+    // stack panels only append/remove and can't insert at a position.
+    public void SetHeaders(IEnumerable<IControl> headers)
     {
-        if (_bar is ConsoleGUI.Controls.HorizontalStackPanel h) h.Add(header);
-        else ((ConsoleGUI.Controls.VerticalStackPanel)_bar).Add(header);
+        if (_bar is ConsoleGUI.Controls.HorizontalStackPanel h) h.Children = headers;
+        else ((ConsoleGUI.Controls.VerticalStackPanel)_bar).Children = headers;
     }
 
-    public void SetFill(IControl content) => FillingControl = content;
+    // Resize a vertical bar's cross-axis to the widest visible label (a horizontal bar stays one row tall).
+    public void SetBarThickness(int thickness)
+    {
+        if (IsHorizontalTabBar) return;
+        _boundary.MinWidth = thickness;
+        _boundary.MaxWidth = thickness;
+    }
+
+    // Null clears the fill (the empty state when no tab is selectable); DrawingContext tolerates a null child.
+    public void SetFill(IControl? content) => FillingControl = content!;
     #endregion
 
     #region Fields

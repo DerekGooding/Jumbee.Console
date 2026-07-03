@@ -23,6 +23,7 @@ public class Program
         //TerminalDemo(args);
         //NavigationDemo(args);
         //TabsDemo(args);
+        //DynamicTabsDemo(args);
         //CodeEditorDemo(args);
         //LinkDemo(args);
         //WidgetGalleryDemo(args);
@@ -39,7 +40,8 @@ public class Program
         //DialogDemo(args);
         //ChatPromptDemo(args);
         //PostingDemo(args);
-        DockPanelTest(args);
+        DynamicTabsDemo(args);
+        //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
@@ -287,6 +289,57 @@ public class Program
         var grid = new Jumbee.Console.Grid([15, 1], [54], [[tabs], [hint]]);
         var run = UI.Start(grid, width: 58, height: 18, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
         UI.SetFocus(files);   // focus the first tab's content so its keys work; Alt+arrows still switch tabs
+        run.Wait();
+    }
+
+    // Dynamic TabPanel demo — a mini "code editor" whose tabs are opened/closed/hidden/disabled/renamed at runtime
+    // (the TabPanel foundation for a future MultiCodeEditor). Each tab's content is a TextEditor. Alt+Left/Right (or
+    // clicking a tab) switches; the hotkeys below mutate the tab set and the status line reflects it:
+    //   Ctrl+T new file (adds a tab and switches to it)   Ctrl+W close active   Ctrl+D disable active
+    //   Ctrl+B hide active   Ctrl+E reset (show + enable all)   Ctrl+R toggle a "●" dirty marker   Esc quits.
+    // Disabling/hiding the active tab hops the selection to the nearest usable tab; closing the last tab empties it.
+    static void DynamicTabsDemo(string[] args)
+    {
+        static TextEditor Editor(string text) => new() { Text = text };
+
+        var main = Editor("// main.cs\nstatic void Main()\n{\n    System.Console.WriteLine(\"hi\");\n}\n");
+        var utils = Editor("// utils.cs\nstatic int Add(int a, int b) => a + b;\n");
+        var tabs = new TabPanel(TabBarDock.Top, ("main.cs", main), ("utils.cs", utils));
+
+        var help = new TextLabel(TextLabelOrientation.Horizontal,
+            "Ctrl+T new  Ctrl+W close  Ctrl+D disable  Ctrl+B hide  Ctrl+E reset  Ctrl+R dirty  Alt+←/→ switch  Esc quit", Color.White);
+        var hint = new TextLabel(TextLabelOrientation.Horizontal, "".PadRight(72), Color.White);
+        var counter = 3;
+
+        static string Tag(TabItem t) => t.IsHidden ? $"({t.Name})" : t.IsDisabled ? $"[{t.Name}]" : t.Name;
+        void Status() => hint.Text = $"active: {tabs.ActiveTabName ?? "—"}   |   {string.Join("  ", tabs.Tabs.Select(Tag))}".PadRight(72);
+        Status();
+        tabs.SelectionChanged += _ => Status();
+
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.T), () =>
+        {
+            var name = $"file{counter++}.cs";
+            tabs.SelectTab(tabs.AddTab(name, Editor($"// {name}\n")));   // open switches to the new file
+            Status();
+        });
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.W), () => { if (tabs.ActiveTab is { } t) { tabs.RemoveTab(t); Status(); } });
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.D), () => { if (tabs.ActiveTab is { } t) { t.IsDisabled = true; Status(); } });
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.B), () => { if (tabs.ActiveTab is { } t) { t.IsHidden = true; Status(); } });
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.E), () =>
+        {
+            foreach (var t in tabs.Tabs) { t.IsHidden = false; t.IsDisabled = false; }
+            Status();
+        });
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.R), () =>
+        {
+            if (tabs.ActiveTab is { } t) t.Name = t.Name.StartsWith("● ") ? t.Name[2..] : "● " + t.Name;
+            Status();
+        });
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var grid = new Jumbee.Console.Grid([16, 1, 1], [72], [[tabs], [help], [hint]]);
+        var run = UI.Start(grid, width: 76, height: 20, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        UI.SetFocus(main);
         run.Wait();
     }
 

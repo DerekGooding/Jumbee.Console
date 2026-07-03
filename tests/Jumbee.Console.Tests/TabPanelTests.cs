@@ -1,6 +1,7 @@
 namespace Jumbee.Console.Tests;
 
 using System;
+using System.Collections.Generic;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -238,6 +239,202 @@ public class TabPanelTests
         Assert.Contains("One", text);
         Assert.Contains("Two", text);
         Assert.Contains("AAAA", text);
+    }
+    #endregion
+
+    #region Dynamic tabs
+    private static TabPanel ThreeTabs(out TextLabel a, out TextLabel b, out TextLabel c)
+    {
+        a = new TextLabel(TextLabelOrientation.Horizontal, "AAAA");
+        b = new TextLabel(TextLabelOrientation.Horizontal, "BBBB");
+        c = new TextLabel(TextLabelOrientation.Horizontal, "CCCC");
+        return new TabPanel(TabBarDock.Top, ("One", a), ("Two", b), ("Three", c));
+    }
+
+    private static TextLabel Label(string s) => new(TextLabelOrientation.Horizontal, s);
+
+    [Fact]
+    public void AddTab_IntoEmptyPanel_AutoSelectsFirstTab()
+    {
+        var panel = new TabPanel(TabBarDock.Top);
+        Assert.Equal(-1, panel.SelectedIndex);
+
+        var first = panel.AddTab("First", Label("F1"));
+
+        Assert.Equal(0, panel.SelectedIndex);
+        Assert.Same(first, panel.ActiveTab);
+        Assert.Contains("F1", ConsoleSnapshot.ToText(panel, 20, 4));
+    }
+
+    [Fact]
+    public void AddTab_WhenAlreadySelected_KeepsSelection_AndAppends()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.AddTab("Three", Label("CCCC"));
+
+        Assert.Equal(3, panel.TabCount);
+        Assert.Equal(0, panel.SelectedIndex);          // selection unchanged
+        Assert.Contains("Three", ConsoleSnapshot.ToText(panel, 30, 6));
+    }
+
+    [Fact]
+    public void AddTab_AtIndex_InsertsThere()
+    {
+        var panel = TwoTabs(out _, out _);
+        var mid = panel.AddTab("Mid", Label("MMMM"), index: 1);
+
+        Assert.Same(mid, panel.Tabs[1]);
+        Assert.Equal("Mid", panel.Headers[1].Text);
+        Assert.Equal(1, panel.Headers[1].Index);       // headers reindexed after insert
+        Assert.Equal(2, panel.Headers[2].Index);
+    }
+
+    [Fact]
+    public void RemoveTab_Selected_MovesSelectionToNeighbour()
+    {
+        var panel = ThreeTabs(out _, out var b, out _);
+        panel.SelectedIndex = 1;                        // select "Two"
+
+        panel.RemoveTab(panel.Tabs[1]);
+
+        Assert.Equal(2, panel.TabCount);
+        Assert.Equal(1, panel.SelectedIndex);           // "Three" took slot 1 and is now selected
+        Assert.Equal("Three", panel.ActiveTabName);
+        var text = ConsoleSnapshot.ToText(panel, 30, 6);
+        Assert.Contains("CCCC", text);
+        Assert.DoesNotContain("BBBB", text);
+    }
+
+    [Fact]
+    public void RemoveTab_BeforeSelected_KeepsTheSameTabSelected()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        panel.SelectedIndex = 2;                         // select "Three"
+        var three = panel.Tabs[2];
+
+        panel.RemoveTab(0);                              // remove "One" — indices shift
+
+        Assert.Same(three, panel.ActiveTab);            // same tab, by reference
+        Assert.Equal(1, panel.SelectedIndex);           // now at index 1
+        Assert.Equal("Three", panel.ActiveTabName);
+    }
+
+    [Fact]
+    public void RemoveTab_LastRemaining_ClearsSelectionAndFill()
+    {
+        var panel = new TabPanel(TabBarDock.Top, ("Only", Label("ZZZZ")));
+        var raised = new List<int>();
+        panel.SelectionChanged += raised.Add;
+
+        panel.RemoveTab(0);
+
+        Assert.Equal(0, panel.TabCount);
+        Assert.Equal(-1, panel.SelectedIndex);
+        Assert.Null(panel.ActiveContent);
+        Assert.Contains(-1, raised);                    // cleared -> -1
+        Assert.DoesNotContain("ZZZZ", ConsoleSnapshot.ToText(panel, 20, 4));
+    }
+
+    [Fact]
+    public void HiddenTab_LeavesBar_AndArrowsSkipIt()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        ConsoleSnapshot.Render(panel, 30, 6);
+
+        panel.Tabs[1].IsHidden = true;                  // hide "Two"
+
+        Assert.DoesNotContain("Two", ConsoleSnapshot.ToText(panel, 30, 6));  // gone from the bar
+        Assert.Equal(3, panel.TabCount);                // still in the model
+
+        panel.Headers[0].Focus();
+        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.RightArrow, false, false, false));
+        Assert.Equal(2, panel.SelectedIndex);           // skipped hidden "Two" -> "Three"
+    }
+
+    [Fact]
+    public void HidingSelectedTab_SelectsNeighbour()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        panel.SelectedIndex = 0;
+        Assert.True(panel.Tabs[0].IsSelected);          // handle reflects selection
+
+        panel.Tabs[0].IsHidden = true;
+
+        Assert.Equal(1, panel.SelectedIndex);           // moved off the hidden tab
+        Assert.Contains("BBBB", ConsoleSnapshot.ToText(panel, 30, 6));
+    }
+
+    [Fact]
+    public void UnhidingIntoEmptyPanel_SelectsTheTab()
+    {
+        var panel = new TabPanel(TabBarDock.Top, ("One", Label("AAAA")));
+        panel.Tabs[0].IsHidden = true;
+        Assert.Equal(-1, panel.SelectedIndex);          // nothing selectable
+
+        panel.Tabs[0].IsHidden = false;
+
+        Assert.Equal(0, panel.SelectedIndex);
+    }
+
+    [Fact]
+    public void DisabledTab_CannotBeSelectedByClick()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        ConsoleSnapshot.Render(panel, 30, 6);
+        panel.Tabs[1].IsDisabled = true;
+
+        Click(panel.Headers[1]);
+
+        Assert.Equal(0, panel.SelectedIndex);           // click on a disabled tab is ignored
+        Assert.False(panel.Headers[1].IsActive);
+    }
+
+    [Fact]
+    public void DisabledTab_IsSkippedByArrowNavigation()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        ConsoleSnapshot.Render(panel, 30, 6);
+        panel.Tabs[1].IsDisabled = true;
+        panel.Headers[0].Focus();
+
+        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.RightArrow, false, false, false));
+
+        Assert.Equal(2, panel.SelectedIndex);           // skipped disabled "Two" -> "Three"
+    }
+
+    [Fact]
+    public void DisablingSelectedTab_SelectsNeighbour()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        panel.SelectedIndex = 1;
+
+        panel.Tabs[1].IsDisabled = true;
+
+        Assert.Equal(2, panel.SelectedIndex);           // moved off the disabled tab
+        Assert.False(panel.Headers[1].IsActive);
+    }
+
+    [Fact]
+    public void ProgrammaticSelect_OfDisabledOrHiddenTab_IsIgnored()
+    {
+        var panel = ThreeTabs(out _, out _, out _);
+        panel.Tabs[2].IsDisabled = true;
+
+        panel.SelectedIndex = 2;                         // can't select a disabled tab
+
+        Assert.Equal(0, panel.SelectedIndex);
+    }
+
+    [Fact]
+    public void Relabel_UpdatesHeaderAndBar()
+    {
+        var panel = TwoTabs(out _, out _);
+
+        panel.Tabs[0].Name = "Renamed";
+
+        Assert.Equal("Renamed", panel.Headers[0].Text);
+        Assert.Equal("Renamed", panel.ActiveTabName);
+        Assert.Contains("Renamed", ConsoleSnapshot.ToText(panel, 30, 6));
     }
     #endregion
 }

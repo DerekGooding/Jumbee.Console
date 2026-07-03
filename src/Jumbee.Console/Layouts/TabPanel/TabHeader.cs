@@ -34,10 +34,19 @@ public class TabHeader : RenderableControl
     #endregion
 
     #region Properties
-    public override bool HandlesInput => true;
+    public override bool HandlesInput => _isEnabled;
 
-    /// <summary>This tab's position in the bar.</summary>
+    /// <summary>This tab's position among all tabs. Kept in sync by the owning <see cref="TabPanel"/>.</summary>
     public int Index => _index;
+
+    internal void SetIndex(int index) => _index = index;
+
+    /// <summary><see langword="false"/> for a disabled tab: drawn dimmed, not focusable, ignores clicks/keys.</summary>
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set { Focusable = value; SetAtomicProperty(ref _isEnabled, value); }
+    }
 
     /// <summary>The tab label.</summary>
     public string Text
@@ -80,7 +89,14 @@ public class TabHeader : RenderableControl
         // In Caret mode every header reserves a caret-width gutter (the active one shows the caret, the others blank)
         // so the labels stay aligned and the caret never truncates the text.
         var gutter = _selectionStyle == SelectionStyle.Caret ? new string(' ', _selectionCaret.GetCellWidth()) : "";
-        if (_isActive)
+        if (!_isEnabled)
+        {
+            // Disabled: dim the inactive style; a disabled tab is never the active one.
+            var b = _inactiveStyle.SpectreConsoleStyle;
+            style = new Spectre.Console.Style(b.Foreground, b.Background, b.Decoration | Spectre.Console.Decoration.Dim);
+            label = $" {gutter}{_text} ";
+        }
+        else if (_isActive)
         {
             // The active tab is the "selected item": render it per SelectionStyle (highlight / underline / caret).
             style = _selectionStyle.TextStyle(_activeStyle.ForegroundColor, _activeStyle.BackgroundColor);
@@ -100,10 +116,15 @@ public class TabHeader : RenderableControl
         yield return new Segment(label, style);
     }
 
-    protected override void OnClick(Position position) => Activated?.Invoke(this, EventArgs.Empty);
+    protected override void OnClick(Position position)
+    {
+        if (_isEnabled) Activated?.Invoke(this, EventArgs.Empty);
+    }
 
     protected override void OnInput(InputEvent inputEvent)
     {
+        if (!_isEnabled) return;
+
         // Enter/Space selects this tab; switching between tabs (Alt+arrows) is handled by the owning TabPanel.
         if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
         {
@@ -117,9 +138,10 @@ public class TabHeader : RenderableControl
     #endregion
 
     #region Fields
-    private readonly int _index;
+    private int _index;
     private string _text;
     private bool _isActive;
+    private bool _isEnabled = true;
     private Style _activeStyle;
     private Style _inactiveStyle;
     private Style _hoverStyle;
