@@ -1,19 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="..\..\ext\C-sharp-console-gui-framework\ConsoleGUI\ConsoleGUI.csproj" />
-    <ProjectReference Include="..\..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj" />
-  </ItemGroup>
-
+﻿<Project Sdk="Microsoft.NET.Sdk">  
   <PropertyGroup>
-    <!-- Assembly name carries the "Styles" suffix, but the root namespace stays Jumbee.Console so the
-         Color/Style types keep their existing fully-qualified names and consumers' usings don't change. -->
-    <RootNamespace>Jumbee.Console</RootNamespace>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
     <IsTrimmable>True</IsTrimmable>
     <IsAotCompatible>True</IsAotCompatible>
+    <!-- Assembly name carries the "Styles" suffix, but the root namespace stays Jumbee.Console so the
+         Color/Style types keep their existing fully-qualified names and consumers' usings don't change. -->
+    <RootNamespace>Jumbee.Console</RootNamespace>
+
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ext\C-sharp-console-gui-framework\ConsoleGUI\ConsoleGUI.csproj" />
+    <ProjectReference Include="..\..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj" />
+  </ItemGroup>
 
 </Project>
