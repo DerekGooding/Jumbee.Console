@@ -100,6 +100,14 @@ public class MultiTabCodeEditor : CompositeControl
     /// <summary>Closes the active document (if any).</summary>
     public void CloseActiveDocument() { if (ActiveEditor is { } e) CloseDocument(e); }
 
+    /// <summary>Closes every document immediately, without the <see cref="DocumentClosing"/> veto or confirm prompt
+    /// (each still raises <see cref="DocumentClosed"/>). For resetting the group — e.g. reloading a different set
+    /// of files.</summary>
+    public void Clear() => UI.Invoke(() =>
+    {
+        foreach (var tab in _panel.Tabs.ToList()) _panel.RemoveTab(tab);
+    });
+
     /// <summary>Whether a document has unsaved changes (its text differs from when it was opened or last marked
     /// saved via <see cref="SetDirty"/>).</summary>
     public bool IsDirty(CodeEditor editor) => _dirty.Contains(editor);

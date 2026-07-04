@@ -119,6 +119,24 @@ public class MultiTabCodeEditorTests
     }
 
     [Fact]
+    public void Clear_ClosesAllDocuments_AndRaisesClosedForEach()
+    {
+        var group = new MultiTabCodeEditor();
+        var a = group.OpenDocument("a", "1");
+        var b = group.OpenDocument("b", "2");
+        var closed = new System.Collections.Generic.List<CodeEditor>();
+        group.DocumentClosed += closed.Add;
+
+        group.Clear();
+
+        Assert.Equal(0, group.DocumentCount);
+        Assert.Null(group.ActiveEditor);
+        Assert.Equal(2, closed.Count);
+        Assert.Contains(a, closed);
+        Assert.Contains(b, closed);
+    }
+
+    [Fact]
     public void OpenDocument_NonClosable_PinsTheTab()
     {
         var group = new MultiTabCodeEditor();
