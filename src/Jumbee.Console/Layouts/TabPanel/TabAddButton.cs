@@ -10,15 +10,16 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// The "+" new-tab button appended to a <see cref="TabPanel"/>'s bar when <see cref="TabPanel.ShowAddButton"/> is
-/// set. Mouse-only (not focusable, and excluded from the panel's logical rows) so it never enters keyboard tab
-/// traversal — clicking it raises <see cref="Clicked"/>, which the panel turns into <see cref="TabPanel.NewTabRequested"/>.
+/// set. Reachable by mouse (click) and by keyboard — the panel's tab-strip arrows step onto it past the last tab,
+/// and Enter/Space activates it. Activating raises <see cref="Clicked"/>, which the panel turns into
+/// <see cref="TabPanel.NewTabRequested"/>. It is still excluded from the panel's logical rows, so global (Ctrl+arrow)
+/// region nav treats the strip as one unit.
 /// </summary>
 internal sealed class TabAddButton : RenderableControl
 {
     #region Constructors
     internal TabAddButton()
     {
-        Focusable = false;   // mouse-only; keyboard "new tab" is a hotkey on the owning control
         ApplyTheme();
         Height = 1;
         Width = _glyph.GetCellWidth() + 2;   // a space of padding either side
@@ -26,12 +27,12 @@ internal sealed class TabAddButton : RenderableControl
     #endregion
 
     #region Events
-    /// <summary>Raised when the button is clicked.</summary>
+    /// <summary>Raised when the button is clicked or activated with Enter/Space.</summary>
     public event EventHandler? Clicked;
     #endregion
 
     #region Properties
-    // Tag the button's cells with a mouse listener even though it isn't focusable, so it receives hover/click.
+    // Tag the button's cells with a mouse listener, so it receives hover/click as well as keyboard focus.
     protected override bool WantsMouse => true;
     #endregion
 
@@ -45,14 +46,20 @@ internal sealed class TabAddButton : RenderableControl
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var style = (IsMouseOver ? _hoverStyle : _style).SpectreConsoleStyle;
+        var style = (IsMouseOver ? _hoverStyle : _style);
+        if (IsFocused) style |= Style.Underline;   // show keyboard focus, like an inactive tab header
         var label = $" {_glyph} ";
         if (label.Length < maxWidth) label = label.PadRight(maxWidth);
         else if (label.Length > maxWidth) label = label[..Math.Max(0, maxWidth)];
-        yield return new Segment(label, style);
+        yield return new Segment(label, style.SpectreConsoleStyle);
     }
 
-    protected override void OnClick(Position position) => Clicked?.Invoke(this, EventArgs.Empty);
+    protected override void OnClick(Position position) => Activate();
+
+    // Fires the click/activation. Keyboard activation (Enter/Space) is driven by the owning TabPanel's tunnel
+    // (InterceptInput), because the button is not in the panel's logical rows, so Layout routing never dispatches
+    // input to it directly.
+    internal void Activate() => Clicked?.Invoke(this, EventArgs.Empty);
     #endregion
 
     #region Fields

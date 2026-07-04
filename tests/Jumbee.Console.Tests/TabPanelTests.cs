@@ -183,6 +183,57 @@ public class TabPanelTests
 
         Assert.Equal(1, raised);
     }
+
+    [Fact]
+    public void ArrowPastLastTab_FocusesAddButton_EnterActivates_BackArrowReturns()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ShowAddButton = true;
+        ConsoleSnapshot.Render(panel, 30, 6);
+        panel.SelectedIndex = 1;         // last tab selected
+        panel.Headers[1].Focus();        // focus on the last header
+
+        // Right past the last tab lands on the "+" button.
+        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.RightArrow, false, false, false));
+        Assert.True(panel.AddButton!.IsFocused);
+        Assert.False(panel.Headers[1].IsFocused);
+
+        // Enter activates it (the tunnel drives it — it isn't in the panel's logical rows).
+        var raised = 0;
+        panel.NewTabRequested += () => raised++;
+        UI.SendInput(panel, new ConsoleKeyInfo('\r', ConsoleKey.Enter, false, false, false));
+        Assert.Equal(1, raised);
+
+        // Left returns to the last tab.
+        UI.SendInput(panel, new ConsoleKeyInfo('\0', ConsoleKey.LeftArrow, false, false, false));
+        Assert.True(panel.Headers[1].IsFocused);
+        Assert.False(panel.AddButton!.IsFocused);
+    }
+    #endregion
+
+    #region Per-tab closable
+    [Fact]
+    public void PinnedTab_ShowsNoCloseGlyph_EvenWhenActive()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ClosableTabs = true;        // panel default: closable
+        panel.Tabs[0].Closable = false;   // but pin the (active) first tab
+
+        var text = ConsoleSnapshot.ToText(panel, 40, 6);
+
+        Assert.DoesNotContain("✕", text);   // active tab pinned -> no ✕; the other is inactive (blank slot)
+    }
+
+    [Fact]
+    public void PerTab_Closable_CanEnableOnASingleTab_WhenPanelDefaultIsOff()
+    {
+        var panel = TwoTabs(out _, out _);   // ClosableTabs defaults false
+        panel.Tabs[0].Closable = true;       // only tab 0 (active) closable
+
+        var text = ConsoleSnapshot.ToText(panel, 40, 6);
+
+        Assert.Equal(1, text.Split('✕').Length - 1);   // exactly the one active closable tab shows the ✕
+    }
     #endregion
 
     #region Keyboard

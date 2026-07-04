@@ -55,18 +55,33 @@ public class MultiTabCodeEditor : CompositeControl
 
     /// <summary>The number of open documents.</summary>
     public int DocumentCount => _panel.TabCount;
+
+    /// <summary>When <see langword="true"/>, closing a document with unsaved changes (see <see cref="IsDirty"/>)
+    /// first shows a modal "Discard changes?" confirmation and only closes on confirm. Requires an ambient
+    /// <see cref="UI.Overlay"/> (present after <see cref="UI.Start"/>); without one, the close proceeds. Default
+    /// <see langword="false"/>.</summary>
+    public bool ConfirmOnClose { get; set; }
+
+    /// <summary>Overlay to host the confirm-on-close dialog on. Defaults to the ambient <see cref="UI.Overlay"/>;
+    /// set explicitly to host it elsewhere (also used by tests to avoid mutating the global overlay).</summary>
+    internal Overlay? DialogOverlay { get; set; }
     #endregion
 
     #region Methods
-    /// <summary>Opens a document in a new closable tab and selects it. Returns the created editor.</summary>
-    public CodeEditor OpenDocument(string name, string text = "", Language? language = null)
+    /// <summary>Opens a document in a new tab and selects it. Returns the created editor. Set
+    /// <paramref name="closable"/> to <see langword="false"/> to pin it (no ✕).</summary>
+    public CodeEditor OpenDocument(string name, string text = "", Language? language = null, bool closable = true)
     {
         CodeEditor editor = null!;
         UI.Invoke(() =>
         {
             editor = new CodeEditor(language ?? _defaultLanguage) { Text = text };
             editor.WithFrame(borderStyle: BorderStyle.None);   // each editor gets its own scroll viewport
-            _panel.SelectTab(_panel.AddTab(name, editor));
+            var tab = _panel.AddTab(name, editor);
+            if (!closable) tab.Closable = false;
+            _baseline[editor] = editor.Text;                          // the "saved" baseline for dirty tracking
+            editor.Editor.Changed += (_, _) => OnDocEdited(editor);   // auto-dirty once the text diverges
+            _panel.SelectTab(tab);
         });
         DocumentOpened?.Invoke(editor);
         return editor;
@@ -75,36 +90,78 @@ public class MultiTabCodeEditor : CompositeControl
     /// <summary>Opens a new empty document with a generated "untitled-N" name.</summary>
     public CodeEditor NewDocument() => OpenDocument($"untitled-{++_untitled}", "", _defaultLanguage);
 
-    /// <summary>Closes the given document (raising <see cref="DocumentClosing"/> first, which may cancel it).</summary>
+    /// <summary>Closes the given document, honoring <see cref="DocumentClosing"/> and (when
+    /// <see cref="ConfirmOnClose"/> is set) the unsaved-changes prompt.</summary>
     public void CloseDocument(CodeEditor editor)
     {
-        if (TabOf(editor) is not { } tab) return;
-        if (RaiseClosing(editor)) return;   // a handler canceled
-        _panel.RemoveTab(tab);
+        if (TabOf(editor) is { } tab) BeginClose(tab, editor);
     }
 
-    /// <summary>Closes the active document (if any), honoring <see cref="DocumentClosing"/>.</summary>
+    /// <summary>Closes the active document (if any).</summary>
     public void CloseActiveDocument() { if (ActiveEditor is { } e) CloseDocument(e); }
 
-    /// <summary>Marks a document dirty or clean by toggling a leading "● " marker on its tab label.</summary>
+    /// <summary>Whether a document has unsaved changes (its text differs from when it was opened or last marked
+    /// saved via <see cref="SetDirty"/>).</summary>
+    public bool IsDirty(CodeEditor editor) => _dirty.Contains(editor);
+
+    /// <summary>Marks a document dirty, or clean (<paramref name="dirty"/> = <see langword="false"/> also records the
+    /// current text as the new saved baseline). Toggles a leading "● " marker on the tab label.</summary>
     public void SetDirty(CodeEditor editor, bool dirty)
     {
+        if (!dirty && _baseline.ContainsKey(editor)) _baseline[editor] = editor.Text;   // "saved": reset baseline
+        ApplyDirty(editor, dirty);
+    }
+
+    // Auto-dirty: an edit fires the editor's Changed; the doc is dirty exactly when its text differs from the
+    // baseline (so an undo back to the baseline clears it).
+    private void OnDocEdited(CodeEditor editor)
+    {
+        if (_baseline.TryGetValue(editor, out var b)) ApplyDirty(editor, editor.Text != b);
+    }
+
+    private void ApplyDirty(CodeEditor editor, bool dirty)
+    {
+        if (dirty == _dirty.Contains(editor)) return;
+        if (dirty) _dirty.Add(editor); else _dirty.Remove(editor);
         if (TabOf(editor) is not { } tab) return;
         var marked = tab.Name.StartsWith(DirtyMark, StringComparison.Ordinal);
         if (dirty && !marked) tab.Name = DirtyMark + tab.Name;
         else if (!dirty && marked) tab.Name = tab.Name[DirtyMark.Length..];
     }
 
-    // The panel's ✕ asks to close: route it through the cancelable DocumentClosing so an owner can veto.
+    // The single close funnel (both the ✕ and CloseDocument route here): apply the app veto, then the optional
+    // unsaved-changes prompt, then remove. The prompt is modal/async, so it removes the tab from its callback.
+    private void BeginClose(TabItem tab, CodeEditor editor)
+    {
+        if (RaiseClosing(editor)) return;   // app veto via DocumentClosing
+        if (ConfirmOnClose && IsDirty(editor) && (DialogOverlay ?? UI.Overlay) is { } overlay)
+        {
+            var dialog = new Dialog("Unsaved changes", $"Discard changes to {NameWithoutMarker(tab)}?", DialogButtons.YesNo);
+            dialog.Completed += (_, r) => { if (r == DialogResult.Yes) _panel.RemoveTab(tab); };
+            dialog.Show(overlay);
+            return;
+        }
+        _panel.RemoveTab(tab);
+    }
+
+    // The panel's ✕ asks to close: always cancel its built-in removal and route through BeginClose (which removes
+    // the tab itself once the close is allowed to proceed).
     private void OnTabCloseRequested(object? sender, TabCloseEventArgs e)
     {
-        if (e.Tab.Content is CodeEditor editor && RaiseClosing(editor)) e.Cancel = true;
+        e.Cancel = true;
+        if (e.Tab.Content is CodeEditor editor) BeginClose(e.Tab, editor);
     }
 
     private void OnTabRemoved(TabItem tab)
     {
-        if (tab.Content is CodeEditor editor) DocumentClosed?.Invoke(editor);
+        if (tab.Content is not CodeEditor editor) return;
+        _dirty.Remove(editor);
+        _baseline.Remove(editor);
+        DocumentClosed?.Invoke(editor);
     }
+
+    private static string NameWithoutMarker(TabItem tab) =>
+        tab.Name.StartsWith(DirtyMark, StringComparison.Ordinal) ? tab.Name[DirtyMark.Length..] : tab.Name;
 
     // Raises DocumentClosing; returns true when a handler canceled the close.
     private bool RaiseClosing(CodeEditor editor)
@@ -131,6 +188,10 @@ public class MultiTabCodeEditor : CompositeControl
     private readonly TabPanel _panel;
     private readonly Language _defaultLanguage;
     private int _untitled;
+    // Dirty tracking: the set of editors whose text differs from their baseline, and the baseline ("saved") text
+    // per editor. Auto-updated on edit; cleared when a tab is removed.
+    private readonly HashSet<CodeEditor> _dirty = new();
+    private readonly Dictionary<CodeEditor, string> _baseline = new();
     private const string DirtyMark = "● ";
     #endregion
 }

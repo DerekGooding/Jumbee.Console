@@ -167,6 +167,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
         {
             foreach (var t in _tabs)
                 if (t.Header.FocusedControl is { } focusedHeader) return focusedHeader;
+            if (_addButton?.FocusedControl is { } addBtn) return addBtn;
             return _selected?.Content.FocusedControl;
         }
     }
@@ -214,8 +215,24 @@ public class TabPanel : Layout<TabPanelDockPanel>
             : (e.Key == UI.HotKeys.AltUp ? -1 : e.Key == UI.HotKeys.AltDown ? +1 : 0);
         if (altDelta != 0) { MoveSelection(altDelta, followFocus: true); return true; }
 
+        // The "+" button isn't in the panel's logical rows, so Layout routing never dispatches keys to it — the
+        // tunnel drives it while it's focused: Enter/Space activates, and the "back" arrow returns to the last tab.
+        if (_showAddButton && _addButton is { IsFocused: true } add)
+        {
+            if (e.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar) { add.Activate(); return true; }
+            var back = _horizontal ? ConsoleKey.LeftArrow : ConsoleKey.UpArrow;
+            if (e.Key.Key == back)
+            {
+                var last = LastSelectableIndex();
+                if (last >= 0) UI.SetFocus(_tabs[last].Header);
+                return true;
+            }
+            return false;
+        }
+
         // Plain arrows move between tabs while a header has focus (the standard tab-strip behaviour), keeping focus on
-        // the header so the user can keep arrowing. When the content is focused instead, plain arrows belong to it.
+        // the header so the user can keep arrowing. Arrowing forward past the last tab lands on the "+" button (when
+        // shown). When the content is focused instead, plain arrows belong to it.
         if (AnyHeaderFocused())
         {
             var delta = _horizontal
@@ -226,6 +243,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
                 var from = _selected is null ? -1 : _tabs.IndexOf(_selected);
                 var target = NextSelectableIndex(from, delta);
                 if (target >= 0) { SelectItemCore(_tabs[target], followFocus: false); UI.SetFocus(_tabs[target].Header); }
+                else if (delta > 0 && _showAddButton && _addButton is not null) UI.SetFocus(_addButton);
                 return true;
             }
         }
@@ -245,6 +263,13 @@ public class TabPanel : Layout<TabPanelDockPanel>
     {
         for (var i = from + dir; i >= 0 && i < _tabs.Count; i += dir)
             if (IsSelectable(_tabs[i])) return i;
+        return -1;
+    }
+
+    // Index of the last selectable tab, or -1 if none.
+    private int LastSelectableIndex()
+    {
+        for (var i = _tabs.Count - 1; i >= 0; i--) if (IsSelectable(_tabs[i])) return i;
         return -1;
     }
 
@@ -303,6 +328,14 @@ public class TabPanel : Layout<TabPanelDockPanel>
         }
         TabRemoved?.Invoke(item);
     }
+
+    // Per-tab closable override (from TabItem.Closable): flip the header's close slot and reflow the bar for the
+    // changed header width.
+    internal void SetTabClosable(TabItem item, bool value) => UI.Invoke(() =>
+    {
+        item.Header.Closable = value;
+        RebuildBar();
+    });
 
     internal void RelabelTab(TabItem item)
     {

@@ -1,5 +1,7 @@
 namespace Jumbee.Console.Tests;
 
+using ConsoleGUI.Input;
+
 using Jumbee.Console;
 using Jumbee.Console.Snapshot;
 
@@ -7,6 +9,23 @@ using Xunit;
 
 public class MultiTabCodeEditorTests
 {
+    private static ConsoleKeyInfo K(ConsoleKey k) => new('\0', k, false, false, false);
+
+    // A laid-out overlay for hosting the confirm-on-close dialog, kept off the global UI.Overlay to stay isolated.
+    private static Overlay Overlay()
+    {
+        var overlay = new Overlay(new Grid([1], [40], [[new TextInput(placeholder: "bg")]]));
+        ConsoleSnapshot.Render(overlay, 60, 20);
+        return overlay;
+    }
+
+    private static void Send(Overlay overlay, ConsoleKey key)
+    {
+        overlay.OnInput(new UI.InputEventArgs(new InputEvent(K(key))));
+        ConsoleSnapshot.Render(overlay, 60, 20);
+    }
+
+
     [Fact]
     public void OpenDocument_AddsTab_SelectsIt_AndReturnsTheEditor()
     {
@@ -97,5 +116,73 @@ public class MultiTabCodeEditorTests
 
         Assert.Contains("readme", text);        // tab label in the bar
         Assert.Contains("hello world", text);   // active editor content
+    }
+
+    [Fact]
+    public void OpenDocument_NonClosable_PinsTheTab()
+    {
+        var group = new MultiTabCodeEditor();
+
+        group.OpenDocument("pinned", "x", closable: false);
+
+        Assert.False(group.Tabs.Tabs[0].Closable);
+    }
+
+    [Fact]
+    public void EditingADocument_MarksItDirty_AndRevertingClearsIt()
+    {
+        var group = new MultiTabCodeEditor();
+        var editor = group.OpenDocument("a.cs", "abc");
+        Assert.False(group.IsDirty(editor));
+
+        UI.SendInput(editor.Editor, new ConsoleKeyInfo('z', ConsoleKey.Z, false, false, false));   // "zabc"
+        Assert.True(group.IsDirty(editor));
+        Assert.StartsWith("● ", group.ActiveDocumentName);
+
+        UI.SendInput(editor.Editor, K(ConsoleKey.Backspace));   // back to "abc" -> matches baseline
+        Assert.False(group.IsDirty(editor));
+        Assert.Equal("a.cs", group.ActiveDocumentName);
+    }
+
+    [Fact]
+    public void ConfirmOnClose_CleanDocument_ClosesWithoutPrompt()
+    {
+        var group = new MultiTabCodeEditor { ConfirmOnClose = true };
+        var editor = group.OpenDocument("a.cs", "abc");   // clean
+
+        group.CloseDocument(editor);
+
+        Assert.Equal(0, group.DocumentCount);
+    }
+
+    [Fact]
+    public void ConfirmOnClose_DirtyDocument_ShowsDialog_ClosesOnYes()
+    {
+        var overlay = Overlay();
+        var group = new MultiTabCodeEditor { ConfirmOnClose = true, DialogOverlay = overlay };
+        var editor = group.OpenDocument("a.cs", "abc");
+        group.SetDirty(editor, true);
+
+        group.CloseDocument(editor);
+        ConsoleSnapshot.Render(overlay, 60, 20);   // lay out the modal
+        Assert.Equal(1, group.DocumentCount);      // deferred behind the dialog
+
+        Send(overlay, ConsoleKey.Enter);           // the default-focused "Yes"
+        Assert.Equal(0, group.DocumentCount);      // closed after confirming
+    }
+
+    [Fact]
+    public void ConfirmOnClose_DirtyDocument_Escape_KeepsIt()
+    {
+        var overlay = Overlay();
+        var group = new MultiTabCodeEditor { ConfirmOnClose = true, DialogOverlay = overlay };
+        var editor = group.OpenDocument("a.cs", "abc");
+        group.SetDirty(editor, true);
+
+        group.CloseDocument(editor);
+        ConsoleSnapshot.Render(overlay, 60, 20);
+
+        Send(overlay, ConsoleKey.Escape);          // cancel
+        Assert.Equal(1, group.DocumentCount);      // still open
     }
 }

@@ -360,13 +360,14 @@ public class Program
     // Esc quits. Each tab is a full CodeEditor (syntax highlighting + line-number gutter + independent scroll).
     static void MultiTabCodeEditorDemo(string[] args)
     {
-        var group = new MultiTabCodeEditor(Language.CSharp);
+        var group = new MultiTabCodeEditor(Language.CSharp) { ConfirmOnClose = true };
+        group.OpenDocument("README.md", "// pinned, non-closable tab\n", Language.Markdown, closable: false);
         group.OpenDocument("main.cs", "// main.cs\nstatic void Main()\n{\n    System.Console.WriteLine(\"hi\");\n}\n");
         group.OpenDocument("utils.cs", "// utils.cs\nstatic int Add(int a, int b) => a + b;\n");
-        group.Tabs.SelectedIndex = 0;
+        group.Tabs.SelectedIndex = 1;
 
         var help = new TextLabel(TextLabelOrientation.Horizontal,
-            "Click ✕ close   Click + new   Ctrl+T new   Ctrl+W close   Alt+←/→ switch   Esc quit", Color.White);
+            "Edit a file then close it → confirm.  Click ✕ / + · Arrow to + · Enter · Ctrl+T new · Ctrl+W close · Alt+←/→ · Esc", Color.White);
 
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.T), () => group.NewDocument());
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.W), () => group.CloseActiveDocument());

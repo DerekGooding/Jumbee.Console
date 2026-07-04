@@ -48,6 +48,15 @@ public sealed class TabItem
 
     /// <summary>Whether this is the currently selected tab.</summary>
     public bool IsSelected => ReferenceEquals(_owner.ActiveTab, this);
+
+    /// <summary>Per-tab override of whether this tab shows a close (✕) glyph. Independent of the panel-wide
+    /// <see cref="TabPanel.ClosableTabs"/> default (though setting that re-applies to every tab). Use to keep a
+    /// specific tab non-closable (e.g. a pinned document).</summary>
+    public bool Closable
+    {
+        get => Header.Closable;
+        set { if (Header.Closable == value) return; _owner.SetTabClosable(this, value); }
+    }
     #endregion
 
     #region Fields
