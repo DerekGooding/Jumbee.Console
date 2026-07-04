@@ -38,6 +38,15 @@ public interface IGlyphTheme
     string SelectionCaret => "▶ ";
     #endregion
 
+    #region Tabs
+    /// <summary>The close glyph shown on a closable tab. Drawn only on the active/hovered tab; other tabs reserve
+    /// a same-width blank. Defaults to <c>"✕"</c> (override with <c>"x"</c> for an ASCII terminal).</summary>
+    string TabClose => "✕";
+
+    /// <summary>The glyph on a tab panel's "+" new-tab button. Defaults to <c>"+"</c>.</summary>
+    string TabAdd => "+";
+    #endregion
+
     #region Tree
     /// <summary>Disclosure glyph shown before an <em>expanded</em> node that has children (includes trailing
     /// spacing). Defaults to <c>"▼ "</c>. Both tree glyphs should share a cell width so labels stay aligned.</summary>

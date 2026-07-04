@@ -31,6 +31,11 @@ public class TabHeader : RenderableControl
     #region Events
     /// <summary>Raised when this tab is chosen — by a click or by Enter/Space while focused.</summary>
     public event EventHandler? Activated;
+
+    /// <summary>Raised when the tab's close (✕) glyph is clicked (only fires when <see cref="Closable"/> and the
+    /// glyph is shown — i.e. the tab is active or hovered). The owning <see cref="TabPanel"/> turns this into a
+    /// cancelable <see cref="TabPanel.TabCloseRequested"/>.</summary>
+    public event EventHandler? CloseRequested;
     #endregion
 
     #region Properties
@@ -58,6 +63,11 @@ public class TabHeader : RenderableControl
     /// <summary><see langword="true"/> for the currently selected tab (drawn with <see cref="ActiveStyle"/>).</summary>
     public bool IsActive { get => _isActive; set => SetAtomicProperty(ref _isActive, value); }
 
+    /// <summary>When <see langword="true"/> the tab reserves a close (✕) slot: the glyph is drawn on the active or
+    /// hovered tab (a same-width blank otherwise, so labels don't shift), and clicking it raises
+    /// <see cref="CloseRequested"/>. Set by the owning <see cref="TabPanel"/> via <see cref="TabPanel.ClosableTabs"/>.</summary>
+    internal bool Closable { get => _closable; set => SetAtomicProperty(ref _closable, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth()); }
+
     /// <summary>Style of the active (selected) tab. Defaults to <see cref="IStyleTheme.Selection"/>.</summary>
     public Style ActiveStyle { get => _activeStyle; set => SetAtomicProperty(ref _activeStyle, value, themeOverride: true); }
 
@@ -80,6 +90,7 @@ public class TabHeader : RenderableControl
         if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.Hover;
         if (!IsThemeOverridden(nameof(SelectionStyle))) _selectionStyle = UI.StyleTheme.SelectionStyle;
         _selectionCaret = UI.GlyphTheme.SelectionCaret;
+        _closeGlyph = UI.GlyphTheme.TabClose;
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
@@ -110,6 +121,15 @@ public class TabHeader : RenderableControl
             label = $" {gutter}{_text} ";
         }
 
+        // Closable tabs reserve a close slot after the label. The ✕ shows only on the active or hovered tab; the
+        // rest reserve a same-width blank so labels don't shift as selection/hover moves. The base label already
+        // ends in a space, so appending "{cell} " yields "…text {cell} " with one space on each side of the glyph.
+        if (_closable)
+        {
+            var cell = (_isActive || IsMouseOver) ? _closeGlyph : new string(' ', _closeGlyph.GetCellWidth());
+            label += $"{cell} ";
+        }
+
         if (label.Length < maxWidth) label = label.PadRight(maxWidth);
         else if (label.Length > maxWidth) label = label[..Math.Max(0, maxWidth)];
 
@@ -118,7 +138,26 @@ public class TabHeader : RenderableControl
 
     protected override void OnClick(Position position)
     {
-        if (_isEnabled) Activated?.Invoke(this, EventArgs.Empty);
+        if (!_isEnabled) return;
+        // A click on the ✕ (only when it is shown) closes rather than selects; anything else selects.
+        if (_closable && (_isActive || IsMouseOver))
+        {
+            var (start, width) = CloseGlyphSpan();
+            if (position.X >= start && position.X < start + width)
+            {
+                CloseRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+        }
+        Activated?.Invoke(this, EventArgs.Empty);
+    }
+
+    // The column span of the close glyph within the header: one leading space + the caret/gutter + the label + the
+    // separating space. Mirrors the layout built in Render and the widths in LabelWidth.
+    private (int start, int width) CloseGlyphSpan()
+    {
+        var gutter = _selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0;
+        return (gutter + _text.Length + 2, _closeGlyph.GetCellWidth());
     }
 
     protected override void OnInput(InputEvent inputEvent)
@@ -133,8 +172,12 @@ public class TabHeader : RenderableControl
         }
     }
 
-    // A space of padding either side, plus a caret-width gutter when the selection style is Caret.
-    private int LabelWidth() => _text.Length + 2 + (_selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0);
+    // A space of padding either side, plus a caret-width gutter when the selection style is Caret, plus a close
+    // slot (glyph width + one separating space) when the tab is closable.
+    private int LabelWidth() =>
+        _text.Length + 2
+        + (_selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0)
+        + (_closable ? _closeGlyph.GetCellWidth() + 1 : 0);
     #endregion
 
     #region Fields
@@ -142,6 +185,8 @@ public class TabHeader : RenderableControl
     private string _text;
     private bool _isActive;
     private bool _isEnabled = true;
+    private bool _closable;
+    private string _closeGlyph = "";
     private Style _activeStyle;
     private Style _inactiveStyle;
     private Style _hoverStyle;

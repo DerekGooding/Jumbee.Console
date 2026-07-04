@@ -19,7 +19,8 @@ using static Jumbee.Console.Style;
 public class Program
 {
     static async Task Main(string[] args)
-    {        
+    {
+        MultiTabCodeEditorDemo(args);
         //TerminalDemo(args);
         //NavigationDemo(args);
         //TabsDemo(args);
@@ -41,8 +42,9 @@ public class Program
         //ChatPromptDemo(args);
         //PostingDemo(args);
         //DynamicTabsDemo(args);
+        //MultiTabCodeEditorDemo(args);
         //ConsoleStudioDemo(args);
-        DockPanelTest(args);
+        //DockPanelTest(args);
         //TitleStyleTest(args);
         //ScrollBarStyleTest(args);
         //TreeAutoScrollTest(args);
@@ -350,6 +352,29 @@ public class Program
         //hud.RegisterToggle();            // Ctrl+G toggles it in the top-right corner
                                          // or: hud.RegisterToggle(UI.HotKeys.Ctrl(ConsoleKey.F));
         UI.SetFocus(main);
+        run.Wait();
+    }
+
+    // MultiTabCodeEditor demo — the reusable editor-group control: closable tabs (click the ✕ on the active/hovered
+    // tab), a "+" button to open a new document, Alt+←/→ (or clicking a tab) to switch. Ctrl+T new, Ctrl+W close,
+    // Esc quits. Each tab is a full CodeEditor (syntax highlighting + line-number gutter + independent scroll).
+    static void MultiTabCodeEditorDemo(string[] args)
+    {
+        var group = new MultiTabCodeEditor(Language.CSharp);
+        group.OpenDocument("main.cs", "// main.cs\nstatic void Main()\n{\n    System.Console.WriteLine(\"hi\");\n}\n");
+        group.OpenDocument("utils.cs", "// utils.cs\nstatic int Add(int a, int b) => a + b;\n");
+        group.Tabs.SelectedIndex = 0;
+
+        var help = new TextLabel(TextLabelOrientation.Horizontal,
+            "Click ✕ close   Click + new   Ctrl+T new   Ctrl+W close   Alt+←/→ switch   Esc quit", Color.White);
+
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.T), () => group.NewDocument());
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.W), () => group.CloseActiveDocument());
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        var grid = new Jumbee.Console.Grid([18, 1], [90], [[group], [help]]);
+        var run = UI.Start(grid, width: 92, height: 22, isAnsiTerminal: true, input: new Jumbee.Console.VtInputSource(anyMotion: true));
+        if (group.ActiveEditor is { } e) UI.SetFocus(e.Editor);
         run.Wait();
     }
 

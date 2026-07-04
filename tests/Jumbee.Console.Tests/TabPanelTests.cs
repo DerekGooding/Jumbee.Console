@@ -21,11 +21,13 @@ public class TabPanelTests
         return new TabPanel(dock, ("One", a), ("Two", b));
     }
 
-    private static void Click(TabHeader header)
+    private static void Click(TabHeader header) => ClickAt(header, 0);
+
+    private static void ClickAt(TabHeader header, int x)
     {
         var m = (IMouseListener)header;
-        m.OnMouseDown(new Position(0, 0));
-        m.OnMouseUp(new Position(0, 0));
+        m.OnMouseDown(new Position(x, 0));
+        m.OnMouseUp(new Position(x, 0));
     }
 
     #region Rendering / selection model
@@ -88,6 +90,98 @@ public class TabPanelTests
         Assert.Equal(1, panel.SelectedIndex);
         Assert.True(panel.Headers[1].IsActive);
         Assert.False(panel.Headers[0].IsActive);
+    }
+    #endregion
+
+    #region Closable tabs / "+" button
+    // The close glyph's column within a header: leading space + label + separating space (no caret gutter under the
+    // default Highlight selection style). Mirrors TabHeader.CloseGlyphSpan.
+    private static int CloseColumn(string label) => label.Length + 2;
+
+    [Fact]
+    public void ClosableTab_ShowsCloseGlyph_OnlyOnActiveTab()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ClosableTabs = true;
+
+        var text = ConsoleSnapshot.ToText(panel, 30, 6);
+
+        // The active tab (index 0) shows the ✕; the inactive one reserves a blank slot instead — so exactly one ✕.
+        Assert.Equal(1, text.Split('✕').Length - 1);
+    }
+
+    [Fact]
+    public void ClickingCloseGlyph_OnActiveTab_RaisesRequest_AndRemovesByDefault()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ClosableTabs = true;
+        ConsoleSnapshot.Render(panel, 30, 6);   // establish layout; tab 0 ("One") is active
+        TabItem? closed = null;
+        panel.TabCloseRequested += (_, e) => closed = e.Tab;
+
+        ClickAt(panel.Headers[0], CloseColumn("One"));
+
+        Assert.NotNull(closed);                   // the close request fired for the clicked tab
+        Assert.Equal(1, panel.TabCount);          // removed by default (no cancel)
+        Assert.Equal("Two", panel.ActiveTabName); // selection moved to the survivor
+    }
+
+    [Fact]
+    public void CancelingClose_KeepsTheTab()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ClosableTabs = true;
+        ConsoleSnapshot.Render(panel, 30, 6);
+        panel.TabCloseRequested += (_, e) => e.Cancel = true;
+
+        ClickAt(panel.Headers[0], CloseColumn("One"));
+
+        Assert.Equal(2, panel.TabCount);          // vetoed -> nothing removed
+        Assert.Equal("One", panel.ActiveTabName);
+    }
+
+    [Fact]
+    public void ClickingLabel_OnClosableTab_SelectsInsteadOfClosing()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ClosableTabs = true;
+        ConsoleSnapshot.Render(panel, 30, 6);
+        var closeRaised = 0;
+        panel.TabCloseRequested += (_, _) => closeRaised++;
+
+        ClickAt(panel.Headers[1], 1);   // click the label area (not the ✕ column) of the inactive tab
+
+        Assert.Equal(0, closeRaised);
+        Assert.Equal(2, panel.TabCount);
+        Assert.Equal(1, panel.SelectedIndex);   // it selected
+    }
+
+    [Fact]
+    public void ShowAddButton_RendersPlusGlyph()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ShowAddButton = true;
+
+        var text = ConsoleSnapshot.ToText(panel, 30, 6);
+
+        Assert.Contains("+", text);   // the "+" affordance is in the bar
+    }
+
+    [Fact]
+    public void ClickingAddButton_RaisesNewTabRequested()
+    {
+        var panel = TwoTabs(out _, out _);
+        panel.ShowAddButton = true;   // builds the button
+        var raised = 0;
+        panel.NewTabRequested += () => raised++;
+
+        var button = panel.AddButton;   // internal, visible via InternalsVisibleTo
+        Assert.NotNull(button);
+        var m = (IMouseListener)button!;
+        m.OnMouseDown(new Position(0, 0));
+        m.OnMouseUp(new Position(0, 0));
+
+        Assert.Equal(1, raised);
     }
     #endregion
 

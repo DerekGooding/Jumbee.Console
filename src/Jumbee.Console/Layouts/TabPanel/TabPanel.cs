@@ -44,6 +44,18 @@ public class TabPanel : Layout<TabPanelDockPanel>
     #region Events
     /// <summary>Raised after the selected tab changes, with the new index (-1 when no tab is selectable).</summary>
     public event Action<int>? SelectionChanged;
+
+    /// <summary>Raised when a closable tab's ✕ is clicked (see <see cref="ClosableTabs"/>). Set
+    /// <see cref="TabCloseEventArgs.Cancel"/> to keep the tab (e.g. after prompting about unsaved changes);
+    /// otherwise the panel removes it.</summary>
+    public event EventHandler<TabCloseEventArgs>? TabCloseRequested;
+
+    /// <summary>Raised when the "+" new-tab button is clicked (see <see cref="ShowAddButton"/>). The handler
+    /// typically opens a new tab.</summary>
+    public event Action? NewTabRequested;
+
+    /// <summary>Raised after a tab has been removed (via ✕, <see cref="RemoveTab(TabItem)"/>, etc.), with its handle.</summary>
+    public event Action<TabItem>? TabRemoved;
     #endregion
 
     #region Properties
@@ -66,6 +78,28 @@ public class TabPanel : Layout<TabPanelDockPanel>
         get => _selectionStyle;
         set { _selectionStyle = value; foreach (var t in _tabs) t.Header.SelectionStyle = value; }
     }
+
+    /// <summary>When <see langword="true"/>, every tab shows a clickable close (✕) glyph (on the active/hovered
+    /// tab) and clicking it raises the cancelable <see cref="TabCloseRequested"/>. Applies to existing and future
+    /// tabs. Default <see langword="false"/>.</summary>
+    public bool ClosableTabs
+    {
+        get => _closableTabs;
+        set { _closableTabs = value; foreach (var t in _tabs) t.Header.Closable = value; }
+    }
+
+    /// <summary>When <see langword="true"/>, a "+" button is shown at the end of the bar; clicking it raises
+    /// <see cref="NewTabRequested"/>. The button is mouse-only (not part of keyboard tab traversal). Default
+    /// <see langword="false"/>.</summary>
+    public bool ShowAddButton
+    {
+        get => _showAddButton;
+        set { if (_showAddButton == value) return; _showAddButton = value; UI.Invoke(RebuildBar); }
+    }
+
+    /// <summary>The "+" button instance once <see cref="ShowAddButton"/> has built it, else <see langword="null"/>.
+    /// Exposed for testing (click it to exercise <see cref="NewTabRequested"/>).</summary>
+    internal TabAddButton? AddButton => _addButton;
 
     /// <summary>The zero-based selected tab. Setting it activates that tab (clamped to range) if it is selectable
     /// (not hidden or disabled); raises <see cref="SelectionChanged"/> when it actually changes. -1 when no tab is
@@ -232,15 +266,26 @@ public class TabPanel : Layout<TabPanelDockPanel>
 
     private TabItem AddTabCore(string name, IFocusable content, int index)
     {
-        var header = new TabHeader(_tabs.Count, name) { SelectionStyle = _selectionStyle };
+        var header = new TabHeader(_tabs.Count, name) { SelectionStyle = _selectionStyle, Closable = _closableTabs };
         var item = new TabItem(this, name, content, header);
         header.Activated += (_, _) => { if (IsSelectable(item)) SelectItemCore(item, followFocus: FocusedControl is not null); };
+        header.CloseRequested += (_, _) => RequestClose(item);
 
         var at = index < 0 || index > _tabs.Count ? _tabs.Count : index;
         _tabs.Insert(at, item);
         RebuildBar();
         if (_selected is null && IsSelectable(item)) SelectItemCore(item, followFocus: false);
         return item;
+    }
+
+    // A ✕ click asks to close: raise the cancelable event, then remove unless a handler canceled. Runs on the UI
+    // thread (mouse dispatch), so it calls the core directly like the other internal mutators.
+    private void RequestClose(TabItem item)
+    {
+        if (!_tabs.Contains(item)) return;
+        var args = new TabCloseEventArgs(item);
+        TabCloseRequested?.Invoke(this, args);
+        if (!args.Cancel) RemoveTabCore(item);
     }
 
     private void RemoveTabCore(TabItem item)
@@ -256,6 +301,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
             var next = _tabs.Count == 0 ? null : NearestSelectable(Math.Clamp(idx, 0, _tabs.Count - 1));
             SelectItemCore(next, followFocus: false);
         }
+        TabRemoved?.Invoke(item);
     }
 
     internal void RelabelTab(TabItem item)
@@ -332,7 +378,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
     // sync; resize a vertical bar to the widest visible label.
     private void RebuildBar()
     {
-        var visible = new List<ConsoleGUI.IControl>(_tabs.Count);
+        var visible = new List<ConsoleGUI.IControl>(_tabs.Count + 1);
         var thickness = 1;
         for (var i = 0; i < _tabs.Count; i++)
         {
@@ -342,8 +388,22 @@ public class TabPanel : Layout<TabPanelDockPanel>
             thickness = Math.Max(thickness, _tabs[i].Header.Width);
         }
 
+        if (_showAddButton)
+        {
+            _addButton ??= CreateAddButton();
+            visible.Add(_addButton);
+            thickness = Math.Max(thickness, _addButton.Width);
+        }
+
         control.SetHeaders(visible);
         control.SetBarThickness(thickness);
+    }
+
+    private TabAddButton CreateAddButton()
+    {
+        var button = new TabAddButton();
+        button.Clicked += (_, _) => NewTabRequested?.Invoke();
+        return button;
     }
 
     // Put focus on the active tab's content when it can take keyboard input; otherwise on its header (e.g. a tab
@@ -363,5 +423,21 @@ public class TabPanel : Layout<TabPanelDockPanel>
     private readonly List<TabItem> _tabs = new();
     private TabItem? _selected;
     private SelectionStyle _selectionStyle;
+    private bool _closableTabs;
+    private bool _showAddButton;
+    private TabAddButton? _addButton;
     #endregion
+}
+
+/// <summary>Arguments for <see cref="TabPanel.TabCloseRequested"/>. Set <see cref="Cancel"/> to keep the tab open
+/// (e.g. after confirming unsaved changes); otherwise the panel removes it.</summary>
+public sealed class TabCloseEventArgs : EventArgs
+{
+    internal TabCloseEventArgs(TabItem tab) => Tab = tab;
+
+    /// <summary>The tab whose ✕ was clicked.</summary>
+    public TabItem Tab { get; }
+
+    /// <summary>Set to <see langword="true"/> to cancel the close and keep the tab.</summary>
+    public bool Cancel { get; set; }
 }

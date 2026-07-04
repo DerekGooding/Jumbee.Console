@@ -25,4 +25,8 @@
     <IsAotCompatible>True</IsAotCompatible>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Jumbee.Console.Tests"/>    
+  </ItemGroup>
+
 </Project>
