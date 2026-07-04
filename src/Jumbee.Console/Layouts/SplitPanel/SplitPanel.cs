@@ -85,22 +85,27 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     }
 
     // Logical children for input routing (like TabPanel): first pane, divider, second pane. Both panes and the
-    // divider are focusable; the divider takes arrow-key resizes when focused.
-    public override int Rows => 3;
+    // divider are focusable; the divider takes arrow-key resizes when focused. Laid out along the split axis — a
+    // horizontal (side-by-side) split exposes them as columns, a vertical (stacked) split as rows — so spatial focus
+    // navigation moves between the panes with the matching arrow keys (Ctrl+←/→ vs Ctrl+↑/↓).
+    private bool IsHorizontal => _orientation == SplitOrientation.Horizontal;
 
-    public override int Columns => 1;
+    public override int Rows => IsHorizontal ? 1 : 3;
+
+    public override int Columns => IsHorizontal ? 3 : 1;
 
     public override IFocusable this[int row, int column]
     {
         get
         {
-            if (column != 0) throw new ArgumentOutOfRangeException(nameof(column));
-            return row switch
+            var (index, cross) = IsHorizontal ? (column, row) : (row, column);
+            if (cross != 0) throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(row) : nameof(column));
+            return index switch
             {
                 0 => _first,
                 1 => _divider,
                 2 => _second,
-                _ => throw new ArgumentOutOfRangeException(nameof(row))
+                _ => throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(column) : nameof(row))
             };
         }
     }

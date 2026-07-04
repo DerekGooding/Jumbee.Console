@@ -2,16 +2,13 @@ namespace Jumbee.Console.Examples;
 
 using System.Linq;
 
-/// <summary>A scrollable, keyboard-navigable list. Arrows / Home / End / PgUp / PgDn move the selection.</summary>
-public sealed class ListBoxExample : ExampleBase
+/// <summary>A scrollable, keyboard-navigable list — it simply <em>is</em> a <see cref="ListBox"/>. Arrows / Home /
+/// End / PgUp / PgDn move the selection; it scrolls smoothly when it overflows its pane.</summary>
+public sealed class ListBoxExample : ListBox, IExample
 {
-    public override string Category => "Controls";
-    public override string Title => "List Box";
-    public override string Description => "A selectable, keyboard-navigable list with smooth scrolling when it overflows.";
+    public ListBoxExample() : base(Enumerable.Range(1, 40).Select(i => $"Item {i:00}").ToArray()) { }
 
-    public override IFocusable Build()
-    {
-        var items = Enumerable.Range(1, 40).Select(i => $"Item {i:00}").ToArray();   // enough to scroll
-        return new ListBox(items).WithFrame(title: "Items");
-    }
+    public string Category => "Controls";
+    public string Title => "List Box";
+    public string Description => "A selectable, keyboard-navigable list with smooth scrolling when it overflows.";
 }

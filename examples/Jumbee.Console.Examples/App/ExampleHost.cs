@@ -1,5 +1,7 @@
 namespace Jumbee.Console.Examples;
 
+using System.Collections.Generic;
+
 /// <summary>
 /// The middle pane: a composite whose content is swapped to the selected example's live control. Swapping is just
 /// re-calling <see cref="CompositeControl.SetContent"/> (it disposes the old content context and rebuilds). The demo
@@ -13,6 +15,19 @@ public sealed class ExampleHost : CompositeControl
     public void Show(IFocusable content, string description)
     {
         var header = new TextLabel(TextLabelOrientation.Horizontal, description);
-        SetContent(new DockPanel(DockedControlPlacement.Top, header, content));
+        SetContent(new DockPanel(DockedControlPlacement.Top, header, Framed(content)));
     }
+
+    // A scrollable Control (ListBox, editors…) needs a ControlFrame to scroll — the example is a bare control, so we
+    // give it a borderless frame here (the pane's own frame supplies the visible border/title). Layouts arrange their
+    // own children and pass through. Framed once per example instance and cached, so re-selecting keeps scroll state.
+    private IFocusable Framed(IFocusable content)
+    {
+        if (content is not Control control) return content;
+        if (!_framed.TryGetValue(control, out var framed))
+            _framed[control] = framed = control.WithFrame(borderStyle: BorderStyle.None);
+        return framed;
+    }
+
+    private readonly Dictionary<Control, IFocusable> _framed = new();
 }

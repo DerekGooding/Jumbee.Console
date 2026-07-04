@@ -3,11 +3,12 @@ namespace Jumbee.Console.Examples;
 using System.Collections.Generic;
 
 /// <summary>
-/// One entry in the example browser: a live control for the middle pane, plus the metadata the tree/header use and
-/// the source files the right-pane viewer shows. Keep <see cref="Build"/> pure — construct and return a control; do
-/// not start the UI or show modals from it.
+/// Marks a control (or layout) as a browsable example: it <em>is</em> the live content shown in the middle pane
+/// (<c>IExample : IFocusable</c>), plus the metadata the tree/header use and the source files the viewer shows. So an
+/// example is just a normal control that also carries a little metadata — e.g. <c>class ListBoxExample : ListBox,
+/// IExample</c>. <see cref="SourceFiles"/> defaults to the type's own <c>.cs</c> file.
 /// </summary>
-public interface IExample
+public interface IExample : IFocusable
 {
     /// <summary>Tree grouping, e.g. "Flexibility" or "Controls".</summary>
     string Category { get; }
@@ -15,25 +16,10 @@ public interface IExample
     /// <summary>Tree label and middle-pane frame title.</summary>
     string Title { get; }
 
-    /// <summary>One-paragraph summary shown to skim-readers (not just those who read the source).</summary>
+    /// <summary>One-line summary shown above the demo.</summary>
     string Description { get; }
 
-    /// <summary>Builds the live content shown in the middle pane — a control or a layout (both are
-    /// <see cref="IFocusable"/>).</summary>
-    IFocusable Build();
-
-    /// <summary>Source file names (e.g. "ButtonExample.cs") shown read-only in the right pane; resolved against the
-    /// embedded resources by <see cref="SourceLoader"/>.</summary>
-    IReadOnlyList<string> SourceFiles { get; }
-}
-
-/// <summary>Base class with sensible defaults: the source file defaults to this type's own <c>.cs</c> file, so a
-/// typical example is a single small class — itself a demonstration of the library's ease of use.</summary>
-public abstract class ExampleBase : IExample
-{
-    public abstract string Category { get; }
-    public abstract string Title { get; }
-    public abstract string Description { get; }
-    public abstract IFocusable Build();
-    public virtual IReadOnlyList<string> SourceFiles => [GetType().Name + ".cs"];
+    /// <summary>Source file names shown read-only in the right pane; resolved against the embedded resources by
+    /// <see cref="SourceLoader"/>. Defaults to this type's own <c>.cs</c> file.</summary>
+    IReadOnlyList<string> SourceFiles => [GetType().Name + ".cs"];
 }

@@ -48,18 +48,38 @@ public interface ILayout : IFocusable, IDrawingContextListener
     /// <summary>Computes the focusable one cell in the given direction from the focused cell (wraps per axis; skips
     /// empty cells), or <see langword="null"/> if none. Pass a row/column delta (e.g. (0, -1) = left). Landing on a
     /// cell descends to its first focusable leaf.</summary>
-    IFocusable? SpatialTarget(int dRow, int dCol)
+    IFocusable? SpatialTarget(int dRow, int dCol) => SpatialTarget(dRow, dCol, wrap: true);
+
+    /// <summary>
+    /// The directional move, made recursive so arrows cross cells nested several layouts deep (e.g. panes inside
+    /// nested split panels). It first descends into the focused nested layout and lets it move within itself; that
+    /// nested move never wraps, so at the nested edge it returns <see langword="null"/> and we step at this level
+    /// instead — the arrow "exits" the nested layout to the parent's sibling cell. The top-level call wraps per axis
+    /// (the region-to-region behavior); nested calls do not.
+    /// </summary>
+    IFocusable? SpatialTarget(int dRow, int dCol, bool wrap)
     {
+        if (FocusedCell() is { } focused && CellAt(focused.Row, focused.Column) is ILayout nested
+            && nested.SpatialTarget(dRow, dCol, wrap: false) is { } inner)
+            return inner;
+
         int rows = Rows, cols = Columns;
         if (rows <= 0 || cols <= 0) return null;
-
         var (r, c) = FocusedCell() ?? (0, 0);
-        for (var step = 0; step < rows * cols; step++)   // walk in the given direction, wrapping, until a focusable cell
+
+        if (wrap)
         {
-            r = ((r + dRow) % rows + rows) % rows;
-            c = ((c + dCol) % cols + cols) % cols;
-            if (FirstLeaf(CellAt(r, c)) is { } target) return target;
+            for (var step = 0; step < rows * cols; step++)   // walk in the given direction, wrapping, until a focusable cell
+            {
+                r = ((r + dRow) % rows + rows) % rows;
+                c = ((c + dCol) % cols + cols) % cols;
+                if (FirstLeaf(CellAt(r, c)) is { } target) return target;
+            }
+            return null;
         }
+
+        for (r += dRow, c += dCol; r >= 0 && r < rows && c >= 0 && c < cols; r += dRow, c += dCol)   // to the edge, no wrap
+            if (FirstLeaf(CellAt(r, c)) is { } target) return target;
         return null;
     }
 

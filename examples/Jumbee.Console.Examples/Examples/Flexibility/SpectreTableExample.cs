@@ -3,16 +3,18 @@ namespace Jumbee.Console.Examples;
 using Spectre.Console;   // for the Table AddColumn/AddRow/Centered extension methods
 using S = Spectre.Console;
 
-/// <summary>Hosting a rich Spectre.Console renderable (a Table) directly inside a Jumbee control — the whole Spectre
-/// widget catalogue is available, styled markup and all.</summary>
-public sealed class SpectreTableExample : ExampleBase
+/// <summary>Hosting a rich Spectre.Console renderable (a Table) directly — it <em>is</em> a
+/// <see cref="SpectreControl{T}"/>. The whole Spectre widget catalogue is available, styled markup and all.</summary>
+public sealed class SpectreTableExample : SpectreControl<S.Table>, IExample
 {
-    public override string Category => "Flexibility";
-    public override string Title => "Spectre Rendering";
-    public override string Description =>
-        "Any Spectre.Console renderable (tables, rules, markup, bar charts…) drops straight into a Jumbee control via SpectreControl.";
+    public SpectreTableExample() : base(BuildTable()) { }
 
-    public override IFocusable Build()
+    public string Category => "Flexibility";
+    public string Title => "Spectre Rendering";
+    public string Description =>
+        "Any Spectre.Console renderable (tables, rules, markup, bar charts…) drops straight into a Jumbee control.";
+
+    private static S.Table BuildTable()
     {
         var table = new S.Table
         {
@@ -29,6 +31,6 @@ public sealed class SpectreTableExample : ExampleBase
         table.AddRow("Smooth sub-cell scrolling", "[green]✓[/]", "[grey]rare[/]");
         table.AddRow("Legacy non-ANSI fallback", "[green]✓[/]", "varies");
         table.AddRow("Live perf HUD", "[green]✓[/]", "[grey]—[/]");
-        return new SpectreControl<S.Table>(table);
+        return table;
     }
 }

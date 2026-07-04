@@ -13,31 +13,17 @@ internal static class Verify
     public static int Run()
     {
         var failures = 0;
-        foreach (var example in ExampleCatalog.All)
+        foreach (var example in ExampleCatalog.All)   // the catalogue constructing them already exercised each ctor
         {
-            try
+            var missing = example.SourceFiles.Where(f => !SourceLoader.Exists(f)).ToArray();
+            if (missing.Length > 0)
             {
-                var control = example.Build();
-                var missing = example.SourceFiles.Where(f => !SourceLoader.Exists(f)).ToArray();
-                if (control is null)
-                {
-                    Console.WriteLine($"FAIL  {example.Title}: Build() returned null");
-                    failures++;
-                }
-                else if (missing.Length > 0)
-                {
-                    Console.WriteLine($"FAIL  {example.Title}: missing source [{string.Join(", ", missing)}]");
-                    failures++;
-                }
-                else
-                {
-                    Console.WriteLine($"PASS  {example.Category} › {example.Title}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"FAIL  {example.Title}: {ex.GetType().Name}: {ex.Message}");
+                Console.WriteLine($"FAIL  {example.Title}: missing source [{string.Join(", ", missing)}]");
                 failures++;
+            }
+            else
+            {
+                Console.WriteLine($"PASS  {example.Category} › {example.Title}");
             }
         }
 

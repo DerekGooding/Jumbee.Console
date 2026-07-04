@@ -2,15 +2,18 @@ namespace Jumbee.Console.Examples;
 
 using S = Spectre.Console;
 
-/// <summary>The landing page: the pitch and how Jumbee differs from other TUI toolkits.</summary>
-public sealed class WelcomeExample : ExampleBase
+/// <summary>The landing page: the pitch and how Jumbee differs from other TUI toolkits. It is a
+/// <see cref="SpectreControl{T}"/> hosting a Spectre panel, and also an <see cref="IExample"/> so the browser lists it.</summary>
+public sealed class WelcomeExample : SpectreControl<S.Panel>, IExample
 {
-    public override string Category => "Welcome";
-    public override string Title => "Why Jumbee.Console";
-    public override string Description =>
+    public WelcomeExample() : base(BuildPanel()) { }
+
+    public string Category => "Welcome";
+    public string Title => "Why Jumbee.Console";
+    public string Description =>
         "A retained-mode TUI core that speaks modern ANSI and renders with Spectre.Console — GUI-grade controls that stay simple and fast.";
 
-    public override IFocusable Build()
+    private static S.Panel BuildPanel()
     {
         var body = new S.Markup(
             "[bold #8fd0ff]Jumbee.Console[/] blends a [italic]retained-mode[/] core with modern ANSI input/output and " +
@@ -24,7 +27,7 @@ public sealed class WelcomeExample : ExampleBase
             "[grey]This browser is itself built from Jumbee's Tree, resizable SplitPanels and the MultiTabCodeEditor.\n" +
             "Pick an example on the left — its source is on the right. The source is the documentation.[/]");
 
-        var panel = new S.Panel(body)
+        return new S.Panel(body)
         {
             Header = new S.PanelHeader(" ◈ Welcome "),
             Border = S.BoxBorder.Rounded,
@@ -32,6 +35,5 @@ public sealed class WelcomeExample : ExampleBase
             Padding = new S.Padding(2, 1, 2, 1),
             Expand = true,
         };
-        return new SpectreControl<S.Panel>(panel);
     }
 }

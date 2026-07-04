@@ -149,12 +149,12 @@ public class SplitPanelTests
     [Fact]
     public void SurfacesFirstDividerSecond_ForRouting()
     {
-        var p = Make(out _, out _);
-        Assert.Equal(3, p.Rows);
-        Assert.Equal(1, p.Columns);
+        var p = Make(out _, out _);   // horizontal: panes laid out as columns
+        Assert.Equal(1, p.Rows);
+        Assert.Equal(3, p.Columns);
         Assert.Same(p.First, p[0, 0]);
-        Assert.Same(p.Divider, p[1, 0]);
-        Assert.Same(p.Second, p[2, 0]);
+        Assert.Same(p.Divider, p[0, 1]);
+        Assert.Same(p.Second, p[0, 2]);
     }
 
     [Fact]

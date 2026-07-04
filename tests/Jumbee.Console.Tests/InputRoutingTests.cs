@@ -52,6 +52,33 @@ public class InputRoutingTests
         typeof(UI).GetField("layout", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, root);
 
     [Fact]
+    public void CtrlArrows_Recurse_AcrossNestedHorizontalSplitPanels()
+    {
+        // Replicates the examples shell: three panes as nested horizontal SplitPanels under a status bar. Ctrl+arrows
+        // must descend into the nested split to move between panes (dividers are focus stops in between).
+        var tree = new Button("tree");
+        var middle = new Button("middle");
+        var source = new Button("source");
+        var status = new TextLabel(TextLabelOrientation.Horizontal, "status");   // non-focusable footer
+        var inner = new SplitPanel(SplitOrientation.Horizontal, middle, source, 8);
+        var outer = new SplitPanel(SplitOrientation.Horizontal, tree, inner, 8);
+        var root = new DockPanel(DockedControlPlacement.Bottom, status, outer);
+        ConsoleSnapshot.Render(root, 40, 8);
+        SetRoot(root);
+
+        static bool Reach(Button target, Action step)
+        {
+            for (var i = 0; i < 8 && !target.IsFocused; i++) step();
+            return target.IsFocused;
+        }
+
+        tree.Focus();
+        Assert.True(Reach(middle, UI.FocusRight));   // right crosses into the nested split's first pane
+        Assert.True(Reach(source, UI.FocusRight));   // and on to its second pane
+        Assert.True(Reach(tree, UI.FocusLeft));      // left crosses all the way back out to the tree
+    }
+
+    [Fact]
     public void CtrlArrows_NavigateSpatially_BetweenRootCells_AndWrap()
     {
         var left = new Button("L");
