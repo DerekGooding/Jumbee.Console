@@ -481,17 +481,24 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     public void OnInput(InputEvent inputEvent)
     {
-        if (inputEvent.Key == ScrollUpKey)
+        // Only claim the scroll key when this frame can actually scroll in that direction. Otherwise leave it
+        // unhandled so the wrapper forwards it inward — a frame with nothing to scroll (its content fills the
+        // viewport, e.g. a framed MultiTabCodeEditor) must not swallow the key that a nested scrollable wants.
+        if (inputEvent.Key == ScrollUpKey && CanScrollUp)
         {
             Top -= 1;
             inputEvent.Handled = true;
         }
-        else if (inputEvent.Key == ScrollDownKey)
+        else if (inputEvent.Key == ScrollDownKey && CanScrollDown)
         {
             Top += 1;
             inputEvent.Handled = true;
         }
     }
+
+    private bool IsScrollable => ControlContext.Size.Height > ViewportSize.Height;
+    private bool CanScrollUp => IsScrollable && _top > 0;
+    private bool CanScrollDown => IsScrollable && _top < ControlContext.Size.Height - ViewportSize.Height;
 
     public void Scroll(int n) => Top += n;
     

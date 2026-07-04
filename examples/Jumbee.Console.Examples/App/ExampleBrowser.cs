@@ -43,6 +43,19 @@ public sealed class ExampleBrowser
     /// <summary>The example tree (focus it so the arrows/Enter navigate examples).</summary>
     public Tree Tree => _tree;
 
+    // Cycle keyboard focus through the three panes (tree → live example → source editor), landing on a control that
+    // can actually be used/scrolled in each. Ctrl+arrows also move focus spatially; F6 is a simple, conflict-free
+    // cycle (Alt+arrows are taken by the editor's tab-switching and frame scrolling).
+    public void CyclePane(int direction)
+    {
+        var panes = new IFocusable?[] { _tree, _host, _source.ActiveEditor?.Editor };
+        for (var i = 0; i < panes.Length; i++)
+        {
+            _pane = ((_pane + direction) % panes.Length + panes.Length) % panes.Length;
+            if (panes[_pane] is { } target) { UI.SetFocus(target); return; }
+        }
+    }
+
     // Collapse/restore the left tree pane (its extent is the outer split's first-pane position; "collapsed" shrinks
     // it to the split's minimum).
     public void ToggleTree()
@@ -63,7 +76,7 @@ public sealed class ExampleBrowser
 
     private void Show(IExample example)
     {
-        _host.Show(example.Build());
+        _host.Show(example.Build(), example.Description);
         if (_hostFrame is not null) _hostFrame.Title = example.Title;
         _status.Current = $"{example.Category} › {example.Title}";
 
@@ -84,4 +97,5 @@ public sealed class ExampleBrowser
     private SplitPanel _treeSplit = null!, _editorSplit = null!;
     private bool _treeCollapsed, _editorCollapsed;
     private int _treeWidth = 28, _editorWidth = 62;
+    private int _pane;
 }

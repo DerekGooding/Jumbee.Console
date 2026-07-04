@@ -35,7 +35,7 @@ public sealed class StatusBar : RenderableControl
         var perf = $"frame {m.RenderTimeMsPeak * 1000:F0}µs · cpu {m.CpuUsagePercent:F1}% · " +
                    $"mem {m.WorkingSetBytes / 1048576.0:F0}MB · alloc {m.PeakAllocatedBytesPerFrame / 1024.0:F1}KB/f";
         var left = string.IsNullOrEmpty(_current) ? " Jumbee.Console Examples" : $" {_current}";
-        var hints = "Ctrl+G perf · Ctrl+B/E panes · Ctrl+Q quit ";
+        var hints = "F6 / Ctrl+← → pane · Ctrl+G perf · Ctrl+B/E collapse · Ctrl+Q quit ";
 
         var body = $"{left}    {perf}";
         // Right-align the hints when there's room; otherwise just concatenate and clip.

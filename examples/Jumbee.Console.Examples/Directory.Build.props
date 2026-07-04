@@ -1,0 +1,8 @@
+<Project>
+  <!-- The examples app is always built/run in Release (examples.cmd runs bin\Release\...). Default the
+       configuration to Release when none is specified, so `dotnet build`/`dotnet run` (without -c) produce the
+       Release output the run script expects. An explicit `-c Debug` still overrides this. -->
+  <PropertyGroup Condition="'$(Configuration)' == ''">
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
+</Project>
