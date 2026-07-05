@@ -10,3 +10,6 @@
 [submodule "ext/VtNetCore"]
 	path = ext/VtNetCore
 	url = https://github.com/allisterb/VtNetCore.git
+[submodule "ext/ConsolePlot"]
+	path = ext/ConsolePlot
+	url = https://github.com/allisterb/ConsolePlot.git
