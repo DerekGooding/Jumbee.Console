@@ -2,6 +2,7 @@ namespace Jumbee.Console;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using ConsolePlot.Drawing.Tools;
 using ConsolePlot.Plotting;
@@ -103,6 +104,46 @@ public class Plot : Control
             AddElement(plot => plot.AddBars(xs, ys, c, baseline, width));
         });
         return this;
+    }
+
+    /// <summary>
+    /// Adds a histogram of <paramref name="values"/> — the values are binned and each bin drawn as a touching bar
+    /// (bar height = bin count). <paramref name="bins"/> ≤ 0 picks a bin count automatically (√n, clamped);
+    /// <paramref name="color"/> defaults to the palette.
+    /// </summary>
+    public Plot AddHistogram(IReadOnlyList<double> values, int bins = 0, CColor? color = null)
+    {
+        UI.Invoke(() =>
+        {
+            var (mids, counts) = Histogram(values, bins);
+            if (mids.Length == 0) return;
+            var c = color ?? Palette[_seriesCount % Palette.Length];
+            // Width 1.0 so adjacent bins touch, as a histogram should.
+            AddElement(plot => plot.AddBars(mids, counts, c, 0, 1.0));
+        });
+        return this;
+    }
+
+    // Bins the finite values into equal-width buckets, returning each bin's midpoint (x) and count (bar height).
+    private static (double[] mids, double[] counts) Histogram(IReadOnlyList<double> values, int bins)
+    {
+        var finite = values.Where(v => !double.IsNaN(v) && !double.IsInfinity(v)).ToArray();
+        if (finite.Length == 0) return ([], []);
+
+        double min = finite.Min(), max = finite.Max();
+        if (bins <= 0) bins = Math.Clamp((int)Math.Ceiling(Math.Sqrt(finite.Length)), 1, 60);
+
+        // All values equal: a single bar at that value.
+        if (max <= min) return ([min], [finite.Length]);
+
+        double width = (max - min) / bins;
+        var counts = new double[bins];
+        foreach (var v in finite)
+            counts[Math.Clamp((int)((v - min) / width), 0, bins - 1)]++;   // the max value lands in the last bin
+
+        var mids = new double[bins];
+        for (int b = 0; b < bins; b++) mids[b] = min + (b + 0.5) * width;
+        return (mids, counts);
     }
 
     private void AddElement(Action<CPlot> config)

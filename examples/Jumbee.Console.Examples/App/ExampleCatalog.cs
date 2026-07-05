@@ -17,6 +17,7 @@ public static class ExampleCatalog
         new ScatterPlotExample(),
         new StemPlotExample(),
         new BarPlotExample(),
+        new HistogramExample(),
         new DialogExample(),
         new SplitPanelExample(),
         new SpectreTableExample(),
