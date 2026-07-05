@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup Label="Settings">
-    <Deterministic>true</Deterministic>
+    <Deterministic>false</Deterministic>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <NoWarn>NETSDK1233</NoWarn>

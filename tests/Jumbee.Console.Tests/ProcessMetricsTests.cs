@@ -67,6 +67,18 @@ public class ProcessMetricsTests
     }
 
     [Fact]
+    public void RecordFrame_RedrawPercent_CountsDrawnFrames()
+    {
+        var m = new ProcessMetrics(windowMs: 1000);
+        m.RecordFrame(renderMs: 1.0, periodMs: 10.0, renderAllocBytes: 0, redrawn: true);
+        m.RecordFrame(renderMs: 0.1, periodMs: 10.0, renderAllocBytes: 0, redrawn: false);
+        m.RecordFrame(renderMs: 0.1, periodMs: 10.0, renderAllocBytes: 0, redrawn: false);
+        m.RecordFrame(renderMs: 1.0, periodMs: 10.0, renderAllocBytes: 0, redrawn: true);
+
+        Assert.Equal(50.0, m.RedrawPercent, 3);   // 2 of 4 frames took the draw path
+    }
+
+    [Fact]
     public void CpuBurn_BetweenSamples_ShowsNonZeroCpu()
     {
         var m = new ProcessMetrics(windowMs: 1000);

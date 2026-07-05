@@ -33,6 +33,7 @@ public sealed class ProcessMetrics : IDisposable
         _frameRenderMs = new double[capacity];
         _framePeriodMs = new double[capacity];
         _frameAlloc = new long[capacity];
+        _frameRedrawn = new bool[capacity];
         _windowMs = windowMs;
         // dotnet.process.cpu.time is platform-guarded in the runtime; Environment.CpuUsage throws
         // PlatformNotSupportedException on Browser/WASI/tvOS/iOS(non-Catalyst). Mirror that guard.
@@ -95,6 +96,14 @@ public sealed class ProcessMetrics : IDisposable
     public long PeakAllocatedBytesPerFrame
     {
         get { long p = 0; for (int i = 0; i < _fCount; i++) if (_frameAlloc[i] > p) p = _frameAlloc[i]; return p; }
+    }
+
+    /// <summary>Percentage of retained frames that actually redrew the screen (took the full draw path) versus those
+    /// that idled (cheap resize-check only). The retained-mode headline: a mostly-static UI redraws only the few
+    /// frames where content changed, so this sits low and climbs toward 100 only under interaction/animation.</summary>
+    public double RedrawPercent
+    {
+        get { if (_fCount == 0) return 0; int n = 0; for (int i = 0; i < _fCount; i++) if (_frameRedrawn[i]) n++; return n * 100.0 / _fCount; }
     }
     #endregion
 
@@ -187,12 +196,15 @@ public sealed class ProcessMetrics : IDisposable
     /// <param name="renderMs">Wall time the draw/paint cycle took (high-resolution).</param>
     /// <param name="periodMs">Wall time since the previous frame started (for utilisation).</param>
     /// <param name="renderAllocBytes">Bytes allocated on the managed heap during the cycle.</param>
-    public void RecordFrame(double renderMs, double periodMs, long renderAllocBytes)
+    /// <param name="redrawn"><see langword="true"/> if this frame took the full draw path; <see langword="false"/>
+    /// for an idle frame. Feeds <see cref="RedrawPercent"/>.</param>
+    public void RecordFrame(double renderMs, double periodMs, long renderAllocBytes, bool redrawn = false)
     {
         int idx = (_fStart + _fCount) % _frameRenderMs.Length;
         _frameRenderMs[idx] = renderMs;
         _framePeriodMs[idx] = periodMs;
         _frameAlloc[idx] = renderAllocBytes < 0 ? 0 : renderAllocBytes;
+        _frameRedrawn[idx] = redrawn;
         if (_fCount < _frameRenderMs.Length) _fCount++;
         else _fStart = (_fStart + 1) % _frameRenderMs.Length;
 
@@ -267,6 +279,7 @@ public sealed class ProcessMetrics : IDisposable
     private readonly double[] _frameRenderMs;
     private readonly double[] _framePeriodMs;
     private readonly long[] _frameAlloc;
+    private readonly bool[] _frameRedrawn;
     private int _fStart;
     private int _fCount;
 

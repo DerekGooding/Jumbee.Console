@@ -5,6 +5,25 @@ plotter into a small plot framework, and where the drawing techniques come from.
 `reference/projects/plotext-master` (Python, feature-rich) and `reference/projects/termgraph-master` (Python,
 candlestick-only).
 
+## Status — checkpoint 2026-07-05
+
+**Shipped (all green, `--verify` 14/14):** the enabling refactors **A** (polymorphic `PlotElement`) and **B**
+(per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, histogram, candlestick**, plus
+**point annotations** (fg/bg labels). Jumbee `Plot` API: `AddSeries`/`AddScatter`/`AddStem`/`AddBars`/
+`AddHistogram`/`AddCandles`/`AddLabel`, `Configure*`, `Background`, plus `PlotBrush` and `PlotLabelAlign` enums.
+Browser examples: Plot, Scatter, Stem, Bar, Histogram, Candlestick, Annotations. Robustness: degenerate data padded
+in `PlotData` (no try/catch in render); bars tile exactly on resize (slot-based half-open ranges).
+
+**Where the code lives:** new plot types + primitives in the fork (`ext/ConsolePlot/.../Plotting/` — `PlotElement`,
+`Series`/`ScatterSeries`/`StemSeries`, `BarSeries`, `CandleSeries`, `PointLabel`; drawing in `GraphGraphics`).
+Jumbee wrapper: `src/Jumbee.Console/Controls/Plot/{Plot,PlotImage}.cs`. Examples:
+`examples/.../Examples/Controls/*PlotExample.cs`. Deep detail in the [[plot-control]] memory.
+
+**Recommended next slices (pick per value):** (1) **heatmap** — change B is done, so it's now unblocked (map
+value→`Pixel.Background`, a `HeatSeries`); (2) **grouped/stacked/horizontal bars** (more `DrawBars` reuse);
+(3) **box-and-whisker / error bars** (finish Phase 3); (4) the still-**deferred log axis** (invasive tick-machinery
+rewrite — lowest value/effort).
+
 ## What the base gives us
 
 ConsolePlot renders into a `ConsoleImage` — a grid of `Pixel(char, foreground)` cells — through public drawing
@@ -24,10 +43,10 @@ Two base constraints drive the design:
 
 ## Enabling changes
 
-**A. Polymorphic plot elements.** Generalize `Series` into `abstract PlotElement { Bounds GetDataBounds();
+**A. Polymorphic plot elements.** *(done)* Generalized `Series` into `abstract PlotElement { Bounds GetDataBounds();
 void Draw(GraphGraphics) }`. `PlotData` unions each element's bounds; `PlotRenderer` calls `element.Draw`. This
 one change lets every plot type share the axes/grid/tick/coordinate system. Line = `Series : PlotElement`;
-`ScatterSeries`/`StemSeries`/`BarSeries`/`CandleSeries`/… derive from it.
+`ScatterSeries`/`StemSeries`/`BarSeries`/`CandleSeries`/`PointLabel` derive from it.
 
 **B. Per-cell background on `Pixel`.** *(done)* Added `Pixel.BackgroundColor` + a `SetPixel` bg param + carried
 through `PlotImage`'s blit into Jumbee's `Character` (pixel bg wins over the plot's overall Background). Landed for

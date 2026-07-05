@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
-/// Manages the overall UI and provides a paint event for controls to subscribe to.
+/// Manages th overall UI and provides a paint event for controls to subscribe to.
 /// </summary>
 public static class UI
 {
@@ -419,12 +419,14 @@ public static class UI
         long allocBefore = GC.GetTotalAllocatedBytes();
         frameTimer.Restart();
 
+        bool drew = false;
         try
         {
             if (needsDraw)
             {
                 // Something changed: full draw (handles terminal resize, redraw, and draw timers).
                 needsDraw = false;
+                drew = true;
                 ConsoleManager.Draw();
             }
             else
@@ -451,7 +453,7 @@ public static class UI
             // Record the frame even if the draw/paint threw, so the metrics keep working (and exceptions/s surfaces
             // a per-frame throw) instead of silently freezing at 0.
             frameTimer.Stop();
-            ProcessMetrics.RecordFrame(frameTimer.Elapsed.TotalMilliseconds, periodMs, GC.GetTotalAllocatedBytes() - allocBefore);
+            ProcessMetrics.RecordFrame(frameTimer.Elapsed.TotalMilliseconds, periodMs, GC.GetTotalAllocatedBytes() - allocBefore, drew);
         }
     }
        

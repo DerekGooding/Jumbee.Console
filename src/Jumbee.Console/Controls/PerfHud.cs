@@ -63,6 +63,8 @@ public sealed class PerfHud : GlassPanel
         double renderPeakUs = m.RenderTimeMsPeak * 1000.0;
         double busy = m.BusyPercentAvg;
         double busyPeak = m.BusyPercentPeak;
+        // Fraction of frames that took the full draw path (vs idled) — a retained UI keeps this low.
+        double redraw = m.RedrawPercent;
         double cpu = m.CpuUsagePercent;
         // mem is a sticky gauge: the average tracks the current footprint and the peak is the window high-water mark.
         double memMb = m.WorkingSetBytesAvg / 1048576.0;
@@ -81,6 +83,7 @@ public sealed class PerfHud : GlassPanel
         g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{renderPeakUs,6:F0} µs[/]"));
         g.AddRow(new S.Markup("[grey62]busy[/]"), new S.Markup($"[#e8f0ff]{busy,6:F0} %[/]"));
         g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{busyPeak,6:F0} %[/]"));
+        g.AddRow(new S.Markup("[grey62]redraw[/]"), new S.Markup($"[#e8f0ff]{redraw,6:F0} %[/]"));
         g.AddRow(new S.Markup("[grey62]cpu[/]"), new S.Markup($"[#e8f0ff]{cpu,6:F1} %[/]"));
         g.AddRow(new S.Markup("[grey62]mem[/]"), new S.Markup($"[#e8f0ff]{memMb,6:F1} MB[/]"));
         g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{memPeakMb,6:F1} MB[/]"));
@@ -118,7 +121,7 @@ public sealed class PerfHud : GlassPanel
 
     #region Fields
     private const int HudWidth = 34;
-    private const int HudHeight = 13;
+    private const int HudHeight = 14;
     private const long RefreshMs = 250;
     private readonly Stopwatch _refresh = Stopwatch.StartNew();
     #endregion
