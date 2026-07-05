@@ -146,6 +146,23 @@ public class Plot : Control
         return (mids, counts);
     }
 
+    /// <summary>
+    /// Adds an OHLC candlestick series — each point drawn as a candle (high/low wick + open/close body) coloured by
+    /// direction. <paramref name="up"/> defaults to green (close ≥ open), <paramref name="down"/> to red.
+    /// </summary>
+    public Plot AddCandles(
+        IReadOnlyList<double> xs, IReadOnlyList<double> opens, IReadOnlyList<double> highs,
+        IReadOnlyList<double> lows, IReadOnlyList<double> closes, CColor? up = null, CColor? down = null)
+    {
+        UI.Invoke(() =>
+        {
+            var u = up ?? new CColor(80, 200, 120);
+            var d = down ?? new CColor(230, 90, 90);
+            AddElement(plot => plot.AddCandles(xs, opens, highs, lows, closes, u, d));
+        });
+        return this;
+    }
+
     private void AddElement(Action<CPlot> config)
     {
         _seriesCount++;

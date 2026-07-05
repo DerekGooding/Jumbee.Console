@@ -51,7 +51,8 @@ filled-area backgrounds. Small and contained. Gated behind Phase 4.
 - **Phase 2 — bars** (primitive #1): vertical bar *(done — `BarSeries` + `GraphGraphics.DrawBars` with eighth-block
   sub-cell tops)*; histogram *(done — `Plot.AddHistogram` bins in Jumbee, reuses `DrawBars` with width 1.0, no
   ConsolePlot change)*; **next:** grouped, stacked, horizontal.
-- **Phase 3 — financial/statistical** (#1, #2): candlestick (OHLC, flagship demo), box-and-whisker, error bars.
+- **Phase 3 — financial/statistical** (#1, #2): candlestick (OHLC) *(done — `CandleSeries` + `GraphGraphics.DrawCandles`,
+  half-cell box glyphs `│┃╽╿╻╹╷╵` ported from termgraph, up/down colour)*; **next:** box-and-whisker, error bars.
 - **Phase 4 — color grids** (change B): heatmap, matrix plot, confusion matrix.
 - **Phase 5 — decorators/utility:** text/shape/indicator annotations at data coords (have `DrawString`),
   datetime axis, subplots (compose `Plot` controls in a Jumbee `Grid`/`DockPanel` — no ConsolePlot change).
