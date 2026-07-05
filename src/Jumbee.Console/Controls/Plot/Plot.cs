@@ -42,7 +42,7 @@ public class Plot : Control
             var p = pen.Equals(default(PointPen))
                 ? new PointPen(SystemPointBrushes.Braille, Palette[_seriesCount % Palette.Length])
                 : pen;
-            AddSeriesCore(xs, ys, p);
+            AddElement(plot => plot.AddSeries(xs, ys, p));
         });
         return this;
     }
@@ -57,15 +57,43 @@ public class Plot : Control
         UI.Invoke(() =>
         {
             var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
-            AddSeriesCore(xs, ys, pen);
+            AddElement(plot => plot.AddSeries(xs, ys, pen));
         });
         return this;
     }
 
-    private void AddSeriesCore(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PointPen pen)
+    /// <summary>
+    /// Adds a scatter series — the points drawn as markers, without connecting lines. The <paramref name="brush"/>
+    /// sets the marker (and its sub-cell resolution); <paramref name="color"/> defaults to the palette.
+    /// </summary>
+    public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush = PlotBrush.Braille, CColor? color = null)
+    {
+        UI.Invoke(() =>
+        {
+            var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
+            AddElement(plot => plot.AddScatter(xs, ys, pen));
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a stem series — a vertical line from <paramref name="baseline"/> (default 0) to each point, capped with
+    /// a dot marker. <paramref name="color"/> defaults to the palette.
+    /// </summary>
+    public Plot AddStem(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, CColor? color = null, double baseline = 0)
+    {
+        UI.Invoke(() =>
+        {
+            var pen = new PointPen(SystemPointBrushes.Dot, color ?? Palette[_seriesCount % Palette.Length]);
+            AddElement(plot => plot.AddStem(xs, ys, pen, baseline));
+        });
+        return this;
+    }
+
+    private void AddElement(Action<CPlot> config)
     {
         _seriesCount++;
-        _config.Add(plot => plot.AddSeries(xs, ys, pen));
+        _config.Add(config);
         Rebuild();
     }
 
