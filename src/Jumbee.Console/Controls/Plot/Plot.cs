@@ -90,6 +90,21 @@ public class Plot : Control
         return this;
     }
 
+    /// <summary>
+    /// Adds a vertical bar series — each point drawn as a filled bar from <paramref name="baseline"/> (default 0) to
+    /// its value, with an eighth-block sub-cell top. <paramref name="color"/> defaults to the palette;
+    /// <paramref name="width"/> is the bar width as a fraction (0..1) of the spacing between bars.
+    /// </summary>
+    public Plot AddBars(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, CColor? color = null, double baseline = 0, double width = 0.8)
+    {
+        UI.Invoke(() =>
+        {
+            var c = color ?? Palette[_seriesCount % Palette.Length];
+            AddElement(plot => plot.AddBars(xs, ys, c, baseline, width));
+        });
+        return this;
+    }
+
     private void AddElement(Action<CPlot> config)
     {
         _seriesCount++;
@@ -158,19 +173,12 @@ public class Plot : Control
 
         consoleBuffer.Initialize();
 
-        // A plot needs room for the axes/labels and at least one series; ConsolePlot can also throw on degenerate
-        // data (e.g. a single point where min == max). Guard so a too-small or empty plot renders blank instead of
-        // crashing the UI thread.
+        // Skip when there's nothing to draw or no room for the axes/labels. ConsolePlot pads degenerate data ranges
+        // (a single point / flat series) internally, so Draw is safe for any non-empty data at a usable size — no
+        // try/catch needed here, and the UI frame loop is the ultimate backstop for anything unforeseen.
         if (_plot is null || w < MinWidth || h < MinHeight) return;
-        try
-        {
-            _plot.Draw();
-            _plot.Render();   // blits GetImage() into consoleBuffer (see PlotImage)
-        }
-        catch
-        {
-            consoleBuffer.Initialize();
-        }
+        _plot.Draw();
+        _plot.Render();   // blits GetImage() into consoleBuffer (see PlotImage)
     }
 
     private PlotImage? BuildPlot(int width, int height)

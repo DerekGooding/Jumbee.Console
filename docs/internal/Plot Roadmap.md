@@ -45,9 +45,11 @@ filled-area backgrounds. Small and contained. Gated behind Phase 4.
 
 ## Roadmap (phased by value ÷ effort)
 
-- **Phase 1 — line-engine wins:** Scatter (points), Stem (drop-to-axis + marker), Multiple series *(done)*,
-  Log axis (log `CoordinateConverter` + log ticks). ← **first slice: change A + Scatter + Stem.**
-- **Phase 2 — bars** (primitive #1): vertical/horizontal bar, histogram, grouped, stacked.
+- **Phase 1 — line-engine wins:** Scatter (points) *(done)*, Stem (drop-to-axis + marker) *(done)*, Multiple
+  series *(done)*, Log axis *(deferred — rewrites the coupled internal tick/bound-alignment pipeline for a
+  log-aware converter + decade ticks; medium payoff, unlocks nothing else, so pushed after bars)*.
+- **Phase 2 — bars** (primitive #1): vertical bar *(done — `BarSeries` + `GraphGraphics.DrawBars` with eighth-block
+  sub-cell tops)*; **next:** histogram (bin → bars), grouped, stacked, horizontal.
 - **Phase 3 — financial/statistical** (#1, #2): candlestick (OHLC, flagship demo), box-and-whisker, error bars.
 - **Phase 4 — color grids** (change B): heatmap, matrix plot, confusion matrix.
 - **Phase 5 — decorators/utility:** text/shape/indicator annotations at data coords (have `DrawString`),
