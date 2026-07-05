@@ -363,6 +363,7 @@ internal sealed class DialogButtonBar : RenderableControl
     #region Properties
     public override bool HandlesInput => true;
     protected override bool WantsMouse => true;
+    protected override bool RendersOwnFocus => true;   // highlights the active button
 
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Dialog", "Dialog buttons", "The dialog's actions.")
         .WithKey("← / →", "Move between buttons")

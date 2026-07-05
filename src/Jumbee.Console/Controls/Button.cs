@@ -39,6 +39,7 @@ public class Button : RenderableControl
 
     #region Properties
     public override bool HandlesInput => true;
+    protected override bool RendersOwnFocus => true;   // focus lightens the tile / bolds the label
 
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Button", text: "A clickable button.")
         .WithKey("Enter / Space", "Activate when focused")

@@ -449,6 +449,14 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     }
 
     public Size ViewportSize => GetViewportSize();
+
+    /// <summary>Whether this frame draws a focus-dependent border cue — i.e. it draws a visible border while focused,
+    /// on at least one edge. That's the case when it has a resting border, OR the theme supplies a focus-only border
+    /// (<see cref="IStyleTheme.FocusedFrameBorder"/>) that appears when focused. When true the wrapped control skips
+    /// the themed default focus tint and defers to this border; a fully borderless frame shows no cue, so the tint
+    /// applies instead.</summary>
+    internal bool ShowsFocusCue =>
+        (_focusedBorderStyle ?? _borderStyle) != BorderStyle.None && _borderPlacement != BorderPlacement.None;
     #endregion
 
     #region Methods    

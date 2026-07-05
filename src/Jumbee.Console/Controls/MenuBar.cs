@@ -30,6 +30,7 @@ public class MenuBar : RenderableControl
     #region Properties
     public override bool HandlesInput => true;
     protected override bool WantsMouse => true;
+    protected override bool RendersOwnFocus => true;   // highlights the active menu item
     #endregion
 
     #region Methods

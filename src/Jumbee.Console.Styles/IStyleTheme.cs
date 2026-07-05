@@ -61,6 +61,16 @@ public interface IStyleTheme
     /// <summary>A row/control under the pointer (background tint).</summary>
     Style Hover => Style.Bg(new Color(45, 45, 60));
 
+    /// <summary>The default focus cue applied to a focused control that isn't framed with a visible border and
+    /// doesn't indicate focus in its own way — so keyboard focus is always visible. Controls that show focus
+    /// themselves (buttons, tabs, editors with a cursor) opt out via <c>Control.RendersOwnFocus</c>. The colour is
+    /// used per <see cref="FocusStyle"/>.</summary>
+    Style Focus => Style.Bg(new Color(48, 56, 82));
+
+    /// <summary>How the default focus cue (see <see cref="Focus"/>) is drawn — a full tint, an edge ring, or an
+    /// underline. Defaults to <see cref="FocusStyle.Tint"/>.</summary>
+    FocusStyle FocusStyle => FocusStyle.Tint;
+
     /// <summary>A primary action surface at rest (e.g. a default button).</summary>
     Style Primary => Style.White | Style.Bg(new Color(40, 70, 120));
 

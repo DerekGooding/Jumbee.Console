@@ -45,6 +45,7 @@ public class TerminalEmulator : Control
 
     #region Properties
     public override bool HandlesInput => true;
+    protected override bool RendersOwnFocus => true;   // the terminal cursor shows focus
 
     /// <summary>The window title the running program set via OSC 0/2, or <see langword="null"/> if none. Hosts can
     /// bind this (or <see cref="TitleChanged"/>) to a frame title.</summary>

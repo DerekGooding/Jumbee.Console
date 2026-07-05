@@ -57,6 +57,7 @@ public class TextEditor : Control
 
     #region Properties
     public override bool HandlesInput => true;
+    protected override bool RendersOwnFocus => true;   // the caret/cursor shows focus
 
     /// <summary>The number of spaces inserted when the Tab key is pressed. Defaults to 4.</summary>
     public int TabWidth { get; set; } = 4;

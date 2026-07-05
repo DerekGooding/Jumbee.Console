@@ -34,6 +34,7 @@ public class Link : RenderableControl
 
     #region Properties
     public override bool HandlesInput => true;
+    protected override bool RendersOwnFocus => true;   // underlines/highlights on focus
 
     public string Text
     {

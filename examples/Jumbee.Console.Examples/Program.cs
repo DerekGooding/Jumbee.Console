@@ -10,6 +10,10 @@ internal static class Program
     {
         if (args.Contains("--verify")) { Environment.Exit(Verify.Run()); return; }
 
+        // Show keyboard focus as a border on the focused pane (not the default full-background tint). Set before
+        // building controls so they capture it.
+        UI.StyleTheme = new ExamplesTheme();
+
         // --- the three panes + footer (plain controls; the shell is wired up right here) ---
         var tree = new Tree(".NET · Jumbee.Console");
         var host = new ExampleHost();                 // swappable middle pane

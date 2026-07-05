@@ -35,6 +35,7 @@ public class SplitDivider : RenderableControl
 
     #region Properties
     public override bool HandlesInput => true;
+    protected override bool RendersOwnFocus => true;   // recolours the divider when focused (grabbed for resize)
     #endregion
 
     #region Methods

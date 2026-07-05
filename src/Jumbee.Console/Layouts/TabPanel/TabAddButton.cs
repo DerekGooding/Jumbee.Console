@@ -34,6 +34,7 @@ internal sealed class TabAddButton : RenderableControl
     #region Properties
     // Tag the button's cells with a mouse listener, so it receives hover/click as well as keyboard focus.
     protected override bool WantsMouse => true;
+    protected override bool RendersOwnFocus => true;   // underlines on focus
     #endregion
 
     #region Methods

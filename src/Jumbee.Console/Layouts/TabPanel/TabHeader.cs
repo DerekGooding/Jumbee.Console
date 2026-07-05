@@ -40,6 +40,7 @@ public class TabHeader : RenderableControl
 
     #region Properties
     public override bool HandlesInput => _isEnabled;
+    protected override bool RendersOwnFocus => true;   // underlines an inactive header on focus
 
     /// <summary>This tab's position among all tabs. Kept in sync by the owning <see cref="TabPanel"/>.</summary>
     public int Index => _index;

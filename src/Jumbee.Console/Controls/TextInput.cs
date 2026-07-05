@@ -28,6 +28,7 @@ public class TextInput : Control
 
     #region Properties
     public override bool HandlesInput => true;
+    protected override bool RendersOwnFocus => true;   // the text cursor shows focus
 
     /// <summary>The entered text (newlines stripped). Setting it moves the caret to the end and raises <see cref="Changed"/>.</summary>
     public string Text

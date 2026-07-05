@@ -25,6 +25,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{28E2EEB4-6314-439F-A73B-2B95203051D2}"
 	ProjectSection(SolutionItems) = preProject
 		..\build = ..\build
+		..\build.cmd = ..\build.cmd
 		..\examples.cmd = ..\examples.cmd
 		..\testdemo = ..\testdemo
 		..\testdemo.cmd = ..\testdemo.cmd

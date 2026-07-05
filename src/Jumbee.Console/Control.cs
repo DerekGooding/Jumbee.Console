@@ -24,6 +24,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         OnInitialization += Control_OnInitialization;
         OnFocus += Control_OnFocus;
         OnLostFocus += Control_OnLostFocus;
+        CaptureFocusCue();
     }
 
    
@@ -33,7 +34,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     public override Cell this[Position position]
     {
         get
-        {            
+        {
             if (position.X >= Size.Width || position.Y >= Size.Height)
             {
                 return emptyCell;
@@ -41,11 +42,44 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             else
             {
                 var cell = consoleBuffer[position];
+                // Default focus cue: make keyboard focus visible on a control that isn't showing it another way.
+                // Drawn here at composite time — no reflow, no re-render — like the composite/dialog background fills.
+                if (ShowsDefaultFocusCue) cell = ApplyFocusCue(cell, position);
                 // Attach this control as the cell's mouse listener so mouse events inside it are routed here
                 // (click-to-focus, hover, click). ConsoleGUI's mouse system hit-tests via the cell's listener.
                 return Focusable || WantsMouse ? cell.WithMouseListener(this, position) : cell;
             }
         }
+    }
+
+    // True when this control should paint the themed default focus cue: it is focused, doesn't render its own focus
+    // indication, and no frame is already showing the cue — either there's no frame, or the frame is borderless (a
+    // visible-border frame recolours its border on focus, so we defer to it).
+    private bool ShowsDefaultFocusCue =>
+        IsFocused && !RendersOwnFocus && (Frame is null || !Frame.ShowsFocusCue);
+
+    // Applies the themed focus cue to a cell, per the captured FocusStyle: Tint fills every unpainted cell, Ring
+    // fills only the outer-edge cells, Underline underlines the bottom row. Tint/Ring need a focus colour; Underline
+    // needs none. Preserves the cell's mouse listener.
+    private Cell ApplyFocusCue(Cell cell, Position position)
+    {
+        var ch = cell.Character;
+        switch (_focusStyle)
+        {
+            case FocusStyle.Underline:
+                if (position.Y == Size.Height - 1)
+                    ch = new Character(ch.Content, ch.Foreground, ch.Background,
+                        (ch.Decoration ?? Decoration.None) | Decoration.Underline, ch.IsCursor);
+                break;
+            case FocusStyle.Ring:
+                var onEdge = position.X == 0 || position.Y == 0 || position.X == Size.Width - 1 || position.Y == Size.Height - 1;
+                if (onEdge && ch.Background is null && _focusTint is { } ring) ch = ch.WithBackground(ring);
+                break;
+            default:   // Tint
+                if (ch.Background is null && _focusTint is { } tint) ch = ch.WithBackground(tint);
+                break;
+        }
+        return new Cell(ch, cell.MouseListener);
     }
     #endregion
 
@@ -162,6 +196,14 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <see cref="Focusable"/>, so it still receives hover/click (e.g. a non-focusable clickable Link).
     /// </summary>
     protected virtual bool WantsMouse => false;
+
+    /// <summary>
+    /// When <see langword="true"/>, this control indicates keyboard focus in its own way (e.g. a button's fill
+    /// change, a tab's underline, an editor's cursor), so the base class does <em>not</em> paint the themed default
+    /// focus tint over it. Override and return <see langword="true"/> on controls with their own focus styling; the
+    /// default (<see langword="false"/>) gives unstyled focusable controls an automatic, always-visible focus cue.
+    /// </summary>
+    protected virtual bool RendersOwnFocus => false;
 
     #region Mouse hooks (override to react; defaults are no-ops)
     protected virtual void OnMouseEnter() {}
@@ -297,8 +339,17 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     // changes flow through the control's own ApplyTheme (which re-measures and resizes), so a relayout follows.
     private void OnThemeChanged(object? sender, EventArgs e)
     {
+        CaptureFocusCue();
         ApplyTheme();
         Invalidate();
+    }
+
+    // Capture the themed default focus cue (colour + mode) once, off the render path. Read in the base constructor
+    // and on a runtime theme switch, like other themed values.
+    private void CaptureFocusCue()
+    {
+        _focusTint = UI.StyleTheme.Focus.BackgroundColor?.ToConsoleGUIColor();
+        _focusStyle = UI.StyleTheme.FocusStyle;
     }
     
     // Move focus here *exclusively*, the same as click-to-focus. Setting IsFocused directly would leave any
@@ -578,6 +629,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected internal uint paintRequests;
     protected readonly ConsoleBuffer consoleBuffer;
     protected readonly AnsiConsoleBuffer ansiConsole;
+    // The themed default focus cue (IStyleTheme.Focus background + IStyleTheme.FocusStyle mode), captured off the
+    // render path; applied to a focused control that shows focus no other way. Tint null = theme sets no focus bg.
+    private ConsoleGUI.Data.Color? _focusTint;
+    private FocusStyle _focusStyle;
     // Tracks which theme-token properties the caller explicitly set, so ApplyTheme re-themes only the rest.
     private readonly ThemeOverrides _themeOverrides = new();
 
