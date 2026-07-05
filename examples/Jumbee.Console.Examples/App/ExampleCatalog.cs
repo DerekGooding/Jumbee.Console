@@ -13,6 +13,7 @@ public static class ExampleCatalog
         new WelcomeExample(),
         new ButtonExample(),
         new ListBoxExample(),
+        new PlotExample(),
         new DialogExample(),
         new SplitPanelExample(),
         new SpectreTableExample(),

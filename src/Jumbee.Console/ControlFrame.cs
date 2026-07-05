@@ -509,7 +509,15 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private bool CanScrollDown => IsScrollable && _top < ControlContext.Size.Height - ViewportSize.Height;
 
     public void Scroll(int n) => Top += n;
-    
+
+    /// <summary>
+    /// Re-runs the frame's child layout — re-reads the wrapped control's <see cref="Control.FillsFrameViewport"/> and
+    /// re-establishes its size limits. Needed after a change that alters how the child should be sized but does not
+    /// itself change the child's size (so no redraw bubbles up to trigger a relayout): e.g. swapping a composite's
+    /// content between a scrollable control and a fill-to-viewport one.
+    /// </summary>
+    public void Relayout() => Initialize();
+
     protected override void Initialize()
     {       
         UI.Invoke(() => 

@@ -14,9 +14,20 @@ public sealed class ExampleHost : CompositeControl
     /// <paramref name="description"/>, replacing whatever was there.</summary>
     public void Show(IFocusable content, string description)
     {
+        // A fill-to-viewport example (e.g. Plot) must not be scrolled: fill the outer pane frame's viewport so the
+        // host is given a bounded height instead of the unbounded scroll height (which balloons it to the size
+        // clamp). Set before SetContent so the redraw it triggers re-reads FillsFrameViewport on the pane frame.
+        _fills = content is IExample { FillsPane: true };
         var header = new TextLabel(TextLabelOrientation.Horizontal, description);
         SetContent(new DockPanel(DockedControlPlacement.Top, header, Framed(content)));
+        // Swapping content doesn't change the host's own size (it's ballooned to the scroll clamp either way), so no
+        // relayout bubbles to the pane frame — force it to re-read FillsFrameViewport and re-bound the host.
+        Frame?.Relayout();
     }
+
+    // Reflects the current example: fill the pane frame's viewport for a fill-to-viewport example, otherwise keep the
+    // default scrolling behaviour so tall examples (lists, editors) scroll.
+    protected override bool FillsFrameViewport => _fills;
 
     // A scrollable Control (ListBox, editors…) needs a ControlFrame to scroll — the example is a bare control, so we
     // give it a borderless frame here (the pane's own frame supplies the visible border/title). Layouts arrange their
@@ -30,4 +41,5 @@ public sealed class ExampleHost : CompositeControl
     }
 
     private readonly Dictionary<Control, IFocusable> _framed = new();
+    private bool _fills;
 }

@@ -3,6 +3,7 @@
     <ProjectReference Include="..\..\ext\VtNetCore\VtNetCore\VtNetCore.csproj" />
     <ProjectReference Include="..\Jumbee.Console.Styles\Jumbee.Console.Styles.csproj" />
     <ProjectReference Include="..\..\ext\C-sharp-console-gui-framework\ConsoleGUI\ConsoleGUI.csproj" />
+    <ProjectReference Include="..\..\ext\ConsolePlot\src\ConsolePlot\ConsolePlot.csproj" />
     <ProjectReference Include="..\..\ext\NTokenizers.Extensions.Spectre.Console\src\NTokenizers.Extensions.Spectre.Console\NTokenizers.Extensions.Spectre.Console.csproj" />
     <ProjectReference Include="..\..\ext\RazorConsole.Core.Syntax\RazorConsole.Core.Syntax.csproj" />
     <ProjectReference Include="..\..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj" />
@@ -26,7 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Jumbee.Console.Tests"/>    
+    <InternalsVisibleTo Include="Jumbee.Console.Tests" />    
   </ItemGroup>
 
 </Project>

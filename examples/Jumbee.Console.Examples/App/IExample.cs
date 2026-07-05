@@ -22,4 +22,10 @@ public interface IExample : IFocusable
     /// <summary>Source file names shown read-only in the right pane; resolved against the embedded resources by
     /// <see cref="SourceLoader"/>. Defaults to this type's own <c>.cs</c> file.</summary>
     IReadOnlyList<string> SourceFiles => [GetType().Name + ".cs"];
+
+    /// <summary>When <see langword="true"/>, the example re-fits itself to the pane and must not be scrolled (e.g.
+    /// <see cref="Plot"/>): the host fills the frame viewport instead of giving the example unbounded scroll height
+    /// (which would balloon a fill-to-viewport control to the size clamp). Defaults to <see langword="false"/> — the
+    /// normal scrollable example.</summary>
+    bool FillsPane => false;
 }
