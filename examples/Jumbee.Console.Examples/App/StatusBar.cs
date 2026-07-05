@@ -32,8 +32,13 @@ public sealed class StatusBar : RenderableControl
         var width = Math.Max(1, maxWidth);
         var m = UI.ProcessMetrics;
 
-        var perf = $"frame {m.RenderTimeMsPeak * 1000:F0}µs · cpu {m.CpuUsagePercent:F1}% · " +
-                   $"mem {m.WorkingSetBytes / 1048576.0:F0}MB · alloc {m.PeakAllocatedBytesPerFrame / 1024.0:F1}KB/f";
+        // Both mem and alloc show the windowed AVERAGE with the rolling PEAK in parens. For alloc the average is the
+        // "is it flat" number (near-zero even at fullscreen once a resize burst ages out); for mem — a sticky gauge —
+        // the average tracks the current footprint and the peak is the high-water mark within the window.
+        var perf = $"frame {m.RenderTimeMsAvg * 1000:F0}µs (peak {m.RenderTimeMsPeak * 1000:F0}) · " +
+                   $"busy {m.BusyPercentAvg:F0}% (peak {m.BusyPercentPeak:F0}) · cpu {m.CpuUsagePercent:F1}% · " +
+                   $"mem {m.WorkingSetBytesAvg / 1048576.0:F0}MB (peak {m.WorkingSetBytesPeak / 1048576.0:F0}) · " +
+                   $"alloc {m.AllocatedBytesPerFrame / 1024.0:F1}KB/f (peak {m.PeakAllocatedBytesPerFrame / 1024.0:F0})";
         var left = string.IsNullOrEmpty(_current) ? " Jumbee.Console Examples" : $" {_current}";
         var hints = "Ctrl+← → pane · Ctrl+G perf · Ctrl+B/E collapse · Ctrl+Q quit ";
 

@@ -68,6 +68,24 @@ public sealed class ProcessMetrics : IDisposable
         }
     }
 
+    /// <summary>Mean UI-thread utilisation over the retained frames (0..100) — the typical busy fraction, which
+    /// stays low for a retained UI while <see cref="BusyPercentPeak"/> spikes on a burst frame.</summary>
+    public double BusyPercentAvg
+    {
+        get
+        {
+            double total = 0; int n = 0;
+            for (int i = 0; i < _fCount; i++)
+            {
+                double period = _framePeriodMs[i];
+                if (period <= 0) continue;
+                total += Math.Min(100, _frameRenderMs[i] / period * 100.0);
+                n++;
+            }
+            return n > 0 ? total / n : 0;
+        }
+    }
+
     /// <summary>Mean bytes allocated on the managed heap per draw/paint cycle. The headline retained-mode number:
     /// an idle UI allocates ~nothing per frame.</summary>
     public double AllocatedBytesPerFrame => Avg(_frameAlloc);
@@ -98,8 +116,25 @@ public sealed class ProcessMetrics : IDisposable
         }
     }
 
-    /// <summary>Physical memory mapped to the process (<see cref="Environment.WorkingSet"/>), in bytes.</summary>
+    /// <summary>Physical memory mapped to the process (<see cref="Environment.WorkingSet"/>) right now, in bytes —
+    /// an instantaneous gauge, not a rate. Use <see cref="WorkingSetBytesAvg"/>/<see cref="WorkingSetBytesPeak"/>
+    /// for the windowed figures.</summary>
     public long WorkingSetBytes => Environment.WorkingSet;
+
+    /// <summary>Mean working set over the retained snapshots (sampled once per frame), in bytes. Since the working
+    /// set is sticky, this tracks close to the current value — a resize that grows it lifts the average and it stays
+    /// up (unlike the alloc average, which falls back once the burst frame ages out).</summary>
+    public double WorkingSetBytesAvg
+    {
+        get { if (_count == 0) return WorkingSetBytes; long t = 0; for (int i = 0; i < _count; i++) t += At(i).WorkingSet; return (double)t / _count; }
+    }
+
+    /// <summary>Highest working set over the retained snapshots, in bytes — the footprint high-water mark within the
+    /// window (a resize/paste burst pushes it up and it lingers until it ages out).</summary>
+    public long WorkingSetBytesPeak
+    {
+        get { long p = 0; for (int i = 0; i < _count; i++) { var w = At(i).WorkingSet; if (w > p) p = w; } return p; }
+    }
 
     /// <summary>Current managed heap size (<see cref="GC.GetTotalMemory(bool)"/>), in bytes.</summary>
     public long ManagedHeapBytes => GC.GetTotalMemory(forceFullCollection: false);
@@ -173,7 +208,8 @@ public sealed class ProcessMetrics : IDisposable
         double cpuMs = _cpuSupported ? Environment.CpuUsage.TotalTime.TotalMilliseconds : 0;
         double gcPauseMs = GC.GetTotalPauseDuration().TotalMilliseconds;
         long exceptions = Interlocked.Read(ref _exceptions);
-        Push(new Snapshot(timestamp, cpuMs, allocated, gcPauseMs, exceptions));
+        long workingSet = Environment.WorkingSet;                            // instantaneous gauge; cheap, no allocation
+        Push(new Snapshot(timestamp, cpuMs, allocated, gcPauseMs, exceptions, workingSet));
     }
 
     public void Dispose()
@@ -241,13 +277,14 @@ public sealed class ProcessMetrics : IDisposable
     #endregion
 
     #region Types
-    private readonly struct Snapshot(long timestamp, double cpuMs, long allocated, double gcPauseMs, long exceptions)
+    private readonly struct Snapshot(long timestamp, double cpuMs, long allocated, double gcPauseMs, long exceptions, long workingSet)
     {
         public readonly long Timestamp = timestamp;     // Stopwatch.GetTimestamp ticks (high resolution)
         public readonly double CpuMs = cpuMs;
         public readonly long Allocated = allocated;
         public readonly double GcPauseMs = gcPauseMs;
         public readonly long Exceptions = exceptions;
+        public readonly long WorkingSet = workingSet;   // Environment.WorkingSet at sample time, in bytes
     }
     #endregion
 }
