@@ -42,12 +42,42 @@ public class Plot : Control
             var p = pen.Equals(default(PointPen))
                 ? new PointPen(SystemPointBrushes.Braille, Palette[_seriesCount % Palette.Length])
                 : pen;
-            _seriesCount++;
-            _config.Add(plot => plot.AddSeries(xs, ys, p));
-            Rebuild();
+            AddSeriesCore(xs, ys, p);
         });
         return this;
     }
+
+    /// <summary>
+    /// Adds a data series drawn with the given <paramref name="brush"/> (its sub-cell resolution — Braille 2×4,
+    /// Quadrant 2×2, the rest 1×1 — sets how smooth the line looks). When <paramref name="color"/> is
+    /// <see langword="null"/> a colour is taken from the control's palette, cycling by series index.
+    /// </summary>
+    public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, CColor? color = null)
+    {
+        UI.Invoke(() =>
+        {
+            var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
+            AddSeriesCore(xs, ys, pen);
+        });
+        return this;
+    }
+
+    private void AddSeriesCore(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PointPen pen)
+    {
+        _seriesCount++;
+        _config.Add(plot => plot.AddSeries(xs, ys, pen));
+        Rebuild();
+    }
+
+    private static IPointBrush BrushFor(PlotBrush brush) => brush switch
+    {
+        PlotBrush.Braille => SystemPointBrushes.Braille,
+        PlotBrush.Quadrant => SystemPointBrushes.Quadrant,
+        PlotBrush.Block => SystemPointBrushes.Block,
+        PlotBrush.Dot => SystemPointBrushes.Dot,
+        PlotBrush.Star => SystemPointBrushes.Star,
+        _ => SystemPointBrushes.Braille,
+    };
 
     /// <summary>Records an arbitrary configuration step (applied to the underlying plot on every rebuild).</summary>
     public Plot Configure(Action<CPlot> configure)
@@ -144,4 +174,22 @@ public class Plot : Control
     private bool _dirty = true;
     private CColor? _background;
     #endregion
+}
+
+/// <summary>
+/// Selects the glyph set (and thus the sub-cell resolution) a <see cref="Plot"/> series is drawn with. Higher
+/// resolution packs more plotted points into each character cell for a smoother line.
+/// </summary>
+public enum PlotBrush
+{
+    /// <summary>Braille dots — 2×4 sub-cells per character (8 points/cell), the smoothest. The default.</summary>
+    Braille,
+    /// <summary>Quadrant blocks — 2×2 sub-cells per character (4 points/cell), solid blocks rather than dots.</summary>
+    Quadrant,
+    /// <summary>A solid full block <c>█</c> per point (1×1).</summary>
+    Block,
+    /// <summary>A <c>•</c> per point (1×1).</summary>
+    Dot,
+    /// <summary>A <c>*</c> per point (1×1).</summary>
+    Star,
 }
