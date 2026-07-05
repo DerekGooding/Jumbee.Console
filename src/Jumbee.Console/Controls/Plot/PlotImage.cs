@@ -36,7 +36,9 @@ internal sealed class PlotImage : CPlot
             {
                 var pixel = image.buffer[y, x];
                 var ch = pixel.Character == '\0' ? ' ' : pixel.Character;
-                _buffer.Write(new Position(x, row), new Character(ch, pixel.ForegroundColor, Background));
+                // A pixel's own background (e.g. an annotation label) wins; otherwise the plot's overall Background.
+                var bg = pixel.BackgroundColor ?? Background;
+                _buffer.Write(new Position(x, row), new Character(ch, pixel.ForegroundColor, bg));
             }
         }
     }

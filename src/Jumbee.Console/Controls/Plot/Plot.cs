@@ -163,6 +163,30 @@ public class Plot : Control
         return this;
     }
 
+    /// <summary>
+    /// Adds a text annotation anchored to the data point (<paramref name="x"/>, <paramref name="y"/>) — e.g. labelling
+    /// a candle or data point. <paramref name="fg"/> defaults to white; <paramref name="bg"/> is optional (transparent
+    /// when null). <paramref name="dx"/>/<paramref name="dy"/> nudge the label in cells (dy &gt; 0 = above the point);
+    /// <paramref name="align"/> anchors it horizontally. Does not rescale the axes.
+    /// </summary>
+    public Plot AddLabel(double x, double y, string text, CColor? fg = null, CColor? bg = null, PlotLabelAlign align = PlotLabelAlign.Center, int dx = 0, int dy = 1)
+    {
+        UI.Invoke(() =>
+        {
+            var f = fg ?? CColor.White;
+            var a = align switch
+            {
+                PlotLabelAlign.Left => LabelAlignment.Left,
+                PlotLabelAlign.Right => LabelAlignment.Right,
+                _ => LabelAlignment.Center,
+            };
+            // A label is not a palette series, so it doesn't advance the colour cycle — add its config directly.
+            _config.Add(plot => plot.AddLabel(x, y, text, f, bg, a, dx, dy));
+            Rebuild();
+        });
+        return this;
+    }
+
     private void AddElement(Action<CPlot> config)
     {
         _seriesCount++;
@@ -286,4 +310,15 @@ public enum PlotBrush
     Dot,
     /// <summary>A <c>*</c> per point (1×1).</summary>
     Star,
+}
+
+/// <summary>Horizontal anchoring of a <see cref="Plot"/> annotation label relative to its point.</summary>
+public enum PlotLabelAlign
+{
+    /// <summary>The text starts at the point and runs right.</summary>
+    Left,
+    /// <summary>The text is centred on the point.</summary>
+    Center,
+    /// <summary>The text ends at the point.</summary>
+    Right,
 }

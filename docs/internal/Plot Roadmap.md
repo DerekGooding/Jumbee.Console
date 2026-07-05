@@ -29,9 +29,9 @@ void Draw(GraphGraphics) }`. `PlotData` unions each element's bounds; `PlotRende
 one change lets every plot type share the axes/grid/tick/coordinate system. Line = `Series : PlotElement`;
 `ScatterSeries`/`StemSeries`/`BarSeries`/`CandleSeries`/… derive from it.
 
-**B. Per-cell background on `Pixel`.** Add `Color? Background` + a `SetPixel` overload, carried through
-`PlotImage`'s blit into Jumbee's `Character` (which already has `Background`). Unlocks heatmaps/matrix/image and
-filled-area backgrounds. Small and contained. Gated behind Phase 4.
+**B. Per-cell background on `Pixel`.** *(done)* Added `Pixel.BackgroundColor` + a `SetPixel` bg param + carried
+through `PlotImage`'s blit into Jumbee's `Character` (pixel bg wins over the plot's overall Background). Landed for
+point annotations (labels with fg/bg); also unblocks the Phase-4 heatmap/matrix/image family.
 
 ## Drawing primitives to add (in the fork)
 
@@ -54,8 +54,9 @@ filled-area backgrounds. Small and contained. Gated behind Phase 4.
 - **Phase 3 — financial/statistical** (#1, #2): candlestick (OHLC) *(done — `CandleSeries` + `GraphGraphics.DrawCandles`,
   half-cell box glyphs `│┃╽╿╻╹╷╵` ported from termgraph, up/down colour)*; **next:** box-and-whisker, error bars.
 - **Phase 4 — color grids** (change B): heatmap, matrix plot, confusion matrix.
-- **Phase 5 — decorators/utility:** text/shape/indicator annotations at data coords (have `DrawString`),
-  datetime axis, subplots (compose `Plot` controls in a Jumbee `Grid`/`DockPanel` — no ConsolePlot change).
+- **Phase 5 — decorators/utility:** point text annotations with fg/bg *(done — `PointLabel` + change B)*;
+  **next:** shape/indicator annotations, datetime axis, subplots (compose `Plot` controls in a Jumbee
+  `Grid`/`DockPanel` — no ConsolePlot change).
 
 ## Jumbee integration
 
