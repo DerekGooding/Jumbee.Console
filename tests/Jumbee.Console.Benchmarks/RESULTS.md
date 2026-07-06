@@ -192,5 +192,42 @@ frequency (each control's `Write` previously allocated both per frame).
 
 ---
 
+## 7. Syntax-highlight baseline — the C# editor burst (Phase 0)
+
+`SyntaxHighlightBenchmarks` measures the highlight burst the editor pays on every document switch
+(MultiTabCodeEditor source pane re-highlights the whole file). A synthetic ~450-line C# document. The current
+path: ColorCode tokenizes → `SpectreMarkupFormatter.Format` builds a Spectre **markup string** →
+`ansiConsole.Markup(str)` **re-parses** it into segments → the buffer applies them (the markup string is parsed
+twice). Profile width is inflated so Spectre never word-wraps (mirrors `TextEditor.WriteText`).
+
+| Benchmark        | Mean     | Allocated | Notes |
+|------------------|---------:|----------:|-------|
+| FormatCSharp     | 5.69 ms  | 3.13 MB   | tokenize + build markup string only |
+| HighlightCSharp  | 7.62 ms  | 5.38 MB   | **full editor burst**: format + re-parse + apply |
+
+The re-parse + segment apply adds **+2.25 MB / +1.9 ms** on top of the format — the markup string is a pure
+intermediate. Killing it (Phase 1: direct-segment formatter, no markup string / no `Markup.Escape` / no re-parse)
+targets that delta plus the escape/`ToString`/`OrderBy` allocations inside `Format`. This is the "before" number.
+
+### Phase 1 result — `SpectreSegmentFormatter` (direct segments)
+
+`SpectreSegmentFormatter` (ext/RazorConsole.Core.Syntax) subclasses `CodeColorizerBase` and emits Spectre
+`Segment`s straight into a reused `List<Segment>` — no markup string, no `Markup.Escape`, no Spectre re-parse.
+The editor applies them via the new `AnsiConsoleBuffer.Write(IReadOnlyList<Segment>)` (same `_Write` path: wrap,
+`\n`, cursor). `TextEditor` now uses it for every ColorCode language (C#, Markdown, TS, SQL, HTML, CSS, XML).
+
+| Benchmark               | Mean (before → after) | Allocated (before → after) | Δ alloc |
+|-------------------------|-----------------------|----------------------------|--------:|
+| Format only             | 5.69 → 4.95 ms        | 3.13 → 2.95 MB             | −6%     |
+| **Full burst**          | 7.06 → **5.07 ms**    | 5.38 → **2.95 MB**         | **−45%**|
+
+The whole re-parse+apply cost is gone: the full-burst number (2.95 MB) now **equals** the format-only number —
+the buffer apply adds ~0 allocation (was +2.25 MB). Time −28%, and Gen2 collections drop to zero. Remaining
+2.95 MB is inside ColorCode tokenizing + the per-token `content.ToString()` and `scopes.OrderBy(...).ToArray()`
+(Phase 2 levers). Equivalence is locked by `SyntaxFormatterEquivalenceTests` (C#/HTML/SQL render a byte-for-byte
+identical buffer via both formatters); 501 Jumbee tests + 14 examples green.
+
+---
+
 **Gap for a future experiment:** no wrap-heavy render workload yet (RenderParagraph / RenderLog with long wrapped
 text) — the slice-bound case where the section 2 `Segment` change should show its largest win.

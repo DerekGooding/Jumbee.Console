@@ -627,28 +627,28 @@ public class TextEditor : Control
                 ansiConsole.Write(text); 
                 break;
             case Language.Markdown:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.Markdown, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Markdown, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.CSharp:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.CSharp, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.CSharp, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.TypeScript:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.Typescript, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Typescript, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Sql:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.Sql, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Sql, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Json:
                 ansiConsole.WriteJson(text);
                 break;
             case Language.Html:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.Html, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Html, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Css:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.Css, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Css, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Xml:
-                ansiConsole.Markup(ccFormatter.Format(text, Languages.Xml, ccSyntaxTheme, ccSyntaxOptions));
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Xml, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Yaml:
                 ansiConsole.WriteYaml(text);
@@ -702,7 +702,7 @@ public class TextEditor : Control
     // The selection highlight background (captured from the theme in ApplyTheme), or null if the theme sets none.
     private ConsoleGUI.Data.Color? _selectionBg;
 
-    SpectreMarkupFormatter ccFormatter = new SpectreMarkupFormatter() ;
+    SpectreSegmentFormatter ccFormatter = new SpectreSegmentFormatter();
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
     SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0,   };
     #endregion

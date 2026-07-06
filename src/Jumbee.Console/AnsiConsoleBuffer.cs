@@ -99,6 +99,23 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         }
     }
 
+    /// <summary>
+    /// Applies pre-rendered segments to the buffer, bypassing markup parsing and <see cref="IRenderable"/>
+    /// rendering. Used by syntax highlighters (see <c>SpectreSegmentFormatter</c>) that emit styled
+    /// <see cref="Segment"/>s directly. Honours <see cref="marshal"/> and <see cref="wrap"/> like <see cref="Write(IRenderable)"/>.
+    /// </summary>
+    public void Write(IReadOnlyList<Segment> segments)
+    {
+        if (marshal)
+        {
+            UI.Invoke(() => _Write(segments));
+        }
+        else
+        {
+            _Write(segments);
+        }
+    }
+
     // RenderOptions is immutable and depends only on the (fixed) capabilities and the current buffer size, so cache
     // it and rebuild only when the buffer is resized — avoiding a per-render RenderOptions allocation on every frame.
     private RenderOptions GetRenderOptions()
