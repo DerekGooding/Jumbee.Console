@@ -227,6 +227,55 @@ the buffer apply adds ~0 allocation (was +2.25 MB). Time −28%, and Gen2 collec
 (Phase 2 levers). Equivalence is locked by `SyntaxFormatterEquivalenceTests` (C#/HTML/SQL render a byte-for-byte
 identical buffer via both formatters); 501 Jumbee tests + 14 examples green.
 
+### Phase 2 result — zero-copy slices + skip-sort + single-pass ExpandTabs
+
+Three cleanups in `SpectreSegmentFormatter`, all keeping the byte-for-byte equivalence:
+- **Per-token zero-copy slice.** `Write` now carries the chunk as `ReadOnlyMemory<char>`; each token is a slice of
+  it (`new Segment(ReadOnlyMemory<char>, ...)`, the internal zero-copy ctor) instead of `content.ToString()` — no
+  per-token string. (Required un-signing the Spectre fork so the unsigned `RazorConsole.Core.Syntax` can be an
+  `[InternalsVisibleTo]` friend; the `Jumbee.Console` friend entry was dropped — it uses only public API and the
+  extra internals collided with `ConsoleGUI` types.)
+- **Skip the OrderBy.** `scopes.OrderBy(s => s.Index).ToArray()` (a LINQ enumerator + array per scope node) runs
+  only when an alloc-free O(n) `IsSortedByIndex` scan says the siblings aren't already ordered (the common case is).
+- **Single-pass `ExpandTabs`.** Was 5 allocations (`new string(' ', w)` + `ToString()` + 3 chained `.Replace()`);
+  now one `string.Create` pass that only expands `\t` (newline normalization was redundant — the buffer handles
+  `\r`/`\n`), and **zero** allocation when a run has no tabs. Editor uses `TabWidth == 0` so this never fires there,
+  but it's now covered by `SegmentFormatter_ExpandsTabs_SameAsMarkupFormatter`.
+
+| Benchmark      | §7 Phase 1 | Phase 2   | Δ (P2) | vs original |
+|----------------|-----------:|----------:|-------:|------------:|
+| Format only    | 2.95 MB    | 2.73 MB   | −7%    | 3.13 → 2.73 |
+| **Full burst** | 2.95 MB    | **2.73 MB** | −7%  | **5.38 → 2.73 MB (−49%)** |
+
+Gen0 also drops (734 → 680 /1k ops). The residual 2.73 MB is dominated by ColorCode's own tokenization — which
+was a NuGet package, so §8 vendors and optimizes it.
+
+## 8. Vendored ColorCode.Core + tokenizer optimizations
+
+ColorCode.Core 2.0.15 (the C# tokenizer, previously a NuGet `PackageReference`) is now vendored at
+`ext/ColorCode.Core` (net10) so it can be modified. An **absolute** golden test (`CSharpHighlightGoldenTests`,
+SHA-256 of the full highlighted buffer captured from the NuGet build) guards every change — the markup-vs-segment
+equivalence test can't, since both run the same ColorCode. Four changes:
+- **`RegexOptions.Compiled`** on the per-language `Regex` (`LanguageCompiler`). It's cached (built once, reused on
+  every highlight), so the one-time JIT cost is amortized. **This is the headline: it ~halves highlight time.**
+- **Lazy `Scope.Children`** — was a `new List<Scope>()` in *every* `Scope` ctor; most scopes are leaves. Allocate
+  on first `AddChild`, reads return a shared empty list.
+- **Shared empty scope list** — plain (no-scope) fragments passed `new List<Scope>()`; now `Array.Empty<Scope>()`.
+- **Zero-copy fragments** — the parse handler signature changed `string` → `ReadOnlyMemory<char>`
+  (`ILanguageParser`/`CodeColorizerBase.Write`/both formatters); `LanguageParser` hands out `sourceCode.AsMemory(..)`
+  slices instead of `Substring(..)`. `SpectreSegmentFormatter` tokens are now slices of the *original* source.
+
+| Benchmark      | §7 P2 alloc | §8 alloc | §7 P2 time | §8 time | vs original |
+|----------------|------------:|---------:|-----------:|--------:|------------:|
+| Format only    | 2.73 MB     | 2.57 MB  | ~5 ms      | 2.60 ms | 3.13 → 2.57 MB |
+| **Full burst** | 2.73 MB     | **2.66 MB** | 5.93 ms | **2.66 ms** | **5.38 → 2.66 MB (−51%), 7.06 → 2.66 ms (−62%)** |
+
+Time is the big win here (Compiled regex); the alloc delta is small because the substrings were a minor fraction —
+the remaining 2.66 MB is the .NET regex engine's per-match `Match`/`Group`/`Capture` objects plus inherent
+`Segment` production, both inherent to a runtime-built regex + segment pipeline (`RegexOptions.NonBacktracking`
+isn't usable — the language regexes use lookarounds). 503 Jumbee tests + 14 examples green; golden hash unchanged
+across all four changes.
+
 ---
 
 **Gap for a future experiment:** no wrap-heavy render workload yet (RenderParagraph / RenderLog with long wrapped

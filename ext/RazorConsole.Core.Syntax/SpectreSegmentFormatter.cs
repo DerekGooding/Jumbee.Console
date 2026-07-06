@@ -48,17 +48,19 @@ public sealed class SpectreSegmentFormatter : CodeColorizerBase
         return _segments;
     }
 
-    protected override void Write(string parsedSourceCode, IList<Scope> scopes)
+    protected override void Write(ReadOnlyMemory<char> parsedSourceCode, IList<Scope> scopes)
     {
         if (parsedSourceCode.Length == 0)
         {
             return;
         }
 
-        AppendSegment(parsedSourceCode.AsSpan(), scopes, _currentTheme.DefaultStyle);
+        // parsedSourceCode is already a zero-copy slice of the original source string (no per-fragment Substring);
+        // every token becomes a further slice of it.
+        AppendSegment(parsedSourceCode, scopes, _currentTheme.DefaultStyle);
     }
 
-    private void AppendSegment(ReadOnlySpan<char> content, IList<Scope> scopes, SpectreStyle parentStyle)
+    private void AppendSegment(ReadOnlyMemory<char> content, IList<Scope> scopes, SpectreStyle parentStyle)
     {
         if (scopes is null || scopes.Count == 0)
         {
@@ -66,17 +68,21 @@ public sealed class SpectreSegmentFormatter : CodeColorizerBase
             return;
         }
 
-        var ordered = scopes.OrderBy(static scope => scope.Index).ToArray();
+        // ColorCode usually emits sibling scopes already ordered by Index; only pay the OrderBy + array allocation
+        // when they aren't. The sorted check is an alloc-free O(n) scan.
+        var ordered = IsSortedByIndex(scopes) ? scopes : scopes.OrderBy(static scope => scope.Index).ToArray();
+        var length = content.Length;
         var position = 0;
-        foreach (var scope in ordered)
+        for (var i = 0; i < ordered.Count; i++)
         {
-            var relativeIndex = Math.Clamp(scope.Index, 0, content.Length);
+            var scope = ordered[i];
+            var relativeIndex = Math.Clamp(scope.Index, 0, length);
             if (relativeIndex > position)
             {
                 AppendStyled(content.Slice(position, relativeIndex - position), parentStyle);
             }
 
-            var scopeLength = Math.Clamp(scope.Length, 0, content.Length - relativeIndex);
+            var scopeLength = Math.Clamp(scope.Length, 0, length - relativeIndex);
             if (scopeLength <= 0)
             {
                 continue;
@@ -96,30 +102,70 @@ public sealed class SpectreSegmentFormatter : CodeColorizerBase
             position = relativeIndex + scopeLength;
         }
 
-        if (position < content.Length)
+        if (position < length)
         {
-            AppendStyled(content[position..], parentStyle);
+            AppendStyled(content.Slice(position), parentStyle);
         }
     }
 
-    private void AppendStyled(ReadOnlySpan<char> content, SpectreStyle style)
+    private void AppendStyled(ReadOnlyMemory<char> content, SpectreStyle style)
     {
         if (content.Length == 0)
         {
             return;
         }
 
-        // Tab expansion only allocates when enabled; the editor uses TabWidth == 0 (no expansion). Newlines are
-        // left embedded — the buffer's segment writer splits on '\n'.
-        var text = _options.TabWidth > 0 ? ExpandTabs(content) : content.ToString();
-        _segments.Add(new Segment(text, style));
+        // Both paths use the zero-copy, non-normalizing slice ctor so tab-on and tab-off render identically.
+        // TabWidth == 0 (the editor): the source chunk slice as-is — no per-token string. TabWidth > 0: expand
+        // tabs into one new string (only when tabs are actually present). Newlines stay embedded; the buffer's
+        // segment writer handles '\n'/'\r'.
+        var text = _options.TabWidth > 0 ? ExpandTabs(content) : content;
+        _segments.Add(new Segment(text, style, lineBreak: false, control: false));
     }
 
-    private string ExpandTabs(ReadOnlySpan<char> content)
+    private static bool IsSortedByIndex(IList<Scope> scopes)
     {
-        var tabReplacement = new string(' ', _options.TabWidth);
-        return content.ToString().Replace("\r\n", "\n", StringComparison.Ordinal)
-                                 .Replace("\r", "\n", StringComparison.Ordinal)
-                                 .Replace("\t", tabReplacement, StringComparison.Ordinal);
+        for (var i = 1; i < scopes.Count; i++)
+        {
+            if (scopes[i].Index < scopes[i - 1].Index)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Expands each '\t' to TabWidth spaces. Zero-copy (returns the input) when there are no tabs; otherwise a
+    // single string allocation via string.Create — one pass, no per-Replace intermediates and no space-run string.
+    private ReadOnlyMemory<char> ExpandTabs(ReadOnlyMemory<char> content)
+    {
+        var tabs = content.Span.Count('\t');
+        if (tabs == 0)
+        {
+            return content;
+        }
+
+        var width = _options.TabWidth;
+        var length = content.Length + (tabs * (width - 1));
+        return string.Create(length, (content, width), static (dest, state) =>
+        {
+            var (source, tabWidth) = state;
+            var src = source.Span;
+            var j = 0;
+            for (var i = 0; i < src.Length; i++)
+            {
+                var c = src[i];
+                if (c == '\t')
+                {
+                    dest.Slice(j, tabWidth).Fill(' ');
+                    j += tabWidth;
+                }
+                else
+                {
+                    dest[j++] = c;
+                }
+            }
+        }).AsMemory();
     }
 }

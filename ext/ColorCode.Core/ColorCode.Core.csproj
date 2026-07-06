@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Vendored fork of ColorCode.Core 2.0.15 (was a NuGet PackageReference in RazorConsole.Core.Syntax).
+       Retargeted to net10.0 and modified for allocation/perf: compiled cached regexes, lazy Scope.Children,
+       shared empty scope list, and ReadOnlyMemory<char> slices through the parse handler. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ColorCode</RootNamespace>
+    <AssemblyName>ColorCode.Core</AssemblyName>
+    <Nullable>disable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

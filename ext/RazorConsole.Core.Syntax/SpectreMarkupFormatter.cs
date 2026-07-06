@@ -53,15 +53,14 @@ public sealed class SpectreMarkupFormatter : CodeColorizerBase
         return _builder.ToString();
     }
 
-    protected override void Write(string parsedSourceCode, IList<Scope> scopes)
+    protected override void Write(ReadOnlyMemory<char> parsedSourceCode, IList<Scope> scopes)
     {
         if (parsedSourceCode.Length == 0)
         {
             return;
         }
 
-        var span = parsedSourceCode.AsSpan();
-        AppendSegment(span, scopes, _currentTheme.DefaultStyle);
+        AppendSegment(parsedSourceCode.Span, scopes, _currentTheme.DefaultStyle);
     }
 
     private void AppendSegment(ReadOnlySpan<char> content, IList<Scope> scopes, SpectreStyle parentStyle)

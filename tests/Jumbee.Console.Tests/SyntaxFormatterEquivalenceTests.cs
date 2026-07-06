@@ -66,16 +66,27 @@ public class SyntaxFormatterEquivalenceTests
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public void SegmentFormatter_RendersSameBuffer_AsMarkupFormatter(string languageId, string source)
+    public void SegmentFormatter_RendersSameBuffer_AsMarkupFormatter(string languageId, string source) =>
+        AssertSameBuffer(languageId, source, tabWidth: 0);
+
+    // Covers ExpandTabs (only reached when TabWidth > 0): leading-tab indentation, TabWidth = 4.
+    [Fact]
+    public void SegmentFormatter_ExpandsTabs_SameAsMarkupFormatter() =>
+        AssertSameBuffer("csharp", "class C\n{\n\tint x = 0;\n\tint Y() => x;\n}", tabWidth: 4);
+
+    private static void AssertSameBuffer(string languageId, string source, int tabWidth)
     {
         var language = Language(languageId);
         var theme = SyntaxTheme.CreateDefault();
-        var options = new SyntaxOptions { TabWidth = 0 };
+        var options = new SyntaxOptions { TabWidth = tabWidth };
 
+        // Inflate the profile width past the longest *expanded* line so neither path word-wraps inside Spectre
+        // (both then char-wrap at the buffer width, as the editor does). Tabs count as tabWidth columns here.
+        var profileWidth = LongestLineWidth(source, tabWidth) + 1;
         var markupBuffer = Render(console =>
-            console.Markup(new SpectreMarkupFormatter().Format(source, language, theme, options)), source);
+            console.Markup(new SpectreMarkupFormatter().Format(source, language, theme, options)), profileWidth);
         var segmentBuffer = Render(console =>
-            console.Write(new SpectreSegmentFormatter().Format(source, language, theme, options)), source);
+            console.Write(new SpectreSegmentFormatter().Format(source, language, theme, options)), profileWidth);
 
         for (var y = 0; y < markupBuffer.Size.Height; y++)
         {
@@ -93,22 +104,23 @@ public class SyntaxFormatterEquivalenceTests
 
     // Mirror TextEditor.WriteText: inflate the profile width so Spectre never word-wraps; the buffer applies its
     // own character wrap (wrap = true).
-    private static ConsoleBuffer Render(System.Action<AnsiConsoleBuffer> write, string source)
+    private static ConsoleBuffer Render(System.Action<AnsiConsoleBuffer> write, int profileWidth)
     {
         var buffer = new ConsoleBuffer { Size = new ConsoleGUI.Space.Size(100, 40) };
         buffer.Initialize();
         var console = new AnsiConsoleBuffer(buffer) { wrap = true };
-        console.Profile.Width = LongestLineWidth(source) + 1;
+        console.Profile.Width = profileWidth;
         write(console);
         return buffer;
     }
 
-    private static int LongestLineWidth(string text)
+    private static int LongestLineWidth(string text, int tabWidth)
     {
         int max = 1, col = 0;
         foreach (var c in text)
         {
             if (c == '\n') { if (col > max) max = col; col = 0; }
+            else if (c == '\t') col += tabWidth > 0 ? tabWidth : 1;
             else if (c != '\r') col++;
         }
         return System.Math.Max(max, col);
