@@ -156,9 +156,19 @@ public static class UI
     /// <summary>Dispatches a terminal input event on the UI thread, routing by kind.</summary>
     private static void OnInput(TerminalInputEvent? evt)
     {
+        // An "action" input (a key, click, wheel, or paste — anything but bare pointer motion) forces a full redraw
+        // of the frame it is handled on. OnInput drains off the dispatcher queue before that frame's paint/composite,
+        // so the whole screen is re-composited with the input's effect. This is a robustness guarantee: many controls
+        // (the Tree's selection, an editor's scroll/caret) request a repaint but don't fully localize their damage —
+        // they relied on the old redraw-everything-every-frame renderer — so a partial redraw can miss part of their
+        // change. Full-redrawing on discrete input is essentially free at human rates and keeps interaction correct.
+        // Autonomous updates (animation, throttled self-refresh) and plain mouse motion are unaffected, so idle
+        // rendering keeps the dirty-rectangle perf win.
+        bool actionInput = false;
         switch (evt)
         {
             case KeyInputEvent k:
+                actionInput = true;
                 var inputEvent = new InputEvent(k.ToConsoleKeyInfo());
                 globalInputListener.OnInput(inputEvent);
                 if (!inputEvent.Handled)
@@ -174,9 +184,10 @@ public static class UI
                 if (m.Kind == TerminalMouseKind.Down) MouseButton = m.Button;
                 switch (m.Kind)
                 {
-                    case TerminalMouseKind.Down: ConsoleManager.MouseDown = true; break;
-                    case TerminalMouseKind.Up: ConsoleManager.MouseDown = false; break;
+                    case TerminalMouseKind.Down: actionInput = true; ConsoleManager.MouseDown = true; break;
+                    case TerminalMouseKind.Up: actionInput = true; ConsoleManager.MouseDown = false; break;
                     case TerminalMouseKind.Wheel:
+                        actionInput = true;
                         // Position was set above; dispatch the notch to the control under the pointer.
                         ConsoleManager.MouseWheel(m.Button == TerminalMouseButton.WheelUp ? -WheelLines : WheelLines);
                         break;
@@ -184,12 +195,19 @@ public static class UI
                 }
                 break;
             case PasteInputEvent p:
+                actionInput = true;
                 layout?.OnPaste(p.Text);
                 break;
             case FocusInputEvent f:
                 HasFocus = f.HasFocus;
                 break;
             // ResizeInputEvent is handled by the render loop's terminal-size check, not here.
+        }
+
+        if (actionInput)
+        {
+            ConsoleManager.MarkFullDirty();
+            needsDraw = true;
         }
     }
     /// <summary>
