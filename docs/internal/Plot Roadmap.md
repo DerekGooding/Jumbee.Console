@@ -7,12 +7,13 @@ candlestick-only).
 
 ## Status — checkpoint 2026-07-06
 
-**Shipped (all green, `--verify` 20/20, 517 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
+**Shipped (all green, `--verify` 21/21, 518 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
 and **B** (per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, grouped/stacked bars,
-horizontal bars, histogram, candlestick, box-and-whisker, error bars, heatmap**, plus **point annotations** (fg/bg
-labels). **Every roadmap plot family is now implemented.** Jumbee `Plot` API: `AddSeries`/`AddScatter`/`AddStem`/
-`AddBars`/`AddGroupedBars`/`AddStackedBars`/`AddHBars`/`AddHistogram`/`AddCandles`/`AddBox`/`AddBoxes`/`AddErrorBars`/
-`AddHeatmap`/`AddLabel`, `Configure*`, `Background`, plus `PlotBrush`, `PlotColormap` and `PlotLabelAlign` enums.
+horizontal bars, histogram, candlestick, box-and-whisker, error bars, heatmap, confusion matrix**, plus **point
+annotations** (fg/bg labels). **Every roadmap plot family is implemented, and change B is now exercised end to end
+(annotated heatmap cells).** Jumbee `Plot` API: `AddSeries`/`AddScatter`/`AddStem`/`AddBars`/`AddGroupedBars`/
+`AddStackedBars`/`AddHBars`/`AddHistogram`/`AddCandles`/`AddBox`/`AddBoxes`/`AddErrorBars`/`AddHeatmap`/
+`AddConfusionMatrix`/`AddLabel`, `Configure*`, `Background`, plus `PlotBrush`, `PlotColormap` and `PlotLabelAlign` enums.
 Robustness: degenerate data padded in `PlotData` (no try/catch in render); bars/boxes/heatmap cells tile exactly on
 resize (shared slot ranges, `GraphGraphics.SlotColumns`/`SlotRows`/`SlotRange`).
 
@@ -41,11 +42,12 @@ raw groups in the wrapper (pure data-prep, like `AddHistogram`); `AddErrorBars` 
 Jumbee wrapper: `src/Jumbee.Console/Controls/Plot/{Plot,PlotImage}.cs`. Examples:
 `examples/.../Examples/Controls/*PlotExample.cs`. Deep detail in the [[plot-control]] memory.
 
-**Recommended next slices (pick per value):** every plot *family* is now in, so the open work is depth/polish:
-(1) **heatmap cell-value text overlay** (numbers on coloured cells → confusion-matrix-ready, uses change B's
-`DrawText` bg); (2) **matrix/confusion-matrix helpers** (thin wrappers over `HeatSeries` with categorical axis
-labels); (3) **datetime axis / subplots** (Phase 5); (4) the still-**deferred log axis** (invasive tick-machinery
-rewrite — lowest value/effort). *(Phases 2, 3 and 4's heatmap all finished 2026-07-06.)*
+**Recommended next slices (pick per value):** every plot *family* plus the annotated-heatmap overlay is now in, so
+the open work is depth/polish: (1) **categorical axis labels** (class names on the confusion-matrix axes — needs the
+deferred tick rewrite: a custom tick *formatter* delegate + forcing ticks at cell centres, since `LabelSettings.Format`
+is only a numeric format string); (2) **datetime axis / subplots** (Phase 5, subplots = compose `Plot` controls in a
+Jumbee `Grid`/`DockPanel`, no ConsolePlot change); (3) the still-**deferred log axis**. *(Phases 2, 3 and 4 all
+finished 2026-07-06.)*
 
 ## What the base gives us
 
@@ -102,9 +104,10 @@ point annotations (labels with fg/bg); also unblocks the Phase-4 heatmap/matrix/
   **Phase 3 complete.**
 - **Phase 4 — color grids** (change B): heatmap *(done — `HeatSeries` + `GraphGraphics.DrawHeat`, a 2D value grid
   tiled over the plot area, cells coloured `█` via a normalised-value→colour map; Jumbee `AddHeatmap` + `PlotColormap`
-  {Viridis, Heat, Grayscale, Cool} with stop-interpolated ramps)*; matrix plot / confusion matrix are the same
-  `HeatSeries` with axis labels — **next:** cell value text overlay (use change B's `DrawText` bg for readable numbers
-  on coloured cells).
+  {Viridis, Heat, Grayscale, Cool} with stop-interpolated ramps)*; confusion matrix / annotated heatmap *(done —
+  `DrawHeat` takes an optional `cellText` formatter and draws the value centred in each cell with a luminance-based
+  contrast colour on the cell's own colour as **background** — the first real use of change B's `DrawText` bg; Jumbee
+  `AddHeatmap(..., cellText)` + `AddConfusionMatrix`)*. **Phase 4 complete.**
 - **Phase 5 — decorators/utility:** point text annotations with fg/bg *(done — `PointLabel` + change B)*;
   **next:** shape/indicator annotations, datetime axis, subplots (compose `Plot` controls in a Jumbee
   `Grid`/`DockPanel` — no ConsolePlot change).

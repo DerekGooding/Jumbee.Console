@@ -320,8 +320,12 @@ public class Plot : Control
     /// Adds a heatmap: a grid of <paramref name="values"/> (one list per row, row 0 drawn at the top) tiled over
     /// the plot area, each cell coloured by <paramref name="colormap"/>. Values are normalised into
     /// [<paramref name="min"/>, <paramref name="max"/>], defaulting to the data's own min/max. NaN cells are blank.
+    /// Pass <paramref name="cellText"/> to draw each cell's value as centred text (readable-contrast on the cell
+    /// colour) — e.g. <c>v =&gt; ((int)v).ToString()</c> for a confusion matrix.
     /// </summary>
-    public Plot AddHeatmap(IReadOnlyList<IReadOnlyList<double>> values, PlotColormap colormap = PlotColormap.Viridis, double? min = null, double? max = null)
+    public Plot AddHeatmap(
+        IReadOnlyList<IReadOnlyList<double>> values, PlotColormap colormap = PlotColormap.Viridis,
+        double? min = null, double? max = null, Func<double, string>? cellText = null)
     {
         UI.Invoke(() =>
         {
@@ -343,10 +347,18 @@ public class Plot : Control
             double lo = min ?? dataMin, hi = max ?? dataMax;
             var map = ColormapFunc(colormap);
             // The grid tiles the unit-per-cell rectangle 0..cols × 0..rows; use Configure* to relabel the axes.
-            AddElement(plot => plot.AddHeatmap(values, 0, cols, 0, rows, lo, hi, v => map(v)));
+            AddElement(plot => plot.AddHeatmap(values, 0, cols, 0, rows, lo, hi, v => map(v), cellText is null ? null : v => cellText(v)));
         });
         return this;
     }
+
+    /// <summary>
+    /// Adds a confusion matrix — an annotated heatmap of <paramref name="counts"/> (row = actual class top-to-bottom,
+    /// column = predicted class), each cell coloured by <paramref name="colormap"/> and labelled with its count.
+    /// A thin wrapper over <see cref="AddHeatmap"/> with integer cell text.
+    /// </summary>
+    public Plot AddConfusionMatrix(IReadOnlyList<IReadOnlyList<double>> counts, PlotColormap colormap = PlotColormap.Heat) =>
+        AddHeatmap(counts, colormap, cellText: v => ((long)Math.Round(v)).ToString());
 
     // Maps a colormap choice to a normalised-value → colour function.
     private static Func<double, CColor> ColormapFunc(PlotColormap colormap) => colormap switch

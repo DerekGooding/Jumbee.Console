@@ -23,6 +23,7 @@ public static class ExampleCatalog
         new HistogramExample(),
         new CandlestickExample(),
         new HeatmapExample(),
+        new ConfusionMatrixExample(),
         new BoxPlotExample(),
         new ErrorBarExample(),
         new AnnotatedPlotExample(),

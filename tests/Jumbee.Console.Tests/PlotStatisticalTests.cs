@@ -208,6 +208,40 @@ public class PlotStatisticalTests
     }
 
     [Fact]
+    public void ConfusionMatrix_DrawsCellCountsWithContrastText()
+    {
+        // Strong diagonal (bright cells) with dim off-diagonal.
+        var m = new List<IReadOnlyList<double>>
+        {
+            new double[] { 90, 2, 1 },
+            new double[] { 3, 85, 4 },
+            new double[] { 0, 5, 80 },
+        };
+        var plot = new Plot();
+        plot.AddConfusionMatrix(m);
+        plot.ConfigureGrid(g => g.IsVisible = false);
+        var buffer = ConsoleSnapshot.Render(plot, 60, 20);
+
+        // Collect every digit cell that carries a background (a real heatmap cell, not an axis label).
+        var cellDigits = new List<(char ch, CColor fg, CColor bg)>();
+        for (int y = 0; y < buffer.Size.Height; y++)
+            for (int x = 0; x < buffer.Size.Width; x++)
+            {
+                var c = buffer[x, y].Character;
+                if (c.Content is >= '0' and <= '9' && c.Background is { } bg && c.Foreground is { } fg)
+                    cellDigits.Add((c.Content.Value, fg, bg));
+            }
+
+        Assert.NotEmpty(cellDigits);   // counts were drawn into the cells
+
+        // Every labelled cell picks a readable contrast: dark text on a light cell, light text on a dark cell.
+        static double Lum(CColor c) => 0.299 * c.Red + 0.587 * c.Green + 0.114 * c.Blue;
+        Assert.All(cellDigits, d =>
+            Assert.True((Lum(d.bg) > 140) == (Lum(d.fg) < 140),
+                $"digit '{d.ch}' fg-luma {Lum(d.fg):F0} should contrast bg-luma {Lum(d.bg):F0}"));
+    }
+
+    [Fact]
     public void Heatmap_AllNaN_LeftBlank()
     {
         var nanGrid = Enumerable.Range(0, 4)
