@@ -65,6 +65,10 @@ public sealed class PerfHud : GlassPanel
         double busyPeak = m.BusyPercentPeak;
         // Fraction of frames that took the full draw path (vs idled) — a retained UI keeps this low.
         double redraw = m.RedrawPercent;
+        // Fraction of the SCREEN re-composited per drawn frame — dirty-rect rendering keeps this tiny (a status-bar
+        // tick redraws only its own rows), spiking to 100 only on resize/theme switch.
+        double dirty = m.DirtyAreaPercentAvg;
+        double dirtyPeak = m.DirtyAreaPercentPeak;
         double cpu = m.CpuUsagePercent;
         // mem is a sticky gauge: the average tracks the current footprint and the peak is the window high-water mark.
         double memMb = m.WorkingSetBytesAvg / 1048576.0;
@@ -79,17 +83,16 @@ public sealed class PerfHud : GlassPanel
         var g = new S.Grid();
         g.AddColumn(new S.GridColumn { Padding = new S.Padding(0, 0, 2, 0) });
         g.AddColumn();
-        g.AddRow(new S.Markup("[grey62]frame[/]"), new S.Markup($"[#e8f0ff]{renderUs,6:F0} µs[/]"));
-        g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{renderPeakUs,6:F0} µs[/]"));
-        g.AddRow(new S.Markup("[grey62]busy[/]"), new S.Markup($"[#e8f0ff]{busy,6:F0} %[/]"));
-        g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{busyPeak,6:F0} %[/]"));
-        g.AddRow(new S.Markup("[grey62]redraw[/]"), new S.Markup($"[#e8f0ff]{redraw,6:F0} %[/]"));
-        g.AddRow(new S.Markup("[grey62]cpu[/]"), new S.Markup($"[#e8f0ff]{cpu,6:F1} %[/]"));
-        g.AddRow(new S.Markup("[grey62]mem[/]"), new S.Markup($"[#e8f0ff]{memMb,6:F1} MB[/]"));
-        g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{memPeakMb,6:F1} MB[/]"));
-        g.AddRow(new S.Markup("[grey62]alloc[/]"), new S.Markup($"[#e8f0ff]{allocKb,6:F1} KB/f[/]"));
-        g.AddRow(new S.Markup("[grey62] peak[/]"), new S.Markup($"[#e8f0ff]{allocPeakKb,6:F0} KB/f[/]"));
-        g.AddRow(new S.Markup("[grey62]exc/s[/]"), new S.Markup(exc > 0 ? $"[bold #ff6b6b]{exc,6:F0}[/]" : "[#e8f0ff]     0[/]"));
+        // Each metric on one row: the AVERAGE (the typical/steady value) in bright ink, then the PEAK — the worst
+        // frame in the window (a resize/paste burst) — dimmed after a slash. redraw/cpu are single gauges.
+        g.AddRow(new S.Markup("[grey62]frame[/]"), new S.Markup($"[#e8f0ff]{renderUs,5:F0} µs[/] [grey50]/ {renderPeakUs:F0}[/]"));
+        g.AddRow(new S.Markup("[grey62]busy[/]"), new S.Markup($"[#e8f0ff]{busy,5:F0} %[/] [grey50]/ {busyPeak:F0}[/]"));
+        g.AddRow(new S.Markup("[grey62]redraw[/]"), new S.Markup($"[#e8f0ff]{redraw,5:F0} %[/]"));
+        g.AddRow(new S.Markup("[grey62]dirty[/]"), new S.Markup($"[#e8f0ff]{dirty,5:F1} %[/] [grey50]/ {dirtyPeak:F0}[/]"));
+        g.AddRow(new S.Markup("[grey62]cpu[/]"), new S.Markup($"[#e8f0ff]{cpu,5:F1} %[/]"));
+        g.AddRow(new S.Markup("[grey62]mem[/]"), new S.Markup($"[#e8f0ff]{memMb,5:F1} MB[/] [grey50]/ {memPeakMb:F0}[/]"));
+        g.AddRow(new S.Markup("[grey62]alloc[/]"), new S.Markup($"[#e8f0ff]{allocKb,5:F1} KB/f[/] [grey50]/ {allocPeakKb:F0}[/]"));
+        g.AddRow(new S.Markup("[grey62]exc/s[/]"), new S.Markup(exc > 0 ? $"[bold #ff6b6b]{exc,5:F0}[/]" : "[#e8f0ff]    0[/]"));
         // The dagger: a no-lock UI design holds contention at zero. Green 0 when true, red count otherwise.
         g.AddRow(new S.Markup("[grey62]locks[/]"), new S.Markup(locks == 0 ? "[bold #7CFC00]0 ✓[/]" : $"[bold #ff6b6b]{locks}[/]"));
 
@@ -121,7 +124,7 @@ public sealed class PerfHud : GlassPanel
 
     #region Fields
     private const int HudWidth = 34;
-    private const int HudHeight = 14;
+    private const int HudHeight = 11;
     private const long RefreshMs = 250;
     private readonly Stopwatch _refresh = Stopwatch.StartNew();
     #endregion

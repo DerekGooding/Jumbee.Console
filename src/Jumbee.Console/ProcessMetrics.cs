@@ -34,6 +34,7 @@ public sealed class ProcessMetrics : IDisposable
         _framePeriodMs = new double[capacity];
         _frameAlloc = new long[capacity];
         _frameRedrawn = new bool[capacity];
+        _frameDirty = new double[capacity];
         _windowMs = windowMs;
         // dotnet.process.cpu.time is platform-guarded in the runtime; Environment.CpuUsage throws
         // PlatformNotSupportedException on Browser/WASI/tvOS/iOS(non-Catalyst). Mirror that guard.
@@ -104,6 +105,26 @@ public sealed class ProcessMetrics : IDisposable
     public double RedrawPercent
     {
         get { if (_fCount == 0) return 0; int n = 0; for (int i = 0; i < _fCount; i++) if (_frameRedrawn[i]) n++; return n * 100.0 / _fCount; }
+    }
+
+    /// <summary>Mean fraction of the screen (0..100) re-composited on the frames that <em>did</em> redraw. With
+    /// dirty-rectangle rendering a small change (a status-bar tick) touches only its own rows, so this reads a few
+    /// percent even while <see cref="RedrawPercent"/> is high; only a resize/theme-switch pushes a frame to 100.</summary>
+    public double DirtyAreaPercentAvg
+    {
+        get
+        {
+            double total = 0; int n = 0;
+            for (int i = 0; i < _fCount; i++) if (_frameRedrawn[i]) { total += _frameDirty[i]; n++; }
+            return n > 0 ? total / n * 100.0 : 0;
+        }
+    }
+
+    /// <summary>Largest fraction of the screen (0..100) re-composited in a single frame over the window — a resize
+    /// pushes this to 100; steady interaction keeps it small.</summary>
+    public double DirtyAreaPercentPeak
+    {
+        get { double p = 0; for (int i = 0; i < _fCount; i++) if (_frameDirty[i] > p) p = _frameDirty[i]; return p * 100.0; }
     }
     #endregion
 
@@ -198,13 +219,16 @@ public sealed class ProcessMetrics : IDisposable
     /// <param name="renderAllocBytes">Bytes allocated on the managed heap during the cycle.</param>
     /// <param name="redrawn"><see langword="true"/> if this frame took the full draw path; <see langword="false"/>
     /// for an idle frame. Feeds <see cref="RedrawPercent"/>.</param>
-    public void RecordFrame(double renderMs, double periodMs, long renderAllocBytes, bool redrawn = false)
+    /// <param name="dirtyAreaFraction">Fraction (0..1) of the screen re-composited this frame. Feeds
+    /// <see cref="DirtyAreaPercentAvg"/>/<see cref="DirtyAreaPercentPeak"/> (only counted on redrawn frames).</param>
+    public void RecordFrame(double renderMs, double periodMs, long renderAllocBytes, bool redrawn = false, double dirtyAreaFraction = 0)
     {
         int idx = (_fStart + _fCount) % _frameRenderMs.Length;
         _frameRenderMs[idx] = renderMs;
         _framePeriodMs[idx] = periodMs;
         _frameAlloc[idx] = renderAllocBytes < 0 ? 0 : renderAllocBytes;
         _frameRedrawn[idx] = redrawn;
+        _frameDirty[idx] = dirtyAreaFraction < 0 ? 0 : dirtyAreaFraction;
         if (_fCount < _frameRenderMs.Length) _fCount++;
         else _fStart = (_fStart + 1) % _frameRenderMs.Length;
 
@@ -280,6 +304,7 @@ public sealed class ProcessMetrics : IDisposable
     private readonly double[] _framePeriodMs;
     private readonly long[] _frameAlloc;
     private readonly bool[] _frameRedrawn;
+    private readonly double[] _frameDirty;
     private int _fStart;
     private int _fCount;
 

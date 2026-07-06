@@ -420,40 +420,53 @@ public static class UI
         frameTimer.Restart();
 
         bool drew = false;
+        double dirtyFraction = 0;
         try
         {
-            if (needsDraw)
-            {
-                // Something changed: full draw (handles terminal resize, redraw, and draw timers).
-                needsDraw = false;
-                drew = true;
-                ConsoleManager.Draw();
-            }
-            else
-            {
-                // Idle: skip the full-screen scan but still detect a terminal resize cheaply
-                // (AdjustBufferSize only redraws when the size actually changed).
-                ConsoleManager.AdjustBufferSize();
-                // Keep a self-blinking ANSI cursor ticking even with no input/animation. Cheap: emits only the cursor
-                // visibility toggle when the blink phase flips (≈twice a second), not a full-screen redraw. Safe to
-                // call only here (the idle branch) — on drawn frames Update handles the cursor inline.
-                ConsoleManager.TickCursorBlink();
-            }
+            // 1. Detect a terminal resize BEFORE painting, so controls re-lay-out at the new size and repaint into
+            //    correctly-sized buffers this same frame (a resize marks the whole surface dirty via Initialize).
+            //    Runs every frame (cheap when the size is unchanged); also ticks the legacy software cursor blink.
+            ConsoleManager.AdjustBufferSize();
 
-            // Invoke control paint events
+            // 2. Paint: controls render into their own buffers and report their damaged screen rects into the
+            //    ConsoleManager dirty accumulator. This MUST run before compositing so the composite reads fresh
+            //    buffers, not last frame's (or, on the first frame after startup/resize, empty ones) — otherwise
+            //    the newly-painted panes show blank until the next full redraw.
             paintTimer.Restart();
             _Paint?.Invoke(null, paintEventArgs);
             paintTimer.Stop();
             // Fractional milliseconds: paints are typically sub-millisecond, which ElapsedMilliseconds truncates to 0.
             paintTimes[paintTimeIndex] = paintTimer.Elapsed.TotalMilliseconds;
             paintTimeIndex = (paintTimeIndex + 1) % paintTimeSamples;
+
+            // 3. Composite the damaged region(s): the whole screen on a full-dirty (startup/resize), else just the
+            //    dirty rects reported by the paints above. An idle frame (nothing dirtied) skips the scan and only
+            //    keeps a self-blinking ANSI cursor ticking.
+            if (needsDraw || ConsoleManager.HasDirty)
+            {
+                // Safety net: a redraw was requested (needsDraw) but no control localized its damage into a dirty
+                // rect and nothing marked the surface fully dirty (HasDirty is false). The change came from a source
+                // we can't scope to a region, so re-composite everything rather than risk leaving a stale region on
+                // screen. Well-behaved controls report their own rect (HasDirty true) and stay a partial redraw.
+                if (needsDraw && !ConsoleManager.HasDirty) ConsoleManager.MarkFullDirty();
+                needsDraw = false;
+                drew = true;
+                ConsoleManager.Draw();
+                var sz = ConsoleManager.BufferSize;
+                long area = (long)sz.Width * sz.Height;
+                if (area > 0) dirtyFraction = ConsoleManager.LastFrameDirtyCells / (double)area;
+            }
+            else
+            {
+                ConsoleManager.TickCursorBlink();
+            }
         }
         finally
         {
             // Record the frame even if the draw/paint threw, so the metrics keep working (and exceptions/s surfaces
             // a per-frame throw) instead of silently freezing at 0.
             frameTimer.Stop();
-            ProcessMetrics.RecordFrame(frameTimer.Elapsed.TotalMilliseconds, periodMs, GC.GetTotalAllocatedBytes() - allocBefore, drew);
+            ProcessMetrics.RecordFrame(frameTimer.Elapsed.TotalMilliseconds, periodMs, GC.GetTotalAllocatedBytes() - allocBefore, drew, dirtyFraction);
         }
     }
        

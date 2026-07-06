@@ -36,7 +36,8 @@ public sealed class StatusBar : RenderableControl
         // "is it flat" number (near-zero even at fullscreen once a resize burst ages out); for mem — a sticky gauge —
         // the average tracks the current footprint and the peak is the high-water mark within the window.
         var perf = $"frame {m.RenderTimeMsAvg * 1000:F0}µs (peak {m.RenderTimeMsPeak * 1000:F0}) · " +
-                   $"busy {m.BusyPercentAvg:F0}% (peak {m.BusyPercentPeak:F0}) · redraw {m.RedrawPercent:F0}% · cpu {m.CpuUsagePercent:F1}% · " +
+                   $"busy {m.BusyPercentAvg:F0}% (peak {m.BusyPercentPeak:F0}) · redraw {m.RedrawPercent:F0}% · " +
+                   $"dirty {m.DirtyAreaPercentAvg:F0}% (peak {m.DirtyAreaPercentPeak:F0}) · cpu {m.CpuUsagePercent:F1}% · " +
                    $"mem {m.WorkingSetBytesAvg / 1048576.0:F0}MB (peak {m.WorkingSetBytesPeak / 1048576.0:F0}) · " +
                    $"alloc {m.AllocatedBytesPerFrame / 1024.0:F1}KB/f (peak {m.PeakAllocatedBytesPerFrame / 1024.0:F0})";
         var left = string.IsNullOrEmpty(_current) ? " Jumbee.Console Examples" : $" {_current}";
