@@ -1,5 +1,6 @@
 namespace Jumbee.Console.Tests;
 
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,8 @@ using ConsoleGUI.Space;
 
 using Jumbee.Console;
 using Jumbee.Console.Snapshot;
+
+using Spectre.Console.Rendering;
 
 using Xunit;
 
@@ -113,6 +116,170 @@ public class DirtyRectRenderTests
         var text = await AnsiConsoleSnapshot.ToTextAsync(TwoPaneSplit(), 60, 8);
         Assert.Contains("PANELEFT", text);
         Assert.Contains("PANERIGHT", text);
+    }
+
+    // Regression for the dirty-% blow-up: a control that refreshes from its own paint handler (the StatusBar/PerfHud
+    // pattern) invalidates during the paint pass, so its repaint bubbles next frame. The UI loop must treat that as a
+    // partial redraw of the control's own row — NOT promote it to a full-screen redraw. An earlier safety net did the
+    // latter, pushing dirty-area toward 100% on every tick.
+    [Fact]
+    public async Task SelfRefreshingControl_StaysPartial_DoesNotForceFullRedraws()
+    {
+        UiTestHarness.EnsureStopped();
+        const int w = 40, h = 20;
+        var prevOutput = ConsoleManager.AnsiOutput;
+        try
+        {
+            ConsoleManager.AnsiOutput = acsb => { _ = acsb.ToString(); return Task.CompletedTask; };   // discard bytes
+
+            // A one-row ticker docked at the bottom (like the status bar) over a filling body. The ticker invalidates
+            // itself every frame from a UI.Paint handler.
+            var ticker = new TickLabel();
+            var body = new TextLabel(TextLabelOrientation.Horizontal, "BODY");
+            var root = new DockPanel(DockedControlPlacement.Bottom, ticker, body);
+
+            _ = UI.Start(root, w, h, paintInterval: 15, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
+            Thread.Sleep(400);                 // many frames of self-refresh
+            await ConsoleManager.OutputIdle.ConfigureAwait(false);
+
+            // The ticker occupies one row of h; a partial redraw of it is ~1/h of the screen. A regression to
+            // full-screen redraws would push this toward 100%.
+            var dirtyAvg = UI.ProcessMetrics.DirtyAreaPercentAvg;
+            Assert.True(dirtyAvg < 25.0, $"a self-refreshing control should stay a partial redraw; DirtyAreaPercentAvg={dirtyAvg:F1}%");
+        }
+        finally
+        {
+            UI.Stop();
+            await ConsoleManager.OutputIdle.ConfigureAwait(false);
+            ConsoleManager.AnsiOutput = prevOutput;
+        }
+    }
+
+    // A one-row control that re-renders every frame by invalidating itself from the UI.Paint tick (as StatusBar and
+    // PerfHud do). Content changes each render so the diff actually emits.
+    private sealed class TickLabel : RenderableControl
+    {
+        private int _n;
+        private int _paints;
+        public TickLabel() { Focusable = false; UI.Paint += OnTick; }
+        // Throttled like StatusBar/PerfHud: invalidate only occasionally, from the paint tick. On the invalidate
+        // frame the control's own OnPaint has already run, so nothing bubbles that frame — the exact condition that
+        // tripped the old full-redraw fallback.
+        private void OnTick(object? sender, UI.PaintEventArgs e) { if (++_paints % 4 == 0) Invalidate(); }
+        protected override int IntrinsicHeight() => 1;
+        protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
+        {
+            yield return new Segment($"tick {_n++}".PadRight(System.Math.Max(1, maxWidth)));
+        }
+    }
+
+    // Regression for the input-lag bug: swapping a composite's content (the ExampleHost.Show path — a tree
+    // activation swaps the middle pane) must become visible on its own, not only after the *next* input event.
+    // The composite escalates a child change to its own repaint one frame later; if that follow-up frame isn't
+    // composited, the swap sits invisible until something else forces a redraw.
+    [Fact]
+    public async Task CompositeContentSwap_BecomesVisible_WithoutFurtherInput()
+    {
+        UiTestHarness.EnsureStopped();
+        const int w = 40, h = 10;
+        var capture = new StringBuilder();
+        var prevOutput = ConsoleManager.AnsiOutput;
+        try
+        {
+            ConsoleManager.AnsiOutput = acsb =>
+            {
+                var s = acsb.ToString();
+                return Task.Run(() => { lock (capture) capture.Append(s); });
+            };
+
+            var host = new SwapHost();
+            host.ShowText("OLDCONTENT");
+            _ = UI.Start(new VerticalStackPanel(host), w, h, paintInterval: 15, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
+            // Parse the emitted ANSI into a screen — the per-cell diff re-emits only changed cells, so a swapped
+            // string is not a contiguous substring of the raw byte stream; only the parsed grid is authoritative.
+            bool OnScreen(string s) { var scr = new AnsiScreen(w, h); scr.Feed(Captured(capture)); return ConsoleSnapshot.ToText(scr.Buffer).Contains(s); }
+            Assert.True(WaitFor(() => OnScreen("OLDCONTENT"), 2000), "initial content should render");
+
+            // Swap content as an input handler would (posted onto the UI thread), then send NO further input.
+            UI.Invoke(() => host.ShowText("NEWCONTENT"));
+            Assert.True(WaitFor(() => OnScreen("NEWCONTENT"), 2000),
+                "swapped content must appear on its own, not wait for the next input event");
+        }
+        finally
+        {
+            UI.Stop();
+            await ConsoleManager.OutputIdle.ConfigureAwait(false);
+            ConsoleManager.AnsiOutput = prevOutput;
+        }
+    }
+
+    private static string Captured(StringBuilder sb) { lock (sb) return sb.ToString(); }
+    private static bool WaitFor(System.Func<bool> cond, int ms)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.ElapsedMilliseconds < ms) { if (cond()) return true; Thread.Sleep(15); }
+        return cond();
+    }
+
+    // The user's exact bug: activating a tree item (Enter / double-click) that swaps another pane must take effect on
+    // the first activation, not the next. Drives a real Tree via the input source, non-ANSI so the render lands in a
+    // readable ConsoleBuffer.
+    [Fact]
+    public void TreeActivation_SwapsPaneOnFirstEnter_NotTheNext()
+    {
+        UiTestHarness.EnsureStopped();
+        var origOut = System.Console.Out;
+        System.Console.SetOut(System.IO.TextWriter.Null);
+
+        var host = new SwapHost();
+        host.ShowText("PANEOLD");
+        var tree = new Tree("ROOT");
+        tree.AddNode("LEAFITEM");
+        tree.NodeActivated += (_, _) => host.ShowText("PANENEW");
+
+        var screen = new ConsoleBuffer { Size = new Size(44, 12) };
+        var input = new FakeKeys();
+        Task run;
+        try
+        {
+            run = UI.Start(new Grid([12], [22, 22], [[tree, host]]), 44, 12, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            UI.Invoke(() => UI.SetFocus(tree));
+            Assert.True(WaitFor(() => ScreenHas(screen, "LEAFITEM") && ScreenHas(screen, "PANEOLD"), 3000), "tree + old pane should render");
+
+            input.Push(ConsoleKey.DownArrow);   // root (index 0 of the flattened tree)
+            input.Push(ConsoleKey.DownArrow);   // the leaf
+            Assert.True(WaitFor(() => tree.SelectedNode is { Nodes.Count: 0 }, 2000), "leaf should be selected");
+
+            input.Push(ConsoleKey.Enter);        // activate it — ONE press
+            Assert.True(WaitFor(() => ScreenHas(screen, "PANENEW"), 2500),
+                "the pane must switch on the first Enter, not require a second activation");
+        }
+        finally { UI.Stop(); System.Console.SetOut(origOut); }
+        Assert.True(run.Wait(2000));
+    }
+
+    private static bool ScreenHas(ConsoleBuffer screen, string text)
+    {
+        for (int y = 0; y < screen.Size.Height; y++)
+        {
+            var sb = new StringBuilder();
+            for (int x = 0; x < screen.Size.Width; x++) sb.Append(screen[x, y].Content ?? ' ');
+            if (sb.ToString().Contains(text)) return true;
+        }
+        return false;
+    }
+
+    private sealed class FakeKeys : IInputSource
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<TerminalInputEvent> _q = new();
+        public void Push(ConsoleKey key) => _q.Enqueue(new KeyInputEvent(key, '\0', TerminalModifiers.None));
+        public bool TryRead(out TerminalInputEvent? evt) { if (_q.TryDequeue(out var e)) { evt = e; return true; } evt = null; return false; }
+    }
+
+    private sealed class SwapHost : CompositeControl
+    {
+        public void ShowText(string t) =>
+            SetContent(new VerticalStackPanel(new TextLabel(TextLabelOrientation.Horizontal, t)));
     }
 
     private sealed class NoInput : IInputSource

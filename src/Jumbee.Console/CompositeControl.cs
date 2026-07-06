@@ -151,7 +151,13 @@ public abstract class CompositeControl : Control, IDrawingContextListener
 
     void IDrawingContextListener.OnRedraw(DrawingContext drawingContext) => Initialize();
 
-    void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect) => Invalidate();
+    // Propagate the child's damaged region upward (translated into this composite's coordinates by the
+    // DrawingContext) instead of invalidating the whole composite. The composite draws its children live through its
+    // indexer, so re-compositing just that region this frame reads the child's fresh buffer — no need to repaint the
+    // composite's own (static) chrome. Escalating to Invalidate() instead deferred the child's change to the
+    // composite's *next* repaint, which showed up as a one-frame input lag once the renderer stopped doing a full
+    // redraw every frame. A subclass whose chrome depends on child state can still override this to Invalidate().
+    void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect) => Update(rect);
 
     public override void Dispose()
     {

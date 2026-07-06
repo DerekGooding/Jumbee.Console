@@ -194,11 +194,14 @@ public sealed class ProcessMetrics : IDisposable
     #endregion
 
     #region Methods
-    /// <summary>Begins collection: subscribes to first-chance exceptions and takes a baseline cumulative sample.</summary>
+    /// <summary>Begins collection: clears the retained frame/snapshot history (so a new UI session doesn't average
+    /// in the previous one's frames), subscribes to first-chance exceptions, and takes a baseline cumulative sample.</summary>
     public void Start()
     {
         if (_started) return;
         _started = true;
+        _fStart = _fCount = 0;
+        _start = _count = 0;
         AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
         Sample();
     }

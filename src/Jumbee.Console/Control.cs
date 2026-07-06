@@ -587,10 +587,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             // Fractional ms: most controls repaint in well under 1 ms; ElapsedMilliseconds would truncate them to 0.
             UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.Elapsed.TotalMilliseconds;
             // Report this control's own area as damaged. The ConsoleGUI base Control.Update bubbles the rect up the
-            // DrawingContext tree, translating it to screen coordinates, so the next frame's flush re-composites only
-            // this control's region instead of the whole screen. MarkDirty then ensures that flush is scheduled.
+            // DrawingContext tree, translating it to screen coordinates, so this frame's flush re-composites only this
+            // control's region instead of the whole screen. The bubbled rect is itself the redraw signal (the frame
+            // loop composites when there is damage), so no separate MarkDirty is needed — and adding one here would
+            // set needsDraw for the *next*, undamaged frame and trip the loop's full-redraw fallback.
             if (Size.Width > 0 && Size.Height > 0) Update(ConsoleGUI.Space.Rect.OfSize(Size));
-            UI.MarkDirty();
         }
         else
         {

@@ -183,15 +183,15 @@ public static class UI
                         // Move/Drag only need the updated position above.
                 }
                 break;
-            case PasteInputEvent p: 
-                layout?.OnPaste(p.Text); 
+            case PasteInputEvent p:
+                layout?.OnPaste(p.Text);
                 break;
-            case FocusInputEvent f: 
-                HasFocus = f.HasFocus; 
+            case FocusInputEvent f:
+                HasFocus = f.HasFocus;
                 break;
             // ResizeInputEvent is handled by the render loop's terminal-size check, not here.
         }
-    }    
+    }
     /// <summary>
     /// Stops the UI update loop and disposes of the timer. 
     /// </summary>
@@ -428,6 +428,12 @@ public static class UI
             //    Runs every frame (cheap when the size is unchanged); also ticks the legacy software cursor blink.
             ConsoleManager.AdjustBufferSize();
 
+            // A redraw requested BEFORE this frame's paint (from input, a timer, or a structural change drained off
+            // the dispatcher queue just now) should be fully satisfied this frame. Captured here so it can be told
+            // apart from a redraw requested DURING the paint below — e.g. a control's throttled self-refresh
+            // (StatusBar/PerfHud) invalidating from its own paint handler, whose actual repaint bubbles next frame.
+            bool redrawRequestedBeforePaint = needsDraw;
+
             // 2. Paint: controls render into their own buffers and report their damaged screen rects into the
             //    ConsoleManager dirty accumulator. This MUST run before compositing so the composite reads fresh
             //    buffers, not last frame's (or, on the first frame after startup/resize, empty ones) — otherwise
@@ -444,11 +450,13 @@ public static class UI
             //    keeps a self-blinking ANSI cursor ticking.
             if (needsDraw || ConsoleManager.HasDirty)
             {
-                // Safety net: a redraw was requested (needsDraw) but no control localized its damage into a dirty
-                // rect and nothing marked the surface fully dirty (HasDirty is false). The change came from a source
-                // we can't scope to a region, so re-composite everything rather than risk leaving a stale region on
-                // screen. Well-behaved controls report their own rect (HasDirty true) and stay a partial redraw.
-                if (needsDraw && !ConsoleManager.HasDirty) ConsoleManager.MarkFullDirty();
+                // Safety net: a redraw was requested before this frame's paint, yet the paint localized no damage
+                // (HasDirty is false) and nothing marked the surface fully dirty — so the change came from a source
+                // that can't be scoped to a rect (e.g. a self-drawing popup opening a submenu). Re-composite
+                // everything rather than leave a stale region. A needsDraw raised DURING the paint (a deferred
+                // self-refresh) is NOT promoted — its real partial redraw lands next frame — which is what kept the
+                // status-bar tick from repainting the whole screen.
+                if (redrawRequestedBeforePaint && !ConsoleManager.HasDirty) ConsoleManager.MarkFullDirty();
                 needsDraw = false;
                 drew = true;
                 ConsoleManager.Draw();
