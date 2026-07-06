@@ -86,4 +86,141 @@ public class PlotStatisticalTests
         var ex = Record.Exception(() => Render(plot));
         Assert.Null(ex);
     }
+
+    private static readonly IReadOnlyList<IReadOnlyList<double>> ThreeSeries =
+    [
+        new double[] { 6, 9, 5, 8 },
+        new double[] { 4, 7, 8, 3 },
+        new double[] { 3, 2, 6, 5 },
+    ];
+
+    [Fact]
+    public void GroupedBars_DrawSideBySideSubBars()
+    {
+        var plot = new Plot();
+        plot.AddGroupedBars([1, 2, 3, 4], ThreeSeries);
+        var text = Render(plot);
+
+        Assert.Contains('█', text);
+        // Grouped: within one group the sub-bars have different heights, so a row through the group mixes bar and
+        // gap — i.e. some line contains both a full block and an interior run of spaces between blocks.
+        var mixedRow = text.Split('\n').Any(line =>
+        {
+            int first = line.IndexOf('█');
+            int last = line.LastIndexOf('█');
+            return first >= 0 && last > first && line.Substring(first, last - first).Contains("  ");
+        });
+        Assert.True(mixedRow, "expected side-by-side sub-bars separated by gaps");
+    }
+
+    [Fact]
+    public void StackedBars_AreSolidFullWidth_UnlikeGrouped()
+    {
+        // A stacked bar is one solid full-slot-width block up its whole height; a grouped bar narrows as the shorter
+        // sub-bars end. So the stacked chart has more rows with a wide contiguous run of blocks. (The y-axis
+        // auto-scales in both, so absolute height can't be compared — this structural difference can.)
+        int WideRunRows(bool stacked)
+        {
+            var plot = new Plot();
+            if (stacked) plot.AddStackedBars([1, 2, 3, 4], ThreeSeries);
+            else plot.AddGroupedBars([1, 2, 3, 4], ThreeSeries);
+            return Render(plot).Split('\n').Count(line => LongestRun(line, '█') >= 12);
+        }
+
+        Assert.True(WideRunRows(stacked: true) > WideRunRows(stacked: false),
+            "a stacked bar should stay full-width up its height while a grouped bar narrows");
+    }
+
+    private static int LongestRun(string line, char ch)
+    {
+        int best = 0, run = 0;
+        foreach (var c in line)
+        {
+            run = c == ch ? run + 1 : 0;
+            if (run > best) best = run;
+        }
+        return best;
+    }
+
+    [Fact]
+    public void HorizontalBars_LongerBarReachesFurtherRight()
+    {
+        var plot = new Plot();
+        // The second category has the largest value, so its bar must extend furthest right.
+        plot.AddHBars(positions: [1, 2, 3], values: [4, 20, 8], color: new CColor(120, 200, 120));
+        var lines = Render(plot).Split('\n');
+
+        int maxRight = lines.Max(l => l.LastIndexOf('█'));
+        int shortRight = lines.Where(l => l.Contains('█'))
+            .Select(l => l.LastIndexOf('█'))
+            .Min();
+        Assert.True(maxRight > shortRight, "the largest-value bar should extend further right than the smallest");
+    }
+
+    private static IReadOnlyList<IReadOnlyList<double>> Gradient(int rows, int cols) =>
+        Enumerable.Range(0, rows)
+            .Select(r => (IReadOnlyList<double>)Enumerable.Range(0, cols).Select(c => (double)(c + (rows - 1 - r))).ToArray())
+            .ToArray();
+
+    [Fact]
+    public void Heatmap_FillsAreaAndFollowsColormap()
+    {
+        var plot = new Plot();
+        plot.AddHeatmap(Gradient(8, 12), PlotColormap.Viridis);
+        plot.ConfigureGrid(g => g.IsVisible = false);
+        var buffer = ConsoleSnapshot.Render(plot, 60, 20);
+
+        // The grid tiles the plot area with solid blocks.
+        int blocks = 0;
+        for (int y = 0; y < buffer.Size.Height; y++)
+            for (int x = 0; x < buffer.Size.Width; x++)
+                if (buffer[x, y].Character.Content == '█') blocks++;
+        Assert.True(blocks > 400, $"expected the heatmap to fill the plot area, saw {blocks} blocks");
+
+        // The lowest cell (bottom-left) maps near the Viridis low end (dark purple ~68,1,84), the highest
+        // (top-right) near the high end (yellow ~253,231,37): the top-right is much greener, the bottom-left bluer.
+        static (int r, int g, int b) FgAt(ConsoleBuffer buf, int x, int y)
+        {
+            var fg = buf[x, y].Character.Foreground!.Value;
+            return (fg.Red, fg.Green, fg.Blue);
+        }
+        var low = FgAt(buffer, 4, buffer.Size.Height - 5);   // bottom-left region
+        var high = FgAt(buffer, buffer.Size.Width - 6, 3);   // top-right region
+        Assert.True(high.g > low.g + 60, $"top-right should be greener than bottom-left ({high} vs {low})");
+        Assert.True(low.b > high.b, $"bottom-left (purple) should be bluer than top-right (yellow) ({low} vs {high})");
+    }
+
+    [Fact]
+    public void Heatmap_DifferentColormaps_ProduceDifferentColors()
+    {
+        (int r, int g, int b) MidColor(PlotColormap cm)
+        {
+            var plot = new Plot();
+            plot.AddHeatmap(Gradient(8, 12), cm);
+            plot.ConfigureGrid(g => g.IsVisible = false);
+            var buf = ConsoleSnapshot.Render(plot, 60, 20);
+            var fg = buf[30, 10].Character.Foreground!.Value;
+            return (fg.Red, fg.Green, fg.Blue);
+        }
+
+        Assert.NotEqual(MidColor(PlotColormap.Viridis), MidColor(PlotColormap.Heat));
+        Assert.NotEqual(MidColor(PlotColormap.Grayscale), MidColor(PlotColormap.Cool));
+    }
+
+    [Fact]
+    public void Heatmap_AllNaN_LeftBlank()
+    {
+        var nanGrid = Enumerable.Range(0, 4)
+            .Select(_ => (IReadOnlyList<double>)Enumerable.Repeat(double.NaN, 4).ToArray())
+            .ToArray();
+        var plot = new Plot();
+        plot.AddHeatmap(nanGrid);
+        var buffer = ConsoleSnapshot.Render(plot, 40, 12);
+
+        bool anyBlock = false;
+        for (int y = 0; y < buffer.Size.Height && !anyBlock; y++)
+            for (int x = 0; x < buffer.Size.Width; x++)
+                if (buffer[x, y].Character.Content == '█') { anyBlock = true; break; }
+        Assert.False(anyBlock, "an all-NaN heatmap should draw no cells");
+    }
 }

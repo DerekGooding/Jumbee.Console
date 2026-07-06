@@ -268,6 +268,132 @@ public class Plot : Control
     }
 
     /// <summary>
+    /// Adds grouped (side-by-side) vertical bars — one sub-bar per series at each x. <paramref name="series"/> is
+    /// one value list per series (each the same length as <paramref name="xs"/>). <paramref name="colors"/> defaults
+    /// to the palette (one per series); <paramref name="width"/> is the group width as a fraction (0..1) of the spacing.
+    /// </summary>
+    public Plot AddGroupedBars(
+        IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series,
+        IReadOnlyList<CColor>? colors = null, double baseline = 0, double width = 0.8)
+    {
+        UI.Invoke(() =>
+        {
+            var cs = ColorsFor(series.Count, colors);
+            AddElement(plot => plot.AddGroupedBars(xs, series, cs, baseline, width));
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Adds stacked vertical bars — the series stacked from <paramref name="baseline"/> at each x.
+    /// <paramref name="series"/> is one value list per series (each the same length as <paramref name="xs"/>).
+    /// <paramref name="colors"/> defaults to the palette (one per series).
+    /// </summary>
+    public Plot AddStackedBars(
+        IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series,
+        IReadOnlyList<CColor>? colors = null, double baseline = 0, double width = 0.8)
+    {
+        UI.Invoke(() =>
+        {
+            var cs = ColorsFor(series.Count, colors);
+            AddElement(plot => plot.AddStackedBars(xs, series, cs, baseline, width));
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Adds horizontal bars — each category at a Y <paramref name="position"/> with its bar growing along X from
+    /// <paramref name="baseline"/> to its value. <paramref name="color"/> defaults to the palette; <paramref name="width"/>
+    /// is the bar thickness as a fraction (0..1) of the spacing.
+    /// </summary>
+    public Plot AddHBars(IReadOnlyList<double> positions, IReadOnlyList<double> values, CColor? color = null, double baseline = 0, double width = 0.8)
+    {
+        UI.Invoke(() =>
+        {
+            var c = color ?? Palette[_seriesCount % Palette.Length];
+            AddElement(plot => plot.AddHBars(positions, values, c, baseline, width));
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a heatmap: a grid of <paramref name="values"/> (one list per row, row 0 drawn at the top) tiled over
+    /// the plot area, each cell coloured by <paramref name="colormap"/>. Values are normalised into
+    /// [<paramref name="min"/>, <paramref name="max"/>], defaulting to the data's own min/max. NaN cells are blank.
+    /// </summary>
+    public Plot AddHeatmap(IReadOnlyList<IReadOnlyList<double>> values, PlotColormap colormap = PlotColormap.Viridis, double? min = null, double? max = null)
+    {
+        UI.Invoke(() =>
+        {
+            int rows = values.Count;
+            if (rows == 0) return;
+            int cols = values[0].Count;
+            if (cols == 0) return;
+
+            double dataMin = double.PositiveInfinity, dataMax = double.NegativeInfinity;
+            foreach (var row in values)
+                foreach (var v in row)
+                    if (!double.IsNaN(v) && !double.IsInfinity(v))
+                    {
+                        if (v < dataMin) dataMin = v;
+                        if (v > dataMax) dataMax = v;
+                    }
+            if (double.IsInfinity(dataMin)) return;   // no finite values
+
+            double lo = min ?? dataMin, hi = max ?? dataMax;
+            var map = ColormapFunc(colormap);
+            // The grid tiles the unit-per-cell rectangle 0..cols × 0..rows; use Configure* to relabel the axes.
+            AddElement(plot => plot.AddHeatmap(values, 0, cols, 0, rows, lo, hi, v => map(v)));
+        });
+        return this;
+    }
+
+    // Maps a colormap choice to a normalised-value → colour function.
+    private static Func<double, CColor> ColormapFunc(PlotColormap colormap) => colormap switch
+    {
+        PlotColormap.Grayscale => t => Ramp(GrayscaleStops, t),
+        PlotColormap.Heat => t => Ramp(HeatStops, t),
+        PlotColormap.Cool => t => Ramp(CoolStops, t),
+        _ => t => Ramp(ViridisStops, t),
+    };
+
+    // Piecewise-linear interpolation across evenly-spaced colour stops (t in [0, 1]).
+    private static CColor Ramp(CColor[] stops, double t)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        double scaled = t * (stops.Length - 1);
+        int i = (int)Math.Floor(scaled);
+        if (i >= stops.Length - 1) return stops[^1];
+        double f = scaled - i;
+        var a = stops[i];
+        var b = stops[i + 1];
+        return new CColor(
+            (byte)(a.Red + (b.Red - a.Red) * f),
+            (byte)(a.Green + (b.Green - a.Green) * f),
+            (byte)(a.Blue + (b.Blue - a.Blue) * f));
+    }
+
+    private static readonly CColor[] ViridisStops =
+    [
+        new(68, 1, 84), new(59, 82, 139), new(33, 145, 140), new(94, 201, 98), new(253, 231, 37),
+    ];
+    private static readonly CColor[] HeatStops =
+    [
+        new(0, 0, 0), new(150, 0, 0), new(230, 90, 0), new(250, 200, 40), new(255, 255, 220),
+    ];
+    private static readonly CColor[] GrayscaleStops = [new(15, 15, 15), new(245, 245, 245)];
+    private static readonly CColor[] CoolStops = [new(0, 220, 220), new(120, 120, 240), new(230, 60, 230)];
+
+    // One colour per series: the caller's colours where given, else the palette cycled by series index.
+    private static IReadOnlyList<CColor> ColorsFor(int count, IReadOnlyList<CColor>? colors)
+    {
+        var result = new CColor[count];
+        for (int j = 0; j < count; j++)
+            result[j] = colors is not null && j < colors.Count ? colors[j] : Palette[j % Palette.Length];
+        return result;
+    }
+
+    /// <summary>
     /// Adds a text annotation anchored to the data point (<paramref name="x"/>, <paramref name="y"/>) — e.g. labelling
     /// a candle or data point. <paramref name="fg"/> defaults to white; <paramref name="bg"/> is optional (transparent
     /// when null). <paramref name="dx"/>/<paramref name="dy"/> nudge the label in cells (dy &gt; 0 = above the point);
@@ -414,6 +540,19 @@ public enum PlotBrush
     Dot,
     /// <summary>A <c>*</c> per point (1×1).</summary>
     Star,
+}
+
+/// <summary>Selects the colour map a <see cref="Plot"/> heatmap uses to turn cell values into colours.</summary>
+public enum PlotColormap
+{
+    /// <summary>Perceptually-uniform dark-purple → blue → teal → green → yellow (the default).</summary>
+    Viridis,
+    /// <summary>Classic heat: black → red → orange → yellow → white.</summary>
+    Heat,
+    /// <summary>Dark → light grey.</summary>
+    Grayscale,
+    /// <summary>Cyan → blue → magenta.</summary>
+    Cool,
 }
 
 /// <summary>Horizontal anchoring of a <see cref="Plot"/> annotation label relative to its point.</summary>

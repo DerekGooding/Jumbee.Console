@@ -7,13 +7,26 @@ candlestick-only).
 
 ## Status — checkpoint 2026-07-06
 
-**Shipped (all green, `--verify` 16/16, 511 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
-and **B** (per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, histogram, candlestick,
-box-and-whisker, error bars**, plus **point annotations** (fg/bg labels). Jumbee `Plot` API: `AddSeries`/`AddScatter`/
-`AddStem`/`AddBars`/`AddHistogram`/`AddCandles`/`AddBox`/`AddBoxes`/`AddErrorBars`/`AddLabel`, `Configure*`,
-`Background`, plus `PlotBrush` and `PlotLabelAlign` enums. Browser examples: Plot, Scatter, Stem, Bar, Histogram,
-Candlestick, Box Plot, Error Bars, Annotations. Robustness: degenerate data padded in `PlotData` (no try/catch in
-render); bars/boxes tile exactly on resize (shared slot-based half-open ranges, `GraphGraphics.SlotColumns`).
+**Shipped (all green, `--verify` 20/20, 517 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
+and **B** (per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, grouped/stacked bars,
+horizontal bars, histogram, candlestick, box-and-whisker, error bars, heatmap**, plus **point annotations** (fg/bg
+labels). **Every roadmap plot family is now implemented.** Jumbee `Plot` API: `AddSeries`/`AddScatter`/`AddStem`/
+`AddBars`/`AddGroupedBars`/`AddStackedBars`/`AddHBars`/`AddHistogram`/`AddCandles`/`AddBox`/`AddBoxes`/`AddErrorBars`/
+`AddHeatmap`/`AddLabel`, `Configure*`, `Background`, plus `PlotBrush`, `PlotColormap` and `PlotLabelAlign` enums.
+Robustness: degenerate data padded in `PlotData` (no try/catch in render); bars/boxes/heatmap cells tile exactly on
+resize (shared slot ranges, `GraphGraphics.SlotColumns`/`SlotRows`/`SlotRange`).
+
+**Heatmap (Phase 4, 2026-07-06):** `HeatSeries` + `GraphGraphics.DrawHeat` — a 2D value grid (row 0 at top) tiled
+over the plot's data rectangle; each cell filled with a `█` in the colour from a `Func<double,Color>` map applied to
+the value normalised into [vmin, vmax] (NaN cells blank). Jumbee `AddHeatmap(values, PlotColormap, min?, max?)` +
+`PlotColormap` {Viridis, Heat, Grayscale, Cool}, each a stop-interpolated ramp (`Ramp`/`*Stops`). HeatmapExample.
+
+**Grouped/stacked/horizontal bars (Phase 2 finished, 2026-07-06):** `MultiBarSeries` (grouped OR stacked via a flag,
+holds N value-series + colours) + `GraphGraphics.DrawGroupedBars` (each x slot split into k sub-bars) / `DrawStackedBars`
+(series stacked from baseline, full cells between rounded cumulative boundaries so segments abut). `HBarSeries` +
+`DrawHBars` — positions on Y (`SlotRows`), values along X, left-anchored eighth-blocks (`FillRow`) for the fractional
+right cell (X isn't flipped, so direct). Extracted `SlotRange` (shared by `SlotColumns`/`SlotRows`), added
+`Bounds.IncludeX`. Jumbee `AddGroupedBars`/`AddStackedBars` (per-series palette via `ColorsFor`), `AddHBars`.
 
 **Box-and-whisker + error bars (Phase 3 finished, 2026-07-06):** `BoxSeries` / `ErrorBarSeries : PlotElement` +
 `GraphGraphics.DrawBoxes` / `DrawErrorBars`. Box = Q1–Q3 rectangle (`┌┐└┘│─`) with a median line (`├─┤`, own colour),
@@ -28,10 +41,11 @@ raw groups in the wrapper (pure data-prep, like `AddHistogram`); `AddErrorBars` 
 Jumbee wrapper: `src/Jumbee.Console/Controls/Plot/{Plot,PlotImage}.cs`. Examples:
 `examples/.../Examples/Controls/*PlotExample.cs`. Deep detail in the [[plot-control]] memory.
 
-**Recommended next slices (pick per value):** (1) **heatmap** — change B is done, so it's now unblocked (map
-value→`Pixel.Background`, a `HeatSeries`) — the last unstarted family; (2) **grouped/stacked/horizontal bars**
-(more `DrawBars`/`SlotColumns` reuse); (3) the still-**deferred log axis** (invasive tick-machinery rewrite —
-lowest value/effort). *(Box-and-whisker / error bars — finishing Phase 3 — done 2026-07-06.)*
+**Recommended next slices (pick per value):** every plot *family* is now in, so the open work is depth/polish:
+(1) **heatmap cell-value text overlay** (numbers on coloured cells → confusion-matrix-ready, uses change B's
+`DrawText` bg); (2) **matrix/confusion-matrix helpers** (thin wrappers over `HeatSeries` with categorical axis
+labels); (3) **datetime axis / subplots** (Phase 5); (4) the still-**deferred log axis** (invasive tick-machinery
+rewrite — lowest value/effort). *(Phases 2, 3 and 4's heatmap all finished 2026-07-06.)*
 
 ## What the base gives us
 
@@ -78,13 +92,19 @@ point annotations (labels with fg/bg); also unblocks the Phase-4 heatmap/matrix/
   log-aware converter + decade ticks; medium payoff, unlocks nothing else, so pushed after bars)*.
 - **Phase 2 — bars** (primitive #1): vertical bar *(done — `BarSeries` + `GraphGraphics.DrawBars` with eighth-block
   sub-cell tops)*; histogram *(done — `Plot.AddHistogram` bins in Jumbee, reuses `DrawBars` with width 1.0, no
-  ConsolePlot change)*; **next:** grouped, stacked, horizontal.
+  ConsolePlot change)*; grouped *(done — `MultiBarSeries` grouped mode + `DrawGroupedBars`, sub-slot split)*;
+  stacked *(done — `MultiBarSeries` stacked mode + `DrawStackedBars`, full-cell cumulative segments)*; horizontal
+  *(done — `HBarSeries` + `DrawHBars`/`SlotRows`/left-anchored eighth-blocks `▏▎▍▌▋▊▉█`)*. **Phase 2 complete.**
 - **Phase 3 — financial/statistical** (#1, #2): candlestick (OHLC) *(done — `CandleSeries` + `GraphGraphics.DrawCandles`,
   half-cell box glyphs `│┃╽╿╻╹╷╵` ported from termgraph, up/down colour)*; box-and-whisker *(done — `BoxSeries` +
   `GraphGraphics.DrawBoxes`, Q1–Q3 box + median + min/max whiskers; `AddBoxes` computes quartiles from raw groups)*;
   error bars *(done — `ErrorBarSeries` + `GraphGraphics.DrawErrorBars`, ±err whisker + caps + marker, asymmetric)*.
   **Phase 3 complete.**
-- **Phase 4 — color grids** (change B): heatmap, matrix plot, confusion matrix.
+- **Phase 4 — color grids** (change B): heatmap *(done — `HeatSeries` + `GraphGraphics.DrawHeat`, a 2D value grid
+  tiled over the plot area, cells coloured `█` via a normalised-value→colour map; Jumbee `AddHeatmap` + `PlotColormap`
+  {Viridis, Heat, Grayscale, Cool} with stop-interpolated ramps)*; matrix plot / confusion matrix are the same
+  `HeatSeries` with axis labels — **next:** cell value text overlay (use change B's `DrawText` bg for readable numbers
+  on coloured cells).
 - **Phase 5 — decorators/utility:** point text annotations with fg/bg *(done — `PointLabel` + change B)*;
   **next:** shape/indicator annotations, datetime axis, subplots (compose `Plot` controls in a Jumbee
   `Grid`/`DockPanel` — no ConsolePlot change).
