@@ -122,10 +122,16 @@ Rendering is triggered by the `ConsoleManager`. It does not "push" drawing comma
 
 ## Summary: The Life Cycle of a Pixel
 
-1.  **Creation**: `ConsoleManager.Update(Rect)` decides which part of the screen needs refreshing.
+1.  **Creation**: `ConsoleManager.Update(Rect)` re-composites one damaged region. The renderer is dirty-rectangle: `FlushDirty` calls `Update` once per accumulated dirty rect (or once over the whole screen on a full redraw). See *Damage tracking* below for how a rect gets into the accumulator.
 2.  **Request**: It asks the Root Context for the `Cell` at `(x, y)`.
 3.  **Translation**: The request travels down through `DrawingContext`s (adjusting xy for offsets) and `Control`s (determining if the child or the control itself handles that pixel).
 4.  **Generation**: A leaf control generates the `Cell`.
 5.  **Decoration**: The `Cell` bubbles up, potentially picking up background colors or styles from parent containers.
 6.  **Buffering**: `ConsoleManager` compares the result with its internal `ConsoleBuffer`.
 7.  **Output**: If different, the character is written to the real `System.Console`.
+
+## Damage tracking (dirty rectangles)
+
+The *pull* above only re-runs for regions marked dirty. Damage flows **up** the same tree, mirroring the pull that flows down: when a control repaints (`Control.OnPaint`) it reports its own area via the ConsoleGUI base `Update(rect)`; each `DrawingContext` on the way up translates the rect by its offset (`DrawingContext.Update` → `rect.Move(Offset)`), so it reaches `ConsoleManager` in screen coordinates and lands in the per-frame dirty accumulator. `CompositeControl`, `ControlFrame`, and the `DockPanel`/`Layout` containers all **propagate** a child's rect this way (rather than invalidating their whole selves), so a small change stays a small redraw. Because a control cannot know its own screen position in a pull renderer, this bubble-up *is* how local damage becomes screen damage.
+
+**Known limitation — damage under-reporting.** A few controls request a repaint but don't fully localize their damage through this chain (notably `Tree` selection and editor scroll, whose damage is dropped somewhere in the scrolling-`ControlFrame` → nested-composite → `SplitPanel` path). They worked before dirty rectangles only because the renderer redrew the whole screen every frame. The current mitigation is the **input-forces-full-redraw** guarantee (see *Multithreading*), which keeps interaction correct without auditing every control. Tracing and fixing the exact dropped-rect link — so interaction can also be a partial redraw — is a deferred task.

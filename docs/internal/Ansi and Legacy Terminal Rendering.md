@@ -37,8 +37,10 @@ changed cell is turned into bytes, and how the cursor is drawn.
 
 ## 2. The branch point: `Update`
 
-Every frame, `ConsoleManager.Update(rect)` clips the dirty rectangle to the buffer/window and then
-forks on the flag:
+The renderer is dirty-rectangle: each frame `ConsoleManager.FlushDirty()` composites only the region(s)
+damaged since the last frame (see *Multithreading* → the frame loop), calling `Update(rect)` once per dirty
+rect — or once over the whole screen on a full redraw (startup, resize, or any action input). `Update(rect)`
+clips the rect to the buffer/window and then forks on the flag:
 
 ```csharp
 private static void Update(Rect rect)

@@ -54,16 +54,34 @@ controls; application code uses `UI.Post`/`UI.InvokeAsync`.
 ## The frame loop
 
 Each frame, on the UI thread, `UI.OnFrame` runs (as the dispatcher's frame callback, after the queue has
-been drained):
+been drained). The renderer is **dirty-rectangle**: it re-composites only the regions that changed, not the
+whole screen. The order is **paint, then composite**:
 
-1. If anything is dirty (`needsDraw`), call `ConsoleManager.Draw()` (which itself diffs cells and only writes
-   changed ones). Otherwise just do a cheap terminal-resize check (`AdjustBufferSize`) and skip the
-   full-screen scan — this is the **idle-skip**: an idle UI does almost no work per frame.
-2. Fire the `Paint` event so each control renders its current state into its buffer.
+1. `AdjustBufferSize()` — a cheap terminal-resize check (a resize marks the whole surface dirty via `Initialize`).
+2. Fire the `Paint` event so each control renders its current state into its buffer. As a control finishes, it
+   reports its own screen area as damaged: `Control.OnPaint` calls the ConsoleGUI base `Update(rect)`, whose rect
+   bubbles up the `DrawingContext` tree (translated to screen coordinates) into a per-frame **dirty accumulator**
+   in `ConsoleManager` (`_dirtyRects`, or `_fullDirty` for a whole-tree redraw).
+3. Composite: if anything is dirty, `ConsoleManager.Draw()` → `FlushDirty()` re-composites the damaged region(s)
+   — the whole screen on a full-dirty (startup/resize), else one `Update(rect)` per dirty rect. An **idle** frame
+   (nothing dirtied) skips the scan entirely, so an idle UI does almost no work per frame. The metric
+   `ProcessMetrics.DirtyAreaPercentAvg` reports the fraction of the screen re-composited per drawn frame.
 
-`UI.MarkDirty()` sets the dirty flag. It is called automatically from `Control.Invalidate()`, from
-`Control.OnPaint` after a control repaints (so newly rendered content is drawn next frame), and from
-`UI.Invoke` (since `Invoke` is only used when state actually changes).
+Paint runs **before** composite so the composite reads freshly-painted buffers (not last frame's, or empty ones
+on the first frame after startup/resize). The per-cell `ConsoleBuffer` diff is still the correctness backstop:
+an over-large dirty rect only wastes scan time, it can never emit a wrong cell.
+
+`UI.MarkDirty()` sets the redraw flag; `Control.Invalidate()` and `UI.Invoke` call it when state changes. Note
+`Control.OnPaint` does **not** call it — the bubbled dirty rect is itself the redraw signal for that frame.
+
+**Input forces a full redraw.** `UI.OnInput` marks the whole surface dirty (`ConsoleManager.MarkFullDirty()`) for
+any *action* input — a key, click, wheel, or paste (not bare pointer motion) — so the whole screen is
+re-composited on the frame that input is handled. This is a robustness guarantee: some controls request a repaint
+but don't fully localize their damage through the partial-redraw path (they relied on the pre-dirty-rect
+renderer, which redrew everything every frame), so a partial redraw can miss part of their change. Full-redrawing
+on discrete input is essentially free at human rates; autonomous updates (animation, throttled self-refresh) and
+pointer motion stay on the efficient partial-redraw path. *(Tightening those under-reporting controls so
+interaction can also be a partial redraw is a future task — see the note in `ConsoleGUI Control Rendering`.)*
 
 ## Input flow
 
