@@ -5,14 +5,23 @@ plotter into a small plot framework, and where the drawing techniques come from.
 `reference/projects/plotext-master` (Python, feature-rich) and `reference/projects/termgraph-master` (Python,
 candlestick-only).
 
-## Status — checkpoint 2026-07-05
+## Status — checkpoint 2026-07-06
 
-**Shipped (all green, `--verify` 14/14):** the enabling refactors **A** (polymorphic `PlotElement`) and **B**
-(per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, histogram, candlestick**, plus
-**point annotations** (fg/bg labels). Jumbee `Plot` API: `AddSeries`/`AddScatter`/`AddStem`/`AddBars`/
-`AddHistogram`/`AddCandles`/`AddLabel`, `Configure*`, `Background`, plus `PlotBrush` and `PlotLabelAlign` enums.
-Browser examples: Plot, Scatter, Stem, Bar, Histogram, Candlestick, Annotations. Robustness: degenerate data padded
-in `PlotData` (no try/catch in render); bars tile exactly on resize (slot-based half-open ranges).
+**Shipped (all green, `--verify` 16/16, 511 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
+and **B** (per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, histogram, candlestick,
+box-and-whisker, error bars**, plus **point annotations** (fg/bg labels). Jumbee `Plot` API: `AddSeries`/`AddScatter`/
+`AddStem`/`AddBars`/`AddHistogram`/`AddCandles`/`AddBox`/`AddBoxes`/`AddErrorBars`/`AddLabel`, `Configure*`,
+`Background`, plus `PlotBrush` and `PlotLabelAlign` enums. Browser examples: Plot, Scatter, Stem, Bar, Histogram,
+Candlestick, Box Plot, Error Bars, Annotations. Robustness: degenerate data padded in `PlotData` (no try/catch in
+render); bars/boxes tile exactly on resize (shared slot-based half-open ranges, `GraphGraphics.SlotColumns`).
+
+**Box-and-whisker + error bars (Phase 3 finished, 2026-07-06):** `BoxSeries` / `ErrorBarSeries : PlotElement` +
+`GraphGraphics.DrawBoxes` / `DrawErrorBars`. Box = Q1–Q3 rectangle (`┌┐└┘│─`) with a median line (`├─┤`, own colour),
+whiskers to min/max with caps (`─` + `┬`/`┴` where the whisker meets a cap or box edge), cell resolution, full RGB.
+Error bar = vertical whisker (`│`) from y−errLow to y+errHigh, caps (`┬`/`┴`), centre marker (`┼`), asymmetric low/high.
+Jumbee `AddBox` takes the five-number summary; `AddBoxes` computes quartiles (linear-interpolation percentiles) from
+raw groups in the wrapper (pure data-prep, like `AddHistogram`); `AddErrorBars` has symmetric + asymmetric overloads.
+`PlotStatisticalTests` covers glyphs + degenerate data (single value, empty group, zero error).
 
 **Where the code lives:** new plot types + primitives in the fork (`ext/ConsolePlot/.../Plotting/` — `PlotElement`,
 `Series`/`ScatterSeries`/`StemSeries`, `BarSeries`, `CandleSeries`, `PointLabel`; drawing in `GraphGraphics`).
@@ -20,9 +29,9 @@ Jumbee wrapper: `src/Jumbee.Console/Controls/Plot/{Plot,PlotImage}.cs`. Examples
 `examples/.../Examples/Controls/*PlotExample.cs`. Deep detail in the [[plot-control]] memory.
 
 **Recommended next slices (pick per value):** (1) **heatmap** — change B is done, so it's now unblocked (map
-value→`Pixel.Background`, a `HeatSeries`); (2) **grouped/stacked/horizontal bars** (more `DrawBars` reuse);
-(3) **box-and-whisker / error bars** (finish Phase 3); (4) the still-**deferred log axis** (invasive tick-machinery
-rewrite — lowest value/effort).
+value→`Pixel.Background`, a `HeatSeries`) — the last unstarted family; (2) **grouped/stacked/horizontal bars**
+(more `DrawBars`/`SlotColumns` reuse); (3) the still-**deferred log axis** (invasive tick-machinery rewrite —
+lowest value/effort). *(Box-and-whisker / error bars — finishing Phase 3 — done 2026-07-06.)*
 
 ## What the base gives us
 
@@ -71,7 +80,10 @@ point annotations (labels with fg/bg); also unblocks the Phase-4 heatmap/matrix/
   sub-cell tops)*; histogram *(done — `Plot.AddHistogram` bins in Jumbee, reuses `DrawBars` with width 1.0, no
   ConsolePlot change)*; **next:** grouped, stacked, horizontal.
 - **Phase 3 — financial/statistical** (#1, #2): candlestick (OHLC) *(done — `CandleSeries` + `GraphGraphics.DrawCandles`,
-  half-cell box glyphs `│┃╽╿╻╹╷╵` ported from termgraph, up/down colour)*; **next:** box-and-whisker, error bars.
+  half-cell box glyphs `│┃╽╿╻╹╷╵` ported from termgraph, up/down colour)*; box-and-whisker *(done — `BoxSeries` +
+  `GraphGraphics.DrawBoxes`, Q1–Q3 box + median + min/max whiskers; `AddBoxes` computes quartiles from raw groups)*;
+  error bars *(done — `ErrorBarSeries` + `GraphGraphics.DrawErrorBars`, ±err whisker + caps + marker, asymmetric)*.
+  **Phase 3 complete.**
 - **Phase 4 — color grids** (change B): heatmap, matrix plot, confusion matrix.
 - **Phase 5 — decorators/utility:** point text annotations with fg/bg *(done — `PointLabel` + change B)*;
   **next:** shape/indicator annotations, datetime axis, subplots (compose `Plot` controls in a Jumbee

@@ -164,6 +164,110 @@ public class Plot : Control
     }
 
     /// <summary>
+    /// Adds a box-and-whisker series from the five-number summary of each box — <paramref name="mins"/>,
+    /// <paramref name="q1s"/>, <paramref name="medians"/>, <paramref name="q3s"/>, <paramref name="maxes"/> (all the
+    /// same length as <paramref name="xs"/>). <paramref name="color"/> defaults to the palette; <paramref name="medianColor"/>
+    /// defaults to <paramref name="color"/>; <paramref name="width"/> is the box width as a fraction (0..1) of the spacing.
+    /// </summary>
+    public Plot AddBox(
+        IReadOnlyList<double> xs, IReadOnlyList<double> mins, IReadOnlyList<double> q1s,
+        IReadOnlyList<double> medians, IReadOnlyList<double> q3s, IReadOnlyList<double> maxes,
+        CColor? color = null, CColor? medianColor = null, double width = 0.6)
+    {
+        UI.Invoke(() =>
+        {
+            var c = color ?? Palette[_seriesCount % Palette.Length];
+            var m = medianColor ?? c;
+            AddElement(plot => plot.AddBox(xs, mins, q1s, medians, q3s, maxes, c, m, width));
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a box-and-whisker series from raw data <paramref name="groups"/> — one box per group, with the quartiles
+    /// (min/Q1/median/Q3/max, linear-interpolation percentiles) computed here. Boxes are positioned at
+    /// <paramref name="positions"/> (defaults to 1, 2, 3, …). <paramref name="color"/> defaults to the palette.
+    /// </summary>
+    public Plot AddBoxes(
+        IReadOnlyList<IReadOnlyList<double>> groups, IReadOnlyList<double>? positions = null,
+        CColor? color = null, CColor? medianColor = null, double width = 0.6)
+    {
+        UI.Invoke(() =>
+        {
+            var xs = new List<double>();
+            var mins = new List<double>();
+            var q1s = new List<double>();
+            var medians = new List<double>();
+            var q3s = new List<double>();
+            var maxes = new List<double>();
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (!Quartiles(groups[i], out var min, out var q1, out var med, out var q3, out var max))
+                    continue;
+                xs.Add(positions is not null && i < positions.Count ? positions[i] : i + 1);
+                mins.Add(min); q1s.Add(q1); medians.Add(med); q3s.Add(q3); maxes.Add(max);
+            }
+
+            if (xs.Count == 0) return;
+            var c = color ?? Palette[_seriesCount % Palette.Length];
+            var m = medianColor ?? c;
+            AddElement(plot => plot.AddBox(xs, mins, q1s, medians, q3s, maxes, c, m, width));
+        });
+        return this;
+    }
+
+    // The five-number summary of the finite values (linear-interpolation percentiles, numpy's default), or false
+    // when there are no finite values.
+    private static bool Quartiles(IReadOnlyList<double> values, out double min, out double q1, out double median, out double q3, out double max)
+    {
+        min = q1 = median = q3 = max = 0;
+        var sorted = values.Where(v => !double.IsNaN(v) && !double.IsInfinity(v)).ToArray();
+        if (sorted.Length == 0) return false;
+        Array.Sort(sorted);
+
+        min = sorted[0];
+        max = sorted[^1];
+        q1 = Percentile(sorted, 0.25);
+        median = Percentile(sorted, 0.50);
+        q3 = Percentile(sorted, 0.75);
+        return true;
+
+        static double Percentile(double[] s, double p)
+        {
+            if (s.Length == 1) return s[0];
+            double rank = p * (s.Length - 1);
+            int lo = (int)Math.Floor(rank);
+            int hi = (int)Math.Ceiling(rank);
+            return s[lo] + (s[hi] - s[lo]) * (rank - lo);
+        }
+    }
+
+    /// <summary>
+    /// Adds vertical error bars with symmetric error — each point (<paramref name="xs"/>, <paramref name="ys"/>)
+    /// drawn as a whisker of ±<paramref name="errors"/> with caps and a centre marker. <paramref name="color"/>
+    /// defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
+    /// </summary>
+    public Plot AddErrorBars(IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errors, CColor? color = null, int capWidth = 1) =>
+        AddErrorBars(xs, ys, errors, errors, color, capWidth);
+
+    /// <summary>
+    /// Adds vertical error bars with asymmetric error — each point (<paramref name="xs"/>, <paramref name="ys"/>)
+    /// drawn as a whisker from <c>y − errLow</c> to <c>y + errHigh</c> with caps and a centre marker.
+    /// <paramref name="color"/> defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
+    /// </summary>
+    public Plot AddErrorBars(
+        IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errLows, IReadOnlyList<double> errHighs,
+        CColor? color = null, int capWidth = 1)
+    {
+        UI.Invoke(() =>
+        {
+            var c = color ?? Palette[_seriesCount % Palette.Length];
+            AddElement(plot => plot.AddErrorBars(xs, ys, errLows, errHighs, c, capWidth));
+        });
+        return this;
+    }
+
+    /// <summary>
     /// Adds a text annotation anchored to the data point (<paramref name="x"/>, <paramref name="y"/>) — e.g. labelling
     /// a candle or data point. <paramref name="fg"/> defaults to white; <paramref name="bg"/> is optional (transparent
     /// when null). <paramref name="dx"/>/<paramref name="dy"/> nudge the label in cells (dy &gt; 0 = above the point);

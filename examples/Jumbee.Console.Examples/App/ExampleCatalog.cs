@@ -19,6 +19,8 @@ public static class ExampleCatalog
         new BarPlotExample(),
         new HistogramExample(),
         new CandlestickExample(),
+        new BoxPlotExample(),
+        new ErrorBarExample(),
         new AnnotatedPlotExample(),
         new DialogExample(),
         new SplitPanelExample(),
