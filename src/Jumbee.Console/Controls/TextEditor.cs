@@ -660,19 +660,19 @@ public class TextEditor : Control
                 ansiConsole.WriteC(text);
                 break;
             case Language.Cpp:
-                ansiConsole.WriteCpp(text);
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Cpp, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Go:
                 ansiConsole.WriteGo(text);
                 break;
             case Language.Java:
-                ansiConsole.WriteJava(text);
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Java, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Kotlin:
                 ansiConsole.WriteKotlin(text);
                 break;
             case Language.Python:
-                ansiConsole.WritePython(text);
+                ansiConsole.Write(ccFormatter.Format(text, Languages.Python, ccSyntaxTheme, ccSyntaxOptions));
                 break;
             case Language.Rust:
                 ansiConsole.WriteRust(text);

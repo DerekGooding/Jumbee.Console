@@ -54,6 +54,47 @@ public class SyntaxFormatterEquivalenceTests
             ORDER BY name;
             """
         },
+        {
+            "cpp",
+            """
+            #include <string>
+
+            // A tiny widget.
+            class Widget {
+              std::string name_;
+             public:
+              int count = 0;
+              explicit Widget(std::string name) : name_(name) {}
+            };
+            """
+        },
+        {
+            "java",
+            """
+            package acme;
+
+            // A tiny widget.
+            public final class Widget {
+                private final String name;
+                private int count = 0;
+
+                public Widget(String name) { this.name = name; }
+            }
+            """
+        },
+        {
+            "python",
+            """
+            # A tiny widget.
+            class Widget:
+                def __init__(self, name: str) -> None:
+                    self.name = name
+                    self.count = 0
+
+                def describe(self) -> str:
+                    return f"{self.name}: {self.count}"
+            """
+        },
     };
 
     private static ILanguage Language(string id) => id switch
@@ -61,6 +102,9 @@ public class SyntaxFormatterEquivalenceTests
         "csharp" => Languages.CSharp,
         "html" => Languages.Html,
         "sql" => Languages.Sql,
+        "cpp" => Languages.Cpp,
+        "java" => Languages.Java,
+        "python" => Languages.Python,
         _ => throw new System.ArgumentOutOfRangeException(nameof(id)),
     };
 
