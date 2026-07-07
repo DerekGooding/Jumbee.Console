@@ -64,6 +64,100 @@ public class DirtyRectRenderTests
         Assert.Equal(0, ConsoleManager.LastFrameDirtyCells);
     }
 
+    // Regression for the nested-layout damage drop: a control inside NESTED SplitPanels (a SplitPanel filling
+    // another SplitPanel — the examples browser shape) must still localize its damage. The bug: a Jumbee Layout bound
+    // as a parent's DrawingContext child is the Layout wrapper, but its wrapped ConsoleGUI control bubbles as itself,
+    // so DrawingContext.Update's `control != Child` guard dropped every rect — leaving HasDirty false so the live
+    // loop fell back to a full-screen redraw every frame. Fixed by binding the layout's CControl (RenderNode). Here,
+    // a dropped rect would show as LastFrameDirtyCells == 0 (nothing composited) and the change missing on screen.
+    [Fact]
+    public async Task NestedSplitPanels_LocalizeDamage_NotDroppedToFullRedraw()
+    {
+        const int w = 60, h = 12;
+        var target = new TextLabel(TextLabelOrientation.Horizontal, "AAA");
+        // target lives two SplitPanels deep: Split(dummy | Split(dummy | target)).
+        var inner = new SplitPanel(SplitOrientation.Horizontal,
+            new TextLabel(TextLabelOrientation.Horizontal, "L2"), target, splitPosition: 10);
+        var outer = new SplitPanel(SplitOrientation.Horizontal,
+            new TextLabel(TextLabelOrientation.Horizontal, "L1"), inner, splitPosition: 10);
+        using var session = await AnsiConsoleSession.StartAsync(outer.CControl, w, h);
+
+        target.Text = "BBB";   // same-length content change
+        await session.FrameAsync();
+
+        var dirty = ConsoleManager.LastFrameDirtyCells;
+        Assert.True(dirty > 0, "damage from a control in nested SplitPanels was dropped (never reached the compositor)");
+        Assert.True(dirty < (long)w * h, $"expected a partial redraw, got the whole screen ({dirty})");
+        Assert.Contains("BBB", ConsoleSnapshot.ToText(session.Screen.Buffer));   // the change actually composited
+    }
+
+    // A Plot nested deep (Plot -> ControlFrame -> Grid -> CompositeControl) must still localize its damage: a data
+    // push re-composites only a partial region, not the whole screen — and never more than the buffer (the reported
+    // count is clamped, since overlapping dirty rects would otherwise sum past the screen area).
+    [Fact]
+    public async Task NestedPlot_InComposite_LocalizesDamage_AndStaysUnderBufferArea()
+    {
+        const int w = 44, h = 22;
+        var host = new PlotHost();
+        using var session = await AnsiConsoleSession.StartAsync(host, w, h);
+
+        host.Series.SetData([0, 1, 2, 3], [1, 0, 1, 0]);
+        await session.FrameAsync();
+
+        var dirty = ConsoleManager.LastFrameDirtyCells;
+        Assert.True(dirty > 0, "the plot change should have dirtied something (damage localized, not dropped)");
+        Assert.True(dirty < (long)w * h, $"expected a partial redraw, got the whole screen ({dirty} of {(long)w * h})");
+        Assert.True(dirty <= (long)w * h, $"reported dirty cells must be clamped to the buffer area, got {dirty}");
+    }
+
+    // Regression: a same-length Sparkline value push (the streaming case) reports its area ONCE. It used to fire
+    // three overlapping full-area reports per update (watch: Width= + updatesLayout Initialize + the paint), which
+    // inflated dirty% and re-scanned the same cells. One row of the container is the single-report ceiling.
+    [Fact]
+    public async Task SparklineUpdate_SameLength_ReportsRegionOnce_NotThrice()
+    {
+        const int w = 40, h = 5;
+        var spark = new Sparkline(new double[16]);
+        using var session = await AnsiConsoleSession.StartAsync(new VerticalStackPanel(spark).CControl, w, h);
+
+        spark.Values = [1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1];
+        await session.FrameAsync();
+
+        var dirty = ConsoleManager.LastFrameDirtyCells;
+        Assert.True(dirty > 0, "the value change should dirty the sparkline's row");
+        Assert.True(dirty <= w, $"a same-length update should report the row once (~{w}), got {dirty} (over-report regressed)");
+    }
+
+    // Regression: a same-length TextLabel text change (e.g. a gauge "52%"->"54%") reports its row once, not twice
+    // (the setter used to unconditionally Resize on top of the paint's own damage report).
+    [Fact]
+    public async Task TextLabelUpdate_SameLength_ReportsRegionOnce_NotTwice()
+    {
+        const int w = 40, h = 5;
+        var label = new TextLabel(TextLabelOrientation.Horizontal, "50%");
+        using var session = await AnsiConsoleSession.StartAsync(new VerticalStackPanel(label).CControl, w, h);
+
+        label.Text = "54%";
+        await session.FrameAsync();
+
+        var dirty = ConsoleManager.LastFrameDirtyCells;
+        Assert.True(dirty > 0, "the text change should dirty the label's row");
+        Assert.True(dirty <= w, $"a same-length text change should report the row once (~{w}), got {dirty}");
+    }
+
+    // Plot (Controls/Plot) nested in a Grid inside a CompositeControl — the dashboard panel shape.
+    private sealed class PlotHost : CompositeControl
+    {
+        public readonly PlotSeries Series;
+        public PlotHost()
+        {
+            var plot = new Plot();
+            Series = plot.AddLiveSeries();
+            Series.SetData([0, 1, 2, 3], [0, 1, 0, 1]);
+            SetContent(new Grid([20], [40], [[plot.WithFrame(title: "P")]]));
+        }
+    }
+
     // Regression for the startup-blank bug: the LIVE UI loop (UI.OnFrame) must paint controls into their buffers
     // BEFORE compositing, so the first frames emit real content — not the empty buffers a composite-then-paint order
     // would flush. The AnsiConsoleSession harness can't catch this (it already paints then draws); only the real

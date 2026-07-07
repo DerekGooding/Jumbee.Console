@@ -51,11 +51,17 @@ public class TextLabel : Control
     public string Text
     {
         get => _text;
-        set => SetAtomicProperty(ref _text, value, watch: (_, _) =>
+        set => SetAtomicProperty(ref _text, value, watch: (old, @new) =>
         {
             chars = new Cell[_text.Length];
-            size = _orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) : new Size(1, _text.Length);
-            Resize(size);
+            // Only resize when the text length (the extent along the text axis) changes. A same-length update — e.g. a
+            // "52%"→"54%" gauge tick — is a content change the following paint's own damage report already covers, so
+            // an unconditional Resize here would report this label's whole area a second, redundant time every update.
+            if ((old?.Length ?? 0) != (@new?.Length ?? 0))
+            {
+                size = _orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) : new Size(1, _text.Length);
+                Resize(size);
+            }
         });
     }
     #endregion

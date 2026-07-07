@@ -23,7 +23,7 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
 {
     #region Constructors
     public SplitPanel(SplitOrientation orientation, IFocusable first, IFocusable second, int splitPosition = 20)
-        : base(new SplitPanelDockPanel(orientation, first.FocusableControl, second.FocusableControl,
+        : base(new SplitPanelDockPanel(orientation, first.RenderNode(), second.RenderNode(),
             Math.Max(DefaultMin, splitPosition)))
     {
         _orientation = orientation;

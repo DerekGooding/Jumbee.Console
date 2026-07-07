@@ -28,7 +28,16 @@ public class Sparkline : RenderableControl
     public double[] Values
     {
         get => _values;
-        set => SetAtomicProperty(ref _values, value ?? [], updatesLayout: true, watch: (_, v) => Width = v.Length);
+        set
+        {
+            var v = value ?? [];
+            // A same-length update (the common streaming case) only changes content, so just invalidate and reuse the
+            // layout. A length change resizes the control (one cell per value), so it must re-lay-out. Splitting these
+            // avoids the extra Resize + Initialize a blanket updatesLayout would run every tick — each re-reporting
+            // this control's whole area as a redundant, overlapping dirty rect (3× per update before this).
+            if (v.Length == _values.Length) SetAtomicProperty(ref _values, v);
+            else SetAtomicProperty(ref _values, v, updatesLayout: true, watch: (_, nv) => Width = nv.Length);
+        }
     }
 
     /// <summary>The value mapped to a full-height bar. When <see langword="null"/> (default) the series maximum is used.</summary>

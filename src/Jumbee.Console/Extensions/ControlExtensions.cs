@@ -6,6 +6,27 @@ using System;
 
 public static class ControlExtensions
 {
+    /// <summary>
+    /// The render node to bind into a parent's <see cref="DrawingContext"/> for a child pane. For a nested
+    /// <see cref="ILayout"/> this MUST be its wrapped <see cref="ILayout.CControl"/>, not the layout wrapper itself:
+    /// a <see cref="DrawingContext"/> identity-checks the bubbling control against its <c>Child</c>
+    /// (<c>control != Child → drop</c>), and a Layout's wrapped ConsoleGUI control bubbles as itself — so binding the
+    /// Layout proxy silently drops ALL damage from the nested layout, leaving the frame loop to fall back to a
+    /// full-screen redraw every frame (the "dashboards force a full composite every tick" bug). Controls (and framed
+    /// controls, via <see cref="IFocusable.FocusableControl"/>) already bubble as the same object they're bound as, so
+    /// they're unaffected.
+    /// <para>
+    /// Use this only in layouts that keep their focus/routing children in their own fields (<see cref="SplitPanel"/>,
+    /// <see cref="DockPanel"/>, <see cref="TabPanel"/>), where the bound render node and the routed child are
+    /// decoupled. Layouts that route input <em>through</em> the ConsoleGUI child they bound (<see cref="Grid"/>, the
+    /// stack panels — their <c>this[r,c]</c> casts the container's child back to <see cref="IFocusable"/>) can't use
+    /// this: binding the CControl would make routing return the wrong object. A nested layout inside a Grid/stack is
+    /// uncommon and still works visually via full redraws.
+    /// </para>
+    /// </summary>
+    internal static ConsoleGUI.IControl RenderNode(this IFocusable focusable) =>
+        focusable is ILayout layout ? layout.CControl : focusable.FocusableControl;
+
     public static void Deconstruct(this Position position, out int X, out int Y)
     {
         X = position.X;

@@ -396,7 +396,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
         if (item is not null)
         {
             item.Header.IsActive = true;
-            control.SetFill(item.Content.FocusableControl);
+            control.SetFill(item.Content.RenderNode());
             if (followFocus) FocusActiveTab();
         }
         else
