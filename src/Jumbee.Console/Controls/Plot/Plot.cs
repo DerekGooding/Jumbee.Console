@@ -379,6 +379,29 @@ public class Plot : Control
         return this;
     }
 
+    /// <summary>
+    /// Pins the vertical axis to a fixed <paramref name="min"/>..<paramref name="max"/> range, so live updates move
+    /// only the data (values outside the range are clipped) instead of the axis rescaling to the data each frame.
+    /// Call once before streaming; <see cref="AutoRangeY"/> restores auto-scaling.
+    /// </summary>
+    public Plot SetYRange(double min, double max) => Configure(p => p.FixedYRange = (min, max));
+
+    /// <summary>Pins the horizontal axis to a fixed range; see <see cref="SetYRange"/>.</summary>
+    public Plot SetXRange(double min, double max) => Configure(p => p.FixedXRange = (min, max));
+
+    /// <summary>
+    /// Makes the horizontal axis a sliding window of <paramref name="width"/> units — it shows the most recent
+    /// <c>[max(0, dataMax − width), dataMax]</c> of a monotonic (time-like) series, so the axis only advances
+    /// rightward and never shows x &lt; 0. Ideal for streaming/financial data. <see cref="AutoRangeX"/> restores auto.
+    /// </summary>
+    public Plot SetXWindow(double width) => Configure(p => p.XWindow = width);
+
+    /// <summary>Restores auto-scaling of the vertical axis to the data (undoes <see cref="SetYRange"/>).</summary>
+    public Plot AutoRangeY() => Configure(p => p.FixedYRange = null);
+
+    /// <summary>Restores auto-scaling of the horizontal axis (undoes <see cref="SetXRange"/>/<see cref="SetXWindow"/>).</summary>
+    public Plot AutoRangeX() => Configure(p => { p.FixedXRange = null; p.XWindow = null; });
+
     /// <summary>Sets explicit horizontal-axis ticks (value + label) — e.g. categorical class names at cell centres.
     /// Replaces the auto numeric ticks and keeps the data bounds unadjusted. For labels in a reserved margin (rather
     /// than attached inside the grid), pair with <c>ConfigureTicks(t =&gt; t.Labels.AttachToAxis = false)</c> —

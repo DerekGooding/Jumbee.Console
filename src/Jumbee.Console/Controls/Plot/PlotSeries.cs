@@ -64,6 +64,23 @@ public sealed class PlotSeries
         });
     }
 
+    /// <summary>
+    /// Scrolls a new value into a fixed-width strip chart: the series keeps the last <paramref name="window"/> values
+    /// at fixed x positions 0..window−1, so the data flows through a <b>stationary</b> x axis (a real-time monitor).
+    /// Unlike <see cref="Push"/> there is no ever-growing x — pair with <c>SetXRange(0, window − 1)</c> to pin the axis.
+    /// </summary>
+    public void Scroll(double value, int window)
+    {
+        _plot.UpdateSeries(() =>
+        {
+            _ys.Add(value);
+            while (_ys.Count > window) _ys.RemoveAt(0);
+            // Keep x = 0, 1, …, count−1 (fixed positions; once the window is full this never changes).
+            while (_xs.Count < _ys.Count) _xs.Add(_xs.Count);
+            while (_xs.Count > _ys.Count) _xs.RemoveAt(_xs.Count - 1);
+        });
+    }
+
     /// <summary>Removes all points from the series.</summary>
     public void Clear() => _plot.UpdateSeries(() => { _xs.Clear(); _ys.Clear(); });
 
