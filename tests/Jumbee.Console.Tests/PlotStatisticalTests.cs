@@ -95,6 +95,32 @@ public class PlotStatisticalTests
     ];
 
     [Fact]
+    public void Bars_SolidInterior_TransparentFractionalTop()
+    {
+        var plot = new Plot();
+        plot.AddBars([1.0], [3.7], color: new CColor(90, 160, 240), width: 0.9);
+        plot.ConfigureGrid(g => g.IsVisible = false);
+        var buf = ConsoleSnapshot.Render(plot, 40, 20);
+
+        int fullSolid = 0, fullBanded = 0, fractionalTransparent = 0, fractionalOpaque = 0;
+        for (int y = 0; y < buf.Size.Height; y++)
+            for (int x = 0; x < buf.Size.Width; x++)
+            {
+                var ch = buf[x, y].Character;
+                if (ch.Foreground is not { } fg) continue;
+                bool bgMatchesFg = ch.Background is { } bg && bg.Red == fg.Red && bg.Green == fg.Green && bg.Blue == fg.Blue;
+                if (ch.Content == '█') { if (bgMatchesFg) fullSolid++; else fullBanded++; }
+                else if (ch.Content is '▁' or '▂' or '▃' or '▄' or '▅' or '▆' or '▇')
+                { if (ch.Background is null) fractionalTransparent++; else fractionalOpaque++; }
+            }
+
+        Assert.True(fullSolid > 0);            // the bar interior is drawn solid
+        Assert.Equal(0, fullBanded);           // every full block cell is solid (bg == fg), so no banding
+        Assert.True(fractionalTransparent > 0); // the eighth-block top exists...
+        Assert.Equal(0, fractionalOpaque);     // ...and keeps a transparent bg so the sub-cell top still reads
+    }
+
+    [Fact]
     public void GroupedBars_DrawSideBySideSubBars()
     {
         var plot = new Plot();
@@ -170,12 +196,22 @@ public class PlotStatisticalTests
         plot.ConfigureGrid(g => g.IsVisible = false);
         var buffer = ConsoleSnapshot.Render(plot, 60, 20);
 
-        // The grid tiles the plot area with solid blocks.
-        int blocks = 0;
+        // The grid tiles the plot area with solid blocks; each block cell also carries a matching background so the
+        // terminal font's inter-row gap is filled the same colour (no banding).
+        int blocks = 0, solidBlocks = 0;
         for (int y = 0; y < buffer.Size.Height; y++)
             for (int x = 0; x < buffer.Size.Width; x++)
-                if (buffer[x, y].Character.Content == '█') blocks++;
+            {
+                var c = buffer[x, y].Character;
+                if (c.Content == '█')
+                {
+                    blocks++;
+                    if (c.Background is { } b && c.Foreground is { } f && b.Red == f.Red && b.Green == f.Green && b.Blue == f.Blue)
+                        solidBlocks++;
+                }
+            }
         Assert.True(blocks > 400, $"expected the heatmap to fill the plot area, saw {blocks} blocks");
+        Assert.Equal(blocks, solidBlocks);   // every block cell has bg == fg (solid, banding-free)
 
         // The lowest cell (bottom-left) maps near the Viridis low end (dark purple ~68,1,84), the highest
         // (top-right) near the high end (yellow ~253,231,37): the top-right is much greener, the bottom-left bluer.
@@ -239,6 +275,49 @@ public class PlotStatisticalTests
         Assert.All(cellDigits, d =>
             Assert.True((Lum(d.bg) > 140) == (Lum(d.fg) < 140),
                 $"digit '{d.ch}' fg-luma {Lum(d.fg):F0} should contrast bg-luma {Lum(d.bg):F0}"));
+    }
+
+    [Fact]
+    public void ConfusionMatrix_CategoricalLabels_RenderInMargins()
+    {
+        var classes = new[] { "ant", "bee", "cod" };
+        var m = new List<IReadOnlyList<double>>
+        {
+            new double[] { 20, 1, 0 },
+            new double[] { 2, 18, 3 },
+            new double[] { 0, 4, 22 },
+        };
+        var plot = new Plot();
+        plot.AddConfusionMatrix(m, rowLabels: classes, colLabels: classes);
+        plot.ConfigureGrid(g => g.IsVisible = false);
+        var text = Render(plot);
+        var lines = text.Split('\n');
+
+        // Each class name is drawn (categorical ticks) and no class label overlaps a heatmap block on its own line
+        // (labels sit in the reserved margins, not on the grid).
+        foreach (var name in classes)
+        {
+            Assert.Contains(name, text);
+            bool cleanSomewhere = lines.Any(l =>
+            {
+                int idx = l.IndexOf(name, System.StringComparison.Ordinal);
+                return idx >= 0 && !l.Substring(idx, name.Length).Contains('█');
+            });
+            Assert.True(cleanSomewhere, $"class label '{name}' should appear in a margin, not over the grid");
+        }
+    }
+
+    [Fact]
+    public void SetXTicks_ReplacesNumericLabelsWithCustom()
+    {
+        var plot = new Plot();
+        plot.AddBars([1, 2, 3], [4, 6, 5]);
+        plot.SetXTicks([(1, "Q1"), (2, "Q2"), (3, "Q3")]);
+        plot.ConfigureTicks(t => t.Labels.AttachToAxis = false);   // margin labels; also draws the axis-cross tick
+        var text = Render(plot);
+        Assert.Contains("Q1", text);
+        Assert.Contains("Q2", text);
+        Assert.Contains("Q3", text);
     }
 
     [Fact]

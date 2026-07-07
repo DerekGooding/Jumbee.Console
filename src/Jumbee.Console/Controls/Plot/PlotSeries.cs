@@ -1,0 +1,80 @@
+namespace Jumbee.Console;
+
+using System;
+using System.Collections.Generic;
+
+using ConsolePlot.Plotting;
+
+using CPlot = ConsolePlot.Plot;
+
+/// <summary>
+/// A live, updatable series in a <see cref="Plot"/>. Returned by <see cref="Plot.AddLiveSeries"/> /
+/// <see cref="Plot.AddLiveBars"/>; hold onto it and feed data as it arrives with <see cref="SetData"/>,
+/// <see cref="SetValues"/>, <see cref="Push"/> or <see cref="Clear"/>. Every update is marshalled onto the UI
+/// thread and re-draws the plot, so the methods are safe to call from any data-source thread.
+/// </summary>
+public sealed class PlotSeries
+{
+    #region Constructors
+    internal PlotSeries(Plot plot, Action<CPlot, IReadOnlyList<double>, IReadOnlyList<double>> draw)
+    {
+        _plot = plot;
+        _draw = draw;
+    }
+    #endregion
+
+    #region Methods
+    /// <summary>Replaces the series data with the paired <paramref name="xs"/>/<paramref name="ys"/> (same length).</summary>
+    public void SetData(IReadOnlyList<double> xs, IReadOnlyList<double> ys)
+    {
+        if (xs.Count != ys.Count)
+            throw new ArgumentException("xs and ys must have the same length.");
+
+        _plot.UpdateSeries(() =>
+        {
+            _xs.Clear();
+            _ys.Clear();
+            for (int i = 0; i < xs.Count; i++) { _xs.Add(xs[i]); _ys.Add(ys[i]); }
+        });
+    }
+
+    /// <summary>Replaces the series with <paramref name="values"/> at implicit x positions 1, 2, 3, … — for bars.</summary>
+    public void SetValues(IReadOnlyList<double> values)
+    {
+        _plot.UpdateSeries(() =>
+        {
+            _xs.Clear();
+            _ys.Clear();
+            for (int i = 0; i < values.Count; i++) { _xs.Add(i + 1); _ys.Add(values[i]); }
+        });
+    }
+
+    /// <summary>
+    /// Appends a point, keeping at most <paramref name="maxPoints"/> (0 = unbounded) by dropping the oldest — a
+    /// rolling window for streaming time-series.
+    /// </summary>
+    public void Push(double x, double y, int maxPoints = 0)
+    {
+        _plot.UpdateSeries(() =>
+        {
+            _xs.Add(x);
+            _ys.Add(y);
+            if (maxPoints > 0)
+                while (_xs.Count > maxPoints) { _xs.RemoveAt(0); _ys.RemoveAt(0); }
+        });
+    }
+
+    /// <summary>Removes all points from the series.</summary>
+    public void Clear() => _plot.UpdateSeries(() => { _xs.Clear(); _ys.Clear(); });
+
+    // Applied by the plot on every rebuild — reads the current buffers, which the element then snapshots.
+    internal void Apply(CPlot cplot) => _draw(cplot, _xs, _ys);
+    #endregion
+
+    #region Fields
+    private readonly Plot _plot;
+    private readonly Action<CPlot, IReadOnlyList<double>, IReadOnlyList<double>> _draw;
+    private readonly List<double> _xs = [];
+    private readonly List<double> _ys = [];
+    #endregion
+}

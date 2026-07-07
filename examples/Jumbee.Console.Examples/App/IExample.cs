@@ -29,3 +29,14 @@ public interface IExample : IFocusable
     /// normal scrollable example.</summary>
     bool FillsPane => false;
 }
+
+/// <summary>
+/// Optional lifecycle for an example that runs a live feed (timers, background data). <see cref="ExampleHost"/> calls
+/// <see cref="OnActivated"/> when the example becomes the shown one and <see cref="OnDeactivated"/> when it's replaced,
+/// so the feed only runs while visible (and doesn't force redraws of other examples).
+/// </summary>
+public interface IActivatable
+{
+    void OnActivated();
+    void OnDeactivated();
+}

@@ -12,14 +12,14 @@ public sealed class GroupedBarExample : Plot, IExample
 {
     public GroupedBarExample()
     {
-        var quarters = new double[] { 1, 2, 3, 4 };
-        var series = new List<IReadOnlyList<double>>
-        {
-            new double[] { 18, 24, 21, 30 },   // Product A
-            new double[] { 12, 16, 22, 19 },   // Product B
-            new double[] { 9, 14, 11, 17 },    // Product C
-        };
-        var colors = new[] { new CColor(89, 145, 240), new CColor(240, 120, 100), new CColor(120, 200, 120) };
+        double[] quarters = [1, 2, 3, 4];
+        IReadOnlyList<IReadOnlyList<double>> series =
+        [
+            [18, 24, 21, 30],   // Product A
+            [12, 16, 22, 19],   // Product B
+            [9, 14, 11, 17],    // Product C
+        ];
+        CColor[] colors = [new(89, 145, 240), new(240, 120, 100), new(120, 200, 120)];
 
         AddGroupedBars(quarters, series, colors);
         ConfigureGrid(g => g.IsVisible = false);

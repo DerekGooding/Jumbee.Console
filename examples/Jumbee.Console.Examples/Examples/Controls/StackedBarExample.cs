@@ -11,14 +11,14 @@ public sealed class StackedBarExample : Plot, IExample
 {
     public StackedBarExample()
     {
-        var xs = new double[] { 1, 2, 3, 4, 5 };
-        var series = new List<IReadOnlyList<double>>
-        {
-            new double[] { 8, 10, 7, 12, 9 },    // base layer
-            new double[] { 5, 6, 9, 4, 7 },      // middle layer
-            new double[] { 3, 4, 2, 6, 5 },      // top layer
-        };
-        var colors = new[] { new CColor(89, 145, 240), new CColor(120, 200, 120), new CColor(240, 200, 90) };
+        double[] xs = [1, 2, 3, 4, 5];
+        IReadOnlyList<IReadOnlyList<double>> series =
+        [
+            [8, 10, 7, 12, 9],    // base layer
+            [5, 6, 9, 4, 7],      // middle layer
+            [3, 4, 2, 6, 5],      // top layer
+        ];
+        CColor[] colors = [new(89, 145, 240), new(120, 200, 120), new(240, 200, 90)];
 
         AddStackedBars(xs, series, colors);
         ConfigureGrid(g => g.IsVisible = false);

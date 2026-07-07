@@ -14,6 +14,14 @@ public sealed class ExampleHost : CompositeControl
     /// <paramref name="description"/>, replacing whatever was there.</summary>
     public void Show(IFocusable content, string description)
     {
+        // Live examples (IActivatable) start/stop their feed as they're shown/replaced, so it only runs while visible.
+        if (!ReferenceEquals(_active, content))
+        {
+            (_active as IActivatable)?.OnDeactivated();
+            (content as IActivatable)?.OnActivated();
+            _active = content;
+        }
+
         // A fill-to-viewport example (e.g. Plot) must not be scrolled: fill the outer pane frame's viewport so the
         // host is given a bounded height instead of the unbounded scroll height (which balloons it to the size
         // clamp). Set before SetContent so the redraw it triggers re-reads FillsFrameViewport on the pane frame.
@@ -41,5 +49,6 @@ public sealed class ExampleHost : CompositeControl
     }
 
     private readonly Dictionary<Control, IFocusable> _framed = new();
+    private IFocusable? _active;
     private bool _fills;
 }

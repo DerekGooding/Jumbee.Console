@@ -27,6 +27,7 @@ public static class ExampleCatalog
         new BoxPlotExample(),
         new ErrorBarExample(),
         new AnnotatedPlotExample(),
+        new LiveDashboardExample(),
         new DialogExample(),
         new SplitPanelExample(),
         new SpectreTableExample(),

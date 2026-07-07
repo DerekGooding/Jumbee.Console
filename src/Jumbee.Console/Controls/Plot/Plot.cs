@@ -354,11 +354,41 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a confusion matrix — an annotated heatmap of <paramref name="counts"/> (row = actual class top-to-bottom,
-    /// column = predicted class), each cell coloured by <paramref name="colormap"/> and labelled with its count.
-    /// A thin wrapper over <see cref="AddHeatmap"/> with integer cell text.
+    /// column = predicted class), each cell coloured by <paramref name="colormap"/> and labelled with its count. When
+    /// <paramref name="rowLabels"/>/<paramref name="colLabels"/> are given, the class names are placed as categorical
+    /// axis ticks at the cell centres. A wrapper over <see cref="AddHeatmap"/> + <see cref="SetXTicks"/>/<see cref="SetYTicks"/>.
     /// </summary>
-    public Plot AddConfusionMatrix(IReadOnlyList<IReadOnlyList<double>> counts, PlotColormap colormap = PlotColormap.Heat) =>
+    public Plot AddConfusionMatrix(
+        IReadOnlyList<IReadOnlyList<double>> counts, IReadOnlyList<string>? rowLabels = null,
+        IReadOnlyList<string>? colLabels = null, PlotColormap colormap = PlotColormap.Heat)
+    {
         AddHeatmap(counts, colormap, cellText: v => ((long)Math.Round(v)).ToString());
+
+        int rows = counts.Count;
+        int cols = rows > 0 ? counts[0].Count : 0;
+        // The grid tiles 0..cols × 0..rows with row 0 at the top, so column c's centre is at x = c+0.5 and row r's
+        // centre is at y = rows−r−0.5 (image y is up).
+        if (colLabels is not null && cols > 0)
+            SetXTicks([.. Enumerable.Range(0, cols).Select(c => (c + 0.5, c < colLabels.Count ? colLabels[c] : ""))]);
+        if (rowLabels is not null && rows > 0)
+            SetYTicks([.. Enumerable.Range(0, rows).Select(r => (rows - r - 0.5, r < rowLabels.Count ? rowLabels[r] : ""))]);
+        // Categorical ticks keep the grid at exact bounds (edge to edge), so the labels need a reserved margin
+        // rather than being attached to the axis inside the grid.
+        if (rowLabels is not null || colLabels is not null)
+            ConfigureTicks(t => t.Labels.AttachToAxis = false);
+        return this;
+    }
+
+    /// <summary>Sets explicit horizontal-axis ticks (value + label) — e.g. categorical class names at cell centres.
+    /// Replaces the auto numeric ticks and keeps the data bounds unadjusted. For labels in a reserved margin (rather
+    /// than attached inside the grid), pair with <c>ConfigureTicks(t =&gt; t.Labels.AttachToAxis = false)</c> —
+    /// <see cref="AddConfusionMatrix"/> does this for you.</summary>
+    public Plot SetXTicks(IReadOnlyList<(double value, string label)> ticks) =>
+        Configure(p => p.Ticks.CustomXTicks = ticks);
+
+    /// <summary>Sets explicit vertical-axis ticks (value + label). See <see cref="SetXTicks"/>.</summary>
+    public Plot SetYTicks(IReadOnlyList<(double value, string label)> ticks) =>
+        Configure(p => p.Ticks.CustomYTicks = ticks);
 
     // Maps a colormap choice to a normalised-value → colour function.
     private static Func<double, CColor> ColormapFunc(PlotColormap colormap) => colormap switch
@@ -428,6 +458,45 @@ public class Plot : Control
         });
         return this;
     }
+
+    /// <summary>
+    /// Adds a live line/scatter series and returns a <see cref="PlotSeries"/> handle to feed it data as it arrives
+    /// (<see cref="PlotSeries.SetData"/>/<see cref="PlotSeries.Push"/>). <paramref name="color"/> defaults to the
+    /// palette; <paramref name="brush"/> sets the sub-cell marker. Starts empty.
+    /// </summary>
+    public PlotSeries AddLiveSeries(CColor? color = null, PlotBrush brush = PlotBrush.Braille)
+    {
+        var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
+        var handle = new PlotSeries(this, (cplot, xs, ys) => cplot.AddSeries(xs, ys, pen));
+        RegisterLive(handle);
+        return handle;
+    }
+
+    /// <summary>
+    /// Adds a live bar series and returns a <see cref="PlotSeries"/> handle. Feed it with
+    /// <see cref="PlotSeries.SetValues"/> (bars at x = 1, 2, 3, …) or <see cref="PlotSeries.SetData"/>.
+    /// <paramref name="color"/> defaults to the palette. Starts empty.
+    /// </summary>
+    public PlotSeries AddLiveBars(CColor? color = null, double baseline = 0, double width = 0.8)
+    {
+        var c = color ?? Palette[_seriesCount % Palette.Length];
+        var handle = new PlotSeries(this, (cplot, xs, ys) => cplot.AddBars(xs, ys, c, baseline, width));
+        RegisterLive(handle);
+        return handle;
+    }
+
+    // Registers a live series so its (mutable) data is replayed on every rebuild.
+    private void RegisterLive(PlotSeries handle) =>
+        UI.Invoke(() =>
+        {
+            _seriesCount++;
+            _config.Add(handle.Apply);
+            Rebuild();
+        });
+
+    // Applies a live-series data mutation on the UI thread, then redraws. The buffers are only ever touched here,
+    // so a plain List stays race-free even when data arrives on a background thread.
+    internal void UpdateSeries(Action mutate) => UI.Invoke(() => { mutate(); Rebuild(); });
 
     private void AddElement(Action<CPlot> config)
     {

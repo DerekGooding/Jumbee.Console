@@ -10,8 +10,8 @@ public sealed class HorizontalBarExample : Plot, IExample
     public HorizontalBarExample()
     {
         // Categories on the Y axis (1..6, bottom to top), each with a value extending rightward.
-        var positions = new double[] { 1, 2, 3, 4, 5, 6 };
-        var values = new double[] { 42, 31, 58, 24, 67, 15 };
+        double[] positions = [1, 2, 3, 4, 5, 6];
+        double[] values = [42, 31, 58, 24, 67, 15];
 
         AddHBars(positions, values, new CColor(120, 200, 160));
         ConfigureGrid(g => g.IsVisible = false);

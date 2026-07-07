@@ -7,7 +7,7 @@ candlestick-only).
 
 ## Status — checkpoint 2026-07-06
 
-**Shipped (all green, `--verify` 21/21, 518 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
+**Shipped (all green, `--verify` 21/21, 520 unit tests):** the enabling refactors **A** (polymorphic `PlotElement`)
 and **B** (per-cell `Pixel` background) are both in. Plot types: **line, scatter, stem, bar, grouped/stacked bars,
 horizontal bars, histogram, candlestick, box-and-whisker, error bars, heatmap, confusion matrix**, plus **point
 annotations** (fg/bg labels). **Every roadmap plot family is implemented, and change B is now exercised end to end
@@ -42,11 +42,12 @@ raw groups in the wrapper (pure data-prep, like `AddHistogram`); `AddErrorBars` 
 Jumbee wrapper: `src/Jumbee.Console/Controls/Plot/{Plot,PlotImage}.cs`. Examples:
 `examples/.../Examples/Controls/*PlotExample.cs`. Deep detail in the [[plot-control]] memory.
 
-**Recommended next slices (pick per value):** every plot *family* plus the annotated-heatmap overlay is now in, so
-the open work is depth/polish: (1) **categorical axis labels** (class names on the confusion-matrix axes — needs the
-deferred tick rewrite: a custom tick *formatter* delegate + forcing ticks at cell centres, since `LabelSettings.Format`
-is only a numeric format string); (2) **datetime axis / subplots** (Phase 5, subplots = compose `Plot` controls in a
-Jumbee `Grid`/`DockPanel`, no ConsolePlot change); (3) the still-**deferred log axis**. *(Phases 2, 3 and 4 all
+**Recommended next slices (pick per value):** every plot *family*, the annotated-heatmap overlay, and categorical
+axis labels are all in — remaining work is depth/polish: (1) **datetime axis** (format tick values as dates — could
+reuse the same explicit-tick path, or add an auto date formatter); (2) **subplots** (compose `Plot` controls in a
+Jumbee `Grid`/`DockPanel`, no ConsolePlot change); (3) the still-**deferred log axis** (a genuinely separate job — a
+log-aware `CoordinateConverter` + decade ticks; *not* unlocked by the categorical-tick work, which only supplies
+explicit tick positions/labels, not a non-linear transform). *(Phases 2, 3 and 4, plus categorical axis labels, all
 finished 2026-07-06.)*
 
 ## What the base gives us
@@ -108,9 +109,13 @@ point annotations (labels with fg/bg); also unblocks the Phase-4 heatmap/matrix/
   `DrawHeat` takes an optional `cellText` formatter and draws the value centred in each cell with a luminance-based
   contrast colour on the cell's own colour as **background** — the first real use of change B's `DrawText` bg; Jumbee
   `AddHeatmap(..., cellText)` + `AddConfusionMatrix`)*. **Phase 4 complete.**
-- **Phase 5 — decorators/utility:** point text annotations with fg/bg *(done — `PointLabel` + change B)*;
-  **next:** shape/indicator annotations, datetime axis, subplots (compose `Plot` controls in a Jumbee
-  `Grid`/`DockPanel` — no ConsolePlot change).
+- **Phase 5 — decorators/utility:** point text annotations with fg/bg *(done — `PointLabel` + change B)*; categorical
+  axis labels *(done — explicit `TickSettings.CustomXTicks`/`CustomYTicks` used verbatim by `PlotData` with bounds left
+  unadjusted; Jumbee `SetXTicks`/`SetYTicks` + `AddConfusionMatrix` class labels)*; **live data + subplots** *(done —
+  `PlotSeries` handles from `AddLiveSeries`/`AddLiveBars` with `SetData`/`SetValues`/`Push`(rolling)/`Clear`, updating
+  in place off the `_config` replay and thread-safe via `UI.Invoke`; subplots are just layout composition — see the
+  `LiveDashboardExample`, a 3×3 grid of framed live panels driven off the `UI.Paint` tick)*; **next:** shape/indicator
+  annotations, datetime axis, log axis (deferred).
 
 ## Jumbee integration
 
