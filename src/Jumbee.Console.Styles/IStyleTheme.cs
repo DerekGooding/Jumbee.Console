@@ -113,6 +113,12 @@ public interface IStyleTheme
     ScrollBarStyle ScrollBar => ScrollBarStyle.Default;
     #endregion
 
+    #region Gauge
+    /// <summary>The fill/track/text colours a <see cref="Jumbee.Console.Gauge"/> uses. Defaults to
+    /// <see cref="GaugeStyle.Default"/>.</summary>
+    GaugeStyle Gauge => GaugeStyle.Default;
+    #endregion
+
     #region Frame
     /// <summary>The default border shape for a control frame when none is specified. Defaults to <see cref="BorderStyle.None"/>.</summary>
     BorderStyle FrameBorder => BorderStyle.None;

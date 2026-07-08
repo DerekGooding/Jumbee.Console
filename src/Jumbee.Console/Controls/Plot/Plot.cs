@@ -31,6 +31,13 @@ public class Plot : Control
     #endregion
 
     #region Methods
+    /// <summary>Sets the <see cref="Background"/> colour and returns this plot, for fluent chaining.</summary>
+    public Plot WithBackground(CColor? background)
+    {
+        Background = background;
+        return this;
+    }
+
     /// <summary>
     /// Adds a data series. <paramref name="xs"/> and <paramref name="ys"/> must be the same length. When
     /// <paramref name="pen"/> is left at its default a colour is taken from the control's palette (cycling by series

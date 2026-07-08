@@ -28,6 +28,7 @@ public static class ExampleCatalog
         new ErrorBarExample(),
         new AnnotatedPlotExample(),
         new LiveDashboardExample(),
+        new MonitorDashboardExample(),
         new DialogExample(),
         new SplitPanelExample(),
         new SpectreTableExample(),

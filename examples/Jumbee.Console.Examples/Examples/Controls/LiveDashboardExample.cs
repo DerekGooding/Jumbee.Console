@@ -26,35 +26,30 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
         var txPlot = new Plot();
         _txUsa = txPlot.AddLiveSeries(new CColor(235, 90, 90));
         _txEu = txPlot.AddLiveSeries(new CColor(230, 200, 90));
-        txPlot.ConfigureGrid(g => g.IsVisible = false);
-        txPlot.SetYRange(0, 100);
-        txPlot.SetXRange(0, Window - 1);
+        txPlot.ConfigureGrid(g => g.IsVisible = false).SetYRange(0, 100).SetXRange(0, Window - 1);
 
         var errPlot = new Plot();
         _errors = errPlot.AddLiveSeries(new CColor(235, 90, 90));
-        errPlot.ConfigureGrid(g => g.IsVisible = false);
-        errPlot.SetYRange(0, 55);
-        errPlot.SetXRange(0, Window - 1);
+        errPlot.ConfigureGrid(g => g.IsVisible = false).SetYRange(0, 55).SetXRange(0, Window - 1);
 
         var utilPlot = new Plot();
         _util = utilPlot.AddLiveBars(new CColor(90, 160, 240));
-        utilPlot.ConfigureGrid(g => g.IsVisible = false);
-        utilPlot.ConfigureAxis(a => a.IsVisible = false);   // bars carry their own baseline; keep the panel clean
-        utilPlot.SetYRange(0, 11);
-        utilPlot.SetXTicks([(1, "US1"), (2, "US2"), (3, "EU1"), (4, "AU1"), (5, "AS1"), (6, "JP1")]);
-        utilPlot.ConfigureTicks(t => t.Labels.AttachToAxis = false);
+        utilPlot
+            .ConfigureGrid(g => g.IsVisible = false)
+            .ConfigureAxis(a => a.IsVisible = false)   // bars carry their own baseline; keep the panel clean
+            .SetYRange(0, 11)
+            .SetXTicks([(1, "US1"), (2, "US2"), (3, "EU1"), (4, "AU1"), (5, "AS1"), (6, "JP1")])
+            .ConfigureTicks(t => t.Labels.AttachToAxis = false);
 
         var latPlot = new Plot();
         _latency = latPlot.AddLiveSeries(new CColor(230, 200, 90));
-        latPlot.ConfigureGrid(g => g.IsVisible = false);
-        latPlot.SetYRange(0, 14);
-        latPlot.SetXRange(0, LatWindow - 1);
+        latPlot.ConfigureGrid(g => g.IsVisible = false).SetYRange(0, 14).SetXRange(0, LatWindow - 1);
 
         _procs = new DataTable("Process", "Cpu%", "Mem");
         _log = new Log();
         _tp1 = new Sparkline(_tp1Data);
         _tp2 = new Sparkline(_tp2Data);
-        _deploy = new TextLabel(TextLabelOrientation.Horizontal, "", new CColor(200, 130, 230));
+        _deploy = new Gauge(0, 100).WithFill(new CColor(200, 130, 230));
 
         Seed();
 
@@ -128,7 +123,7 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
         _tp2.Values = (double[])_tp2Data.Clone();
 
         _deployPct = (_deployPct + _rng.Next(0, 4)) % 101;
-        _deploy.Text = Progress(_deployPct);
+        _deploy.Value = _deployPct;
 
         if (t % 4 == 0) _log.Write($"[grey]t{t}[/] avg wait {_rng.NextDouble():0.00}s");
     }
@@ -157,7 +152,7 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
         for (int i = 0; i < _tp1Data.Length; i++) { _tp1Data[i] = _rng.Next(2, 9); _tp2Data[i] = _rng.Next(1, 8); }
         _tp1.Values = (double[])_tp1Data.Clone();
         _tp2.Values = (double[])_tp2Data.Clone();
-        _deploy.Text = Progress(_deployPct = 14);
+        _deploy.Value = _deployPct = 14;
         UpdateProcesses();
         _log.Write("[green]OK[/] dashboard started");
     }
@@ -171,12 +166,6 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
         a[^1] = v;
     }
 
-    private static string Progress(int pct)
-    {
-        const int n = 14;
-        int f = pct * n / 100;
-        return new string('█', f) + new string('░', n - f) + $" {pct}%";
-    }
     #endregion
 
     #region IExample
@@ -195,7 +184,7 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
     private readonly DataTable _procs;
     private readonly Log _log;
     private readonly Sparkline _tp1, _tp2;
-    private readonly TextLabel _deploy;
+    private readonly Gauge _deploy;
 
     private readonly Random _rng = new(7);
     private readonly string[] _procNames = ["node", "java", "gulp", "timer", "python", "awk", "redis", "nginx"];

@@ -33,6 +33,10 @@ public sealed class ExampleHost : CompositeControl
         Frame?.Relayout();
     }
 
+    /// <summary>Stops the active example's background work (its <see cref="IActivatable"/> feed) — called on app quit
+    /// so a live example's timers/threads don't keep running through shutdown. Idempotent.</summary>
+    public void DeactivateActive() => (_active as IActivatable)?.OnDeactivated();
+
     // Reflects the current example: fill the pane frame's viewport for a fill-to-viewport example, otherwise keep the
     // default scrolling behaviour so tall examples (lists, editors) scroll.
     protected override bool FillsFrameViewport => _fills;

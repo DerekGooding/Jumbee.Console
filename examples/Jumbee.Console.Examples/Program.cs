@@ -73,8 +73,12 @@ internal static class Program
         hud.RegisterToggle();                                                    // Ctrl+G: the glass perf HUD
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.B), ToggleTree);            // collapse/restore the tree
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.E), ToggleEditor);          // collapse/restore the source pane
-        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.Q), UI.Stop);
+        // Quit: stop the active example's live feed first (so its timers/threads don't run through shutdown), then
+        // stop the UI loop.
+        void Quit() { host.DeactivateActive(); UI.Stop(); }
+        UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.Q), Quit);
         UI.SetFocus(tree);
         run.Wait();
+        host.DeactivateActive();   // belt-and-braces for a stop triggered elsewhere (e.g. a termination signal)
     }
 }
