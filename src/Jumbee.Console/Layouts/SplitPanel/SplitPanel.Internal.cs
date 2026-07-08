@@ -45,8 +45,10 @@ public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
     #region Methods
     internal void SetFirstExtent(int extent)
     {
-        if (Orientation == SplitOrientation.Horizontal) { _firstBoundary.MinWidth = extent; _firstBoundary.MaxWidth = extent; }
-        else { _firstBoundary.MinHeight = extent; _firstBoundary.MaxHeight = extent; }
+        // Use Width/Height (single re-layout) rather than setting Min+Max separately (two cascades) — this is called
+        // on every mouse-move while dragging the divider.
+        if (Orientation == SplitOrientation.Horizontal) _firstBoundary.Width = extent;
+        else _firstBoundary.Height = extent;
     }
     #endregion
 

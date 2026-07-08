@@ -12,13 +12,14 @@ using ConsoleGUI.Space;
 public class ConsoleBuffer : IConsole
 {
     #region Properties
-    public Size Size 
+    public Size Size
     {
         get => field;
         set
         {
+            if (field == value) return;   // no size change -> the backing arrays already fit; skip the row scan/realloc
             Resize(value);
-            field = value;  
+            field = value;
         }
     }
     public bool KeyAvailable => false;
@@ -35,11 +36,13 @@ public class ConsoleBuffer : IConsole
     /// Fill buffer with empty/transparent cells.
     /// </summary>
     public void Initialize()
-    {    
+    {
         for (int y = 0; y < Size.Height; y++)
         {
-            Array.Fill(buffer[y], emptyCell);
-        }        
+            // Rows may be wider than the logical width (capacity is retained across shrinks — see Resize), so blank
+            // only the live columns; the rest are never read.
+            Array.Fill(buffer[y], emptyCell, 0, Size.Width);
+        }
     }
 
     public void OnRefresh() { }
@@ -98,11 +101,31 @@ public class ConsoleBuffer : IConsole
     /// <param name="size"></param>
     protected void Resize(Size size)
     {
-        Array.Resize(ref buffer, size.Height);                
+        // Capacity-retentive: only ever grow the backing arrays. A control whose size fluctuates (layout convergence,
+        // variable content) previously reallocated the whole Cell[][] whenever its width/height changed by even one
+        // column — the largest per-frame allocation in the profiler. Retaining capacity makes a shrink free and a
+        // grow-back within the high-water mark reuse the existing arrays; the high-water is bounded by the screen, so
+        // this is not a leak.
+        int oldW = Size.Width, oldH = Size.Height;   // current logical size (field is updated by the caller after this)
+
+        if (buffer.Length < size.Height)
+            Array.Resize(ref buffer, size.Height);
         for (int i = 0; i < size.Height; i++)
         {
-            Array.Resize(ref buffer[i], size.Width);
-        }       
+            if (buffer[i] is null || buffer[i].Length < size.Width)
+                Array.Resize(ref buffer[i], size.Width);
+        }
+
+        // Blank the cells that are newly inside the logical bounds but sat outside the previous ones — new columns of
+        // existing rows, and every column of newly live rows. Without this, a grow-back into retained capacity would
+        // expose stale glyphs from when the buffer was last that large (a fresh Array.Resize used to zero them). The
+        // overlap with the old bounds is left intact, matching the previous copy-on-resize behaviour.
+        for (int y = 0; y < size.Height; y++)
+        {
+            int clearFrom = y < oldH ? oldW : 0;
+            if (clearFrom < size.Width)
+                Array.Fill(buffer[y], emptyCell, clearFrom, size.Width - clearFrom);
+        }
     }
     #endregion
 
