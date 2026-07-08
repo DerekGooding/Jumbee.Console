@@ -2,6 +2,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -161,6 +162,28 @@ public sealed class AnsiControlSequenceBuilder
             _writer = new(_capacity);
         else
             _writer.Clear();
+    }
+
+    // Reuse pool for builders (each retains its ArrayBufferWriter + backing char[]), so a per-frame render doesn't
+    // allocate a fresh builder/writer/buffer every frame. Thread-safe because Rent runs on the producing thread and
+    // Return on whatever thread finished the async write. Bounded in practice: with serialized frame writes only about
+    // one builder is in flight at a time.
+    private static readonly ConcurrentBag<AnsiControlSequenceBuilder> _pool = new();
+
+    /// <summary>
+    /// Rents a cleared builder from the reuse pool (or allocates one). The caller MUST hand ownership back with
+    /// <see cref="Return"/> exactly once, and only after any asynchronous consumer of <see cref="Span"/>/
+    /// <see cref="Memory"/> has finished reading it — returning while a read is in flight would let the next
+    /// <see cref="Rent"/> hand out the same buffer and overwrite it.
+    /// </summary>
+    public static AnsiControlSequenceBuilder Rent() =>
+        _pool.TryTake(out var builder) ? builder : new AnsiControlSequenceBuilder();
+
+    /// <summary>Clears this builder and returns it to the reuse pool. See the ordering contract on <see cref="Rent"/>.</summary>
+    public void Return()
+    {
+        Clear();   // resets length (and sheds an oversized buffer via the default threshold) before pooling
+        _pool.Add(this);
     }
 
     /// <summary>
