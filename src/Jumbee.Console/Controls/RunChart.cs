@@ -65,21 +65,54 @@ public class RunChart : CompositeControl
         return this;
     }
 
-    // Rebuilds the legend markup from the current per-series stats. Runs on the UI thread (callers marshal).
-    internal void RefreshLegend()
+    // Coalesces legend rebuilds: many Push calls in one tick (e.g. three series pushed per frame) each dirty the
+    // legend, but with the frame loop running only one rebuild runs on the next dispatcher drain — sparing the
+    // repeated string build and TextPanel layout re-measure. Headless (no loop to drain) it rebuilds synchronously
+    // so a render that immediately follows a Push is current. UI-thread only, so the flag needs no synchronization.
+    internal void InvalidateLegend()
     {
-        var sb = new StringBuilder();
-        foreach (var s in _series)
-        {
-            var hex = $"#{s.Color.Red:X2}{s.Color.Green:X2}{s.Color.Blue:X2}";
-            sb.Append('[').Append(hex).Append("]● ").Append(Markup.Escape(s.Name)).Append("[/]\n");
-            sb.Append(" cur ").Append(Fmt(s.Current)).Append("  dlt ").Append(Fmt(s.Delta)).Append('\n');
-            sb.Append(" max ").Append(Fmt(s.Max)).Append("  min ").Append(Fmt(s.Min)).Append('\n');
-        }
-        _legend.Markup = sb.ToString().TrimEnd('\n');
+        if (!UI.IsRunning) { RefreshLegend(); return; }
+        if (_legendDirty) return;
+        _legendDirty = true;
+        UI.Post(() => { _legendDirty = false; RefreshLegend(); });
     }
 
-    private string Fmt(double v) => double.IsFinite(v) ? v.ToString(_format) : "-";
+    // Rebuilds the legend markup from the current per-series stats. Runs on the UI thread (callers marshal). Reuses a
+    // cached builder and span-formats values so a per-frame refresh allocates only the final markup string.
+    internal void RefreshLegend()
+    {
+        var sb = _legendBuilder;
+        sb.Clear();
+        bool first = true;
+        foreach (var s in _series)
+        {
+            if (!first) sb.Append('\n');   // separate entries without a trailing newline to trim off the end
+            first = false;
+            var c = s.Color;
+            sb.Append("[#");
+            AppendHex(sb, c.Red); AppendHex(sb, c.Green); AppendHex(sb, c.Blue);
+            sb.Append("]● ").Append(Markup.Escape(s.Name)).Append("[/]\n");
+            sb.Append(" cur "); AppendValue(sb, s.Current); sb.Append("  dlt "); AppendValue(sb, s.Delta); sb.Append('\n');
+            sb.Append(" max "); AppendValue(sb, s.Max); sb.Append("  min "); AppendValue(sb, s.Min);
+        }
+        _legend.Markup = sb.ToString();
+    }
+
+    private static void AppendHex(StringBuilder sb, byte b)
+    {
+        const string hex = "0123456789ABCDEF";
+        sb.Append(hex[b >> 4]).Append(hex[b & 0xF]);
+    }
+
+    private void AppendValue(StringBuilder sb, double v)
+    {
+        if (!double.IsFinite(v)) { sb.Append('-'); return; }
+        Span<char> buf = stackalloc char[32];
+        if (v.TryFormat(buf, out int n, _format))   // null provider = current culture, matching double.ToString(format)
+            sb.Append(buf[..n]);
+        else
+            sb.Append(v.ToString(_format));
+    }
     #endregion
 
     #region Fields
@@ -87,6 +120,8 @@ public class RunChart : CompositeControl
     private readonly Plot _plot;
     private readonly TextPanel _legend;
     private readonly List<RunSeries> _series = new();
+    private readonly StringBuilder _legendBuilder = new();
+    private bool _legendDirty;
     private int _window = 60;
     private string _format = "0.##";
     #endregion
@@ -128,7 +163,7 @@ public sealed class RunSeries
         Min = _has ? Math.Min(Min, value) : value;
         _has = true;
         _plot.Scroll(value, _chart.Window);   // fixed strip positions 0..window-1
-        _chart.RefreshLegend();
+        _chart.InvalidateLegend();
     });
     #endregion
 

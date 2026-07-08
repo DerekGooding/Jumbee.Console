@@ -143,9 +143,10 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
         _cpuV = Walk(_cpuV, 5, 95, 18);
         _cpuGauge.Value = _cpuV;
         Shift(_cpuData, _cpuV);
-        _cpuBars.SetValues((double[])_cpuData.Clone());
+        _cpuBars.SetValues(_cpuData);   // SetValues copies into the series' own buffer, so no defensive clone needed
 
-        _util.SetValues([.. _sites.Select(_ => (double)_rng.Next(1, 11))]);
+        for (int i = 0; i < _utilData.Length; i++) _utilData[i] = _rng.Next(1, 11);
+        _util.SetValues(_utilData);
 
         _clock.Text = DateTime.UtcNow.ToString("HH:mm:ss");
 
@@ -270,6 +271,7 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
     private readonly string[] _containers = ["gateway", "mongodb", "rabbitmq", "turbine", "clickhouse", "dispatcher", "monitoring"];
     private readonly string[] _sites = ["US1", "US2", "EU1", "AU1", "AS1", "JP1"];
     private readonly double[] _cpuData = new double[30];
+    private readonly double[] _utilData = new double[6];   // reused per-tick scratch for the utilization bars (matches _sites)
     private double _bV = 0.2, _gV = 0.3, _yV = 0.8, _inV = 5000, _prV = 3000, _dqV = 200, _cpuV = 40;
     private int _tick;
     private CancellationTokenSource? _cts;
