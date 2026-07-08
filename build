@@ -4,8 +4,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 echo "Building Jumbee.Console..."
-echo "Building Jumbee.Console test demo..."
-dotnet build tests/Jumbee.Console.TestDemo/Jumbee.Console.TestDemo.csproj -c Release "$@"
 echo "Building Jumbee.Console examples..."
 dotnet build examples/Jumbee.Console.Examples/Jumbee.Console.Examples.csproj -c Release "$@"
 echo "Jumbee.Console build complete."

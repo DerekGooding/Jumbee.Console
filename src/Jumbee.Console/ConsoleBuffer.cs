@@ -108,12 +108,16 @@ public class ConsoleBuffer : IConsole
         // this is not a leak.
         int oldW = Size.Width, oldH = Size.Height;   // current logical size (field is updated by the caller after this)
 
+        // Grow to a rounded-up CAPACITY, not the exact width/height. Otherwise a drag/resize that widens a pane one
+        // column at a time reallocates every row on every single-cell step (100 -> 101 -> 102 ...), since each is a new
+        // maximum — retention alone only saves the shrink. Bucketing (what an ArrayPool does internally) collapses a
+        // whole growth sweep into one realloc per bucket boundary. Logical Size stays exact; the slack is never read.
         if (buffer.Length < size.Height)
-            Array.Resize(ref buffer, size.Height);
+            Array.Resize(ref buffer, RoundUpCapacity(size.Height));
         for (int i = 0; i < size.Height; i++)
         {
             if (buffer[i] is null || buffer[i].Length < size.Width)
-                Array.Resize(ref buffer[i], size.Width);
+                Array.Resize(ref buffer[i], RoundUpCapacity(size.Width));
         }
 
         // Blank the cells that are newly inside the logical bounds but sat outside the previous ones — new columns of
@@ -127,6 +131,12 @@ public class ConsoleBuffer : IConsole
                 Array.Fill(buffer[y], emptyCell, clearFrom, size.Width - clearFrom);
         }
     }
+
+    // Rounds a required length up to the next capacity bucket, so growth reallocates in chunks rather than on every
+    // one-cell change. 32 keeps the wasted slack small (<=31 cells per row) while still turning a typical drag sweep
+    // into one or two reallocations instead of dozens.
+    private const int CapacityChunk = 32;
+    private static int RoundUpCapacity(int n) => n <= 0 ? 0 : (n + CapacityChunk - 1) & ~(CapacityChunk - 1);
     #endregion
 
     #region Fields

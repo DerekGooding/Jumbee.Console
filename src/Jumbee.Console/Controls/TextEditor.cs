@@ -9,6 +9,7 @@ using RazorConsole.Core;
 using ConsoleGUI.Input;
 using NTokenizers.Extensions.Spectre.Console;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 using RazorConsole.Core.Rendering.Syntax;
 using ColorCode;
 
@@ -621,66 +622,60 @@ public class TextEditor : Control
 
     private void WriteHighlighted(Language language, string text)
     {
+        // ColorCode-highlighted languages go through the segment cache (a full regex parse is the single most
+        // expensive operation here); the remaining writers highlight cheaply/directly and are left as-is.
+        if (ColorCodeLanguage(language) is { } ccLang)
+        {
+            ansiConsole.Write(HighlightSegments(language, text, ccLang));
+            return;
+        }
+
         switch (language)
         {
-            case Language.None:
-                ansiConsole.Write(text); 
-                break;
-            case Language.Markdown:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Markdown, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.CSharp:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.CSharp, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.TypeScript:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Typescript, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Sql:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Sql, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Json:
-                ansiConsole.WriteJson(text);
-                break;
-            case Language.Html:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Html, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Css:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Css, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Xml:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Xml, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Yaml:
-                ansiConsole.WriteYaml(text);
-                break;
-            case Language.Toml:
-                ansiConsole.WriteToml(text);
-                break;
-            case Language.C:
-                ansiConsole.WriteC(text);
-                break;
-            case Language.Cpp:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Cpp, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Go:
-                ansiConsole.WriteGo(text);
-                break;
-            case Language.Java:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Java, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Kotlin:
-                ansiConsole.WriteKotlin(text);
-                break;
-            case Language.Python:
-                ansiConsole.Write(ccFormatter.Format(text, Languages.Python, ccSyntaxTheme, ccSyntaxOptions));
-                break;
-            case Language.Rust:
-                ansiConsole.WriteRust(text);
-                break;
-            case Language.Swift:
-                ansiConsole.WriteSwift(text);
-                break;
+            case Language.None: ansiConsole.Write(text); break;
+            case Language.Json: ansiConsole.WriteJson(text); break;
+            case Language.Yaml: ansiConsole.WriteYaml(text); break;
+            case Language.Toml: ansiConsole.WriteToml(text); break;
+            case Language.C: ansiConsole.WriteC(text); break;
+            case Language.Go: ansiConsole.WriteGo(text); break;
+            case Language.Kotlin: ansiConsole.WriteKotlin(text); break;
+            case Language.Rust: ansiConsole.WriteRust(text); break;
+            case Language.Swift: ansiConsole.WriteSwift(text); break;
         }
+    }
+
+    // The ColorCode grammar for languages highlighted through SpectreSegmentFormatter, or null for languages that use
+    // a different writer (or render plain).
+    private static ILanguage? ColorCodeLanguage(Language language) => language switch
+    {
+        Language.Markdown => Languages.Markdown,
+        Language.CSharp => Languages.CSharp,
+        Language.TypeScript => Languages.Typescript,
+        Language.Sql => Languages.Sql,
+        Language.Html => Languages.Html,
+        Language.Css => Languages.Css,
+        Language.Xml => Languages.Xml,
+        Language.Cpp => Languages.Cpp,
+        Language.Java => Languages.Java,
+        Language.Python => Languages.Python,
+        _ => null,
+    };
+
+    // Highlighting a document is a full regex parse — the single most expensive per-render operation — yet it depends
+    // only on (language, text), not on the control's size. The buffer is rebuilt on every layout-driven
+    // re-initialization (resize, split-drag, dock-panel convergence), which previously re-parsed the whole document
+    // each time. Cache the parsed segments and reuse them while the text reference and language are unchanged, so a
+    // re-layout just re-blits the cached highlight and only a real edit re-parses. The formatter reuses its own list
+    // between calls, so the segments are copied out to own them.
+    private IReadOnlyList<Segment> HighlightSegments(Language language, string text, ILanguage ccLang)
+    {
+        if (_cachedSegments is not null && language == _cachedLanguage && ReferenceEquals(text, _cachedText))
+            return _cachedSegments;
+
+        _cachedSegments = new List<Segment>(ccFormatter.Format(text, ccLang, ccSyntaxTheme, ccSyntaxOptions));
+        _cachedLanguage = language;
+        _cachedText = text;
+        return _cachedSegments;
     }
     #endregion
 
@@ -705,5 +700,12 @@ public class TextEditor : Control
     SpectreSegmentFormatter ccFormatter = new SpectreSegmentFormatter();
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
     SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0,   };
+
+    // Cached syntax-highlight segments, reused across size-only re-renders (see HighlightSegments). Invalidated
+    // implicitly: a real edit reassigns `input` (a new string reference) and a language switch changes _cachedLanguage,
+    // so either misses this cache and re-parses. The syntax theme is fixed at construction, so colours can't go stale.
+    private List<Segment>? _cachedSegments;
+    private string? _cachedText;
+    private Language _cachedLanguage;
     #endregion
 }
