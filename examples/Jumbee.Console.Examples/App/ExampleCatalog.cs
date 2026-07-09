@@ -33,6 +33,7 @@ public static class ExampleCatalog
         new LiveDashboardExample(),
         new MonitorDashboardExample(),
         new GlobeExample(),
+        new InteractiveGlobeExample(),
         new BouncingBallsExample(),
         new DialogExample(),
         new SplitPanelExample(),

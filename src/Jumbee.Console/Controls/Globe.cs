@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using ConsoleGUI.Data;
+using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
 using CColor = ConsoleGUI.Data.Color;
@@ -85,6 +86,24 @@ public class Globe : Control
         get => _damageTracking;
         set => SetAtomicProperty(ref _damageTracking, value);
     }
+
+    /// <summary>
+    /// When <see langword="true"/>, the globe responds to user input: <b>drag</b> to rotate/tilt, the <b>mouse wheel</b>
+    /// to zoom, and (while focused) the <b>arrow keys</b> to spin/tilt and <b>+/-</b> to zoom (Shift = larger step).
+    /// Enabling it makes the globe focusable (it joins keyboard navigation); the default (<see langword="false"/>)
+    /// leaves it display-only.
+    /// </summary>
+    public bool Interactive
+    {
+        get => _interactive;
+        set
+        {
+            if (_interactive == value) return;
+            _interactive = value;
+            Focusable = value;   // interactive globes take focus for keyboard + wheel; display-only ones stay out of nav
+            Invalidate();
+        }
+    }
     #endregion
 
     #region Methods
@@ -116,6 +135,67 @@ public class Globe : Control
             Invalidate();
         });
     }
+
+    #region Input (active only when Interactive)
+    // Route mouse events to the globe when interactive (Focusable already does this too, but be explicit).
+    protected override bool WantsMouse => _interactive;
+
+    // Receive keyboard input (arrow keys / +-) only when interactive; otherwise keys pass through for navigation.
+    public override bool HandlesInput => _interactive;
+
+    protected override void OnMousePress(Position position)
+    {
+        if (!_interactive) return;
+        _dragging = true;
+        _lastDrag = position;
+        CaptureMouse();   // keep receiving move/up even when the pointer leaves the disc
+    }
+
+    protected override void OnMouseMove(Position position)
+    {
+        if (!_dragging) return;
+        int dx = position.X - _lastDrag.X;
+        int dy = position.Y - _lastDrag.Y;
+        _lastDrag = position;
+        // Horizontal drag spins the globe about its pole; vertical drag tilts the camera (CameraBeta clamps itself).
+        RotationAngle += dx * DragSpinPerCell;
+        CameraBeta += dy * DragTiltPerCell;
+    }
+
+    protected override void OnMouseRelease(Position position)
+    {
+        if (!_dragging) return;
+        _dragging = false;
+        ReleaseMouse();
+    }
+
+    protected override void OnMouseWheel(Position position, int delta)
+    {
+        if (!_interactive) { base.OnMouseWheel(position, delta); return; }
+        // Wheel up (delta < 0) decreases Zoom → closer/bigger globe; down zooms out. Zoom clamps to >= 1.05.
+        Zoom += delta * ZoomPerNotch;
+    }
+
+    protected override void OnInput(InputEvent inputEvent)
+    {
+        if (!_interactive) return;
+        bool shift = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0;
+        double spin = shift ? 0.5 : 0.15;
+        double tilt = shift ? 0.3 : 0.1;
+        double zoom = shift ? 0.3 : 0.1;
+        switch (inputEvent.Key.Key)
+        {
+            case ConsoleKey.LeftArrow: RotationAngle -= spin; break;
+            case ConsoleKey.RightArrow: RotationAngle += spin; break;
+            case ConsoleKey.UpArrow: CameraBeta += tilt; break;
+            case ConsoleKey.DownArrow: CameraBeta -= tilt; break;
+            case ConsoleKey.Add or ConsoleKey.OemPlus: Zoom -= zoom; break;   // + zooms in
+            case ConsoleKey.Subtract or ConsoleKey.OemMinus: Zoom += zoom; break;   // - zooms out
+            default: return;   // leave other keys unhandled for navigation
+        }
+        inputEvent.Handled = true;
+    }
+    #endregion
 
     // A globe fills its container and re-fits on resize; it must never be scrolled (inside a ControlFrame this hands
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
@@ -266,6 +346,15 @@ public class Globe : Control
 
     #region Fields
     private const double Radius = 1.0;
+
+    // Input sensitivities (tuned for a natural drag/zoom feel; radians per dragged cell, Zoom units per wheel notch).
+    private const double DragSpinPerCell = 0.03;
+    private const double DragTiltPerCell = 0.03;
+    private const double ZoomPerNotch = 0.1;
+
+    private bool _interactive;
+    private bool _dragging;
+    private Position _lastDrag;
 
     // Deep ocean → shallow → coast → lowland → land → highland.
     private static readonly CColor[] EarthStops =

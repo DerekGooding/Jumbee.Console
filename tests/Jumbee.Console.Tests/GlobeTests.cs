@@ -1,5 +1,10 @@
 namespace Jumbee.Console.Tests;
 
+using System;
+
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+
 using Jumbee.Console;
 using Jumbee.Console.Snapshot;
 
@@ -89,4 +94,86 @@ public class GlobeTests
             }
         Assert.True(anyDiff, "night shading should darken the shadow side relative to the evenly-lit globe");
     }
+
+    #region Interactive input
+    [Fact]
+    public void Interactive_EnablingMakesTheGlobeFocusable()
+    {
+        var g = new Globe();
+        Assert.False(g.Focusable);        // display-only by default
+        g.Interactive = true;
+        Assert.True(g.Focusable);         // opts into keyboard navigation
+    }
+
+    [Fact]
+    public void Interactive_DragRotatesAndTilts()
+    {
+        var g = new Globe { Interactive = true, RotationAngle = 0, CameraBeta = 0.35 };
+        var m = (IMouseListener)g;
+
+        m.OnMouseDown(new Position(0, 0));
+        m.OnMouseMove(new Position(5, 3));   // 5 cells right, 3 down
+        m.OnMouseUp(new Position(5, 3));
+
+        Assert.Equal(0.15, g.RotationAngle, 6);   // dx 5 * 0.03
+        Assert.Equal(0.44, g.CameraBeta, 6);      // 0.35 + dy 3 * 0.03
+    }
+
+    [Fact]
+    public void Interactive_WheelZooms()
+    {
+        var g = new Globe { Interactive = true };   // Zoom default 1.35
+        var w = (IMouseWheelListener)g;
+
+        w.OnMouseWheel(new Position(0, 0), -1);     // wheel up → zoom in (smaller Zoom)
+        Assert.Equal(1.25, g.Zoom, 6);
+        w.OnMouseWheel(new Position(0, 0), 2);      // wheel down → zoom out
+        Assert.Equal(1.45, g.Zoom, 6);
+    }
+
+    [Fact]
+    public void Interactive_ArrowKeysSpinAndTilt()
+    {
+        var g = new Globe { Interactive = true, RotationAngle = 0, CameraBeta = 0 };
+
+        UI.SendInput(g, ConsoleKey.RightArrow);
+        Assert.Equal(0.15, g.RotationAngle, 6);
+        UI.SendInput(g, ConsoleKey.LeftArrow);
+        Assert.Equal(0.0, g.RotationAngle, 6);
+
+        UI.SendInput(g, ConsoleKey.UpArrow);
+        Assert.Equal(0.1, g.CameraBeta, 6);
+
+        // Shift takes a larger step.
+        UI.SendInput(g, ConsoleKey.RightArrow, shift: true);
+        Assert.Equal(0.5, g.RotationAngle, 6);
+    }
+
+    [Fact]
+    public void Interactive_PlusMinusZoom()
+    {
+        var g = new Globe { Interactive = true };   // Zoom 1.35
+        UI.SendInput(g, ConsoleKey.OemMinus);       // '-' zooms out
+        Assert.Equal(1.45, g.Zoom, 6);
+        UI.SendInput(g, ConsoleKey.Add);            // '+' zooms in
+        Assert.Equal(1.35, g.Zoom, 6);
+    }
+
+    [Fact]
+    public void NonInteractive_IgnoresDragWheelAndKeys()
+    {
+        var g = new Globe { RotationAngle = 0 };    // Interactive false by default
+        double zoom = g.Zoom;
+        var m = (IMouseListener)g;
+
+        m.OnMouseDown(new Position(0, 0));
+        m.OnMouseMove(new Position(9, 9));
+        m.OnMouseUp(new Position(9, 9));
+        ((IMouseWheelListener)g).OnMouseWheel(new Position(0, 0), -3);
+        UI.SendInput(g, ConsoleKey.RightArrow);
+
+        Assert.Equal(0.0, g.RotationAngle, 6);
+        Assert.Equal(zoom, g.Zoom, 6);              // wheel fell through to (absent) frame scroll, not zoom
+    }
+    #endregion
 }
