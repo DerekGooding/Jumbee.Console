@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
@@ -315,6 +316,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #region Methods
     public virtual void Dispose()
     {
+        CancelFeeds();
         UI.Paint -= OnPaint;
         UI.ThemeChanged -= OnThemeChanged;
         if (Frame is not null) UI.ThemeChanged -= Frame.OnThemeChanged;
@@ -432,6 +434,122 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// of its wrapped renderable when that renderable's output does not depend on interactive state.
     /// </summary>
     protected virtual void InvalidateInteractive() => Invalidate();
+
+    #region Damage tracking
+    // Opt-in partial redraw. By default a control reports its WHOLE rect as damaged after each paint (see OnPaint),
+    // so the compositor scans/diffs the entire control every frame. A control that changes only part of its area
+    // (a moving sprite, a single digit, an animation with a bounded footprint) can opt into TracksDamage and report
+    // just the changed sub-rect(s) via Damage(), letting the compositor skip the unchanged remainder. The renderer's
+    // per-cell diff is still the correctness backstop, so over-reporting only wastes scan time — but UNDER-reporting
+    // drops updates, so an opt-in control must report every cell it changed (or DamageAll() when unsure).
+    //
+    // FOOTGUN — a MOVING or RESIZING region must report the UNION of its OLD and NEW extent. Reporting only the new
+    // extent leaves the cells it vacated un-scanned, so the compositor keeps their stale glyphs and the region ghosts
+    // a trail. (Globe unions this frame's disc box with last frame's; the bouncing-balls example unions each ball's
+    // old and new cell.) Also report the whole control on the first paint and after any resize/full-content change —
+    // though a resize already forces a global full redraw, so DamageAll() there is belt-and-braces.
+    // NOTE: the compositor collapses to a full redraw past ~32 distinct dirty rects in a frame (MaxDirtyRects), so
+    // this pays off for a control with a FEW localized changes, not one with dozens of scattered ones.
+    /// <summary>
+    /// When <see langword="true"/>, this control reports only the sub-rect(s) it changed each paint — accumulated via
+    /// <see cref="Damage(in Rect)"/> during <see cref="Render"/> — instead of its whole area, so the compositor skips
+    /// the unchanged remainder. Default <see langword="false"/> (report the full rect every paint, as before).
+    /// A control that opts in MUST report every changed cell; over-reporting is safe, under-reporting drops updates.
+    /// </summary>
+    protected virtual bool TracksDamage => false;
+
+    /// <summary>
+    /// Records a screen region (in this control's local coordinates) changed by the current paint. Clipped to the
+    /// control; empty rects are ignored. Call from <see cref="Render"/>. No effect unless <see cref="TracksDamage"/>
+    /// is <see langword="true"/>.
+    /// </summary>
+    protected void Damage(in Rect rect)
+    {
+        if (!TracksDamage) return;
+        var clipped = Rect.Intersect(rect, Rect.OfSize(Size));
+        if (clipped.Width > 0 && clipped.Height > 0) _damage.Add(clipped);
+    }
+
+    /// <summary>Records the whole control as damaged — use on the first paint or after a full-content change so the
+    /// entire area is re-composited. See <see cref="Damage(in Rect)"/>.</summary>
+    protected void DamageAll() => Damage(Rect.OfSize(Size));
+    #endregion
+
+    #region Feeds
+    /// <summary>
+    /// Starts a repeating feed that runs <paramref name="tick"/> <b>on the UI thread</b> every <paramref name="interval"/>
+    /// — for animations and periodic UI updates, without hand-rolling a timer loop. The returned
+    /// <see cref="CancellationTokenSource"/> stops the feed when cancelled; the control also cancels every live feed
+    /// when it is <see cref="Dispose">disposed</see>. The first tick fires after one interval.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="tick"/> <b>always</b> runs on the UI thread — it may read and mutate control state directly (no
+    /// marshaling), but it also means heavy work in it runs at frame start and delays the frame. For a tick that needs
+    /// expensive <em>off-thread</em> work, use the <see cref="Feed{T}(Func{T}, Action{T}, TimeSpan)"/> overload
+    /// instead, which runs the work on a background thread and only applies the result on the UI thread.
+    /// <para/>Implementation note: the tick is delivered via <see cref="UI.Post"/> (not a direct call) so its redraw
+    /// request and state change land together in the same dispatcher drain, before that frame's paint — see the note
+    /// on <see cref="UI.Post"/> vs <see cref="UI.Invoke"/>.
+    /// </remarks>
+    protected CancellationTokenSource Feed(Action tick, TimeSpan interval) => StartFeed(interval, () => UI.Post(tick));
+
+    /// <summary>Convenience overload taking the interval in milliseconds. See <see cref="Feed(Action, TimeSpan)"/>.</summary>
+    protected CancellationTokenSource Feed(Action tick, int intervalMs) => Feed(tick, TimeSpan.FromMilliseconds(intervalMs));
+
+    /// <summary>
+    /// A producer/consumer feed: every <paramref name="interval"/>, <paramref name="produce"/> runs on the feed's
+    /// <b>background thread</b> and its result is posted to <paramref name="apply"/> on the <b>UI thread</b>. Use this
+    /// when each tick needs expensive off-thread work (querying the OS, hitting the network, heavy computation) whose
+    /// result should update the control — only the cheap <paramref name="apply"/> touches the UI thread, so the frame
+    /// isn't blocked. Cancellation and disposal behave as in <see cref="Feed(Action, TimeSpan)"/>.
+    /// </summary>
+    protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval) =>
+        StartFeed(interval, () => { var result = produce(); UI.Post(() => apply(result)); });
+
+    /// <summary>Convenience overload taking the interval in milliseconds. See <see cref="Feed{T}(Func{T}, Action{T}, TimeSpan)"/>.</summary>
+    protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, int intervalMs) =>
+        Feed(produce, apply, TimeSpan.FromMilliseconds(intervalMs));
+
+    // Shared feed loop: every interval, run `pump` on the background task (for a plain feed it posts the tick; for a
+    // producer feed it produces off-thread then posts the apply). Registers/unregisters the CTS so Dispose can cancel.
+    private CancellationTokenSource StartFeed(TimeSpan interval, Action pump)
+    {
+        var cts = new CancellationTokenSource();
+        lock (_feeds) _feeds.Add(cts);
+        var ct = cts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    try { await Task.Delay(interval, ct).ConfigureAwait(false); }
+                    catch (TaskCanceledException) { break; }
+                    if (!ct.IsCancellationRequested) pump();
+                }
+            }
+            catch { /* an unexpected error in pump ends this feed rather than surfacing as an unobserved task exception */ }
+            finally
+            {
+                // The feed registry is background-task bookkeeping, not UI/render state, so it takes a small lock
+                // rather than being marshaled onto the UI thread — cancellation must still work during shutdown, when
+                // the dispatcher no longer drains posted work.
+                lock (_feeds) _feeds.Remove(cts);
+            }
+        });
+        return cts;
+    }
+
+    // Cancels every live feed. Called from Dispose; each cancelled feed's loop removes itself from the registry. The
+    // CTS is left undisposed on purpose — a caller may still hold the returned handle and call Cancel(), which is safe
+    // (idempotent) on a live CTS but throws on a disposed one.
+    private void CancelFeeds()
+    {
+        CancellationTokenSource[] snapshot;
+        lock (_feeds) { snapshot = [.. _feeds]; _feeds.Clear(); }
+        foreach (var cts in snapshot) cts.Cancel();
+    }
+    #endregion
 
     /// <summary>
     /// Assigns a backing field and requests a redraw, but only when the value actually changes.
@@ -586,12 +704,21 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             timer.Stop();
             // Fractional ms: most controls repaint in well under 1 ms; ElapsedMilliseconds would truncate them to 0.
             UI.controlPaintTimes[this][UI.paintTimeIndex] = timer.Elapsed.TotalMilliseconds;
-            // Report this control's own area as damaged. The ConsoleGUI base Control.Update bubbles the rect up the
-            // DrawingContext tree, translating it to screen coordinates, so this frame's flush re-composites only this
-            // control's region instead of the whole screen. The bubbled rect is itself the redraw signal (the frame
+            // Report the damaged screen region(s). The ConsoleGUI base Control.Update bubbles each rect up the
+            // DrawingContext tree, translating it to screen coordinates, so this frame's flush re-composites only
+            // those regions instead of the whole screen. The bubbled rect is itself the redraw signal (the frame
             // loop composites when there is damage), so no separate MarkDirty is needed — and adding one here would
             // set needsDraw for the *next*, undamaged frame and trip the loop's full-redraw fallback.
-            if (Size.Width > 0 && Size.Height > 0) Update(ConsoleGUI.Space.Rect.OfSize(Size));
+            if (TracksDamage)
+            {
+                // Opt-in: composite only the sub-rects this paint reported (possibly none → nothing to composite).
+                for (int i = 0; i < _damage.Count; i++) Update(_damage[i]);
+                _damage.Clear();
+            }
+            else if (Size.Width > 0 && Size.Height > 0)
+            {
+                Update(ConsoleGUI.Space.Rect.OfSize(Size));
+            }
         }
         else
         {
@@ -634,6 +761,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected internal uint paintRequests;
     protected readonly ConsoleBuffer consoleBuffer;
     protected readonly AnsiConsoleBuffer ansiConsole;
+    // Damaged sub-rects reported during the current paint by a TracksDamage control; drained in OnPaint. UI-thread only.
+    private readonly List<Rect> _damage = new();
+    // Live background feeds (see Feed); cancelled en masse on Dispose. Guarded by its own lock (cross-thread registry).
+    private readonly List<CancellationTokenSource> _feeds = new();
     // The themed default focus cue (IStyleTheme.Focus background + IStyleTheme.FocusStyle mode), captured off the
     // render path; applied to a focused control that shows focus no other way. Tint null = theme sets no focus bg.
     private ConsoleGUI.Data.Color? _focusTint;

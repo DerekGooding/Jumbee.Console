@@ -76,17 +76,43 @@ public class Globe : Control
         get => _foreground;
         set => SetAtomicProperty(ref _foreground, value);
     }
+
+    /// <summary>When <see langword="true"/> (the default), the globe reports only its drawn disc as damaged each
+    /// frame so the compositor skips the blank margins around it (opt-in partial redraw). Set <see langword="false"/>
+    /// to fall back to reporting the whole control rect — used to A/B the optimization.</summary>
+    public bool DamageTracking
+    {
+        get => _damageTracking;
+        set => SetAtomicProperty(ref _damageTracking, value);
+    }
     #endregion
 
     #region Methods
-    /// <summary>Advances the globe's own spin by <paramref name="delta"/> radians and counter-rotates the camera by
-    /// half that, matching the reference screensaver so the world turns under a steady view. One invalidation.</summary>
+    /// <summary>Spins the globe about its polar axis by <paramref name="delta"/> radians — scrolling the texture
+    /// under a fixed camera and light, so the world turns and the day/night terminator stays put on screen (the
+    /// natural "rotating earth, fixed sun" look). One invalidation.</summary>
+    /// <remarks>Only the texture rotation (<see cref="RotationAngle"/>) is advanced. The reference generator also
+    /// counter-orbited the camera by half the angle each tick, but that <em>exactly cancels</em> the texture scroll
+    /// (at screen centre <c>theta ≈ alpha/π + angle/2π</c>), leaving the globe fixed with only the shading moving —
+    /// so the camera coupling is deliberately omitted here.</remarks>
     public void Spin(double delta = 0.01)
     {
         UI.Invoke(() =>
         {
             _angle += delta;
-            _alpha -= delta / 2.0;
+            Invalidate();
+        });
+    }
+
+    /// <summary>Sets the directional light (world space) used for day/night shading and its
+    /// <paramref name="softness"/> (terminator sharpness; higher = harder edge). The direction is normalized.</summary>
+    public void SetLight(double x, double y, double z, double softness)
+    {
+        double len = Math.Sqrt(x * x + y * y + z * z);
+        if (len <= 0) return;
+        UI.Invoke(() =>
+        {
+            _lx = x / len; _ly = y / len; _lz = z / len; _softness = softness;
             Invalidate();
         });
     }
@@ -95,6 +121,11 @@ public class Globe : Control
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
     protected internal override bool FillsFrameViewport => true;
 
+    // Opt into partial redraw: the disc is inscribed in (and usually narrower than) the pane, so reporting just the
+    // drawn disc lets the compositor skip the blank margins. The disc changes almost everywhere as it spins, so the
+    // win is the margin area, not the disc itself — most valuable in panes wider than 2:1 where the margins are large.
+    protected override bool TracksDamage => _damageTracking;
+
     protected override void Render()
     {
         int w = Size.Width, h = Size.Height;
@@ -102,6 +133,9 @@ public class Globe : Control
 
         consoleBuffer.Initialize();
         if (w < 2 || h < 2) return;
+
+        // Track the bounding box of the cells we actually draw, to report as damage below.
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
 
         var tex = EarthTexture.Instance;
 
@@ -165,9 +199,11 @@ public class Globe : Control
                 double shade;
                 if (_displayNight)
                 {
-                    // Lambertian shade from a fixed overhead light; the terminator is where the surface turns away.
-                    // light = (0, +∞, 0), so l points to +y; luminance = clamp(5·(n·l) + 0.5, 0, 1) = clamp(5·ny + .5).
-                    double lum = 5.0 * ny + 0.5;
+                    // Lambertian shade from a fixed directional light; the terminator is where the surface turns away.
+                    // luminance = clamp(softness·(n·L) + 0.5, 0, 1). A lower softness spreads the day→night gradient
+                    // across more of the face (a soft crescent) rather than a hard band; L is tilted toward the camera
+                    // so the terminator sits off to one side instead of dead-centre.
+                    double lum = _softness * (nx * _lx + ny * _ly + nz * _lz) + 0.5;
                     lum = lum < 0 ? 0 : lum > 1 ? 1 : lum;
                     int nightIdx = tex.NightIndex[ey][ex];
                     int blended = (int)((1.0 - lum) * nightIdx + lum * dayIdx);
@@ -184,7 +220,21 @@ public class Globe : Control
                 if (glyph == ' ') glyph = '.';   // keep the disc solid even where a blank blend lands
                 var color = _colored ? Shade(OceanLand(dayIdx, tex.MaxIndex), shade) : Shade(_foreground, shade);
                 consoleBuffer.Write(new Position(xi, yi), new Character(glyph, color));
+
+                if (xi < minX) minX = xi;
+                if (xi > maxX) maxX = xi;
+                if (yi < minY) minY = yi;
+                if (yi > maxY) maxY = yi;
             }
+        }
+
+        if (_damageTracking)
+        {
+            // Report the drawn disc, unioned with last frame's, so a shrinking disc (zoom out / tilt) still erases
+            // the cells it vacated. When the disc is stable (a plain spin) the union is just the disc box.
+            var cur = maxX >= 0 ? new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1) : Rect.Empty;
+            Damage(Rect.Surround(_prevDisc, cur));
+            _prevDisc = cur;
         }
     }
 
@@ -231,6 +281,14 @@ public class Globe : Control
     private bool _displayNight = true;
     private bool _colored = true;
     private CColor _foreground = new(120, 210, 230);
+    private bool _damageTracking = true;
+    private Rect _prevDisc = Rect.Empty;   // last frame's drawn disc, unioned with this frame's to avoid ghosting
+    // Light mostly overhead (+y) and north (+z) with a little toward the camera (+x). A purely-overhead light (0,1,0)
+    // is perpendicular to the default ~+x camera, which puts the day/night terminator as a hard VERTICAL BAND down the
+    // centre; the +z tilt swings it to a natural diagonal crescent along the lower/right rim (≈¼ of the disc in
+    // shadow) and the small +x keeps it off the exact meridian. Normalized (0.2, 0.8, 0.5).
+    private double _lx = 0.2074, _ly = 0.8296, _lz = 0.5185;
+    private double _softness = 2.5;        // terminator sharpness: higher = harder day/night edge
     #endregion
 }
 

@@ -278,5 +278,30 @@ across all four changes.
 
 ---
 
+## 9. Opt-in partial redraw — `Control.TracksDamage` + `Damage()`
+
+A control that changes only part of its area can now report just the changed sub-rect(s) instead of its whole rect,
+so the compositor scans a fraction of the cells. Opt-in (`TracksDamage`, default off → unchanged full-rect
+behaviour); the renderer's per-cell diff is still the backstop. `PartialRedrawBenchmarks` drives the real
+`ConsoleManager` compositor headlessly (no-op console + no-op ANSI sink) — each op = one full frame
+(paint + composite). Two workloads at 120×40, `Track` on vs off:
+
+| Workload            | Full redraw | Partial (opt-in) | Speedup | Note |
+|---------------------|------------:|-----------------:|--------:|------|
+| **Globe** (spinning)     | 578.2 µs | 517.6 µs | ~1.1×   | disc inscribed in a wide pane — only the blank margins are skipped |
+| **Static scene** (moving block) | 290.1 µs | 107.4 µs | **~2.7×** | nearly the whole surface is static and skipped |
+
+The delta is the compositor scan/diff/encode the opt-in avoids (render cost is identical both ways — both workloads
+re-render their whole buffer each frame). The scan reduction is exact and deterministic
+(`DamageTrackingTests` reads `ConsoleManager.LastFrameDirtyCells`): the moving sprite scans **2 of 1200** cells vs
+the full 1200; the globe scans **3520 of 4800** (~27% margin skipped).
+
+**Takeaway:** the win scales with how *localized* the animation is, not with how expensive its render is. The globe
+gains little (its disc changes almost everywhere it's lit, and tiling/partial-redraw doesn't touch the raytrace
+cost) — but the same mechanism makes a mostly-static scene's compositing ~2.7× cheaper, and it's a free improvement
+for any control that opts in. It reuses the existing 32-rect dirty accumulator; no new control type or sub-buffers.
+
+---
+
 **Gap for a future experiment:** no wrap-heavy render workload yet (RenderParagraph / RenderLog with long wrapped
 text) — the slice-bound case where the section 2 `Segment` change should show its largest win.

@@ -47,11 +47,46 @@ public class GlobeTests
     }
 
     [Fact]
+    public void Globe_Spin_ActuallyRotatesTheSurface()
+    {
+        // Regression: Spin must scroll the texture, not just bump the angle field. (A previous version also
+        // counter-orbited the camera by half the angle, which exactly cancelled the scroll — the globe sat still
+        // and only the shading moved.) Render, spin a few times, render again: the image must change.
+        var g = new Globe { DisplayNight = false };
+        var before = ConsoleSnapshot.ToText(g, 56, 26);
+        for (int i = 0; i < 10; i++) g.Spin(0.05);
+        var after = ConsoleSnapshot.ToText(g, 56, 26);
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public void Globe_SetLight_ChangesShading()
+    {
+        // The light direction drives the day/night shading, so moving it changes the rendered image.
+        var a = new Globe { DisplayNight = true, RotationAngle = 1.4 };
+        var before = ConsoleSnapshot.ToText(a, 56, 26);
+        a.SetLight(-1, 0.5, -0.5, 2.0);   // light swung to the opposite side
+        var after = ConsoleSnapshot.ToText(a, 56, 26);
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
     public void Globe_NightShadingDiffersFromFlat()
     {
-        // Night shading blends in the dark-side texture, so the terminator side differs from the evenly-lit globe.
-        var flat = ConsoleSnapshot.ToText(new Globe { DisplayNight = false }, 40, 20);
-        var night = ConsoleSnapshot.ToText(new Globe { DisplayNight = true }, 40, 20);
-        Assert.NotEqual(flat, night);
+        // Night shading darkens the shadow side (and blends the dark-side texture), so the globe differs from the
+        // evenly-lit one. Compare the buffers' colours, not just glyphs: the shadow-side shade scales each cell's
+        // colour even where the day/night glyph happens to match (ConsoleSnapshot.ToText only sees glyphs).
+        const int w = 56, h = 26;
+        var flat = ConsoleSnapshot.Render(new Globe { DisplayNight = false, RotationAngle = 1.4 }, w, h);
+        var night = ConsoleSnapshot.Render(new Globe { DisplayNight = true, RotationAngle = 1.4 }, w, h);
+
+        bool anyDiff = false;
+        for (int y = 0; y < h && !anyDiff; y++)
+            for (int x = 0; x < w && !anyDiff; x++)
+            {
+                var p = new ConsoleGUI.Space.Position(x, y);
+                if (!Equals(flat[p].Character.Foreground, night[p].Character.Foreground)) anyDiff = true;
+            }
+        Assert.True(anyDiff, "night shading should darken the shadow side relative to the evenly-lit globe");
     }
 }

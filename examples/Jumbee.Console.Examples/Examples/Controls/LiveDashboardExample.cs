@@ -3,7 +3,6 @@ namespace Jumbee.Console.Examples;
 using System;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 using Jumbee.Console;
 
@@ -70,30 +69,17 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
     }
 
     #region Live feed
-    // Start/stop the feed as the example is shown/hidden (called by ExampleHost). The feed is a wall-clock timer that
-    // POSTS each update onto the UI thread: a posted update runs at frame start, so its redraw is requested before
-    // the frame's paint — which the frame loop composites even though the deeply-nested plot panels don't localize
-    // their own damage. (Driving this from the per-frame Paint event instead leaves the redraw request "mid-paint",
-    // which the loop defers and never composites until some input forces a full redraw.)
-    public void OnActivated()
-    {
-        _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
-        _ = Task.Run(async () =>
-        {
-            while (!ct.IsCancellationRequested)
-            {
-                try { await Task.Delay(50, ct); }
-                catch (TaskCanceledException) { break; }
-                UI.Post(Advance);
-            }
-        });
-    }
+    // Start/stop the feed as the example is shown/hidden (called by ExampleHost). Control.Feed POSTS each Advance onto
+    // the UI thread: a posted update runs at frame start, so its redraw is requested before the frame's paint — which
+    // the frame loop composites even though the deeply-nested plot panels don't localize their own damage. (Driving
+    // this from the per-frame Paint event instead leaves the redraw request "mid-paint", which the loop defers and
+    // never composites until some input forces a full redraw.)
+    public void OnActivated() => _feed = Feed(Advance, 50);
 
     public void OnDeactivated()
     {
-        _cts?.Cancel();
-        _cts = null;
+        _feed?.Cancel();
+        _feed = null;
     }
 
     // Advance the simulation and push it into the panels. Runs on the UI thread (posted), so control updates are direct.
@@ -192,6 +178,6 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
     private readonly double[] _tp2Data = new double[16];
     private double _txUsaV = 60, _txEuV = 25, _errV = 30, _latV = 5;
     private int _tick, _deployPct;
-    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _feed;
     #endregion
 }

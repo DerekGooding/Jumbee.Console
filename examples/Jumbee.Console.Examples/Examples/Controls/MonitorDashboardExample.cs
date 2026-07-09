@@ -91,39 +91,21 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
     #region Live feed
     public void OnActivated()
     {
-        _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
+        // Fast simulated feed (charts, meter, log, containers, clock, weather) — runs on the UI thread.
+        _feed = Feed(Advance, 50);
 
-        // Fast simulated feed (charts, meter, log, containers, clock, weather).
-        _ = Task.Run(async () =>
-        {
-            while (!ct.IsCancellationRequested)
-            {
-                try { await Task.Delay(50, ct); }
-                catch (TaskCanceledException) { break; }
-                UI.Post(Advance);
-            }
-        });
+        // Prime the CPU-time deltas off the UI thread so the first sampled display (one interval later) shows real %.
+        _ = Task.Run(() => _sampler.Sample(TopProcesses));
 
-        // Slow REAL process sampling on a background thread (enumerating the OS process list every tick is expensive,
-        // so this runs at its own ~1.5s cadence and only the finished top-N is posted to the UI thread).
-        _ = Task.Run(async () =>
-        {
-            _sampler.Sample(TopProcesses);   // prime the CPU-time deltas; first display shows real % next round
-            while (!ct.IsCancellationRequested)
-            {
-                try { await Task.Delay(1500, ct); }
-                catch (TaskCanceledException) { break; }
-                var top = _sampler.Sample(TopProcesses);
-                UI.Post(() => ShowProcesses(top));
-            }
-        });
+        // Slow REAL process sampling: enumerating the OS process list every tick is expensive, so the producer/consumer
+        // Feed runs the sample on its background thread at a ~1.5s cadence and only posts the finished top-N to the UI.
+        _procFeed = Feed(() => _sampler.Sample(TopProcesses), ShowProcesses, 1500);
     }
 
     public void OnDeactivated()
     {
-        _cts?.Cancel();
-        _cts = null;
+        _feed?.Cancel(); _feed = null;
+        _procFeed?.Cancel(); _procFeed = null;
     }
 
     // Runs on the UI thread (posted), so control updates are direct.
@@ -274,6 +256,6 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
     private readonly double[] _utilData = new double[6];   // reused per-tick scratch for the utilization bars (matches _sites)
     private double _bV = 0.2, _gV = 0.3, _yV = 0.8, _inV = 5000, _prV = 3000, _dqV = 200, _cpuV = 40;
     private int _tick;
-    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _feed, _procFeed;
     #endregion
 }
