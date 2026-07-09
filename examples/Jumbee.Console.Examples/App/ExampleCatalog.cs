@@ -14,6 +14,7 @@ public static class ExampleCatalog
         new ButtonExample(),
         new ListBoxExample(),
         new PlotExample(),
+        new CanvasExample(),
         new ScatterPlotExample(),
         new StemPlotExample(),
         new BarPlotExample(),
