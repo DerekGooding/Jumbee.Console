@@ -27,7 +27,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Jumbee.Console.Tests" />    
+    <InternalsVisibleTo Include="Jumbee.Console.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Textures\earth.txt" />
+    <EmbeddedResource Include="Textures\earth_night.txt" />
   </ItemGroup>
 
 </Project>

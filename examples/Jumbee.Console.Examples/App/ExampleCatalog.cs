@@ -29,6 +29,7 @@ public static class ExampleCatalog
         new AnnotatedPlotExample(),
         new LiveDashboardExample(),
         new MonitorDashboardExample(),
+        new GlobeExample(),
         new DialogExample(),
         new SplitPanelExample(),
         new SpectreTableExample(),
