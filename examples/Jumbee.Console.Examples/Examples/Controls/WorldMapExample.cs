@@ -17,6 +17,7 @@ public sealed class WorldMapExample : Canvas, IExample
     public WorldMapExample()
     {
         WithMarker(CanvasMarker.Braille).WithXBounds(-180, 180).WithYBounds(-90, 90);
+        Interactive = true;   // drag to pan, wheel/±  to zoom, arrows to pan
 
         // Layer 1: the coastline in fine braille.
         Add(new WorldMap(Land, MapResolution.High));
@@ -34,7 +35,7 @@ public sealed class WorldMapExample : Canvas, IExample
     public string Category => "Controls";
     public string Title => "World Map";
     public string Description =>
-        "A braille WorldMap coastline with a dot layer of labelled cities — the Canvas map, per-layer markers and text labels together.";
+        "An explorable braille world map with labelled cities — drag to pan, scroll to zoom. Combines the Canvas map, per-layer markers, text labels and pan/zoom.";
     #endregion
 
     #region Fields

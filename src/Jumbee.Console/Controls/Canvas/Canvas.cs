@@ -3,6 +3,7 @@ namespace Jumbee.Console;
 using System;
 using System.Collections.Generic;
 
+using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
 using Jumbee.Console.Drawing;
@@ -62,6 +63,25 @@ public class Canvas : Control
     {
         get => _background;
         set => SetAtomicProperty(ref _background, value, watch: (_, _) => _dirty = true);
+    }
+
+    /// <summary>
+    /// When <see langword="true"/>, the canvas responds to user input by panning and zooming its
+    /// <see cref="XBounds"/>/<see cref="YBounds"/> window: <b>drag</b> to pan (the content follows the cursor), the
+    /// <b>mouse wheel</b> to zoom about the pointer, and (while focused) the <b>arrow keys</b> to pan with <b>+/-</b>
+    /// to zoom about the centre (Shift = larger step). Enabling it makes the canvas focusable; the default
+    /// (<see langword="false"/>) leaves it display-only.
+    /// </summary>
+    public bool Interactive
+    {
+        get => _interactive;
+        set
+        {
+            if (_interactive == value) return;
+            _interactive = value;
+            Focusable = value;
+            Invalidate();
+        }
     }
     #endregion
 
@@ -164,6 +184,118 @@ public class Canvas : Control
         _dirty = true;
         Invalidate();
     }
+
+    #region Input (pan/zoom, active only when Interactive)
+    protected override bool WantsMouse => _interactive;
+
+    // Receive keyboard input (arrows / +-) only when interactive; otherwise keys pass through for navigation.
+    public override bool HandlesInput => _interactive;
+
+    protected override void OnMousePress(Position position)
+    {
+        if (!_interactive) return;
+        _dragging = true;
+        _lastDrag = position;
+        CaptureMouse();
+    }
+
+    protected override void OnMouseMove(Position position)
+    {
+        if (!_dragging) return;
+        Pan(position.X - _lastDrag.X, position.Y - _lastDrag.Y);
+        _lastDrag = position;
+    }
+
+    protected override void OnMouseRelease(Position position)
+    {
+        if (!_dragging) return;
+        _dragging = false;
+        ReleaseMouse();
+    }
+
+    protected override void OnMouseWheel(Position position, int delta)
+    {
+        if (!_interactive) { base.OnMouseWheel(position, delta); return; }
+        // Wheel up (delta < 0) shrinks the window (zoom in); down grows it. Keep the point under the cursor fixed.
+        ZoomAround(position.X, position.Y, Math.Pow(ZoomFactorPerNotch, delta));
+    }
+
+    protected override void OnInput(InputEvent inputEvent)
+    {
+        if (!_interactive) return;
+        bool shift = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0;
+        double pan = shift ? 0.4 : 0.15;
+        switch (inputEvent.Key.Key)
+        {
+            case ConsoleKey.LeftArrow: PanFraction(-pan, 0); break;
+            case ConsoleKey.RightArrow: PanFraction(pan, 0); break;
+            case ConsoleKey.UpArrow: PanFraction(0, pan); break;
+            case ConsoleKey.DownArrow: PanFraction(0, -pan); break;
+            case ConsoleKey.Add or ConsoleKey.OemPlus: ZoomCentre(shift ? 0.6 : 0.8); break;   // + zooms in
+            case ConsoleKey.Subtract or ConsoleKey.OemMinus: ZoomCentre(shift ? 1.0 / 0.6 : 1.0 / 0.8); break;   // - zooms out
+            default: return;
+        }
+        inputEvent.Handled = true;
+    }
+
+    // Drag pan: the world point under the cursor follows it. X shifts opposite the drag; Y shifts with it, since the
+    // canvas y-axis is flipped (origin bottom-left) versus the screen's top-down rows.
+    private void Pan(int dxCells, int dyCells)
+    {
+        int w = Size.Width, h = Size.Height;
+        var (xMin, xMax) = _xBounds;
+        var (yMin, yMax) = _yBounds;
+        double spanX = xMax - xMin, spanY = yMax - yMin;
+        if (w <= 1 || h <= 1 || spanX <= 0 || spanY <= 0) return;
+        double wx = dxCells * spanX / (w - 1);
+        double wy = dyCells * spanY / (h - 1);
+        XBounds = (xMin - wx, xMax - wx);
+        YBounds = (yMin + wy, yMax + wy);
+    }
+
+    // Keyboard pan: move the viewport by a fraction of its span (Right/Up move the window toward +x/+y).
+    private void PanFraction(double fx, double fy)
+    {
+        var (xMin, xMax) = _xBounds;
+        var (yMin, yMax) = _yBounds;
+        double spanX = xMax - xMin, spanY = yMax - yMin;
+        if (spanX <= 0 || spanY <= 0) return;
+        double dx = fx * spanX, dy = fy * spanY;
+        XBounds = (xMin + dx, xMax + dx);
+        YBounds = (yMin + dy, yMax + dy);
+    }
+
+    // Zoom by scaling the span while keeping the world point under (px, py) fixed on screen.
+    private void ZoomAround(int px, int py, double scale)
+    {
+        int w = Size.Width, h = Size.Height;
+        var (xMin, xMax) = _xBounds;
+        var (yMin, yMax) = _yBounds;
+        double spanX = xMax - xMin, spanY = yMax - yMin;
+        if (w <= 1 || h <= 1 || spanX <= 0 || spanY <= 0) return;
+        double fx = px / (double)(w - 1), fy = py / (double)(h - 1);
+        double curX = xMin + fx * spanX;
+        double curY = yMax - fy * spanY;   // screen y is flipped
+        double nsx = spanX * scale, nsy = spanY * scale;
+        double nxMin = curX - fx * nsx;
+        double nyMax = curY + fy * nsy;
+        XBounds = (nxMin, nxMin + nsx);
+        YBounds = (nyMax - nsy, nyMax);
+    }
+
+    // Zoom about the window centre (keyboard +/-).
+    private void ZoomCentre(double scale)
+    {
+        var (xMin, xMax) = _xBounds;
+        var (yMin, yMax) = _yBounds;
+        double spanX = xMax - xMin, spanY = yMax - yMin;
+        if (spanX <= 0 || spanY <= 0) return;
+        double cx = (xMin + xMax) / 2, cy = (yMin + yMax) / 2;
+        double hx = spanX * scale / 2, hy = spanY * scale / 2;
+        XBounds = (cx - hx, cx + hx);
+        YBounds = (cy - hy, cy + hy);
+    }
+    #endregion
 
     // A canvas fills its container and re-fits on resize; it must never be scrolled (inside a ControlFrame this hands
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
@@ -321,6 +453,12 @@ public class Canvas : Control
     private char _customMarker = '•';
     private CColor? _background;
     private bool _dirty = true;
+
+    // Interactive pan/zoom state. ZoomFactorPerNotch > 1: a wheel-down notch grows the window (zoom out).
+    private const double ZoomFactorPerNotch = 1.1;
+    private bool _interactive;
+    private bool _dragging;
+    private Position _lastDrag;
     private int _builtWidth = -1;
     private int _builtHeight = -1;
 

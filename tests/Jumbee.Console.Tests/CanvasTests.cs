@@ -1,6 +1,10 @@
 namespace Jumbee.Console.Tests;
 
+using System;
 using System.Text;
+
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
 
 using Jumbee.Console;
 using Jumbee.Console.Drawing;
@@ -444,6 +448,91 @@ public class CanvasTests
         for (var y = 0; y < 3; y++)
             for (var x = 0; x < 3; x++)
                 Assert.Equal(new CColor(10, 20, 30), buf[x, y].Character.Background);
+    }
+    #endregion
+
+    #region Interactive pan/zoom
+    // A canvas with a 360×180 window over an 81×41 buffer → exactly 4.5 world units per cell (nice round test math).
+    private static Canvas World81x41()
+    {
+        var c = new Canvas().WithXBounds(-180, 180).WithYBounds(-90, 90);
+        c.Interactive = true;
+        ConsoleSnapshot.Render(c, 81, 41);   // establish Size so drag/zoom can read it
+        return c;
+    }
+
+    [Fact]
+    public void Interactive_EnablingMakesTheCanvasFocusable()
+    {
+        var c = new Canvas();
+        Assert.False(c.Focusable);
+        c.Interactive = true;
+        Assert.True(c.Focusable);
+    }
+
+    [Fact]
+    public void Interactive_DragPansBounds()
+    {
+        var c = World81x41();
+        var m = (IMouseListener)c;
+
+        m.OnMouseDown(new Position(0, 0));
+        m.OnMouseMove(new Position(10, 4));   // dx 10, dy 4 → 45 / 18 world units (10·4.5, 4·4.5)
+        m.OnMouseUp(new Position(10, 4));
+
+        // Drag right → content follows → x window shifts left; drag down → y window shifts up (flipped axis).
+        Assert.Equal((-225.0, 135.0), c.XBounds);
+        Assert.Equal((-72.0, 108.0), c.YBounds);
+    }
+
+    [Fact]
+    public void Interactive_WheelZoomsAboutTheCursor()
+    {
+        var c = World81x41();
+        // Cursor at x-fraction 0.25 → world x = -180 + 0.25·360 = -90; that point must stay put across the zoom.
+        ((IMouseWheelListener)c).OnMouseWheel(new Position(20, 10), -1);   // wheel up → zoom in
+
+        var (xMin, xMax) = c.XBounds;
+        Assert.Equal(360.0 / 1.1, xMax - xMin, 6);                 // window shrank by one notch
+        Assert.Equal(-90.0, xMin + 0.25 * (xMax - xMin), 6);       // world point under the cursor is unchanged
+    }
+
+    [Fact]
+    public void Interactive_ArrowKeysPan()
+    {
+        var c = World81x41();
+
+        UI.SendInput(c, ConsoleKey.RightArrow);   // pan +0.15·360 = +54 in x
+        Assert.Equal((-126.0, 234.0), c.XBounds);
+
+        UI.SendInput(c, ConsoleKey.UpArrow);       // pan +0.15·180 = +27 in y
+        Assert.Equal((-63.0, 117.0), c.YBounds);
+    }
+
+    [Fact]
+    public void Interactive_PlusMinusZoomAboutCentre()
+    {
+        var c = World81x41();
+
+        UI.SendInput(c, ConsoleKey.OemPlus);       // + zooms in: span ×0.8 about centre 0
+        Assert.Equal((-144.0, 144.0), c.XBounds);
+        Assert.Equal((-72.0, 72.0), c.YBounds);
+    }
+
+    [Fact]
+    public void NonInteractive_IgnoresPanAndZoom()
+    {
+        var c = new Canvas().WithXBounds(-180, 180).WithYBounds(-90, 90);   // Interactive false
+        ConsoleSnapshot.Render(c, 81, 41);
+        var m = (IMouseListener)c;
+
+        m.OnMouseDown(new Position(0, 0));
+        m.OnMouseMove(new Position(10, 4));
+        ((IMouseWheelListener)c).OnMouseWheel(new Position(20, 10), -1);
+        UI.SendInput(c, ConsoleKey.RightArrow);
+
+        Assert.Equal((-180.0, 180.0), c.XBounds);
+        Assert.Equal((-90.0, 90.0), c.YBounds);
     }
     #endregion
 }
