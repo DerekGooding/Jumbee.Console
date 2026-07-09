@@ -407,7 +407,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             Resize(size);
             consoleBuffer.Size = Size;
             Invalidate();
-            OnInitialization?.Invoke();    
+            OnInitialization?.Invoke();
         }));
     }                 
             

@@ -466,8 +466,17 @@ public class TextEditor : Control
     // width defaults to the current buffer width, but can be supplied (e.g. while measuring at a new layout width).
     private List<(int start, int end)> BuildVisualRows(int? wrapWidth = null)
     {
-        var rows = new List<(int, int)>();
         int width = Math.Max(1, wrapWidth ?? WrapWidth);
+        // Memoize on (text, width): the wrap is a pure function of those. A framed control's content height depends on
+        // its width, which drives the surrounding layout to converge — re-measuring the whole document many times for
+        // one layout pass. Caching collapses those repeats to O(1). All callers read the returned list, never mutate
+        // it, so sharing the cached instance is safe. Invalidated implicitly: an edit reassigns `input` (new string
+        // reference) and a width change misses on the key.
+        if (_cachedRows is not null && ReferenceEquals(input, _cachedRowsText) && width == _cachedRowsWidth)
+            return _cachedRows;
+
+        visualRowsBuilt++;   // instrumentation: counts actual (uncached) wrap computations
+        var rows = new List<(int, int)>();
         int n = input.Length;
         int rowStart = 0, col = 0, i = 0;
         while (i < n)
@@ -495,6 +504,10 @@ public class TextEditor : Control
             }
         }
         rows.Add((rowStart, n));
+
+        _cachedRows = rows;
+        _cachedRowsText = input;
+        _cachedRowsWidth = width;
         return rows;
     }
 
@@ -696,6 +709,14 @@ public class TextEditor : Control
     private bool _selectionDirty;
     // The selection highlight background (captured from the theme in ApplyTheme), or null if the theme sets none.
     private ConsoleGUI.Data.Color? _selectionBg;
+
+    // Test instrumentation: number of actual BuildVisualRows computations (cache misses). Used by tests to guard the
+    // wrap-memoization against layout-convergence re-measurement blowups.
+    internal int visualRowsBuilt;
+    // Memoized wrap layout, keyed by (text reference, wrap width) — see BuildVisualRows.
+    private List<(int start, int end)>? _cachedRows;
+    private string? _cachedRowsText;
+    private int _cachedRowsWidth = -1;
 
     SpectreSegmentFormatter ccFormatter = new SpectreSegmentFormatter();
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();

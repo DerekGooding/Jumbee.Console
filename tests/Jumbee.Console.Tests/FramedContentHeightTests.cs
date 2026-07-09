@@ -1,5 +1,7 @@
 namespace Jumbee.Console.Tests;
 
+using System.Linq;
+
 using Jumbee.Console;
 using Jumbee.Console.Snapshot;
 
@@ -41,6 +43,28 @@ public class FramedContentHeightTests
         Assert.Equal(40, list.ActualHeight);                     // content-sized
         Assert.True(frame.Top <= 40 - viewport,                  // clamped to content, not 1000
             $"Top {frame.Top} should clamp to content (40) - viewport ({viewport})");
+    }
+
+    [Fact]
+    public void FramedCodeEditor_DoesNotRebuildWrapRowsPerConvergencePass()
+    {
+        // A framed CodeEditor's content height depends on its width (word wrap), which feeds the scrolling frame's
+        // layout convergence — so the whole document's wrap rows can be re-measured many times for a single render.
+        // Memoizing BuildVisualRows on (text, width) must keep that to a handful of computations, not one per pass.
+        var editor = new CodeEditor(Language.CSharp);
+        editor.Text = string.Join('\n', Enumerable.Range(0, 40).Select(i => $"var line{i} = {i} + someValue * factor;"));
+        editor.WithFrame();
+
+        var split = new SplitPanel(SplitOrientation.Horizontal, new ListBox(), editor, splitPosition: 30);
+
+        editor.Editor.visualRowsBuilt = 0;
+        ConsoleSnapshot.Render(split, 80, 12);   // narrow pane forces wrapping (activates the width->height feedback)
+
+        // With the wrap memoized on (text, width), a whole render re-measures the document at most a couple of times
+        // (a distinct width or two), not once per convergence pass — headless this dropped 9x -> 1x, and the real
+        // app's doc-open blowup (hundreds of re-measures) proportionally more.
+        Assert.True(editor.Editor.visualRowsBuilt < 4,
+            $"BuildVisualRows ran {editor.Editor.visualRowsBuilt}x for one render — layout convergence is re-measuring the whole document.");
     }
 
     [Fact]

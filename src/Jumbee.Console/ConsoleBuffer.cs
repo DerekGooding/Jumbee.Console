@@ -112,8 +112,15 @@ public class ConsoleBuffer : IConsole
         // column at a time reallocates every row on every single-cell step (100 -> 101 -> 102 ...), since each is a new
         // maximum — retention alone only saves the shrink. Bucketing (what an ArrayPool does internally) collapses a
         // whole growth sweep into one realloc per bucket boundary. Logical Size stays exact; the slack is never read.
-        if (buffer.Length < size.Height)
-            Array.Resize(ref buffer, RoundUpCapacity(size.Height));
+        // Grow the row count to fit, but also SHRINK it when the retained capacity dwarfs what's needed. A layout
+        // convergence pass can briefly measure content at a near-zero width — a document-length wrapped-row count — and
+        // balloon the buffer to thousands of full-width rows; without this, retention would pin that transient
+        // overshoot in memory. Height is content-driven (a divider drag changes it only slightly), so the 2x slack
+        // never churns during normal resizing. Row WIDTH keeps pure retention below — a divider drag sweeps the width
+        // across a wide range, and each row is cheap to hold.
+        int capHeight = RoundUpCapacity(size.Height);
+        if (buffer.Length < size.Height || buffer.Length > capHeight * 2)
+            Array.Resize(ref buffer, capHeight);
         for (int i = 0; i < size.Height; i++)
         {
             if (buffer[i] is null || buffer[i].Length < size.Width)
