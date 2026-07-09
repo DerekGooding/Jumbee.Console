@@ -2,8 +2,6 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using CColor = ConsoleGUI.Data.Color;
-
 /// <summary>A stacked bar chart — three components stacked from the baseline at each x, so each bar's total height
 /// is the sum. A <c>MultiBarSeries</c> (stacked mode); segments are full cells between rounded cumulative
 /// boundaries so they abut exactly.</summary>
@@ -18,7 +16,7 @@ public sealed class StackedBarExample : Plot, IExample
             [5, 6, 9, 4, 7],      // middle layer
             [3, 4, 2, 6, 5],      // top layer
         ];
-        CColor[] colors = [new(89, 145, 240), new(120, 200, 120), new(240, 200, 90)];
+        Color[] colors = [new(89, 145, 240), new(120, 200, 120), new(240, 200, 90)];
 
         AddStackedBars(xs, series, colors);
         ConfigureGrid(g => g.IsVisible = false);

@@ -7,8 +7,6 @@ using System.Threading;
 using Jumbee.Console;
 using Jumbee.Console.Drawing;
 
-using CColor = ConsoleGUI.Data.Color;
-
 /// <summary>
 /// A live drawing on the <see cref="Canvas"/> control — a braille <see cref="Circle"/> track, a rotating rose curve
 /// traced with <see cref="Points"/>, a radar <see cref="Line"/> sweep, and an orbiting blip, all redrawn each tick
@@ -73,10 +71,10 @@ public sealed class CanvasExample : Canvas, IExample, IActivatable
 
     #region Fields
     private const int RosePoints = 480;
-    private static readonly CColor Track = new(45, 70, 70);
-    private static readonly CColor Rose = new(120, 205, 230);
-    private static readonly CColor Sweep = new(120, 240, 140);
-    private static readonly CColor Blip = new(240, 180, 90);
+    private static readonly Color Track = new(45, 70, 70);
+    private static readonly Color Rose = new(120, 205, 230);
+    private static readonly Color Sweep = new(120, 240, 140);
+    private static readonly Color Blip = new(240, 180, 90);
 
     private double _t;
     private CancellationTokenSource? _feed;

@@ -71,7 +71,7 @@ public class Globe : Control
     }
 
     /// <summary>Base glyph colour used when <see cref="Colored"/> is <see langword="false"/> (default a soft cyan).</summary>
-    public CColor Foreground
+    public Color Foreground
     {
         get => _foreground;
         set => SetAtomicProperty(ref _foreground, value);

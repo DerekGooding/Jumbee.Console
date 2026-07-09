@@ -24,8 +24,8 @@ public sealed class PerfHud : GlassPanel
     /// <param name="factor">Blend strength (0 = clear, 1 = opaque tint).</param>
     /// <param name="frosted">Frost the app beneath to a colour blur (clean readout, content shows as soft smudges)
     /// rather than letting its raw glyphs bleed through and clutter the readout.</param>
-    public PerfHud(CColor? tint = null, float factor = 0.6f, bool frosted = true)
-        : base(HudWidth, HudHeight, tint ?? new CColor(44, 54, 82), factor, frosted)
+    public PerfHud(Color? tint = null, float factor = 0.6f, bool frosted = true)
+        : base(HudWidth, HudHeight, tint ?? new Color(44, 54, 82), factor, frosted)
     {
         Refresh();
         UI.Paint += OnHudPaint;

@@ -34,7 +34,7 @@ public class GlassPanel : Control
     /// frosted to the tint (content beneath becomes a faithful colour blur); when <see langword="false"/> the glyphs
     /// beneath show through, tinted (see-through glass).</param>
     /// <param name="gammaCorrect">Blend in linear light (gamma-correct) instead of gamma space.</param>
-    public GlassPanel(int width, int height, CColor tint, float factor = 0.6f, bool frosted = true, bool gammaCorrect = false)
+    public GlassPanel(int width, int height, Color tint, float factor = 0.6f, bool frosted = true, bool gammaCorrect = false)
     {
         _w = width;
         _h = height;
@@ -79,7 +79,7 @@ public class GlassPanel : Control
     }
 
     /// <summary>Colour the layer beneath is blended toward.</summary>
-    public CColor Tint
+    public Color Tint
     {
         get => _tint;
         set => SetAtomicProperty(ref _tint, value);
@@ -93,7 +93,7 @@ public class GlassPanel : Control
     }
 
     /// <summary>Colour used for content glyphs that carry no foreground of their own.</summary>
-    public CColor TextColor
+    public Color TextColor
     {
         get => _textColor;
         set => SetAtomicProperty(ref _textColor, value);

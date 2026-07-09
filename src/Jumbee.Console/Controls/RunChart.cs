@@ -45,7 +45,7 @@ public class RunChart : CompositeControl
 
     #region Methods
     /// <summary>Adds a series drawn in <paramref name="color"/> and returns a handle to feed it. Starts empty.</summary>
-    public RunSeries AddSeries(string name, CColor color)
+    public RunSeries AddSeries(string name, Color color)
     {
         var handle = new RunSeries(this, name ?? "", color, _plot.AddLiveSeries(color));
         UI.Invoke(() => { _series.Add(handle); RefreshLegend(); });

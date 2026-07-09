@@ -23,7 +23,7 @@ public class Plot : Control
 
     #region Properties
     /// <summary>Background colour painted behind the plot, or <see langword="null"/> (the default) for transparent.</summary>
-    public CColor? Background
+    public Color? Background
     {
         get => _background;
         set => SetAtomicProperty(ref _background, value, watch: (_, _) => _dirty = true);
@@ -32,7 +32,7 @@ public class Plot : Control
 
     #region Methods
     /// <summary>Sets the <see cref="Background"/> colour and returns this plot, for fluent chaining.</summary>
-    public Plot WithBackground(CColor? background)
+    public Plot WithBackground(Color? background)
     {
         Background = background;
         return this;
@@ -60,11 +60,11 @@ public class Plot : Control
     /// Quadrant 2×2, the rest 1×1 — sets how smooth the line looks). When <paramref name="color"/> is
     /// <see langword="null"/> a colour is taken from the control's palette, cycling by series index.
     /// </summary>
-    public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, CColor? color = null)
+    public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, Color? color = null)
     {
         UI.Invoke(() =>
         {
-            var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
+            var pen = new PointPen(BrushFor(brush), (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
             AddElement(plot => plot.AddSeries(xs, ys, pen));
         });
         return this;
@@ -74,11 +74,11 @@ public class Plot : Control
     /// Adds a scatter series — the points drawn as markers, without connecting lines. The <paramref name="brush"/>
     /// sets the marker (and its sub-cell resolution); <paramref name="color"/> defaults to the palette.
     /// </summary>
-    public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush = PlotBrush.Braille, CColor? color = null)
+    public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush = PlotBrush.Braille, Color? color = null)
     {
         UI.Invoke(() =>
         {
-            var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
+            var pen = new PointPen(BrushFor(brush), (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
             AddElement(plot => plot.AddScatter(xs, ys, pen));
         });
         return this;
@@ -88,11 +88,11 @@ public class Plot : Control
     /// Adds a stem series — a vertical line from <paramref name="baseline"/> (default 0) to each point, capped with
     /// a dot marker. <paramref name="color"/> defaults to the palette.
     /// </summary>
-    public Plot AddStem(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, CColor? color = null, double baseline = 0)
+    public Plot AddStem(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, Color? color = null, double baseline = 0)
     {
         UI.Invoke(() =>
         {
-            var pen = new PointPen(SystemPointBrushes.Dot, color ?? Palette[_seriesCount % Palette.Length]);
+            var pen = new PointPen(SystemPointBrushes.Dot, (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
             AddElement(plot => plot.AddStem(xs, ys, pen, baseline));
         });
         return this;
@@ -103,11 +103,11 @@ public class Plot : Control
     /// its value, with an eighth-block sub-cell top. <paramref name="color"/> defaults to the palette;
     /// <paramref name="width"/> is the bar width as a fraction (0..1) of the spacing between bars.
     /// </summary>
-    public Plot AddBars(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, CColor? color = null, double baseline = 0, double width = 0.8)
+    public Plot AddBars(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, Color? color = null, double baseline = 0, double width = 0.8)
     {
         UI.Invoke(() =>
         {
-            var c = color ?? Palette[_seriesCount % Palette.Length];
+            var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
             AddElement(plot => plot.AddBars(xs, ys, c, baseline, width));
         });
         return this;
@@ -118,13 +118,13 @@ public class Plot : Control
     /// (bar height = bin count). <paramref name="bins"/> ≤ 0 picks a bin count automatically (√n, clamped);
     /// <paramref name="color"/> defaults to the palette.
     /// </summary>
-    public Plot AddHistogram(IReadOnlyList<double> values, int bins = 0, CColor? color = null)
+    public Plot AddHistogram(IReadOnlyList<double> values, int bins = 0, Color? color = null)
     {
         UI.Invoke(() =>
         {
             var (mids, counts) = Histogram(values, bins);
             if (mids.Length == 0) return;
-            var c = color ?? Palette[_seriesCount % Palette.Length];
+            var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
             // Width 1.0 so adjacent bins touch, as a histogram should.
             AddElement(plot => plot.AddBars(mids, counts, c, 0, 1.0));
         });
@@ -159,12 +159,12 @@ public class Plot : Control
     /// </summary>
     public Plot AddCandles(
         IReadOnlyList<double> xs, IReadOnlyList<double> opens, IReadOnlyList<double> highs,
-        IReadOnlyList<double> lows, IReadOnlyList<double> closes, CColor? up = null, CColor? down = null)
+        IReadOnlyList<double> lows, IReadOnlyList<double> closes, Color? up = null, Color? down = null)
     {
         UI.Invoke(() =>
         {
-            var u = up ?? new CColor(80, 200, 120);
-            var d = down ?? new CColor(230, 90, 90);
+            var u = (CColor?)up ?? new CColor(80, 200, 120);
+            var d = (CColor?)down ?? new CColor(230, 90, 90);
             AddElement(plot => plot.AddCandles(xs, opens, highs, lows, closes, u, d));
         });
         return this;
@@ -179,12 +179,12 @@ public class Plot : Control
     public Plot AddBox(
         IReadOnlyList<double> xs, IReadOnlyList<double> mins, IReadOnlyList<double> q1s,
         IReadOnlyList<double> medians, IReadOnlyList<double> q3s, IReadOnlyList<double> maxes,
-        CColor? color = null, CColor? medianColor = null, double width = 0.6)
+        Color? color = null, Color? medianColor = null, double width = 0.6)
     {
         UI.Invoke(() =>
         {
-            var c = color ?? Palette[_seriesCount % Palette.Length];
-            var m = medianColor ?? c;
+            var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
+            var m = (CColor?)medianColor ?? c;
             AddElement(plot => plot.AddBox(xs, mins, q1s, medians, q3s, maxes, c, m, width));
         });
         return this;
@@ -197,7 +197,7 @@ public class Plot : Control
     /// </summary>
     public Plot AddBoxes(
         IReadOnlyList<IReadOnlyList<double>> groups, IReadOnlyList<double>? positions = null,
-        CColor? color = null, CColor? medianColor = null, double width = 0.6)
+        Color? color = null, Color? medianColor = null, double width = 0.6)
     {
         UI.Invoke(() =>
         {
@@ -216,8 +216,8 @@ public class Plot : Control
             }
 
             if (xs.Count == 0) return;
-            var c = color ?? Palette[_seriesCount % Palette.Length];
-            var m = medianColor ?? c;
+            var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
+            var m = (CColor?)medianColor ?? c;
             AddElement(plot => plot.AddBox(xs, mins, q1s, medians, q3s, maxes, c, m, width));
         });
         return this;
@@ -254,7 +254,7 @@ public class Plot : Control
     /// drawn as a whisker of ±<paramref name="errors"/> with caps and a centre marker. <paramref name="color"/>
     /// defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
     /// </summary>
-    public Plot AddErrorBars(IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errors, CColor? color = null, int capWidth = 1) =>
+    public Plot AddErrorBars(IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errors, Color? color = null, int capWidth = 1) =>
         AddErrorBars(xs, ys, errors, errors, color, capWidth);
 
     /// <summary>
@@ -264,11 +264,11 @@ public class Plot : Control
     /// </summary>
     public Plot AddErrorBars(
         IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errLows, IReadOnlyList<double> errHighs,
-        CColor? color = null, int capWidth = 1)
+        Color? color = null, int capWidth = 1)
     {
         UI.Invoke(() =>
         {
-            var c = color ?? Palette[_seriesCount % Palette.Length];
+            var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
             AddElement(plot => plot.AddErrorBars(xs, ys, errLows, errHighs, c, capWidth));
         });
         return this;
@@ -281,7 +281,7 @@ public class Plot : Control
     /// </summary>
     public Plot AddGroupedBars(
         IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series,
-        IReadOnlyList<CColor>? colors = null, double baseline = 0, double width = 0.8)
+        IReadOnlyList<Color>? colors = null, double baseline = 0, double width = 0.8)
     {
         UI.Invoke(() =>
         {
@@ -298,7 +298,7 @@ public class Plot : Control
     /// </summary>
     public Plot AddStackedBars(
         IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series,
-        IReadOnlyList<CColor>? colors = null, double baseline = 0, double width = 0.8)
+        IReadOnlyList<Color>? colors = null, double baseline = 0, double width = 0.8)
     {
         UI.Invoke(() =>
         {
@@ -313,11 +313,11 @@ public class Plot : Control
     /// <paramref name="baseline"/> to its value. <paramref name="color"/> defaults to the palette; <paramref name="width"/>
     /// is the bar thickness as a fraction (0..1) of the spacing.
     /// </summary>
-    public Plot AddHBars(IReadOnlyList<double> positions, IReadOnlyList<double> values, CColor? color = null, double baseline = 0, double width = 0.8)
+    public Plot AddHBars(IReadOnlyList<double> positions, IReadOnlyList<double> values, Color? color = null, double baseline = 0, double width = 0.8)
     {
         UI.Invoke(() =>
         {
-            var c = color ?? Palette[_seriesCount % Palette.Length];
+            var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
             AddElement(plot => plot.AddHBars(positions, values, c, baseline, width));
         });
         return this;
@@ -457,11 +457,11 @@ public class Plot : Control
     private static readonly CColor[] CoolStops = [new(0, 220, 220), new(120, 120, 240), new(230, 60, 230)];
 
     // One colour per series: the caller's colours where given, else the palette cycled by series index.
-    private static IReadOnlyList<CColor> ColorsFor(int count, IReadOnlyList<CColor>? colors)
+    private static IReadOnlyList<CColor> ColorsFor(int count, IReadOnlyList<Color>? colors)
     {
         var result = new CColor[count];
         for (int j = 0; j < count; j++)
-            result[j] = colors is not null && j < colors.Count ? colors[j] : Palette[j % Palette.Length];
+            result[j] = colors is not null && j < colors.Count ? (CColor)colors[j] : Palette[j % Palette.Length];
         return result;
     }
 
@@ -471,11 +471,12 @@ public class Plot : Control
     /// when null). <paramref name="dx"/>/<paramref name="dy"/> nudge the label in cells (dy &gt; 0 = above the point);
     /// <paramref name="align"/> anchors it horizontally. Does not rescale the axes.
     /// </summary>
-    public Plot AddLabel(double x, double y, string text, CColor? fg = null, CColor? bg = null, PlotLabelAlign align = PlotLabelAlign.Center, int dx = 0, int dy = 1)
+    public Plot AddLabel(double x, double y, string text, Color? fg = null, Color? bg = null, PlotLabelAlign align = PlotLabelAlign.Center, int dx = 0, int dy = 1)
     {
         UI.Invoke(() =>
         {
-            var f = fg ?? CColor.White;
+            var f = (CColor?)fg ?? CColor.White;
+            CColor? b = bg;
             var a = align switch
             {
                 PlotLabelAlign.Left => LabelAlignment.Left,
@@ -483,7 +484,7 @@ public class Plot : Control
                 _ => LabelAlignment.Center,
             };
             // A label is not a palette series, so it doesn't advance the colour cycle — add its config directly.
-            _config.Add(plot => plot.AddLabel(x, y, text, f, bg, a, dx, dy));
+            _config.Add(plot => plot.AddLabel(x, y, text, f, b, a, dx, dy));
             Rebuild();
         });
         return this;
@@ -494,9 +495,9 @@ public class Plot : Control
     /// (<see cref="PlotSeries.SetData"/>/<see cref="PlotSeries.Push"/>). <paramref name="color"/> defaults to the
     /// palette; <paramref name="brush"/> sets the sub-cell marker. Starts empty.
     /// </summary>
-    public PlotSeries AddLiveSeries(CColor? color = null, PlotBrush brush = PlotBrush.Braille)
+    public PlotSeries AddLiveSeries(Color? color = null, PlotBrush brush = PlotBrush.Braille)
     {
-        var pen = new PointPen(BrushFor(brush), color ?? Palette[_seriesCount % Palette.Length]);
+        var pen = new PointPen(BrushFor(brush), (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
         var handle = new PlotSeries(this, (cplot, xs, ys) => cplot.AddSeries(xs, ys, pen));
         RegisterLive(handle);
         return handle;
@@ -507,9 +508,9 @@ public class Plot : Control
     /// <see cref="PlotSeries.SetValues"/> (bars at x = 1, 2, 3, …) or <see cref="PlotSeries.SetData"/>.
     /// <paramref name="color"/> defaults to the palette. Starts empty.
     /// </summary>
-    public PlotSeries AddLiveBars(CColor? color = null, double baseline = 0, double width = 0.8)
+    public PlotSeries AddLiveBars(Color? color = null, double baseline = 0, double width = 0.8)
     {
-        var c = color ?? Palette[_seriesCount % Palette.Length];
+        var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
         var handle = new PlotSeries(this, (cplot, xs, ys) => cplot.AddBars(xs, ys, c, baseline, width));
         RegisterLive(handle);
         return handle;

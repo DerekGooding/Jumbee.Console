@@ -53,6 +53,8 @@ internal sealed class CanvasContext
 {
     public CanvasContext(int width, int height, (double Min, double Max) xBounds, (double Min, double Max) yBounds, CanvasMarker marker, char customMarker)
     {
+        _width = width;
+        _height = height;
         XBounds = xBounds;
         YBounds = yBounds;
         Grid = MarkerToGrid(width, height, marker, customMarker);
@@ -60,7 +62,7 @@ internal sealed class CanvasContext
 
     public (double Min, double Max) XBounds { get; }
     public (double Min, double Max) YBounds { get; }
-    public IGrid Grid { get; }
+    public IGrid Grid { get; private set; }
     public IReadOnlyList<Layer> Layers => _layers;
 
     /// <summary>Draws a shape onto the current grid.</summary>
@@ -76,6 +78,14 @@ internal sealed class CanvasContext
         _layers.Add(Grid.Save());
         Grid.Reset();
         _dirty = false;
+    }
+
+    /// <summary>Switches the marker for subsequent draws: flushes the current layer (if anything was drawn) and
+    /// replaces the grid with one for <paramref name="marker"/>. Mirrors ratatui's <c>Context::marker</c>.</summary>
+    public void Marker(CanvasMarker marker, char customMarker)
+    {
+        Finish();
+        Grid = MarkerToGrid(_width, _height, marker, customMarker);
     }
 
     /// <summary>Flushes the current grid as a final layer if anything has been drawn since the last <see cref="Layer"/>.</summary>
@@ -95,6 +105,8 @@ internal sealed class CanvasContext
         _ => new CharGrid(width, height, CanvasSymbols.Dot),
     };
 
+    private readonly int _width;
+    private readonly int _height;
     private readonly List<Layer> _layers = [];
     private bool _dirty;
 }

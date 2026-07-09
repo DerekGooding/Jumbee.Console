@@ -17,7 +17,7 @@ public interface IShape
 /// <summary>A straight line between two points in canvas coordinates.</summary>
 public sealed class Line : IShape
 {
-    public Line(double x1, double y1, double x2, double y2, CColor color)
+    public Line(double x1, double y1, double x2, double y2, Color color)
     {
         X1 = x1; Y1 = y1; X2 = x2; Y2 = y2; Color = color;
     }
@@ -26,7 +26,7 @@ public sealed class Line : IShape
     public double Y1 { get; }
     public double X2 { get; }
     public double Y2 { get; }
-    public CColor Color { get; }
+    public Color Color { get; }
 
     void IShape.Draw(Painter painter)
     {
@@ -34,7 +34,8 @@ public sealed class Line : IShape
         if (LineMath.ClipLine(xb.Min, xb.Max, yb.Min, yb.Max, X1, Y1, X2, Y2) is not (double wx1, double wy1, double wx2, double wy2)) return;
         if (painter.GetPoint(wx1, wy1) is not (int gx1, int gy1)) return;
         if (painter.GetPoint(wx2, wy2) is not (int gx2, int gy2)) return;
-        LineMath.ForEachLinePoint(gx1, gy1, gx2, gy2, (x, y) => painter.Paint(x, y, Color));
+        CColor color = Color;
+        LineMath.ForEachLinePoint(gx1, gy1, gx2, gy2, (x, y) => painter.Paint(x, y, color));
     }
 }
 
@@ -44,7 +45,7 @@ public sealed class Line : IShape
 /// </summary>
 public sealed class FilledLine : IShape
 {
-    public FilledLine(double x1, double y1, double x2, double y2, double fillToY, CColor color)
+    public FilledLine(double x1, double y1, double x2, double y2, double fillToY, Color color)
     {
         X1 = x1; Y1 = y1; X2 = x2; Y2 = y2; FillToY = fillToY; Color = color;
     }
@@ -54,7 +55,7 @@ public sealed class FilledLine : IShape
     public double X2 { get; }
     public double Y2 { get; }
     public double FillToY { get; }
-    public CColor Color { get; }
+    public Color Color { get; }
 
     void IShape.Draw(Painter painter)
     {
@@ -66,12 +67,13 @@ public sealed class FilledLine : IShape
         double clampedFill = Math.Clamp(FillToY, yb.Min, yb.Max);
         if (painter.GetPoint(wx1, clampedFill) is not (int _, int yFill)) return;
 
+        CColor color = Color;
         LineMath.ForEachLinePoint(gx1, gy1, gx2, gy2, (x, y) =>
         {
             int start = Math.Min(y, yFill);
             int end = Math.Max(y, yFill);
             for (int fy = start; fy <= end; fy++)
-                painter.Paint(x, fy, Color);
+                painter.Paint(x, fy, color);
         });
     }
 }
@@ -82,7 +84,7 @@ public sealed class FilledLine : IShape
 /// </summary>
 public sealed class Rectangle : IShape
 {
-    public Rectangle(double x, double y, double width, double height, CColor color)
+    public Rectangle(double x, double y, double width, double height, Color color)
     {
         X = x; Y = y; Width = width; Height = height; Color = color;
     }
@@ -91,7 +93,7 @@ public sealed class Rectangle : IShape
     public double Y { get; }
     public double Width { get; }
     public double Height { get; }
-    public CColor Color { get; }
+    public Color Color { get; }
 
     void IShape.Draw(Painter painter)
     {
@@ -109,27 +111,28 @@ public sealed class Rectangle : IShape
 /// <summary>A scatter of individual points in canvas coordinates.</summary>
 public sealed class Points : IShape
 {
-    public Points(IReadOnlyList<(double X, double Y)> coords, CColor color)
+    public Points(IReadOnlyList<(double X, double Y)> coords, Color color)
     {
         Coords = coords;
         Color = color;
     }
 
     public IReadOnlyList<(double X, double Y)> Coords { get; }
-    public CColor Color { get; }
+    public Color Color { get; }
 
     void IShape.Draw(Painter painter)
     {
+        CColor color = Color;
         foreach (var (x, y) in Coords)
             if (painter.GetPoint(x, y) is (int gx, int gy))
-                painter.Paint(gx, gy, Color);
+                painter.Paint(gx, gy, color);
     }
 }
 
 /// <summary>A circle outline traced at one-degree steps around its centre, in canvas coordinates.</summary>
 public sealed class Circle : IShape
 {
-    public Circle(double x, double y, double radius, CColor color)
+    public Circle(double x, double y, double radius, Color color)
     {
         X = x; Y = y; Radius = radius; Color = color;
     }
@@ -137,17 +140,18 @@ public sealed class Circle : IShape
     public double X { get; }
     public double Y { get; }
     public double Radius { get; }
-    public CColor Color { get; }
+    public Color Color { get; }
 
     void IShape.Draw(Painter painter)
     {
+        CColor color = Color;
         for (int angle = 0; angle < 360; angle++)
         {
             double radians = angle * Math.PI / 180.0;
             double cx = Radius * Math.Cos(radians) + X;
             double cy = Radius * Math.Sin(radians) + Y;
             if (painter.GetPoint(cx, cy) is (int gx, int gy))
-                painter.Paint(gx, gy, Color);
+                painter.Paint(gx, gy, color);
         }
     }
 }

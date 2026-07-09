@@ -3,21 +3,24 @@ namespace Jumbee.Console;
 using System;
 using System.Collections.Generic;
 
-using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 using Jumbee.Console.Drawing;
+
+using Character = ConsoleGUI.Data.Character;
 
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,
 /// <see cref="Circle"/>, <see cref="Points"/>, <see cref="FilledLine"/>) in an arbitrary coordinate system, rendered
 /// with sub-cell markers (braille by default). Ported from Ratatui's canvas widget.
 ///
-/// <para>Shapes accumulate in a retained list: <see cref="Add"/> appends to the current layer, <see cref="Layer"/>
+/// <para>Shapes accumulate in a retained list: <see cref="Add"/> appends to the current layer, <see cref="Layer()"/>
 /// starts a new one (composited top-down per property, so a higher layer's glyph/colour wins each cell while lower
-/// layers show through where it doesn't paint), and <see cref="Clear"/> empties the surface. All layers share the
-/// single <see cref="Marker"/>. Set the visible window with <see cref="XBounds"/>/<see cref="YBounds"/> — the canvas
-/// origin is the bottom-left corner. Display-only; it fills its container and re-fits on resize.</para>
+/// layers show through where it doesn't paint), and <see cref="Clear"/> empties the surface. Layers may use different
+/// markers via <see cref="Layer(CanvasMarker)"/> — e.g. a <see cref="CanvasMarker.Block"/> backdrop showing through a
+/// <see cref="CanvasMarker.Braille"/> overlay; <see cref="Marker"/> sets the starting marker. Set the visible window
+/// with <see cref="XBounds"/>/<see cref="YBounds"/> — the canvas origin is the bottom-left corner. Display-only; it
+/// fills its container and re-fits on resize.</para>
 /// </summary>
 public class Canvas : Control
 {
@@ -55,7 +58,7 @@ public class Canvas : Control
     }
 
     /// <summary>Background colour painted behind every cell, or <see langword="null"/> (the default) for transparent.</summary>
-    public CColor? Background
+    public Color? Background
     {
         get => _background;
         set => SetAtomicProperty(ref _background, value, watch: (_, _) => _dirty = true);
@@ -85,7 +88,7 @@ public class Canvas : Control
     }
 
     /// <summary>Sets the <see cref="Background"/> and returns this canvas, for fluent chaining.</summary>
-    public Canvas WithBackground(CColor? background)
+    public Canvas WithBackground(Color? background)
     {
         Background = background;
         return this;
@@ -96,29 +99,61 @@ public class Canvas : Control
     {
         UI.Invoke(() =>
         {
-            _ops.Add(shape);
+            _ops.Add(Op.Draw(shape));
             Rebuild();
         });
         return this;
     }
 
-    /// <summary>Starts a new layer — shapes added after this compose on top of (and can show through) earlier layers. Fluent.</summary>
+    /// <summary>Starts a new layer (keeping the current marker) — shapes added after this compose on top of (and can
+    /// show through) earlier layers. Fluent.</summary>
     public Canvas Layer()
     {
         UI.Invoke(() =>
         {
-            _ops.Add(null);   // a null op is a layer break
+            _ops.Add(Op.LayerBreak(null));
             Rebuild();
         });
         return this;
     }
 
-    /// <summary>Removes every shape and layer, leaving a blank canvas. Fluent.</summary>
+    /// <summary>Starts a new layer drawn with <paramref name="marker"/> (which becomes the current marker for this and
+    /// subsequent layers until changed again). Lets layers mix resolutions — e.g. a <see cref="CanvasMarker.Block"/>
+    /// backdrop under a <see cref="CanvasMarker.Braille"/> overlay, where the block's background shows through the
+    /// braille glyphs. Custom markers use the current <see cref="CustomMarker"/>. Fluent.</summary>
+    public Canvas Layer(CanvasMarker marker)
+    {
+        UI.Invoke(() =>
+        {
+            _ops.Add(Op.LayerBreak(marker));
+            Rebuild();
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Prints <paramref name="text"/> at canvas coordinate (<paramref name="x"/>, <paramref name="y"/>), with its
+    /// first character at that point and running right. Labels are always drawn on top of every layer (they are not
+    /// part of a layer and are unaffected by the marker), and clipped at the right edge. <paramref name="fg"/> defaults
+    /// to white; <paramref name="bg"/> is transparent when null. Fluent.
+    /// </summary>
+    public Canvas Print(double x, double y, string text, Color? fg = null, Color? bg = null)
+    {
+        UI.Invoke(() =>
+        {
+            _labels.Add(new Label(x, y, text ?? "", fg ?? Color.White, bg));
+            Invalidate();   // labels are drawn each render from _labels; no layer rebuild needed
+        });
+        return this;
+    }
+
+    /// <summary>Removes every shape, layer and label, leaving a blank canvas. Fluent.</summary>
     public Canvas Clear()
     {
         UI.Invoke(() =>
         {
             _ops.Clear();
+            _labels.Clear();
             Rebuild();
         });
         return this;
@@ -150,6 +185,7 @@ public class Canvas : Control
 
         consoleBuffer.Initialize();
         Blit(_layers, w, h);
+        DrawLabels(w, h);
     }
 
     private List<Layer> BuildLayers(int width, int height)
@@ -157,8 +193,9 @@ public class Canvas : Control
         var context = new CanvasContext(width, height, _xBounds, _yBounds, _marker, _customMarker);
         foreach (var op in _ops)
         {
-            if (op is null) context.Layer();
-            else context.Draw(op);
+            if (op.Shape is not null) context.Draw(op.Shape);
+            else if (op.NewMarker is CanvasMarker m) context.Marker(m, _customMarker);
+            else context.Layer();
         }
         context.Finish();
         return [.. context.Layers];
@@ -205,11 +242,78 @@ public class Canvas : Control
         _fg = new CColor?[count];
         _bg = new CColor?[count];
     }
+
+    // Draws the retained labels on top of the composited layers. A label maps to a cell with the same y-flip as the
+    // shapes but at cell resolution (w-1, h-1) — matching ratatui — and its text runs right from that cell, clipped
+    // to the buffer's right edge.
+    private void DrawLabels(int width, int height)
+    {
+        if (_labels.Count == 0) return;
+        var (left, right) = _xBounds;
+        var (bottom, top) = _yBounds;
+        double spanX = Math.Abs(right - left), spanY = Math.Abs(top - bottom);
+        if (spanX <= 0 || spanY <= 0) return;
+        double resX = width - 1, resY = height - 1;
+
+        foreach (var label in _labels)
+        {
+            if (label.X < left || label.X > right || label.Y < bottom || label.Y > top) continue;
+            int x = (int)((label.X - left) * resX / spanX);
+            int y = (int)((top - label.Y) * resY / spanY);
+            if (y < 0 || y >= height) continue;
+            for (int col = x, k = 0; k < label.Text.Length; k++, col++)
+            {
+                if (col < 0) continue;
+                if (col >= width) break;
+                consoleBuffer.Write(new Position(col, y), new Character(label.Text[k], label.Fg, label.Bg));
+            }
+        }
+    }
+    #endregion
+
+    #region Child types
+    // An entry in the retained op list: a shape to draw on the current layer, a plain layer break, or a layer break
+    // that also switches the marker for the new layer.
+    private readonly struct Op
+    {
+        private Op(IShape? shape, CanvasMarker? newMarker)
+        {
+            Shape = shape;
+            NewMarker = newMarker;
+        }
+
+        public IShape? Shape { get; }                 // non-null => draw this shape
+        public CanvasMarker? NewMarker { get; }       // set (with Shape null) => layer break switching to this marker
+
+        public static Op Draw(IShape shape) => new(shape, null);
+        public static Op LayerBreak(CanvasMarker? marker) => new(null, marker);
+    }
+
+    // A text label anchored at a canvas coordinate, drawn on top of all layers (see DrawLabels).
+    private readonly struct Label
+    {
+        public Label(double x, double y, string text, CColor fg, CColor? bg)
+        {
+            X = x;
+            Y = y;
+            Text = text;
+            Fg = fg;
+            Bg = bg;
+        }
+
+        public double X { get; }
+        public double Y { get; }
+        public string Text { get; }
+        public CColor Fg { get; }
+        public CColor? Bg { get; }
+    }
     #endregion
 
     #region Fields
-    // The ordered op list: a non-null entry is a shape on the current layer; a null entry is a layer break.
-    private readonly List<IShape?> _ops = [];
+    // The ordered op list of shapes and layer breaks (see Op); replayed each rebuild.
+    private readonly List<Op> _ops = [];
+    // Text labels drawn on top of every layer each render (not part of the layer/marker system).
+    private readonly List<Label> _labels = [];
     private List<Layer>? _layers;
     private (double Min, double Max) _xBounds;
     private (double Min, double Max) _yBounds;

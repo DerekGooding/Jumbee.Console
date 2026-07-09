@@ -240,6 +240,55 @@ public class CanvasTests
     }
 
     [Fact]
+    public void Layers_PerLayerMarkers_BlockBackgroundShowsUnderBrailleGlyph()
+    {
+        // A Block layer paints a cell background; a later Braille layer paints the glyph + foreground on the SAME
+        // cell. Per-property compositing keeps the block's background under the braille glyph — the point of
+        // per-layer markers.
+        var block = new CColor(30, 60, 90);
+        var braille = new CColor(200, 200, 200);
+        var canvas = new Canvas().WithXBounds(0, 2).WithYBounds(0, 4).WithMarker(CanvasMarker.Block);
+
+        canvas.Add(new Points([(0, 0)], block));            // layer 1 (block): sets fg + bg
+        canvas.Layer(CanvasMarker.Braille);                 // switch marker for the next layer
+        canvas.Add(new Points([(0, 0)], braille));          // layer 2 (braille): sets glyph + fg only
+
+        var cell = ConsoleSnapshot.Render(canvas, 1, 1)[0, 0].Character;
+        Assert.NotEqual('█', cell.Content);                                 // a braille glyph is on top, not the block
+        Assert.True(cell.Content >= '⠀' && cell.Content <= '⣿');
+        Assert.Equal(braille, cell.Foreground);                             // braille layer's foreground
+        Assert.Equal(block, cell.Background);                               // block layer's background shows through
+    }
+
+    [Fact]
+    public void Layers_PerLayerMarkers_EachLayerRendersItsOwnGlyphSet()
+    {
+        // Two layers, two markers: a Block corner and a Braille corner each render with their own glyph.
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10).WithMarker(CanvasMarker.Block);
+        canvas.Add(new Points([(0, 0)], White));            // block → bottom-left, buffer cell (0,9)
+        canvas.Layer(CanvasMarker.Braille);
+        canvas.Add(new Points([(10, 10)], White));          // braille → top-right, buffer cell (9,0)
+
+        var buf = ConsoleSnapshot.Render(canvas, 10, 10);
+        Assert.Equal('█', buf[0, 9].Character.Content);                     // block glyph
+        var tr = buf[9, 0].Character.Content;
+        Assert.True(tr >= '⠀' && tr <= '⣿');                                // braille glyph
+    }
+
+    [Fact]
+    public void Layers_EmptyMarkerSwitch_DoesNotCreateAStrayLayer()
+    {
+        // Switching marker before drawing anything must not flush an empty layer that could blank cells.
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10).WithMarker(CanvasMarker.Block);
+        canvas.Layer(CanvasMarker.Braille);                 // no draws yet on the block grid
+        canvas.Add(new Points([(0, 0)], White));
+
+        var buf = ConsoleSnapshot.Render(canvas, 10, 10);
+        var c = buf[0, 9].Character.Content;
+        Assert.True(c >= '⠀' && c <= '⣿');                                  // the braille point rendered
+    }
+
+    [Fact]
     public void Points_ScatterPlotsEachCoordinate()
     {
         var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10).WithMarker(CanvasMarker.Dot);
@@ -271,6 +320,120 @@ public class CanvasTests
         var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10);
         Assert.Equal(Expected("\n\n\n\n"), ConsoleSnapshot.ToText(canvas, 5, 5));
     }
+
+    [Fact]
+    public void FramedCanvas_InGrid_RendersShapes()
+    {
+        // The markers-comparison demo composes framed canvases in a Grid; verify that path — a framed Canvas in a
+        // grid cell renders its shapes (fills the framed viewport rather than ballooning or blanking).
+        var canvas = new Canvas().WithMarker(CanvasMarker.Braille).WithXBounds(-1.1, 1.1).WithYBounds(-1.1, 1.1);
+        canvas.Add(new Circle(0, 0, 1.0, White));
+        var grid = new Grid([12], [24], [[canvas.WithFrame(BorderStyle.Rounded, title: "C")]]);
+
+        var text = ConsoleSnapshot.ToText(grid, 26, 14);
+        Assert.Contains("C", text);                                   // frame title drawn
+        Assert.True(text.IndexOfAny(BrailleRange) >= 0, "the circle should render braille inside the framed grid cell");
+    }
+
+    // Every braille glyph, for presence checks.
+    private static readonly char[] BrailleRange = BuildBrailleRange();
+    private static char[] BuildBrailleRange()
+    {
+        var a = new char['⣿' - '⠀' + 1];
+        for (int i = 0; i < a.Length; i++) a[i] = (char)('⠀' + i);
+        return a;
+    }
+
+    #region Labels (canvas.rs Context.print)
+    [Fact]
+    public void Print_DrawsLabelText_OnTopOfShapes()
+    {
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10).WithMarker(CanvasMarker.Dot);
+        canvas.Add(new Points([(5, 5)], White));
+        canvas.Print(0, 10, "Hi", White);   // top-left corner
+
+        var text = ConsoleSnapshot.ToText(canvas, 20, 10);
+        Assert.StartsWith("Hi", text.Split('\n')[0]);   // label runs right from the top-left cell
+    }
+
+    [Fact]
+    public void Print_OutOfBoundsLabel_IsNotDrawn()
+    {
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10);
+        canvas.Print(20, 20, "off", White);   // outside the coordinate window
+
+        Assert.DoesNotContain("off", ConsoleSnapshot.ToText(canvas, 20, 10));
+    }
+
+    [Fact]
+    public void Print_ClipsAtRightEdge()
+    {
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10);
+        canvas.Print(10, 10, "ABCDE", White);   // top-right corner: only the first cell is on-buffer
+
+        var top = ConsoleSnapshot.ToText(canvas, 6, 4).Split('\n')[0];
+        Assert.Equal("     A", top);   // 'A' at the last column, the rest clipped
+    }
+    #endregion
+
+    #region World map (map.rs)
+    [Fact]
+    public void WorldMap_Data_HasExpectedCountsAndEndpoints()
+    {
+        var low = WorldMapData.Get(MapResolution.Low);
+        var high = WorldMapData.Get(MapResolution.High);
+
+        Assert.Equal(1166, low.Length);
+        Assert.Equal(5125, high.Length);
+
+        // Exact endpoints from ratatui's world.rs — proves the embedded data's order and (lon, lat) pairing.
+        Assert.Equal((-92.32, 48.24), low[0]);
+        Assert.Equal((66.82, 66.82), low[^1]);
+        Assert.Equal((-163.7128, -78.5956), high[0]);
+        Assert.Equal((180.0, -84.71338), high[^1]);
+    }
+
+    [Fact]
+    public void WorldMap_Data_AllPointsWithinGeographicRange()
+    {
+        // Latitude is strictly geographic; longitude runs a touch past +180° in the source data (Russia's far east
+        // across the date line), and those points simply clip out when the canvas bounds are [-180, 180]. The tight
+        // latitude bound is what would catch a lon/lat swap in the extraction.
+        foreach (var res in new[] { MapResolution.Low, MapResolution.High })
+            foreach (var (lon, lat) in WorldMapData.Get(res))
+            {
+                Assert.InRange(lon, -180.0, 189.0);
+                Assert.InRange(lat, -90.0, 90.0);
+            }
+    }
+
+    [Fact]
+    public void WorldMap_LowDot_RendersARecognisableMap()
+    {
+        // The transform (GetPoint + Dot marker) is already pixel-golden-tested; combined with the exact data above,
+        // the map render is correct by construction. Here we just confirm it draws a non-trivial spread of land.
+        var canvas = new Canvas().WithXBounds(-180, 180).WithYBounds(-90, 90).WithMarker(CanvasMarker.Dot);
+        canvas.Add(new WorldMap(White, MapResolution.Low));
+
+        var buf = ConsoleSnapshot.Render(canvas, 80, 40);
+        int dots = 0, minX = 80, maxX = -1;
+        for (int y = 0; y < 40; y++)
+            for (int x = 0; x < 80; x++)
+                if (buf[x, y].Character.Content == '•') { dots++; if (x < minX) minX = x; if (x > maxX) maxX = x; }
+
+        Assert.InRange(dots, 400, 1166);          // many cells, but points collide so fewer than the 1166 source points
+        Assert.True(maxX - minX >= 70, "land should span most of the longitude range");
+    }
+
+    [Fact]
+    public void WorldMap_HighBraille_RendersBraille()
+    {
+        var canvas = new Canvas().WithXBounds(-180, 180).WithYBounds(-90, 90).WithMarker(CanvasMarker.Braille);
+        canvas.Add(new WorldMap(White, MapResolution.High));
+
+        Assert.True(ConsoleSnapshot.ToText(canvas, 80, 40).IndexOfAny(BrailleRange) >= 0);
+    }
+    #endregion
 
     [Fact]
     public void Background_FillsBehindCells()
