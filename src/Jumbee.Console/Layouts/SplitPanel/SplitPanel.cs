@@ -65,9 +65,23 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
             var clamped = Math.Clamp(value, _minFirst, Math.Max(_minFirst, max));
             if (clamped == _splitPosition) return;
             _splitPosition = clamped;
-            control.SetFirstExtent(clamped);
+            ApplyExtent();
             SplitChanged?.Invoke(clamped);
         }
+    }
+
+    // Applies the divider position to the layout. A drag delivers several mouse-moves per frame, and each
+    // SetFirstExtent triggers a full subtree re-layout of the first pane (Boundary.Initialize -> every control
+    // resizes and re-renders). Coalesce to one re-layout per frame: the model (_splitPosition) is already updated
+    // synchronously by the caller, so only the layout apply is deferred to the next dispatcher drain, collapsing a
+    // frame's worth of moves into a single re-layout. Headless (no running loop) applies inline so a following
+    // render/read reflects it immediately — which is what the tests rely on.
+    private void ApplyExtent()
+    {
+        if (!UI.IsRunning) { control.SetFirstExtent(_splitPosition); return; }
+        if (_extentDirty) return;
+        _extentDirty = true;
+        UI.Post(() => { _extentDirty = false; control.SetFirstExtent(_splitPosition); });
     }
 
     /// <summary>Minimum extent of the first pane in cells (default 3).</summary>
@@ -123,5 +137,6 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     private int _splitPosition;
     private int _minFirst = DefaultMin;
     private int _minSecond = DefaultMin;
+    private bool _extentDirty;   // a coalesced SetFirstExtent is queued for the next frame (see ApplyExtent)
     #endregion
 }

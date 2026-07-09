@@ -133,9 +133,9 @@ public class ConsoleBuffer : IConsole
     }
 
     // Rounds a required length up to the next capacity bucket, so growth reallocates in chunks rather than on every
-    // one-cell change. 32 keeps the wasted slack small (<=31 cells per row) while still turning a typical drag sweep
-    // into one or two reallocations instead of dozens.
-    private const int CapacityChunk = 32;
+    // one-cell change. 64 halves the bucket-boundary crossings of a drag sweep versus 32, for a little more slack
+    // (<=63 cells per row) — a good trade since the churn, not the retained size, was the cost.
+    private const int CapacityChunk = 64;
     private static int RoundUpCapacity(int n) => n <= 0 ? 0 : (n + CapacityChunk - 1) & ~(CapacityChunk - 1);
     #endregion
 

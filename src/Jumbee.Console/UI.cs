@@ -37,6 +37,13 @@ public static class UI
             // below) since VT mouse/paste/focus aren't available.
             ConsoleManager.Console = new SimplifiedConsole();
         }
+        else
+        {
+            // ANSI path: read the terminal size but never resize the physical terminal. The default StandardConsole
+            // would manipulate the window/buffer on every size set, which never converges with the live window size —
+            // making ConsoleManager.AdjustBufferSize resize and re-lay-out the whole UI every frame.
+            ConsoleManager.Console = new AnsiTerminalConsole();
+        }
         inputSource = input ?? DefaultInputSource(isAnsiTerminal);
         ConsoleManager.Setup();
         ConsoleManager.Resize(new Size(width, height));
