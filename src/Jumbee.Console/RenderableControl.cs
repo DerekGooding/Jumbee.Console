@@ -66,9 +66,15 @@ public abstract class RenderableControl : Control, IRenderable
             // Determine Spectre.Console control measurement
             var measurement = this.Measure(options, width);
             
-            // Resize the ConsoleGUI control            
+            // Resize the ConsoleGUI control — but only when the size actually changed. Initialize is re-run for every
+            // control on any size-limit change (and repeatedly during layout convergence); ConsoleGUI's Resize
+            // unconditionally sets a full dirty rect and propagates an Update to the parent, so an unguarded call
+            // cascades a re-layout up the tree on every pass even when nothing moved. CalculateSize already clamps to
+            // Min/MaxSize, so an unchanged computed size means a genuine no-op. The Invalidate below still requests the
+            // control's own repaint.
             var size = new ConsoleGUI.Space.Size(width, height);
-            Resize(size);
+            if (size != Size)
+                Resize(size);
 
             // Update buffer size
             consoleBuffer.Size = Size;
