@@ -39,6 +39,7 @@ public static class ExampleCatalog
         new SplitPanelExample(),
         new SpectreTableExample(),
         new MultiTabEditorExample(),
+        new MarkdownViewerExample(),
     ];
 
     /// <summary>The example shown when the browser opens.</summary>

@@ -16,7 +16,7 @@ public sealed class MultiTabEditorExample : MultiTabCodeEditor, IExample
     }
 
     #region IExample
-    string IExample.Category => "Editors";
+    string IExample.Category => "Editors and Viewers";
     string IExample.Title => "Tabbed Code Editor";
     string IExample.Description =>
         "A VS-Code-style editor group: closable tabs, a + for new documents, syntax highlighting and independent scrolling.";

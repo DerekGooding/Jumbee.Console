@@ -29,4 +29,10 @@
     <EmbeddedResource Include="..\..\src\Jumbee.Console\SpectreControl.cs" Link="ControlSource\SpectreControl.cs" />
   </ItemGroup>
 
+  <!-- Embed an internal design doc as the sample content for the Markdown Viewer example (rendered live in the pane,
+       and shown as a "Input.md" source tab beside it). The resource name ends with ".Input.md" for SourceLoader. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\internal\Input.md" Link="DocSource\Input.md" />
+  </ItemGroup>
+
 </Project>
