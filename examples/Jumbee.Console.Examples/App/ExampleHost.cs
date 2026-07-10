@@ -22,24 +22,18 @@ public sealed class ExampleHost : CompositeControl
             _active = content;
         }
 
-        // A fill-to-viewport example (e.g. Plot) must not be scrolled: fill the outer pane frame's viewport so the
-        // host is given a bounded height instead of the unbounded scroll height (which balloons it to the size
-        // clamp). Set before SetContent so the redraw it triggers re-reads FillsFrameViewport on the pane frame.
-        _fills = content is IExample { FillsPane: true };
         var header = new TextLabel(TextLabelOrientation.Horizontal, description);
         SetContent(new DockPanel(DockedControlPlacement.Top, header, Framed(content)));
-        // Swapping content doesn't change the host's own size (it's ballooned to the scroll clamp either way), so no
-        // relayout bubbles to the pane frame — force it to re-read FillsFrameViewport and re-bound the host.
-        Frame?.Relayout();
     }
 
     /// <summary>Stops the active example's background work (its <see cref="IActivatableExample"/> feed) — called on app quit
     /// so a live example's timers/threads don't keep running through shutdown. Idempotent.</summary>
     public void DeactivateActive() => (_active as IActivatableExample)?.OnDeactivated();
 
-    // Reflects the current example: fill the pane frame's viewport for a fill-to-viewport example, otherwise keep the
-    // default scrolling behaviour so tall examples (lists, editors) scroll.
-    protected override bool FillsFrameViewport => _fills;
+    // Always fill the pane frame's viewport: the host never scrolls itself. A fill-to-viewport example (Plot, Canvas…)
+    // then fills the bounded height; a scrollable one scrolls inside its own inner frame (see Framed) with a single
+    // scrollbar. Ballooning the host instead would make the pane frame a second, redundant scroller.
+    protected override bool FillsFrameViewport => true;
 
     // A scrollable Control (ListBox, editors…) needs a ControlFrame to scroll — the example is a bare control, so we
     // give it a borderless frame here (the pane's own frame supplies the visible border/title). Layouts arrange their
@@ -54,5 +48,4 @@ public sealed class ExampleHost : CompositeControl
 
     private readonly Dictionary<Control, IFocusable> _framed = new();
     private IFocusable? _active;
-    private bool _fills;
 }

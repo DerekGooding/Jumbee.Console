@@ -53,6 +53,32 @@ public class MultiTabCodeEditorTests
     }
 
     [Fact]
+    public void Framed_MouseWheelOverEditor_ScrollsThePerTabFrame_NotTheOuterFrame()
+    {
+        // Reproduces the source-pane arrangement: a tall document in a MultiTabCodeEditor wrapped in an outer
+        // container frame. Because the group fills the outer frame's viewport (it never scrolls itself), the wheel
+        // must scroll the active editor's own per-tab frame — not the outer frame, which must stay put.
+        var group = new MultiTabCodeEditor(Language.None);
+        var lines = new string[30];
+        for (var i = 0; i < 30; i++) lines[i] = $"line {i + 1:00}";
+        var editor = group.OpenDocument("big.txt", string.Join("\n", lines));
+        group.WithFrame(title: "Source");
+
+        ConsoleSnapshot.Render(group, 24, 10);   // viewport far shorter than the 30 content rows
+
+        var outerFrame = group.Frame!;
+        var innerFrame = editor.Frame!;          // the per-tab scroll frame
+        Assert.NotSame(outerFrame, innerFrame);
+        Assert.Equal(0, innerFrame.Top);
+
+        // A wheel notch over the editor: TextEditor.MouseWheeled bubbles to CodeEditor.Frame.Scroll (the per-tab frame).
+        ((IMouseWheelListener)editor.Editor).OnMouseWheel(new ConsoleGUI.Space.Position(0, 0), 3);
+
+        Assert.True(innerFrame.Top > 0);         // the per-tab frame scrolled
+        Assert.Equal(0, outerFrame.Top);         // the outer container frame did not (it fills its viewport)
+    }
+
+    [Fact]
     public void NewDocument_OpensAnUntitledEditor()
     {
         var group = new MultiTabCodeEditor();
