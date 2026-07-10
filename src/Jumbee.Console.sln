@@ -71,6 +71,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsolePlot", "..\ext\Conso
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ColorCode.Core", "..\ext\ColorCode.Core\ColorCode.Core.csproj", "{2CFB3019-5000-49BF-B843-6342706AD3D0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.DocumentViewers", "Jumbee.Console.DocumentViewers\Jumbee.Console.DocumentViewers.csproj", "{25A98065-66F3-484B-9109-9F7FB71B1164}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -309,6 +311,18 @@ Global
 		{2CFB3019-5000-49BF-B843-6342706AD3D0}.Release|x64.Build.0 = Release|Any CPU
 		{2CFB3019-5000-49BF-B843-6342706AD3D0}.Release|x86.ActiveCfg = Release|Any CPU
 		{2CFB3019-5000-49BF-B843-6342706AD3D0}.Release|x86.Build.0 = Release|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Debug|x64.Build.0 = Debug|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Debug|x86.Build.0 = Debug|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Release|x64.ActiveCfg = Release|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Release|x64.Build.0 = Release|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Release|x86.ActiveCfg = Release|Any CPU
+		{25A98065-66F3-484B-9109-9F7FB71B1164}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -334,6 +348,7 @@ Global
 		{05EDFEE5-4FED-4B6C-8A9E-665EB461DEAA} = {4F600471-D58C-4C2C-89DF-1166AFF08905}
 		{5F1907A3-C6F4-E709-259B-075773F607AA} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{2CFB3019-5000-49BF-B843-6342706AD3D0} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{25A98065-66F3-484B-9109-9F7FB71B1164} = {8575CE18-ABF9-494C-9232-43E0F1E9BCE7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65B3BAD7-920D-4EBC-B47B-01164C7E4AF1}

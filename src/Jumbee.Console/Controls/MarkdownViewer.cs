@@ -140,8 +140,7 @@ public class MarkdownViewer : Control
     }
 
     // Renders the markdown into a fresh offscreen buffer at `width` and returns it with its measured content height.
-    // Resilient: any failure (e.g. the writer's occasional System.Console access when headless) yields a blank buffer
-    // rather than throwing.
+    // Resilient: any failure in the third-party writer yields a blank buffer rather than throwing.
     private static (ConsoleBuffer buffer, int height) RenderMarkdown(string text, MarkdownStyles styles, int width)
     {
         var cap = Math.Clamp(LineCount(text) * 3 + 40, 8, MaxRows);

@@ -51,6 +51,20 @@ public class MarkdownViewerTests
     }
 
     [Fact]
+    public void RendersHorizontalRule_UsingConsoleWidth_NotSystemConsole()
+    {
+        // A horizontal rule spans the console's own (Profile) width. Before the writer used Profile.Width it read
+        // System.Console.WindowWidth, which throws headless — so this both proves the fix and that a rule renders.
+        var view = new MarkdownViewer("Above\n\n---\n\nBelow");
+
+        var text = ConsoleSnapshot.ToText(view, 24, 12);
+
+        Assert.Contains("Above", text);
+        Assert.Contains("Below", text);
+        Assert.Contains('─', text);   // the rule line renders (and doesn't throw)
+    }
+
+    [Fact]
     public void Framed_MeasuresContentTallerThanViewport_SoItScrolls()
     {
         // Many lines -> the rendered content is taller than the small viewport, so the frame can scroll it.
