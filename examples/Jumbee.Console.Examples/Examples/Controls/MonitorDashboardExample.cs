@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Jumbee.Console;
+using Jumbee.Console.Drawing;
 
 using CColor = ConsoleGUI.Data.Color;
 
@@ -59,7 +60,7 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
 
         // Narrow last column (27, floored by the UTC clock's full width) leaves the source pane more room beside the
         // grid; the clock and Top-Processes table are swapped so the wide table sits in a wide column.
-        var grid = new Grid([13, 12, 10], [48, 44, 27],
+        var grid = new Grid([13, 12, 10], [48, 44, 28],
         [
             [search.WithFrame(BorderStyle.Rounded, title: "Search Response (s)"),
              kafka.WithFrame(BorderStyle.Rounded, title: "Kafka In-Flight / Topic"),
@@ -72,7 +73,16 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
              _weather.WithFrame(BorderStyle.Rounded, title: "Weather")],
         ]);
 
-        SetContent(grid);
+        // A full-width "global outage map" below the grid: a braille world map whose Dot-layer overlay + rich markup
+        // labels are refreshed by the feed to simulate outages popping up and recovering around the world. Stacked
+        // under the grid so the whole example scrolls if the pane is too short to show both.
+        _map = new Canvas { Height = MapHeight };
+        _map.WithMarker(CanvasMarker.Braille).WithXBounds(-180, 180).WithYBounds(-90, 90);
+        SeedOutages();
+        RedrawMap();
+        var mapFramed = _map.WithFrame(BorderStyle.Rounded, title: "Global Outage Map — live");
+
+        SetContent(new VerticalStackPanel(mapFramed.FocusableControl, grid));
     }
 
     // A meter panel: the current-value gauge on top, its rolling history bar chart filling below.
@@ -136,6 +146,68 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
         if (t % 20 == 0) _log.Write($"[grey]{DateTime.UtcNow:HH:mm:ss}[/] [green]OK[/] req [white]{_rng.Next(100, 999)}[/] {_rng.NextDouble():0.00}s");
         if (t % 6 == 0) UpdateContainers();
         if (t % 160 == 0) _weather.Markup = Weather();
+
+        // Outage map: spawn/recover every ~1.2s, then redraw the coastline + outage overlay + markup labels.
+        if (t % 24 == 0) { UpdateOutages(); RedrawMap(); }
+    }
+
+    // Recovers expired outages and occasionally starts a new one on a city that isn't already down (capped).
+    private void UpdateOutages()
+    {
+        for (int i = _outages.Count - 1; i >= 0; i--)
+            if (--_outages[i].TicksLeft <= 0)
+                _outages.RemoveAt(i);
+
+        if (_outages.Count < MaxOutages && _rng.Next(100) < 60)
+        {
+            var free = _mapCities.Where(c => _outages.All(o => o.City != c.Name)).ToArray();
+            if (free.Length > 0)
+            {
+                var city = free[_rng.Next(free.Length)];
+                var (icon, desc, r, g, b) = OutageKinds[_rng.Next(OutageKinds.Length)];
+                _outages.Add(new Outage
+                {
+                    Lon = city.Lon,
+                    Lat = city.Lat,
+                    City = city.Name,
+                    Markup = $"{icon} [white]{city.Name}[/] [grey62]{desc}[/]",
+                    Dot = new CColor(r, g, b),
+                    TicksLeft = _rng.Next(4, 11),
+                });
+            }
+        }
+    }
+
+    // Rebuilds the map: dim coastline base layer, then a Dot layer of outage markers with rich markup labels on top.
+    private void RedrawMap()
+    {
+        _map.Clear();
+        _map.Add(new WorldMap(MapCoast, MapResolution.High));
+        _map.Layer(CanvasMarker.Dot);
+        foreach (var o in _outages)
+        {
+            _map.Add(new Points([(o.Lon, o.Lat)], o.Dot));
+            _map.PrintMarkup(o.Lon + 3, o.Lat, o.Markup);
+        }
+    }
+
+    private void SeedOutages()
+    {
+        // Two outages visible on the first frame, before the feed starts.
+        foreach (var name in new[] { "Tokyo", "São Paulo" })
+        {
+            var city = System.Array.Find(_mapCities, c => c.Name == name);
+            var (icon, desc, r, g, b) = OutageKinds[_rng.Next(OutageKinds.Length)];
+            _outages.Add(new Outage
+            {
+                Lon = city.Lon,
+                Lat = city.Lat,
+                City = city.Name,
+                Markup = $"{icon} [white]{city.Name}[/] [grey62]{desc}[/]",
+                Dot = new CColor(r, g, b),
+                TicksLeft = _rng.Next(6, 12),
+            });
+        }
     }
 
     private void UpdateContainers()
@@ -190,11 +262,13 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
     #endregion
 
     #region IExample
-    public bool FillsPane => true;
+    // Not fill-to-pane: the grid + outage map stack can be taller than the pane, so the host gives it a scroll
+    // viewport (small font shows it all; otherwise scroll down to the map).
+    public bool FillsPane => false;
     public string Category => "Flexibility";
     public string Title => "System Monitor";
     public string Description =>
-        "A sampler-style monitor: streaming run charts, a CPU meter, a live Task Manager (real process CPU/memory), a server log, a UTC clock and more.";
+        "A sampler-style monitor — streaming charts, a CPU meter, a live Task Manager, a server log — over a full-width live global outage map with rich markup labels.";
     #endregion
 
     // A framable group: wraps any layout so a set of controls can share one titled frame.
@@ -236,9 +310,43 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
         }
     }
 
+    // A live outage on the map: position, label markup, dot colour, and the ticks left before it recovers.
+    private sealed class Outage
+    {
+        public double Lon, Lat;
+        public string City = "";
+        public string Markup = "";
+        public CColor Dot;
+        public int TicksLeft;
+    }
+
     #region Fields
     private const int Window = 60;
     private const int TopProcesses = 8;
+    private const int MapHeight = 20;
+    private const int MaxOutages = 5;
+
+    private readonly Canvas _map;
+    private readonly System.Collections.Generic.List<Outage> _outages = [];
+    private static readonly CColor MapCoast = new(60, 95, 85);   // dim teal coastline
+
+    private readonly (double Lon, double Lat, string Name)[] _mapCities =
+    [
+        (-74.0, 40.7, "New York"), (-0.13, 51.5, "London"), (139.7, 35.7, "Tokyo"),
+        (151.2, -33.9, "Sydney"), (2.35, 48.85, "Paris"), (37.6, 55.75, "Moscow"),
+        (77.2, 28.6, "Delhi"), (-46.6, -23.5, "São Paulo"), (103.8, 1.35, "Singapore"),
+        (-118.2, 34.05, "Los Angeles"), (55.3, 25.2, "Dubai"), (18.4, -33.9, "Cape Town"),
+    ];
+
+    // (icon markup, description, dot RGB) — BMP symbols only (a cell can't hold surrogate-pair emoji).
+    private static readonly (string Icon, string Desc, byte R, byte G, byte B)[] OutageKinds =
+    [
+        ("[red]⚠[/]", "fiber cut", 240, 80, 80),
+        ("[orange1]▲[/]", "high latency", 240, 170, 70),
+        ("[red]●[/]", "CDN down", 240, 80, 80),
+        ("[yellow]◆[/]", "packet loss", 235, 210, 90),
+        ("[red]✕[/]", "region offline", 240, 80, 80),
+    ];
 
     private readonly RunSeries _bing, _google, _yahoo, _inbound, _processing, _dlq;
     private readonly Gauge _cpuGauge;

@@ -378,6 +378,34 @@ public class CanvasTests
         var top = ConsoleSnapshot.ToText(canvas, 6, 4).Split('\n')[0];
         Assert.Equal("     A", top);   // 'A' at the last column, the rest clipped
     }
+
+    [Fact]
+    public void PrintMarkup_AppliesPerRunColours()
+    {
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10);
+        canvas.PrintMarkup(0, 10, "[red]AB[/][green]CD[/]");   // top-left corner, row 0
+
+        var buf = ConsoleSnapshot.Render(canvas, 20, 10);
+        Assert.Equal('A', buf[0, 0].Character.Content);
+        Assert.Equal('D', buf[3, 0].Character.Content);
+
+        var red = buf[0, 0].Character.Foreground;
+        var green = buf[3, 0].Character.Foreground;
+        Assert.NotNull(red);
+        Assert.NotNull(green);
+        Assert.True(red!.Value.Red > red.Value.Green, "the [red] run is reddish");
+        Assert.True(green!.Value.Green > green.Value.Red, "the [green] run is greenish");
+    }
+
+    [Fact]
+    public void PrintMarkup_InvalidMarkup_FallsBackToLiteralText()
+    {
+        var canvas = new Canvas().WithXBounds(0, 10).WithYBounds(0, 10);
+        canvas.PrintMarkup(0, 10, "[unclosed oops");   // malformed → literal, no throw
+
+        var top = ConsoleSnapshot.ToText(canvas, 20, 10).Split('\n')[0];
+        Assert.StartsWith("[unclosed oops", top);
+    }
     #endregion
 
     #region World map (map.rs)

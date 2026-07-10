@@ -8,7 +8,11 @@ using ConsoleGUI.Space;
 
 using Jumbee.Console.Drawing;
 
+using Spectre.Console.Interop;
+using Spectre.Console.Rendering;
+
 using Character = ConsoleGUI.Data.Character;
+using Decoration = ConsoleGUI.Data.Decoration;
 
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,
@@ -159,12 +163,65 @@ public class Canvas : Control
     /// </summary>
     public Canvas Print(double x, double y, string text, Color? fg = null, Color? bg = null)
     {
+        CColor f = fg ?? Color.White;
+        CColor? b = bg;
+        var chars = new StyledChar[text?.Length ?? 0];
+        for (int i = 0; i < chars.Length; i++) chars[i] = new StyledChar(text![i], f, b, Decoration.None);
         UI.Invoke(() =>
         {
-            _labels.Add(new Label(x, y, text ?? "", fg ?? Color.White, bg));
+            _labels.Add(new Label(x, y, chars));
             Invalidate();   // labels are drawn each render from _labels; no layer rebuild needed
         });
         return this;
+    }
+
+    /// <summary>
+    /// Prints a <b>Spectre markup</b> label at canvas coordinate (<paramref name="x"/>, <paramref name="y"/>) — e.g.
+    /// <c>"[red]⚠ Outage[/] [grey]Tokyo[/]"</c> — so a single label can mix colours and decorations. Like
+    /// <see cref="Print(double, double, string, Color?, Color?)"/> it is drawn on top of every layer and clipped at
+    /// the right edge. Use BMP symbols for icons (a single terminal cell can't hold surrogate-pair emoji). Invalid
+    /// markup falls back to literal text. Fluent.
+    /// </summary>
+    public Canvas PrintMarkup(double x, double y, string markup)
+    {
+        var chars = ParseMarkup(markup ?? "");
+        UI.Invoke(() =>
+        {
+            _labels.Add(new Label(x, y, chars));
+            Invalidate();
+        });
+        return this;
+    }
+
+    // Renders Spectre markup once (at Print time) into a flat list of styled characters — no wrapping (a large max
+    // width) and newlines stripped, so a label stays a single clipped line. Falls back to literal text on bad markup.
+    private StyledChar[] ParseMarkup(string markup)
+    {
+        try
+        {
+            var options = RenderOptions.Create(ansiConsole);
+            var result = new List<StyledChar>(markup.Length);
+            IRenderable renderable = new Spectre.Console.Markup(markup);
+            foreach (var segment in renderable.Render(options, 100_000))
+            {
+                if (segment.IsControlCode) continue;
+                var style = segment.Style;
+                CColor? fg = style.Foreground.ToConsoleGUIColor();
+                CColor? bg = style.Background.ToConsoleGUIColor();
+                var deco = (Decoration)style.Decoration;
+                foreach (char c in segment.Text)
+                    if (c is not '\n' and not '\r')
+                        result.Add(new StyledChar(c, fg, bg, deco));
+            }
+            return [.. result];
+        }
+        catch (Exception)
+        {
+            // Malformed markup: render it as literal white text rather than throwing from a draw call.
+            var chars = new StyledChar[markup.Length];
+            for (int i = 0; i < chars.Length; i++) chars[i] = new StyledChar(markup[i], CColor.White, null, Decoration.None);
+            return chars;
+        }
     }
 
     /// <summary>Removes every shape, layer and label, leaving a blank canvas. Fluent.</summary>
@@ -393,11 +450,13 @@ public class Canvas : Control
             int x = (int)((label.X - left) * resX / spanX);
             int y = (int)((top - label.Y) * resY / spanY);
             if (y < 0 || y >= height) continue;
-            for (int col = x, k = 0; k < label.Text.Length; k++, col++)
+            var chars = label.Chars;
+            for (int col = x, k = 0; k < chars.Length; k++, col++)
             {
                 if (col < 0) continue;
                 if (col >= width) break;
-                consoleBuffer.Write(new Position(col, y), new Character(label.Text[k], label.Fg, label.Bg));
+                var sc = chars[k];
+                consoleBuffer.Write(new Position(col, y), new Character(sc.C, sc.Fg, sc.Bg, sc.Deco));
             }
         }
     }
@@ -421,23 +480,36 @@ public class Canvas : Control
         public static Op LayerBreak(CanvasMarker? marker) => new(null, marker);
     }
 
+    // One styled character of a label (a plain label is all one style; a markup label carries per-run styles).
+    private readonly struct StyledChar
+    {
+        public StyledChar(char c, CColor? fg, CColor? bg, Decoration deco)
+        {
+            C = c;
+            Fg = fg;
+            Bg = bg;
+            Deco = deco;
+        }
+
+        public char C { get; }
+        public CColor? Fg { get; }
+        public CColor? Bg { get; }
+        public Decoration Deco { get; }
+    }
+
     // A text label anchored at a canvas coordinate, drawn on top of all layers (see DrawLabels).
     private readonly struct Label
     {
-        public Label(double x, double y, string text, CColor fg, CColor? bg)
+        public Label(double x, double y, StyledChar[] chars)
         {
             X = x;
             Y = y;
-            Text = text;
-            Fg = fg;
-            Bg = bg;
+            Chars = chars;
         }
 
         public double X { get; }
         public double Y { get; }
-        public string Text { get; }
-        public CColor Fg { get; }
-        public CColor? Bg { get; }
+        public StyledChar[] Chars { get; }
     }
     #endregion
 
