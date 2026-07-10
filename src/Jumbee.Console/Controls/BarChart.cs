@@ -17,6 +17,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     #region Constructors
     public BarChart(ChartOrientation orientation, params (string label, double value, Color color)[] items)
     {
+        Focusable = false;   // a passive display control: never a focus/tab target
         Orientation = orientation;
         foreach (var item in items)
         {

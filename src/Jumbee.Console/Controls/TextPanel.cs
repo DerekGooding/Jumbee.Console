@@ -15,7 +15,11 @@ using Spectre.Console.Rendering;
 public class TextPanel : RenderableControl
 {
     #region Constructors
-    public TextPanel(string markup = "") => _markup = markup ?? "";
+    public TextPanel(string markup = "")
+    {
+        Focusable = false;   // a passive display control: never a focus/tab target
+        _markup = markup ?? "";
+    }
     #endregion
 
     #region Properties

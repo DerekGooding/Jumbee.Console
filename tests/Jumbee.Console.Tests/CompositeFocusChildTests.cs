@@ -22,7 +22,10 @@ public class CompositeFocusChildTests
         {
             _content = content;
             _override = overrideFocusChild;
-            var header = new TextLabel(TextLabelOrientation.Horizontal, "description");   // focusable-by-default label
+            // Force the docked label focusable to model a focusable-but-non-input sibling (a hazard the composite
+            // must tolerate). Passive display controls are non-focusable by default now, but a composite shouldn't
+            // rely on that to route keys to its real content.
+            var header = new TextLabel(TextLabelOrientation.Horizontal, "description") { Focusable = true };
             content.WithFrame(borderStyle: BorderStyle.None);
             SetContent(new DockPanel(DockedControlPlacement.Top, header, content.Frame!));
         }

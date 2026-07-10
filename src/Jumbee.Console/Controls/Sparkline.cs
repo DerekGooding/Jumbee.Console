@@ -16,6 +16,7 @@ public class Sparkline : RenderableControl
     #region Constructors
     public Sparkline(params double[] values)
     {
+        Focusable = false;   // a passive display control: never a focus/tab target
         _values = values ?? [];
         Height = 1;
         Width = _values.Length;

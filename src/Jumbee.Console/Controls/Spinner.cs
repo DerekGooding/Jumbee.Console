@@ -7,6 +7,10 @@ using Spectre.Console;
 
 public class Spinner : AnimatedControl
 {
+    #region Constructors
+    public Spinner() => Focusable = false;   // a passive display control: never a focus/tab target
+    #endregion
+
     #region Properties
     public Spectre.Console.Spinner SpinnerType
     {

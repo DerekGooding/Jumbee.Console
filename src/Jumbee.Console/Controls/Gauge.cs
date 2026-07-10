@@ -19,6 +19,7 @@ public class Gauge : RenderableControl
     #region Constructors
     public Gauge(double value = 0, double max = 100)
     {
+        Focusable = false;   // a passive display control: never a focus/tab target
         _value = value;
         _max = max <= 0 ? 1 : max;
         Height = 1;

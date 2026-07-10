@@ -23,6 +23,7 @@ public class TextLabel : Control
     // scrim (and blocks compositing), which is rarely what a plain label wants.
     public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor = null, Color? bgcolor = null)
     {
+        Focusable = false;   // a passive display label: never a focus/tab target, never owns the cursor
         _orientation = orientation;
         _text = text;
         _fgcolor = fgcolor;

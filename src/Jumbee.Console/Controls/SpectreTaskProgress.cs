@@ -15,6 +15,7 @@ public class SpectreTaskProgress : Control
     #region Constructors
     public SpectreTaskProgress()
     {
+        Focusable = false;   // a passive progress display: never a focus/tab target
         // Progress auto-refreshes the buffer from a background thread; marshal those writes onto the UI thread.
         ansiConsole.marshal = true;
         progress = new Progress(ansiConsole);

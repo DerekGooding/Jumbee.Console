@@ -15,6 +15,7 @@ public class Digits : RenderableControl
     #region Constructors
     public Digits(string text = "")
     {
+        Focusable = false;   // a passive display control: never a focus/tab target
         _text = text ?? "";
         Height = GlyphRows;
         Width = _text.Length * GlyphWidth;

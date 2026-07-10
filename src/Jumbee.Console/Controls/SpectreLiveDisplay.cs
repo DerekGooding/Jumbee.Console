@@ -15,6 +15,7 @@ public class SpectreLiveDisplay : Control
     #region Constructors
     public SpectreLiveDisplay(IRenderable target)
     {
+        Focusable = false;   // a passive live display: never a focus/tab target
         // LiveDisplay refreshes the buffer from a background thread; marshal those writes onto the UI thread.
         ansiConsole.marshal = true;
         this.target = target;
