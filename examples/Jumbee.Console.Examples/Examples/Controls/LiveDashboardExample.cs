@@ -1,6 +1,7 @@
 namespace Jumbee.Console.Examples;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
@@ -9,13 +10,10 @@ using Jumbee.Console;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
-/// A live "ops" dashboard: a 3×3 grid of framed panels — streaming line charts, a live bar chart, a process table,
-/// a scrolling log, throughput sparklines and a progress gauge — all updated a few times a second from a simulated
-/// data feed. Demonstrates <b>subplots</b> (compose <see cref="Plot"/> and other controls in a <see cref="Grid"/>)
-/// and <b>live data</b> (the <see cref="PlotSeries"/> handles from <c>AddLiveSeries</c>/<c>AddLiveBars</c>). The feed
-/// runs on the UI thread off the <see cref="UI.Paint"/> tick, so no marshalling is needed here.
+/// A live "ops" dashboard — a 3×3 <see cref="Grid"/> of framed streaming charts, bars, a process table, a log and
+/// sparklines, fed a few times a second. Demonstrates composing <see cref="Plot"/>s with live <see cref="PlotSeries"/>.
 /// </summary>
-public sealed class LiveDashboardExample : CompositeControl, IExample, IActivatable
+public sealed class LiveDashboardExample : CompositeControl, IActivatableExample
 {
     public LiveDashboardExample()
     {
@@ -68,20 +66,7 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
         SetContent(grid);
     }
 
-    #region Live feed
-    // Start/stop the feed as the example is shown/hidden (called by ExampleHost). Control.Feed POSTS each Advance onto
-    // the UI thread: a posted update runs at frame start, so its redraw is requested before the frame's paint — which
-    // the frame loop composites even though the deeply-nested plot panels don't localize their own damage. (Driving
-    // this from the per-frame Paint event instead leaves the redraw request "mid-paint", which the loop defers and
-    // never composites until some input forces a full redraw.)
-    public void OnActivated() => _feed = Feed(Advance, 50);
-
-    public void OnDeactivated()
-    {
-        _feed?.Cancel();
-        _feed = null;
-    }
-
+    #region Simulation
     // Advance the simulation and push it into the panels. Runs on the UI thread (posted), so control updates are direct.
     private void Advance()
     {
@@ -154,14 +139,6 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
 
     #endregion
 
-    #region IExample
-    public bool FillsPane => true;
-    public string Category => "Flexibility";
-    public string Title => "Live Dashboard";
-    public string Description =>
-        "A grid of live panels — streaming charts, bars, a process table, a log and sparklines — fed a few times a second.";
-    #endregion
-
     #region Fields
     private const int Window = 60;
     private const int LatWindow = 40;
@@ -178,6 +155,19 @@ public sealed class LiveDashboardExample : CompositeControl, IExample, IActivata
     private readonly double[] _tp2Data = new double[16];
     private double _txUsaV = 60, _txEuV = 25, _errV = 30, _latV = 5;
     private int _tick, _deployPct;
-    private CancellationTokenSource? _feed;
+    #endregion
+
+    #region IExample
+    // Control.Feed posts each Advance to the UI thread so its redraw lands before the frame's paint; the base
+    // IActivatableExample.OnDeactivated cancels it (registered in Feeds) when the example is hidden.
+    void IActivatableExample.OnActivated() => Feed(Advance, 50);
+
+    IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
+
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Live Dashboard";
+    string IExample.Description =>
+        "A grid of live panels — streaming charts, bars, a process table, a log and sparklines — fed a few times a second.";
     #endregion
 }

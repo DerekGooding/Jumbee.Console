@@ -1,7 +1,8 @@
 namespace Jumbee.Console.Examples;
 
-/// <summary>Modal dialogs over the ambient overlay — a confirm (Yes/No) and a message (OK), both reporting back.
-/// The kind of GUI affordance that's awkward in an immediate-mode TUI but natural here.</summary>
+/// <summary>
+/// Modal dialogs over the ambient overlay — a confirm (Yes/No) and a message (OK), both reporting back.
+/// </summary>
 public sealed class DialogExample : CompositeControl, IExample
 {
     public DialogExample()
@@ -18,8 +19,10 @@ public sealed class DialogExample : CompositeControl, IExample
         SetContent(new VerticalStackPanel(confirm, message, result));
     }
 
-    public string Category => "Flexibility";
-    public string Title => "Modal Dialogs";
-    public string Description =>
+    #region IExample
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Modal Dialogs";
+    string IExample.Description =>
         "Real modal dialogs: they take exclusive focus, dim the layer behind, and report a result.";
+    #endregion
 }

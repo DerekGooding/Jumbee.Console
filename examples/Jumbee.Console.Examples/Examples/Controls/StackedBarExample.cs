@@ -2,9 +2,10 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-/// <summary>A stacked bar chart — three components stacked from the baseline at each x, so each bar's total height
-/// is the sum. A <c>MultiBarSeries</c> (stacked mode); segments are full cells between rounded cumulative
-/// boundaries so they abut exactly.</summary>
+/// <summary>
+/// A stacked bar chart — three components stacked from the baseline at each x, so each bar's total height is the sum.
+/// A <c>MultiBarSeries</c> (stacked mode) whose segments abut exactly.
+/// </summary>
 public sealed class StackedBarExample : Plot, IExample
 {
     public StackedBarExample()
@@ -22,10 +23,11 @@ public sealed class StackedBarExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = false);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Stacked Bars";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Stacked Bars";
+    string IExample.Description =>
         "Series stacked from the baseline at each x — each bar's total height is the sum of its components.";
+    #endregion
 }

@@ -1,6 +1,7 @@
 namespace Jumbee.Console.Tests;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,11 +92,32 @@ public class FeedTests
         finally { UI.Stop(); run.Wait(2000); }
     }
 
+    // The Feeds snapshot backs IActivatableExample's default OnDeactivated: a live example cancels every Feeds handle
+    // to stop its feeds while hidden. Verify the snapshot lists live feeds and cancelling them stops the ticks.
+    [Fact]
+    public void Feeds_SnapshotListsLiveFeeds_AndCancellingThemStops()
+    {
+        var run = StartUi();
+        try
+        {
+            var c = new FeedControl();
+            c.StartTickFeed(10);
+            c.StartTickFeed(10);
+            Assert.Equal(2, c.LiveFeeds.Count);   // both registered on start
+            Assert.True(WaitUntil(() => c.Ticks >= 2, 2000));
+
+            foreach (var f in c.LiveFeeds) f.Cancel();   // exactly what IActivatableExample.OnDeactivated does
+            AssertStopped(() => c.Ticks);
+        }
+        finally { UI.Stop(); run.Wait(2000); }
+    }
+
     private sealed class FeedControl : Control
     {
         private int _ticks, _applied;
         public int Ticks => Volatile.Read(ref _ticks);
         public int Applied => Volatile.Read(ref _applied);
+        public IReadOnlyList<CancellationTokenSource> LiveFeeds => Feeds;
         public volatile bool ProduceOnUiThread = true;   // start pessimistic; produce (off-thread) must flip it false
         public volatile bool ApplyOnUiThread;
 

@@ -2,16 +2,13 @@ namespace Jumbee.Console.Examples;
 
 using S = Spectre.Console;
 
-/// <summary>The landing page: the pitch and how Jumbee differs from other TUI toolkits. It is a
-/// <see cref="SpectreControl{T}"/> hosting a Spectre panel, and also an <see cref="IExample"/> so the browser lists it.</summary>
+/// <summary>
+/// The landing page: the pitch and how Jumbee differs from other TUI toolkits, hosted in a
+/// <see cref="SpectreControl{T}"/> Spectre panel.
+/// </summary>
 public sealed class WelcomeExample : SpectreControl<S.Panel>, IExample
 {
     public WelcomeExample() : base(BuildPanel()) { }
-
-    public string Category => "Welcome";
-    public string Title => "Why Jumbee.Console";
-    public string Description =>
-        "A retained-mode TUI core that speaks modern ANSI and renders with Spectre.Console — GUI-grade controls that stay simple and fast.";
 
     private static S.Panel BuildPanel()
     {
@@ -36,4 +33,11 @@ public sealed class WelcomeExample : SpectreControl<S.Panel>, IExample
             Expand = true,
         };
     }
+
+    #region IExample
+    string IExample.Category => "Welcome";
+    string IExample.Title => "Why Jumbee.Console";
+    string IExample.Description =>
+        "A retained-mode TUI core that speaks modern ANSI and renders with Spectre.Console — GUI-grade controls that stay simple and fast.";
+    #endregion
 }

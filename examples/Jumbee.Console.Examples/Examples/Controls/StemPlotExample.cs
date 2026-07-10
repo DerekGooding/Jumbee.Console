@@ -3,8 +3,10 @@ namespace Jumbee.Console.Examples;
 using System;
 using System.Linq;
 
-/// <summary>A stem plot — a vertical line rises from the baseline (0) to each point, capped with a marker. Good for
-/// discrete / impulse signals. Built on the same polymorphic plot-element model as the line and scatter plots.</summary>
+/// <summary>
+/// A stem plot — a vertical line rises from the baseline (0) to each point, capped with a marker.
+/// Good for discrete / impulse signals.
+/// </summary>
 public sealed class StemPlotExample : Plot, IExample
 {
     public StemPlotExample()
@@ -14,10 +16,11 @@ public sealed class StemPlotExample : Plot, IExample
         AddStem(xs, ys);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Stem Plot";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Stem Plot";
+    string IExample.Description =>
         "A vertical stem from the baseline to each point, capped with a marker — for discrete / impulse signals.";
+    #endregion
 }

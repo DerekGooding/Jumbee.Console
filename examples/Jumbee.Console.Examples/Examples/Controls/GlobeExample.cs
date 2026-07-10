@@ -1,39 +1,26 @@
 namespace Jumbee.Console.Examples;
 
+using System.Collections.Generic;
 using System.Threading;
 
 using Jumbee.Console;
 
 /// <summary>
-/// A live, self-rotating ASCII Earth — the ray-traced <see cref="Globe"/> control spun a few dozen times a second by
-/// a <see cref="Control.Feed"/>. Each tick advances the globe's rotation and requests a redraw; the texture scrolls
-/// under the fixed light so the day/night terminator sweeps across as it turns. Demonstrates driving a
-/// <b>compute-heavy live control</b> off a posted feed — the whole sphere is re-ray-traced each frame yet stays well
-/// under the frame budget.
+/// A self-rotating ASCII Earth: the ray-traced <see cref="Globe"/> spun by a <see cref="Control.Feed"/> — a
+/// compute-heavy live control re-rendered every frame, comfortably under the frame budget.
 /// </summary>
-public sealed class GlobeExample : Globe, IExample, IActivatable
+public sealed class GlobeExample : Globe, IActivatableExample
 {
-    #region Live feed
-    // Spin while shown; stop when hidden (called by ExampleHost). Control.Feed runs the timer and posts each spin
-    // onto the UI thread; cancelling the returned handle stops it (Dispose would too, as a backstop).
-    public void OnActivated() => _feed = Feed(() => Spin(0.03), 33);
-
-    public void OnDeactivated()
-    {
-        _feed?.Cancel();
-        _feed = null;
-    }
-    #endregion
-
     #region IExample
-    public bool FillsPane => true;
-    public string Category => "Flexibility";
-    public string Title => "Rotating Globe";
-    public string Description =>
-        "A ray-traced ASCII Earth, re-rendered every frame — the day/night terminator sweeps as it spins.";
-    #endregion
+    // Spin while shown; the base IActivatableExample.OnDeactivated cancels the feed (registered in Feeds) when hidden.
+    void IActivatableExample.OnActivated() => Feed(() => Spin(0.03), 33);
 
-    #region Fields
-    private CancellationTokenSource? _feed;
+    IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
+
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Rotating Globe";
+    string IExample.Description =>
+        "A ray-traced ASCII Earth, re-rendered every frame — the day/night terminator sweeps as it spins.";
     #endregion
 }

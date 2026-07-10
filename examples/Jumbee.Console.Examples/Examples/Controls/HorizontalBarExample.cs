@@ -2,9 +2,10 @@ namespace Jumbee.Console.Examples;
 
 using CColor = ConsoleGUI.Data.Color;
 
-/// <summary>A horizontal bar chart — each category sits at a Y position and its bar grows along X from the baseline,
-/// with a left-anchored eighth-block for the fractional right cell. An <c>HBarSeries</c> in the same polymorphic
-/// plot-element model as the other plot types.</summary>
+/// <summary>
+/// A horizontal bar chart — each category sits at a Y position and its bar grows along X from the baseline.
+/// An <c>HBarSeries</c> with a sub-cell eighth-block right edge.
+/// </summary>
 public sealed class HorizontalBarExample : Plot, IExample
 {
     public HorizontalBarExample()
@@ -17,10 +18,11 @@ public sealed class HorizontalBarExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = false);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Horizontal Bars";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Horizontal Bars";
+    string IExample.Description =>
         "Bars growing along the X axis from a baseline, one per category on the Y axis, with sub-cell right edges.";
+    #endregion
 }

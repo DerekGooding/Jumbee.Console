@@ -3,8 +3,9 @@ namespace Jumbee.Console.Examples;
 using System;
 using System.Linq;
 
-/// <summary>A histogram — <c>AddHistogram</c> bins a set of values and draws each bin as a touching bar (built on
-/// the same <c>DrawBars</c> primitive as the bar plot, so binning is pure data-prep with no new drawing code).</summary>
+/// <summary>
+/// A histogram — <c>AddHistogram</c> bins a set of values and draws each bin as a touching bar.
+/// </summary>
 public sealed class HistogramExample : Plot, IExample
 {
     public HistogramExample()
@@ -20,10 +21,11 @@ public sealed class HistogramExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = false);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Histogram";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Histogram";
+    string IExample.Description =>
         "Values binned into buckets and drawn as touching bars — the distribution's shape at a glance.";
+    #endregion
 }

@@ -4,9 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>A heatmap — a 2D value grid mapped through the Viridis colour map into coloured cells (a HeatSeries),
-/// the first plot type to use the per-cell background/colour work (change B). Here a smooth 2D function so the
-/// gradient is easy to read.</summary>
+/// <summary>
+/// A heatmap — a 2D value grid mapped through the Viridis colour map into coloured cells.
+/// Here a smooth 2D function so the gradient is easy to read.
+/// </summary>
 public sealed class HeatmapExample : Plot, IExample
 {
     public HeatmapExample()
@@ -28,10 +29,11 @@ public sealed class HeatmapExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = false);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Heatmap";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Heatmap";
+    string IExample.Description =>
         "A 2D value grid coloured by the Viridis map — the color-grid plot family, built on per-cell colouring.";
+    #endregion
 }

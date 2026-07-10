@@ -2,9 +2,10 @@ namespace Jumbee.Console.Examples;
 
 using System;
 
-/// <summary>An OHLC candlestick chart — each period drawn as a candle (thin high/low wick + thick open/close body)
-/// using half-cell box glyphs for sub-cell precision (technique ported from termgraph), green for up periods and red
-/// for down. A <c>CandleSeries</c> in the same polymorphic plot-element model as the other plot types.</summary>
+/// <summary>
+/// An OHLC candlestick chart — each period a candle (thin high/low wick + thick open/close body)
+/// drawn with half-cell box glyphs, green for up periods and red for down.
+/// </summary>
 public sealed class CandlestickExample : Plot, IExample
 {
     public CandlestickExample()
@@ -30,10 +31,11 @@ public sealed class CandlestickExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = true);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Candlestick";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Candlestick";
+    string IExample.Description =>
         "OHLC candlesticks with half-cell wicks and bodies — green up, red down — the classic financial chart.";
+    #endregion
 }

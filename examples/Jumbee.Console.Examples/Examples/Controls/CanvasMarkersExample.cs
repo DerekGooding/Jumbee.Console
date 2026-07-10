@@ -8,12 +8,10 @@ using Jumbee.Console;
 using Jumbee.Console.Drawing;
 
 /// <summary>
-/// The same live drawing — a ring with a rotating cross and an orbiting blip — rendered side by side in every
-/// <see cref="CanvasMarker"/>, so the sub-cell resolution of each is directly comparable: Braille (2×4) and Quadrant
-/// (2×2) resolve the curve finely, HalfBlock (1×2) adds per-half colour, and Block/Bar/Dot (1×1) are the coarse
-/// single-glyph markers. A grid of framed <see cref="Canvas"/> panes driven by one <see cref="Control.Feed"/>.
+/// The same live drawing rendered side by side in every <see cref="CanvasMarker"/>, so their sub-cell resolution is
+/// directly comparable. A grid of framed <see cref="Canvas"/> panes driven by one <see cref="Control.Feed"/>.
 /// </summary>
-public sealed class CanvasMarkersExample : CompositeControl, IExample, IActivatable
+public sealed class CanvasMarkersExample : CompositeControl, IActivatableExample
 {
     #region Constructors
     public CanvasMarkersExample()
@@ -36,15 +34,7 @@ public sealed class CanvasMarkersExample : CompositeControl, IExample, IActivata
     }
     #endregion
 
-    #region Live feed
-    public void OnActivated() => _feed = Feed(() => { _t += 0.03; Draw(); }, 50);
-
-    public void OnDeactivated()
-    {
-        _feed?.Cancel();
-        _feed = null;
-    }
-
+    #region Methods
     // Redraws the identical scene into every pane; only the marker differs, so the panes read as a resolution ladder.
     private void Draw()
     {
@@ -64,14 +54,6 @@ public sealed class CanvasMarkersExample : CompositeControl, IExample, IActivata
     }
     #endregion
 
-    #region IExample
-    public bool FillsPane => true;
-    public string Category => "Controls";
-    public string Title => "Canvas Markers";
-    public string Description =>
-        "The same live drawing in every Canvas marker, side by side — a direct comparison of sub-cell resolution (Braille/Quadrant/HalfBlock vs Block/Bar/Dot).";
-    #endregion
-
     #region Fields
     private static readonly Color Ring = new(70, 95, 105);
     private static readonly Color Spoke = new(120, 205, 230);
@@ -79,6 +61,17 @@ public sealed class CanvasMarkersExample : CompositeControl, IExample, IActivata
 
     private readonly List<Canvas> _canvases = [];
     private double _t;
-    private CancellationTokenSource? _feed;
+    #endregion
+
+    #region IExample
+    void IActivatableExample.OnActivated() => Feed(() => { _t += 0.03; Draw(); }, 50);
+
+    IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
+
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Canvas Markers";
+    string IExample.Description =>
+        "The same live drawing in every Canvas marker, side by side — a direct comparison of sub-cell resolution (Braille/Quadrant/HalfBlock vs Block/Bar/Dot).";
     #endregion
 }

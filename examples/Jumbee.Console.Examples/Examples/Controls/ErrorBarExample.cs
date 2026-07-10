@@ -5,9 +5,10 @@ using System.Linq;
 
 using CColor = ConsoleGUI.Data.Color;
 
-/// <summary>An error-bar plot — a smooth line with vertical error bars at each point (whisker of ±error with caps
-/// and a centre marker), sharing the plot's axes. An <c>ErrorBarSeries</c> overlaid on a line series in the same
-/// polymorphic plot-element model as the other plot types.</summary>
+/// <summary>
+/// An error-bar plot — a smooth line with vertical ±error whiskers (caps and a centre marker) at each point.
+/// An <c>ErrorBarSeries</c> overlaid on a line series, sharing the plot's axes.
+/// </summary>
 public sealed class ErrorBarExample : Plot, IExample
 {
     public ErrorBarExample()
@@ -22,10 +23,11 @@ public sealed class ErrorBarExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = true);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Error Bars";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Error Bars";
+    string IExample.Description =>
         "A line series with vertical error bars — ±error whiskers with caps and a centre marker — sharing the axes.";
+    #endregion
 }

@@ -5,9 +5,10 @@ using System.Linq;
 
 using CColor = ConsoleGUI.Data.Color;
 
-/// <summary>Point annotations — <c>AddLabel</c> attaches text with a foreground/background colour to a data
-/// coordinate (per-cell background support was added to the drawing core for this). Labels don't rescale the axes;
-/// alignment and cell offsets control placement.</summary>
+/// <summary>
+/// Point annotations — <c>AddLabel</c> attaches coloured text to a data coordinate.
+/// Labels don't rescale the axes; alignment and cell offsets control placement.
+/// </summary>
 public sealed class AnnotatedPlotExample : Plot, IExample
 {
     public AnnotatedPlotExample()
@@ -24,10 +25,11 @@ public sealed class AnnotatedPlotExample : Plot, IExample
         AddLabel(xs[^1], ys[^1], "→ settles", fg: new CColor(240, 200, 90), align: PlotLabelAlign.Left, dx: 1, dy: 0);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Annotations";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Annotations";
+    string IExample.Description =>
         "Label points with foreground/background colours — anchored to data coordinates, without rescaling the axes.";
+    #endregion
 }

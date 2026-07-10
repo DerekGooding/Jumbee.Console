@@ -3,10 +3,8 @@ namespace Jumbee.Console.Examples;
 using Jumbee.Console;
 
 /// <summary>
-/// A hand-driven ASCII Earth: the <see cref="Globe"/> control with <see cref="Globe.Interactive"/> enabled and no
-/// auto-spin. <b>Drag</b> to rotate and tilt, the <b>mouse wheel</b> to zoom, and (while focused) the <b>arrow keys</b>
-/// to spin/tilt with <b>+/-</b> to zoom — Shift for larger steps. Demonstrates opting a display-only control into
-/// mouse + keyboard input (<c>WantsMouse</c> + <c>CaptureMouse</c> drag + <c>OnInput</c>).
+/// A hand-driven ASCII Earth: the <see cref="Globe"/> control with <see cref="Globe.Interactive"/> enabled.
+/// Demonstrates opting a display-only control into mouse + keyboard input.
 /// </summary>
 public sealed class InteractiveGlobeExample : Globe, IExample
 {
@@ -17,9 +15,11 @@ public sealed class InteractiveGlobeExample : Globe, IExample
         CameraBeta = 0.35;
     }
 
-    public bool FillsPane => true;
-    public string Category => "Flexibility";
-    public string Title => "Interactive Globe";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Interactive Globe";
+    string IExample.Description =>
         "A mouse- and keyboard-driven ASCII Earth — drag to rotate, scroll to zoom, arrows to spin/tilt, +/- to zoom.";
+    #endregion
 }

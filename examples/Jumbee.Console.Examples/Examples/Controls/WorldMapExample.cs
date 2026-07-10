@@ -6,10 +6,8 @@ using Jumbee.Console;
 using Jumbee.Console.Drawing;
 
 /// <summary>
-/// A braille world map with labelled cities — a capstone for the <see cref="Canvas"/> control that combines a
-/// high-resolution <see cref="WorldMap"/> coastline, a second <see cref="CanvasMarker.Dot"/> layer of city markers
-/// (per-layer markers: crisp dots over the fine braille coastline), and text labels drawn on top with
-/// <see cref="Canvas.Print"/>. Display-only; the whole map re-fits when the pane is resized.
+/// A braille <see cref="WorldMap"/> coastline with a <see cref="CanvasMarker.Dot"/> layer of labelled cities.
+/// A capstone for the <see cref="Canvas"/> control combining per-layer markers, text labels and pan/zoom.
 /// </summary>
 public sealed class WorldMapExample : Canvas, IExample
 {
@@ -30,14 +28,6 @@ public sealed class WorldMapExample : Canvas, IExample
     }
     #endregion
 
-    #region IExample
-    public bool FillsPane => true;
-    public string Category => "Controls";
-    public string Title => "World Map";
-    public string Description =>
-        "An explorable braille world map with labelled cities — drag to pan, scroll to zoom. Combines the Canvas map, per-layer markers, text labels and pan/zoom.";
-    #endregion
-
     #region Fields
     private static readonly Color Land = new(70, 120, 95);
     private static readonly Color City = new(245, 185, 90);
@@ -54,5 +44,13 @@ public sealed class WorldMapExample : Canvas, IExample
         (37.62, 55.75, "Moscow"),
         (-58.38, -34.60, "Buenos Aires"),
     ];
+    #endregion
+
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "World Map";
+    string IExample.Description =>
+        "An explorable braille world map with labelled cities — drag to pan, scroll to zoom. Combines the Canvas map, per-layer markers, text labels and pan/zoom.";
     #endregion
 }

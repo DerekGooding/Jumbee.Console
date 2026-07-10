@@ -3,8 +3,10 @@ namespace Jumbee.Console.Examples;
 using System;
 using System.Linq;
 
-/// <summary>A scatter plot — points drawn as markers with no connecting line. Two <c>AddScatter</c> series share
-/// the same axes/grid; the marker brush (Braille vs Quadrant here) sets the sub-cell resolution.</summary>
+/// <summary>
+/// A scatter plot — points drawn as markers with no connecting line, two <c>AddScatter</c> series sharing the axes.
+/// The marker brush (Braille vs Quadrant here) sets the sub-cell resolution.
+/// </summary>
 public sealed class ScatterPlotExample : Plot, IExample
 {
     public ScatterPlotExample()
@@ -14,10 +16,11 @@ public sealed class ScatterPlotExample : Plot, IExample
         AddScatter(xs, xs.Select(x => Math.Cos(x) * 0.6).ToArray(), PlotBrush.Quadrant);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Scatter Plot";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Scatter Plot";
+    string IExample.Description =>
         "Data points drawn as markers, no connecting line — two scatter series sharing one coordinate system.";
+    #endregion
 }

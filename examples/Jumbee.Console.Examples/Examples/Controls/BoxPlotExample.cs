@@ -6,9 +6,10 @@ using System.Linq;
 
 using CColor = ConsoleGUI.Data.Color;
 
-/// <summary>A box-and-whisker plot — one box per group showing the quartiles (Q1–Q3 box, median line) with whiskers
-/// to the min/max, drawn with box-drawing glyphs. A <c>BoxSeries</c> in the same polymorphic plot-element model as
-/// the other plot types; the quartiles are computed from raw sample groups by <c>AddBoxes</c>.</summary>
+/// <summary>
+/// A box-and-whisker plot — a Q1–Q3 box with median line and min/max whiskers per group.
+/// Quartiles are computed from raw sample groups by <c>AddBoxes</c>.
+/// </summary>
 public sealed class BoxPlotExample : Plot, IExample
 {
     public BoxPlotExample()
@@ -37,10 +38,11 @@ public sealed class BoxPlotExample : Plot, IExample
         return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Box Plot";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Box Plot";
+    string IExample.Description =>
         "Box-and-whisker plot — Q1–Q3 box with median line and min/max whiskers, quartiles computed from raw samples.";
+    #endregion
 }

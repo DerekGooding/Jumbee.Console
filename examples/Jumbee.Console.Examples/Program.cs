@@ -48,6 +48,7 @@ internal static class Program
             source.Clear();
             foreach (var file in example.SourceFiles)
                 source.OpenDocument(file, SourceLoader.Read(file), SourceLoader.LanguageFor(file)).ReadOnly = true;
+            source.Tabs.SelectedIndex = 0;   // show the example's own source first, not the base-control tab
         }
         tree.NodeActivated += (_, node) => { if (map.TryGetValue(node, out var example)) Show(example); };
         Show(ExampleCatalog.Default);

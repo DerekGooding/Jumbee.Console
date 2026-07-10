@@ -549,6 +549,17 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         lock (_feeds) { snapshot = [.. _feeds]; _feeds.Clear(); }
         foreach (var cts in snapshot) cts.Cancel();
     }
+
+    /// <summary>
+    /// A thread-safe snapshot of this control's currently live feed handles (each <see cref="Feed(Action, int)"/> call
+    /// registers one; it self-unregisters when cancelled or completed). Cancelling these stops the feeds without
+    /// disposing the control — handy for pausing background work while the control is hidden. Feeds are also cancelled
+    /// automatically on <see cref="Dispose"/>. Returns a copy, so iterating it never races the background feed threads.
+    /// </summary>
+    protected IReadOnlyList<CancellationTokenSource> Feeds
+    {
+        get { lock (_feeds) return [.. _feeds]; }
+    }
     #endregion
 
     /// <summary>

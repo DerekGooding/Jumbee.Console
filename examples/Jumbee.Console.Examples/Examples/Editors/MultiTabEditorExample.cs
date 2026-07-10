@@ -1,7 +1,9 @@
 namespace Jumbee.Console.Examples;
 
-/// <summary>The MultiTabCodeEditor itself — it <em>is</em> a <see cref="MultiTabCodeEditor"/>: a tabbed group of
-/// syntax-highlighting code editors with closable tabs (✕), a "+" to add one, and per-editor scrolling.</summary>
+/// <summary>
+/// A tabbed group of syntax-highlighting code editors — it <em>is</em> a <see cref="MultiTabCodeEditor"/>,
+/// with closable tabs (✕), a "+" to add one, and per-editor scrolling.
+/// </summary>
 public sealed class MultiTabEditorExample : MultiTabCodeEditor, IExample
 {
     public MultiTabEditorExample() : base(Language.CSharp)
@@ -13,8 +15,10 @@ public sealed class MultiTabEditorExample : MultiTabCodeEditor, IExample
             Language.Markdown);
     }
 
-    public string Category => "Editors";
-    public string Title => "Tabbed Code Editor";
-    public string Description =>
+    #region IExample
+    string IExample.Category => "Editors";
+    string IExample.Title => "Tabbed Code Editor";
+    string IExample.Description =>
         "A VS-Code-style editor group: closable tabs, a + for new documents, syntax highlighting and independent scrolling.";
+    #endregion
 }

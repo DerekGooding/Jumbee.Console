@@ -3,16 +3,13 @@ namespace Jumbee.Console.Examples;
 using Spectre.Console;   // for the Table AddColumn/AddRow/Centered extension methods
 using S = Spectre.Console;
 
-/// <summary>Hosting a rich Spectre.Console renderable (a Table) directly — it <em>is</em> a
-/// <see cref="SpectreControl{T}"/>. The whole Spectre widget catalogue is available, styled markup and all.</summary>
+/// <summary>
+/// Hosting a rich Spectre.Console renderable (a Table) directly — it <em>is</em> a <see cref="SpectreControl{T}"/>.
+/// The whole Spectre widget catalogue is available, styled markup and all.
+/// </summary>
 public sealed class SpectreTableExample : SpectreControl<S.Table>, IExample
 {
     public SpectreTableExample() : base(BuildTable()) { }
-
-    public string Category => "Flexibility";
-    public string Title => "Spectre Rendering";
-    public string Description =>
-        "Any Spectre.Console renderable (tables, rules, markup, bar charts…) drops straight into a Jumbee control.";
 
     private static S.Table BuildTable()
     {
@@ -33,4 +30,11 @@ public sealed class SpectreTableExample : SpectreControl<S.Table>, IExample
         table.AddRow("Live perf HUD", "[green]✓[/]", "[grey]—[/]");
         return table;
     }
+
+    #region IExample
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Spectre Rendering";
+    string IExample.Description =>
+        "Any Spectre.Console renderable (tables, rules, markup, bar charts…) drops straight into a Jumbee control.";
+    #endregion
 }

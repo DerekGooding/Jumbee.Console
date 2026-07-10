@@ -2,16 +2,12 @@ namespace Jumbee.Console.Examples;
 
 using S = Spectre.Console;
 
-/// <summary>Resizable panes — it <em>is</em> a <see cref="SplitPanel"/>. Drag the divider, or focus it and press the
-/// arrows (Shift = bigger steps). Nest them for richer layouts — this is how the browser's own shell is built.</summary>
+/// <summary>
+/// Resizable panes — it <em>is</em> a <see cref="SplitPanel"/>. Drag the divider, or focus it and press the arrows.
+/// </summary>
 public sealed class SplitPanelExample : SplitPanel, IExample
 {
     public SplitPanelExample() : base(SplitOrientation.Horizontal, BuildLeft(), BuildRight(), splitPosition: 26) { }
-
-    public string Category => "Flexibility";
-    public string Title => "Resizable Layout";
-    public string Description =>
-        "A SplitPanel gives two panes a draggable divider. Drag it, or focus the divider and use the arrow keys.";
 
     private static IFocusable BuildLeft() =>
         new ListBox("Drag the divider →", "…or focus it", "and press ← →", "Shift = bigger steps")
@@ -26,4 +22,11 @@ public sealed class SplitPanelExample : SplitPanel, IExample
             Padding = new S.Padding(1, 1, 1, 1),
             Expand = true,
         });
+
+    #region IExample
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Resizable Layout";
+    string IExample.Description =>
+        "A SplitPanel gives two panes a draggable divider. Drag it, or focus the divider and use the arrow keys.";
+    #endregion
 }

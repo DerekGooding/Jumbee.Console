@@ -1,7 +1,8 @@
 namespace Jumbee.Console.Examples;
 
-/// <summary>Primary/secondary buttons with hover + press states, wired to update a label. A small composite (a
-/// vertical stack of controls) that also implements <see cref="IExample"/>.</summary>
+/// <summary>
+/// Primary/secondary buttons with hover + press states, wired to update a label.
+/// </summary>
 public sealed class ButtonExample : CompositeControl, IExample
 {
     public ButtonExample()
@@ -14,7 +15,9 @@ public sealed class ButtonExample : CompositeControl, IExample
         SetContent(new VerticalStackPanel(save, cancel, result));
     }
 
-    public string Category => "Controls";
-    public string Title => "Buttons";
-    public string Description => "Primary and secondary buttons with hover and press feedback.";
+    #region IExample
+    string IExample.Category => "Controls";
+    string IExample.Title => "Buttons";
+    string IExample.Description => "Primary and secondary buttons with hover and press feedback.";
+    #endregion
 }

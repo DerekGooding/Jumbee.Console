@@ -3,9 +3,10 @@ namespace Jumbee.Console.Examples;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>A grouped bar chart — three product series drawn side by side within each quarter's slot, each in its
-/// own colour. A <c>MultiBarSeries</c> (grouped mode) in the same polymorphic plot-element model as the other plot
-/// types, reusing the bar slot machinery so the sub-bars tile the group exactly on resize.</summary>
+/// <summary>
+/// A grouped bar chart — three product series drawn side by side within each quarter's slot, each in its own colour.
+/// A <c>MultiBarSeries</c> (grouped mode) whose sub-bars tile the group exactly on resize.
+/// </summary>
 public sealed class GroupedBarExample : Plot, IExample
 {
     public GroupedBarExample()
@@ -23,10 +24,11 @@ public sealed class GroupedBarExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = false);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Grouped Bars";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Grouped Bars";
+    string IExample.Description =>
         "Multiple series drawn side by side within each x slot — the classic grouped bar chart, sharing the axes.";
+    #endregion
 }

@@ -13,14 +13,10 @@ using Jumbee.Console.Drawing;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
-/// A "sampler"-style system monitor: two streaming run charts (with per-series cur/dlt/max/min legends), a rolling
-/// CPU meter, a server-utilization bar chart, a scrolling server log, a UTC clock, a weather box, a container table
-/// and a live <b>Task Manager</b> panel showing this machine's top processes by CPU (real
-/// <see cref="System.Diagnostics.Process"/> data). Most panels run off a fast simulated feed; the process list is
-/// sampled on a slower background cadence. Shows off <see cref="RunChart"/>, <see cref="Gauge"/>,
-/// <see cref="TextPanel"/>, <see cref="Digits"/>, <see cref="DataTable"/>, <see cref="Log"/> and <see cref="Plot"/>.
+/// A "sampler"-style system monitor — streaming <see cref="RunChart"/>s, a CPU meter, a live Task Manager (real
+/// process data), a server log and more, over a full-width live global outage map with rich markup labels.
 /// </summary>
-public sealed class MonitorDashboardExample : CompositeControl, IExample, IActivatable
+public sealed class MonitorDashboardExample : CompositeControl, IActivatableExample
 {
     public MonitorDashboardExample()
     {
@@ -98,26 +94,7 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
         return plot;
     }
 
-    #region Live feed
-    public void OnActivated()
-    {
-        // Fast simulated feed (charts, meter, log, containers, clock, weather) — runs on the UI thread.
-        _feed = Feed(Advance, 50);
-
-        // Prime the CPU-time deltas off the UI thread so the first sampled display (one interval later) shows real %.
-        _ = Task.Run(() => _sampler.Sample(TopProcesses));
-
-        // Slow REAL process sampling: enumerating the OS process list every tick is expensive, so the producer/consumer
-        // Feed runs the sample on its background thread at a ~1.5s cadence and only posts the finished top-N to the UI.
-        _procFeed = Feed(() => _sampler.Sample(TopProcesses), ShowProcesses, 1500);
-    }
-
-    public void OnDeactivated()
-    {
-        _feed?.Cancel(); _feed = null;
-        _procFeed?.Cancel(); _procFeed = null;
-    }
-
+    #region Simulation
     // Runs on the UI thread (posted), so control updates are direct.
     private void Advance()
     {
@@ -261,15 +238,6 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
     private static void Shift(double[] a, double v) { Array.Copy(a, 1, a, 0, a.Length - 1); a[^1] = v; }
     #endregion
 
-    #region IExample
-    // Not fill-to-pane: the grid + outage map stack can be taller than the pane, so the host gives it a scroll
-    // viewport (small font shows it all; otherwise scroll down to the map).
-    public bool FillsPane => false;
-    public string Category => "Flexibility";
-    public string Title => "System Monitor";
-    public string Description =>
-        "A sampler-style monitor — streaming charts, a CPU meter, a live Task Manager, a server log — over a full-width live global outage map with rich markup labels.";
-    #endregion
 
     // A framable group: wraps any layout so a set of controls can share one titled frame.
     private sealed class Group : CompositeControl
@@ -364,6 +332,30 @@ public sealed class MonitorDashboardExample : CompositeControl, IExample, IActiv
     private readonly double[] _utilData = new double[6];   // reused per-tick scratch for the utilization bars (matches _sites)
     private double _bV = 0.2, _gV = 0.3, _yV = 0.8, _inV = 5000, _prV = 3000, _dqV = 200, _cpuV = 40;
     private int _tick;
-    private CancellationTokenSource? _feed, _procFeed;
+    #endregion
+
+    #region IExample
+    void IActivatableExample.OnActivated()
+    {
+        // Fast simulated feed (charts, meter, log, containers, clock, weather, outage map) — runs on the UI thread.
+        Feed(Advance, 50);
+
+        // Prime the CPU-time deltas off the UI thread so the first sampled display (one interval later) shows real %.
+        _ = Task.Run(() => _sampler.Sample(TopProcesses));
+
+        // Slow REAL process sampling (expensive OS enumeration): a producer/consumer Feed samples off-thread at ~1.5s
+        // and posts only the finished top-N to the UI. The inherited OnDeactivated cancels both Feeds.
+        Feed(() => _sampler.Sample(TopProcesses), ShowProcesses, 1500);
+    }
+
+    IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
+
+    // Not fill-to-pane: the grid + outage-map stack can be taller than the pane, so the host gives it a scroll
+    // viewport (a small font shows it all; otherwise scroll down to the map).
+    bool IExample.FillsPane => false;
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "System Monitor";
+    string IExample.Description =>
+        "A sampler-style monitor — streaming charts, a CPU meter, a live Task Manager, a server log — over a full-width live global outage map with rich markup labels.";
     #endregion
 }

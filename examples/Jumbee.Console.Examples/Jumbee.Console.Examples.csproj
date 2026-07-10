@@ -20,4 +20,13 @@
     <EmbeddedResource Include="Examples\**\*.md" />
   </ItemGroup>
 
+  <!-- Also embed the source of the library controls/layouts the examples derive from, so the viewer can show a
+       "base control" source tab beside the example (see IExample.SourceFiles). Linked with a folder prefix so each
+       resource name still ends with ".<File>.cs" for SourceLoader's suffix match. Not compiled here (resource only). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\Jumbee.Console\Controls\**\*.cs" Link="ControlSource\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console\Layouts\**\*.cs" Link="LayoutSource\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console\SpectreControl.cs" Link="ControlSource\SpectreControl.cs" />
+  </ItemGroup>
+
 </Project>

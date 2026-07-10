@@ -1,6 +1,7 @@
 namespace Jumbee.Console.Examples;
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 using ConsoleGUI.Data;
@@ -11,14 +12,10 @@ using Jumbee.Console;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
-/// The counterpart to <see cref="GlobeExample"/> for the opt-in partial-redraw path: a handful of balls bounce over
-/// a static star backdrop, and only each ball's vacated + new cell is redrawn per frame. Because the control opts
-/// into <see cref="Control.TracksDamage"/> and reports just those cells, the compositor skips the entire static
-/// field — open the Perf HUD and the "dirty" figure stays near zero while it animates (contrast the Rotating Globe,
-/// whose whole disc changes each frame). It is also the reference for the moving-region rule: each ball damages the
-/// <b>union of its old and new cell</b>, so it leaves no trail.
+/// Opt-in partial redraw: balls bounce over a static star field and only each ball's old+new cell is redrawn, so the
+/// compositor skips the rest (<see cref="Control.TracksDamage"/> + <see cref="Control.Damage"/> — watch the Perf HUD).
 /// </summary>
-public sealed class BouncingBallsExample : Control, IExample, IActivatable
+public sealed class BouncingBallsExample : Control, IActivatableExample
 {
     public BouncingBallsExample() => Focusable = false;
 
@@ -86,17 +83,7 @@ public sealed class BouncingBallsExample : Control, IExample, IActivatable
     private static int Clamp(int v, int size) => v < 0 ? 0 : v >= size ? size - 1 : v;
     #endregion
 
-    #region Live feed
-    // Bounce a few dozen times a second via Control.Feed: it posts each Step onto the UI thread (frame-start redraw),
-    // then Render reconciles the buffer to the new positions. Cancelling the handle stops it when the example hides.
-    public void OnActivated() => _feed = Feed(Step, 33);
-
-    public void OnDeactivated()
-    {
-        _feed?.Cancel();
-        _feed = null;
-    }
-
+    #region Simulation
     // Integrate + bounce off the walls, then request the repaint that Render turns into per-ball damage.
     private void Step()
     {
@@ -113,14 +100,6 @@ public sealed class BouncingBallsExample : Control, IExample, IActivatable
         }
         Invalidate();
     }
-    #endregion
-
-    #region IExample
-    public bool FillsPane => true;
-    public string Category => "Flexibility";
-    public string Title => "Bouncing Balls";
-    public string Description =>
-        "Balls bounce over a static field; only each ball's old and new cell is redrawn (opt-in partial redraw) — watch the Perf HUD's dirty % stay near zero.";
     #endregion
 
     #region Fields
@@ -140,7 +119,6 @@ public sealed class BouncingBallsExample : Control, IExample, IActivatable
 
     private bool[,] _star = new bool[0, 0];
     private int _w = -1, _h = -1;
-    private CancellationTokenSource? _feed;
     #endregion
 
     #region Types
@@ -150,5 +128,19 @@ public sealed class BouncingBallsExample : Control, IExample, IActivatable
         public readonly CColor Color = color;
         public int LastX = -1, LastY = -1;
     }
+    #endregion
+
+    #region IExample
+    // Control.Feed posts each Step to the UI thread; the base IActivatableExample.OnDeactivated cancels it
+    // (registered in Feeds) when the example is hidden.
+    void IActivatableExample.OnActivated() => Feed(Step, 33);
+
+    IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
+
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Flexibility";
+    string IExample.Title => "Bouncing Balls";
+    string IExample.Description =>
+        "Balls bounce over a static field; only each ball's old and new cell is redrawn (opt-in partial redraw) — watch the Perf HUD's dirty % stay near zero.";
     #endregion
 }

@@ -8,12 +8,10 @@ using Jumbee.Console;
 using Jumbee.Console.Drawing;
 
 /// <summary>
-/// A live drawing on the <see cref="Canvas"/> control — a braille <see cref="Circle"/> track, a rotating rose curve
-/// traced with <see cref="Points"/>, a radar <see cref="Line"/> sweep, and an orbiting blip, all redrawn each tick
-/// from a <see cref="Control.Feed"/>. Demonstrates the retained shape API (clear + re-add per frame) and sub-cell
-/// braille rendering in an arbitrary coordinate system (origin bottom-left, y up).
+/// A live drawing on the <see cref="Canvas"/> control, redrawn each tick from a <see cref="Control.Feed"/>.
+/// Demonstrates the retained shape API and sub-cell braille rendering in an arbitrary coordinate system.
 /// </summary>
-public sealed class CanvasExample : Canvas, IExample, IActivatable
+public sealed class CanvasExample : Canvas, IActivatableExample
 {
     #region Constructors
     public CanvasExample()
@@ -23,17 +21,7 @@ public sealed class CanvasExample : Canvas, IExample, IActivatable
     }
     #endregion
 
-    #region Live feed
-    // Advance the phase and redraw while shown; stop when hidden. The tick is posted onto the UI thread by Feed, so it
-    // touches the retained shape list directly.
-    public void OnActivated() => _feed = Feed(() => { _t += 0.04; Draw(); }, 33);
-
-    public void OnDeactivated()
-    {
-        _feed?.Cancel();
-        _feed = null;
-    }
-
+    #region Methods
     private void Draw()
     {
         double a = _t;
@@ -61,14 +49,6 @@ public sealed class CanvasExample : Canvas, IExample, IActivatable
     }
     #endregion
 
-    #region IExample
-    public bool FillsPane => true;
-    public string Category => "Controls";
-    public string Title => "Canvas";
-    public string Description =>
-        "The Canvas control (ported from Ratatui): shapes drawn in an arbitrary coordinate system with sub-cell braille — a live rose curve, radar sweep and orbiting blip.";
-    #endregion
-
     #region Fields
     private const int RosePoints = 480;
     private static readonly Color Track = new(45, 70, 70);
@@ -77,6 +57,19 @@ public sealed class CanvasExample : Canvas, IExample, IActivatable
     private static readonly Color Blip = new(240, 180, 90);
 
     private double _t;
-    private CancellationTokenSource? _feed;
+    #endregion
+
+    #region IExample
+    // Advance the phase and redraw while shown; stop when hidden. The tick is posted onto the UI thread by Feed, so it
+    // touches the retained shape list directly.
+    void IActivatableExample.OnActivated() => Feed(() => { _t += 0.04; Draw(); }, 33);
+
+    IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
+
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Canvas";
+    string IExample.Description =>
+        "The Canvas control (ported from Ratatui): shapes drawn in an arbitrary coordinate system with sub-cell braille — a live rose curve, radar sweep and orbiting blip.";
     #endregion
 }

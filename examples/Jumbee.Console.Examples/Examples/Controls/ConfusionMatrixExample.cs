@@ -2,10 +2,10 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-/// <summary>A confusion matrix — an annotated heatmap where each cell shows its count in readable-contrast text on
-/// the cell's own colour (the per-cell background work, change B), with the class names as categorical axis ticks
-/// at the cell centres. Row = actual class (top to bottom), column = predicted class; the bright diagonal is the
-/// correctly-classified count.</summary>
+/// <summary>
+/// A confusion matrix — an annotated heatmap with each cell's count in contrast text on the cell colour.
+/// Row = actual class, column = predicted class; the bright diagonal is the correctly-classified count.
+/// </summary>
 public sealed class ConfusionMatrixExample : Plot, IExample
 {
     public ConfusionMatrixExample()
@@ -25,10 +25,11 @@ public sealed class ConfusionMatrixExample : Plot, IExample
         ConfigureGrid(g => g.IsVisible = false);
     }
 
-    public bool FillsPane => true;
-
-    public string Category => "Controls";
-    public string Title => "Confusion Matrix";
-    public string Description =>
+    #region IExample
+    bool IExample.FillsPane => true;
+    string IExample.Category => "Controls";
+    string IExample.Title => "Confusion Matrix";
+    string IExample.Description =>
         "An annotated heatmap — counts drawn in each cell with contrast text on the cell colour (per-cell background).";
+    #endregion
 }
