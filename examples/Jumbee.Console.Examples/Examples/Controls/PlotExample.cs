@@ -19,7 +19,6 @@ public sealed class PlotExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Plot";
     string IExample.Description =>

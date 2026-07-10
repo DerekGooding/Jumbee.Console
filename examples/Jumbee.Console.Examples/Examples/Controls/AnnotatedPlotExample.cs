@@ -26,7 +26,6 @@ public sealed class AnnotatedPlotExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Annotations";
     string IExample.Description =>

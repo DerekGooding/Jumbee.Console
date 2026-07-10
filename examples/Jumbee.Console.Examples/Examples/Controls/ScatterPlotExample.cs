@@ -17,7 +17,6 @@ public sealed class ScatterPlotExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Scatter Plot";
     string IExample.Description =>

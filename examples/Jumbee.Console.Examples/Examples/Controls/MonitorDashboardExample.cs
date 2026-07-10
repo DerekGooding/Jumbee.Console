@@ -350,9 +350,6 @@ public sealed class MonitorDashboardExample : CompositeControl, IActivatableExam
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    // Not fill-to-pane: the grid + outage-map stack can be taller than the pane, so the host gives it a scroll
-    // viewport (a small font shows it all; otherwise scroll down to the map).
-    bool IExample.FillsPane => false;
     string IExample.Category => "Flexibility";
     string IExample.Title => "System Monitor";
     string IExample.Description =>

@@ -44,12 +44,6 @@ public interface IExample : IFocusable
             return [own];
         }
     }
-
-    /// <summary>When <see langword="true"/>, the example re-fits itself to the pane and must not be scrolled (e.g.
-    /// <see cref="Plot"/>): the host fills the frame viewport instead of giving the example unbounded scroll height
-    /// (which would balloon a fill-to-viewport control to the size clamp). Defaults to <see langword="false"/> — the
-    /// normal scrollable example.</summary>
-    bool FillsPane => false;
 }
 
 /// <summary>

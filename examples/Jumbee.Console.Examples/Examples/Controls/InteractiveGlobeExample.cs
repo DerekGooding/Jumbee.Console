@@ -16,7 +16,6 @@ public sealed class InteractiveGlobeExample : Globe, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Flexibility";
     string IExample.Title => "Interactive Globe";
     string IExample.Description =>

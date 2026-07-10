@@ -68,7 +68,6 @@ public sealed class CanvasMarkersExample : CompositeControl, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Canvas Markers";
     string IExample.Description =>

@@ -25,7 +25,6 @@ public sealed class GroupedBarExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Grouped Bars";
     string IExample.Description =>

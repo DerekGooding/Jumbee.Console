@@ -26,7 +26,6 @@ public sealed class ConfusionMatrixExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Confusion Matrix";
     string IExample.Description =>

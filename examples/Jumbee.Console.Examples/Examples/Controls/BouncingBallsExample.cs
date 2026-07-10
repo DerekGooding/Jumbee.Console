@@ -137,7 +137,6 @@ public sealed class BouncingBallsExample : Control, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    bool IExample.FillsPane => true;
     string IExample.Category => "Flexibility";
     string IExample.Title => "Bouncing Balls";
     string IExample.Description =>

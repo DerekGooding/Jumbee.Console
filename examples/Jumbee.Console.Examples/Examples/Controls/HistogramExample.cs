@@ -22,7 +22,6 @@ public sealed class HistogramExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Histogram";
     string IExample.Description =>

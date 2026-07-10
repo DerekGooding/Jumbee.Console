@@ -17,7 +17,6 @@ public sealed class GlobeExample : Globe, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    bool IExample.FillsPane => true;
     string IExample.Category => "Flexibility";
     string IExample.Title => "Rotating Globe";
     string IExample.Description =>

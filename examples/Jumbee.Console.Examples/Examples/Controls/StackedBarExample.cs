@@ -24,7 +24,6 @@ public sealed class StackedBarExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Stacked Bars";
     string IExample.Description =>

@@ -19,7 +19,6 @@ public sealed class HorizontalBarExample : Plot, IExample
     }
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "Horizontal Bars";
     string IExample.Description =>

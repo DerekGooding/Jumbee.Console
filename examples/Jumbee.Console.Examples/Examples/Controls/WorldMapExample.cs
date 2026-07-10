@@ -47,7 +47,6 @@ public sealed class WorldMapExample : Canvas, IExample
     #endregion
 
     #region IExample
-    bool IExample.FillsPane => true;
     string IExample.Category => "Controls";
     string IExample.Title => "World Map";
     string IExample.Description =>
