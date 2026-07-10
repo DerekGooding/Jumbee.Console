@@ -84,6 +84,56 @@ public class ListBoxTests
         Assert.False(RowHasUnderline(buf, 1));   // unselected row not
     }
 
+    // --- Multi-line items: an item may span several rows (wrapped or newline-bearing IRenderable) ---
+
+    [Fact]
+    public void MultiLineItems_RenderAcrossMultipleRows()
+    {
+        var list = new ListBox(
+            new Spectre.Console.Markup("[bold]Alpha[/]\nfirst desc"),
+            new Spectre.Console.Markup("[bold]Beta[/]\nsecond desc"));
+
+        var rows = ConsoleSnapshot.ToText(list, 20, 6).TrimEnd('\n').Split('\n');
+
+        Assert.Contains("Alpha", rows[0]);
+        Assert.Contains("first desc", rows[1]);    // item 0 occupies rows 0-1
+        Assert.Contains("Beta", rows[2]);          // item 1 starts at row 2
+        Assert.Contains("second desc", rows[3]);
+    }
+
+    [Fact]
+    public void ClickInsideAMultiLineItem_SelectsThatItem()
+    {
+        var list = new ListBox(
+            new Spectre.Console.Markup("Alpha\naaa"),
+            new Spectre.Console.Markup("Beta\nbbb"));
+        ConsoleSnapshot.Render(list, 20, 6);   // establish layout so the row→item map is populated
+        Assert.Equal(0, list.SelectedIndex);
+
+        // Row 3 falls inside the SECOND item (item 0 = rows 0-1, item 1 = rows 2-3).
+        var ml = (ConsoleGUI.Input.IMouseListener)list;
+        ml.OnMouseDown(new ConsoleGUI.Space.Position(0, 3));
+        ml.OnMouseUp(new ConsoleGUI.Space.Position(0, 3));
+
+        Assert.Equal(1, list.SelectedIndex);   // clicking the item's second row still selects that item
+    }
+
+    [Fact]
+    public void SelectingATallItem_ScrollsTheFrame_ByRows()
+    {
+        var items = new Spectre.Console.Rendering.IRenderable[10];
+        for (var i = 0; i < 10; i++) items[i] = new Spectre.Console.Markup($"[bold]Item {i}[/]\ndesc {i}");
+        var list = new ListBox(items);
+        list.WithRoundedBorder();   // a frame so it scrolls; content (20 rows) far exceeds the viewport
+
+        ConsoleSnapshot.Render(list, 20, 8);
+        Assert.Equal(0, list.Frame!.Top);
+
+        list.SelectedIndex = 9;   // last item -> content rows 18-19
+
+        Assert.True(list.Frame!.Top > 0);   // scrolled down by rows to reveal the tall item at the bottom
+    }
+
     private static bool RowHasUnderline(ConsoleBuffer buf, int y)
     {
         for (var x = 0; x < buf.Size.Width; x++)
@@ -147,6 +197,52 @@ public class ListBoxTests
 
         Assert.True(RowHasUnderline(buf, 0));
         Assert.False(RowHasUnderline(buf, 1));
+    }
+
+    // --- HighlightFullWidth extends the selection across the whole row ---
+
+    // True only if EVERY cell on row y carries a background colour (the selection fills the full width).
+    private static bool WholeRowHasBackground(ConsoleBuffer buf, int y)
+    {
+        for (var x = 0; x < buf.Size.Width; x++)
+            if (buf[x, y].Background is null) return false;
+        return true;
+    }
+
+    [Fact]
+    public void HighlightFullWidth_FillsTheEntireSelectedRow()
+    {
+        var list = new ListBox("ab", "cd") { HighlightFullWidth = true };   // row 0 selected
+
+        var buf = ConsoleSnapshot.Render(list, 12, 2);
+
+        Assert.True(WholeRowHasBackground(buf, 0));   // the selection background spans the full row width
+        Assert.False(RowHasBackground(buf, 1));       // the unselected row is untouched
+    }
+
+    [Fact]
+    public void WithoutHighlightFullWidth_OnlyTheItemWidthIsHighlighted()
+    {
+        var list = new ListBox("ab", "cd");   // default: highlight stops at the item's own width
+
+        var buf = ConsoleSnapshot.Render(list, 12, 2);
+
+        Assert.NotNull(buf[0, 0].Background);                    // the item text is highlighted
+        Assert.Null(buf[buf.Size.Width - 1, 0].Background);      // but not the trailing empty space
+    }
+
+    [Fact]
+    public void HighlightFullWidth_FillsTheRow_ForIRenderableItems_Too()
+    {
+        var list = new ListBox(new Spectre.Console.Text("ab"), new Spectre.Console.Text("cd"))
+        {
+            HighlightFullWidth = true,
+        };
+
+        var buf = ConsoleSnapshot.Render(list, 12, 2);
+
+        Assert.True(WholeRowHasBackground(buf, 0));
+        Assert.False(RowHasBackground(buf, 1));
     }
 
     [Fact]

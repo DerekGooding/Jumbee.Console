@@ -525,9 +525,13 @@ public class Plot : Control
             Rebuild();
         });
 
-    // Applies a live-series data mutation on the UI thread, then redraws. The buffers are only ever touched here,
-    // so a plain List stays race-free even when data arrives on a background thread.
-    internal void UpdateSeries(Action mutate) => UI.Invoke(() => { mutate(); Rebuild(); });
+    // Applies a live-series data mutation on the UI thread, then redraws — WITHOUT rebuilding the underlying plot.
+    // A rebuild would allocate a fresh PlotImage (image buffer) and re-create every series each frame; instead, the
+    // underlying series alias these same buffers (ConsolePlot's Series holds the list by reference, see AsList), so
+    // mutating them here is picked up by the next Draw. Only a resize or a structural change (add/remove series or
+    // config) still rebuilds. The buffers are only ever touched here, so a plain List stays race-free even when data
+    // arrives on a background thread.
+    internal void UpdateSeries(Action mutate) => UI.Invoke(() => { mutate(); Invalidate(); });
 
     private void AddElement(Action<CPlot> config)
     {

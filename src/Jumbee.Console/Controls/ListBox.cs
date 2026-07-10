@@ -50,6 +50,15 @@ public partial class ListBox : RenderableControl
         set => SetAtomicProperty(ref _selectionStyle, value, themeOverride: true);
     }
 
+    /// <summary>When <see langword="true"/>, the selection style fills the entire row width, not just the item's own
+    /// width — so a selected row reads as a full-width bar. Most visible in <see cref="SelectionStyle.Highlight"/>
+    /// mode (the selection background spans the row). Defaults to <see langword="false"/>.</summary>
+    public bool HighlightFullWidth
+    {
+        get => _highlightFullWidth;
+        set => SetAtomicProperty(ref _highlightFullWidth, value);
+    }
+
     /// <summary>The index of the highlighted item (in item order), clamped to the item range.</summary>
     public int SelectedIndex
     {
@@ -107,7 +116,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             foreach (var item in added) _items[item.Index] = item;
-            Initialize();   // re-measure: the content height (item count) may have changed
+            InvalidateLayout();   // re-measure: item set changed, so heights may differ
         });
     }
 
@@ -117,7 +126,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             foreach (var item in added) _items[item.Index] = item;
-            Initialize();   // re-measure: the content height (item count) may have changed
+            InvalidateLayout();   // re-measure: item set changed, so heights may differ
         });
     }
 
@@ -127,7 +136,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             foreach (var item in added) _items[item.Index] = item;
-            Initialize();   // re-measure: the content height (item count) may have changed
+            InvalidateLayout();   // re-measure: item set changed, so heights may differ
         });
     }
 
@@ -137,7 +146,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             _items[listItem.Index] = listItem;
-            Initialize();
+            InvalidateLayout();
         });
         return listItem;
     }
@@ -148,7 +157,7 @@ public partial class ListBox : RenderableControl
         UI.Invoke(() =>
         {
             _items[item.Index] = item;
-            Initialize();
+            InvalidateLayout();
         });
         return item;
     }
@@ -166,7 +175,7 @@ public partial class ListBox : RenderableControl
             {
                 r.Detach();
                 removed = true;
-                Initialize();
+                InvalidateLayout();
             }
         });
         return removed;
@@ -178,7 +187,7 @@ public partial class ListBox : RenderableControl
         {
             foreach (var item in _items.Values) item.Detach();
             _items.Clear();
-            Initialize();
+            InvalidateLayout();
         });
     }
 
@@ -194,9 +203,59 @@ public partial class ListBox : RenderableControl
         _selectionCaret = UI.GlyphTheme.SelectionCaret;
     }
 
-    // Each item is one row; report the item count so a surrounding ControlFrame sizes us to our content and
-    // scrolls accurately, instead of filling to the 1000-row clamp.
-    protected override int MeasureHeight(int width) => Math.Max(1, _items.Count);
+    // Items may be multi-line (an IRenderable carrying newlines), so our content height is the sum of the item
+    // heights — not the item count. Reporting it lets a surrounding ControlFrame size us to our content and scroll
+    // accurately, instead of filling to the 1000-row clamp.
+    //
+    // Item height is measured (and items are rendered — see Render) at a fixed wide width, so a row is the item's
+    // EXPLICIT line count and is INDEPENDENT of the control's width: long lines are clipped to the viewport, not
+    // wrapped. This is deliberate — a width-dependent height feeds the layout's content-height↔width convergence in a
+    // scrolling frame and can fail to settle (an infinite layout loop); a width-independent height converges exactly
+    // as the single-line case always did.
+    protected override int MeasureHeight(int width) => Math.Max(1, EnsureLayout()[^1]);
+
+    // Per-item vertical layout: cumulative row offsets, length = itemCount + 1, so _offsets[k] is the first row of
+    // item k and _offsets[itemCount] is the total content height. Recomputed when the item set/content changes
+    // (tracked by _itemsVersion). Maps between item indices and rows for scrolling and click hit-testing, since a row
+    // is no longer an item index once items span multiple lines.
+    private int[] EnsureLayout()
+    {
+        if (_layoutVersion == _itemsVersion && _offsets.Length == _items.Count + 1)
+            return _offsets;
+
+        var items = OrderedItems();
+        var options = new RenderOptions(ansiConsole.Profile.Capabilities, new Spectre.Console.Size(LayoutWidth, 1));
+        var gutter = _selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0;
+        var contentWidth = Math.Max(1, LayoutWidth - gutter);
+
+        var offsets = new int[items.Length + 1];
+        var y = 0;
+        for (var i = 0; i < items.Length; i++)
+        {
+            offsets[i] = y;
+            y += Math.Max(1, Segment.SplitLines(items[i].Content.Render(options, contentWidth)).Count);
+        }
+        offsets[items.Length] = y;
+
+        _offsets = offsets;
+        _layoutVersion = _itemsVersion;
+        return _offsets;
+    }
+
+    // Bump the layout version (and re-measure) after a change that can alter item heights — an add/remove or an
+    // item's content changing. A height change must re-lay-out (Initialize), not merely Invalidate, so a surrounding
+    // frame re-measures our content height (see Control.MeasureHeight).
+    internal void InvalidateLayout() => UI.Invoke(() => { _itemsVersion++; Initialize(); });
+
+    // The item whose rows contain content-row <paramref name="row"/>, or -1 if past the last item.
+    private int ItemIndexAtRow(int row)
+    {
+        if (row < 0) return -1;
+        var offsets = EnsureLayout();
+        for (var i = 0; i + 1 < offsets.Length; i++)
+            if (row >= offsets[i] && row < offsets[i + 1]) return i;
+        return -1;
+    }
 
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("List", "List", "A scrollable list of items; the selected item is highlighted.")
         .WithKey("↑ / ↓", "Move the selection")
@@ -245,17 +304,25 @@ public partial class ListBox : RenderableControl
         }
     }
 
-    // A page for PageUp/PageDown: the visible viewport when framed, else a sensible default. SelectedIndex clamps.
-    private int Page() => Math.Max(1, Frame?.ViewportSize.Height ?? 10);
+    // A page for PageUp/PageDown, in items: roughly how many average-height items fit in the viewport, so paging
+    // advances by a viewport regardless of item height. SelectedIndex clamps.
+    private int Page()
+    {
+        var viewport = Math.Max(1, Frame?.ViewportSize.Height ?? 10);
+        var count = _items.Count;
+        var total = EnsureLayout()[^1];
+        if (count == 0 || total <= 0) return 1;
+        var avgHeight = (double)total / count;
+        return Math.Max(1, (int)(viewport / avgHeight));
+    }
 
-    // A left click selects the row under the pointer and commits it; a right click selects it and opens the context
-    // menu instead. Each item is one row, and the listener position is in content coordinates, so the row is position.Y.
+    // A left click selects the item under the pointer and commits it; a right click selects it and opens the context
+    // menu instead. The listener position is in content coordinates; an item may span several rows, so map the row.
     protected override void OnClick(Position position)
     {
         if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position.Y); return; }
-        var count = _items.Count;
-        var index = position.Y;
-        if (index < 0 || index >= count) return;
+        var index = ItemIndexAtRow(position.Y);
+        if (index < 0) return;
         SelectedIndex = index;
         Commit();
     }
@@ -275,8 +342,9 @@ public partial class ListBox : RenderableControl
     // Item handlers can read SelectedItem. No-op if no menu is set or the click missed every row.
     private void OpenContextMenu(int row)
     {
-        if (ContextMenu is null || row < 0 || row >= _items.Count) return;
-        SelectedIndex = row;
+        var index = ItemIndexAtRow(row);
+        if (ContextMenu is null || index < 0) return;
+        SelectedIndex = index;
         if (SelectedItem is { } item) ContextMenuOpening?.Invoke(this, item);
         if (ConsoleGUI.ConsoleManager.MousePosition is { } m) ContextMenu.Show(m.X, m.Y);
         else ContextMenu.Show(0, row);
@@ -285,26 +353,26 @@ public partial class ListBox : RenderableControl
     private ListBoxItem[] OrderedItems() => _items.Values.OrderBy(i => i.Index).ToArray();
 
     /// <summary>
-    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the selected item stays within
-    /// the viewport. Each item occupies one row, so the selected row's Y position is its index.
+    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the selected item stays within the viewport.
+    /// Items may span several rows, so the selected item's row range is [offset, offset + height).
     /// </summary>
     private void AutoScroll()
     {
         if (Frame == null) return;
 
-        var y = _selectionIndex;
+        var offsets = EnsureLayout();
+        if (_selectionIndex < 0 || _selectionIndex + 1 >= offsets.Length) return;
+        var itemTop = offsets[_selectionIndex];
+        var itemBottom = offsets[_selectionIndex + 1];   // exclusive
+
         var top = Frame.Top;
         var viewportHeight = Frame.ViewportSize.Height;
         if (viewportHeight <= 0) return;
 
-        if (y < top)
-        {
-            Frame.Top = y;
-        }
-        else if (y >= top + viewportHeight)
-        {
-            Frame.Top = y - viewportHeight + 1;
-        }
+        if (itemTop < top)
+            Frame.Top = itemTop;                                 // scrolled above: bring its top into view
+        else if (itemBottom > top + viewportHeight)
+            Frame.Top = Math.Min(itemTop, itemBottom - viewportHeight);   // below: reveal its bottom (top wins if taller than the viewport)
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
@@ -321,6 +389,7 @@ public partial class ListBox : RenderableControl
         // blank) so the item text stays put as the selection moves instead of jumping.
         var caret = _selectionStyle == SelectionStyle.Caret;
         var gutter = caret ? new string(' ', _selectionCaret.GetCellWidth()) : "";
+        var selStyle = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
 
         for (int i = 0; i < items.Length; i++)
         {
@@ -331,8 +400,7 @@ public partial class ListBox : RenderableControl
                 if (selected)
                 {
                     // Indicate the selected row per SelectionStyle: a highlight, an underline, or a caret prefix.
-                    var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
-                    renderables[i] = new Markup(_selectionStyle.Prefix(_selectionCaret) + item.Text, style);
+                    renderables[i] = new Markup(_selectionStyle.Prefix(_selectionCaret) + item.Text, selStyle);
                 }
                 else if (caret)
                 {
@@ -351,13 +419,21 @@ public partial class ListBox : RenderableControl
                 // colourful label stays colourful under the highlight (the same approach Tree uses for IRenderable
                 // nodes). The caret gutter (Caret mode) is reserved on every row so labels stay aligned as the
                 // selection moves.
-                var overlay = selected ? _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor) : (Spectre.Console.Style?)null;
+                var overlay = selected ? selStyle : (Spectre.Console.Style?)null;
                 renderables[i] = new HighlightedRenderable(item.Content, overlay, caret ? _selectionCaret : null, selected);
             }
+
+            // Extend the selection across the whole row: pad the selected row to the full width in the selection
+            // style so it reads as a full-width bar rather than stopping at the item's own width.
+            if (selected && _highlightFullWidth)
+                renderables[i] = new FullWidthRow(renderables[i], selStyle);
         }
 
+        // Render at the fixed wide layout width (not maxWidth) so items are laid out by their explicit lines and don't
+        // wrap — matching EnsureLayout's height measurement. Content wider than the control is clipped when written to
+        // the (viewport-width) buffer. The full-width highlight likewise pads to this width and clips to the viewport.
         var rows = new Rows(renderables);
-        return ((IRenderable)rows).Render(options, maxWidth);
+        return ((IRenderable)rows).Render(options, LayoutWidth);
     }
     #endregion
 
@@ -410,6 +486,33 @@ public partial class ListBox : RenderableControl
             return result;
         }
     }
+
+    /// <summary>
+    /// Pads each rendered line of the wrapped row out to the full viewport width with a fill style, so a selected
+    /// row's selection style spans the whole ListBox width instead of stopping at the item's own width. Opt in via
+    /// <see cref="HighlightFullWidth"/>.
+    /// </summary>
+    /// <param name="inner">The already-styled selected row.</param>
+    /// <param name="fill">The style (the selection style) painted over the trailing padding.</param>
+    private sealed class FullWidthRow(IRenderable inner, Spectre.Console.Style fill) : IRenderable
+    {
+        public Measurement Measure(RenderOptions options, int maxWidth) => new(maxWidth, maxWidth);
+
+        public IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
+        {
+            var lines = Segment.SplitLines(inner.Render(options, maxWidth));
+            var result = new List<Segment>();
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+                result.AddRange(line);
+                var pad = maxWidth - Segment.CellCount(line);
+                if (pad > 0) result.Add(new Segment(new string(' ', pad), fill));
+                result.Add(Segment.LineBreak);
+            }
+            return result;
+        }
+    }
     #endregion
 
     #region Fields
@@ -420,5 +523,15 @@ public partial class ListBox : RenderableControl
     private Color? _selectedForegroundColor;
     private SelectionStyle _selectionStyle;
     private string _selectionCaret = "";
+    private bool _highlightFullWidth;
+    // Cached per-item row layout (see EnsureLayout): cumulative row offsets, recomputed when the item set/content
+    // (_itemsVersion) changes. Item heights are width-independent, so the layout doesn't depend on the control width.
+    private int[] _offsets = [0];
+    private int _layoutVersion = -1;
+    private int _itemsVersion;
+    // The fixed wide width items are measured and rendered at, so heights are width-independent (see MeasureHeight).
+    // Matches Control.CalculateSize's 1000-cell clamp — the widest a control is ever laid out — so nothing visible is
+    // ever lost to the cap; wider content simply clips to the viewport.
+    private const int LayoutWidth = 1000;
     #endregion
 }

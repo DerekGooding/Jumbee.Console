@@ -42,7 +42,7 @@ public partial class ListBox
             {
                 _content = value;
                 _text = null;
-                ListBox?.Update();
+                ListBox?.InvalidateLayout();   // content (and thus height) changed — re-measure
             }
         }
 
@@ -86,7 +86,7 @@ public partial class ListBox
             if (_text != null)
             {
                 _content = new Markup(_text, new Spectre.Console.Style(_foregroundColor, _backgroundColor));
-                ListBox?.Update();
+                ListBox?.InvalidateLayout();   // text/colour rebuilt the content — re-measure (height may change)
             }
         }
 

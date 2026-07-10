@@ -1,30 +1,36 @@
 
 # About this project
-The project Jumbee.Console at @src/Jumbee.Console is a .NET library for building advanced console user interfaces. It is intended to be a combination of the layout and windowing features from the retained-mode ConsoleGUI library at 
-@ext/C-sharp-console-gui-framework/ConsoleGUI/ and the text styling and formatting and rendering and widget features and controls from the immediate-mode Spectre.Console library at @ext/spectre.console/src/Spectre.Console. 
+The project Jumbee.Console at @src/Jumbee.Console is a .NET library for building advanced TUIs that focuses on performance and usability. Architecturally, it combines the layout and windowing features from the retained-mode ConsoleGUI library at 
+@ext/C-sharp-console-gui-framework/ConsoleGUI/ with the text styling and formatting and rendering and widget features and controls from the immediate-mode Spectre.Console library at @ext/spectre.console/src/Spectre.Console. 
 
 The initial plan created a bridge between the two libraries by implementing `IAnsiConsole` from Spectre.Console in the `AnsiConsoleBuffer` class at @src/Jumbee.Console/AnsiConsoleBuffer.cs to store Spectre.Console control output instead of writing it to the console immediately, 
 and a `SpectreControl` class for wrapping Spectre.Console controls as ConsoleGUI `IControl` to be used with ConsoleGUI control and layout classes.
-
-`SpectreConsole` now inherits from the base `Jumbee.Console.Control` class that provides the base functionality for all Jumbee.Console controls that display output and recieve user input.
-Support for updating and animating controls is provided by the `UI` class, which runs a single dedicated UI thread via the `Dispatcher`. Each frame the dispatcher drains a work queue, dispatches input, and redraws the UI, firing Paint events that controls use to render their state. All UI state mutation and rendering happen on this one UI thread, so there is no shared lock. Code on other threads marshals work onto the UI thread via `UI.Invoke` (runs inline when already on the UI thread, otherwise posts to the dispatcher queue), `UI.Post`, or `UI.InvokeAsync`. Atomic scalar property changes (via `SetAtomicProperty`) are written directly and may briefly tear for multi-field structs (a self-correcting one-frame risk that is accepted); non-atomic changes (collections, or mutating a wrapped Spectre control) are marshaled onto the UI thread via `UI.Invoke` so they never race with rendering. Layout/geometry changes (such as setting a Control's size) also go through `UI.Invoke` so they run on the UI thread before the next redraw. The UI thread installs a `SynchronizationContext`, so `await` inside code already running on the UI thread (event handlers, the `onUpdate` callback, anything started via `UI.Invoke`/`Post`/`InvokeAsync`) resumes back on the UI thread — meaning a background `await SomethingAsync()` can be followed by direct control updates with no explicit marshaling (the WPF/Avalonia model).
+Currently there are many controls which are implemented natively in Jumbee.Console. `SpectreControl` now inherits from the base `Jumbee.Console.Control` class that provides the base functionality for all Jumbee.Console controls that display output and receive user input.
+Support for managing the user interface and updating and animating controls is provided by the `UI` class, which runs a single dedicated UI thread via the `Dispatcher`. 
+For each frame the dispatcher reads a work queue, dispatches input, and redraws the UI, firing Paint events that controls use to render their state. 
+All UI state mutation and rendering happen on this one UI thread, so there is no shared lock. Code on other threads marshals work onto the UI thread via `UI.Invoke`, `UI.Post`, or `UI.InvokeAsync`. 
+Control property setters do this marshalling automatically via `SetAtomicProperty`.
 
 Control layout is handled using `Jumbee.Console.Layout` derived classes that wrap ConsoleGUI layout classes. Drawing conflicts from concurrent updates in ConsoleGUI layout classes are mitigated using the UI.Invoke method 
 to synchronize concurrent requests for changes to a layout control before redrawing and propagating the changes upward to parent containers.
 
 ## Project design and architecture
 
-Read all the markdown docs at @docs/internal/*.md to understand the integration between Console.GUI and Spectre.Console in Jumbee.Console.
+Read all the markdown docs at @docs/internal/*.md to understand the project architecture and the integration between ConsoleGUI and Spectre.Console in Jumbee.Console.
 
 ### Control class
-Controls are represented by the common Jumbee.Console.Control class. 
+Controls are represented by the common `Jumbee.Console.Control` class. 
 
 ### ControlFrame class
-A Control can have an optional ControlFrame object in its Frame property. The Jumbee.Console.ControlFrame class has a single Jumbee.Console.Control as its child and draws borders, margins, scrollbars, a titlebar, and other control adornments around its child control, combining the drawing logic
+A `Control` can have an optional `ControlFrame` object in its `Frame` property. The `ControlFrame` class has a single `Control` as its child and draws borders, margins, scrollbars, a titlebar, and other control adornments around its child control, combining the drawing logic
 of ConsoleGUI classes like Border, Margin, and VerticalScrollPanel.
 
 ### Layout class
 Controls and ControlFrames can be placed in Jumbee.Console.Layout classes for arrangement. This class wraps existing ConsoleGUI layout controls like ConsoleGUI.Controls.Grid.
+It implements the ILayout interface which provides a common interface for all layout classes to be used in Jumbee.Console.
+
+### CompositeControl class
+A `CompositeControl` is a `Control` that has multiple child Controls arranged in an ILayout The CompositeControl coordinates layout and input handling among its child controls.
 
 ### RenderableControl class
 The RenderableControl implements Spectre.Console.IRenderable and is designed for new control implementations that want to use the Spectre.Console text styling and layout and rendering
@@ -59,3 +65,14 @@ Note the following important considerations when deriving from these classes:
 
 ## Project documentation style
 - Avoid verbose documentation on members. Try to be as terse as possible while giving all relevant information about usage. Avoid mentioning other TUI libraries unless it is relevant to the usage of the class or member.
+
+## Examples project coding and documentation style:
+The project at @examples/Jumbee.Console.Examples demonstrates the usage of the library and the source for each example is shown side-by-side with the example in a limited-width panel.
+So we must adjust the coding style a bit to make the code more readable in the examples browser. The following coding style should be used in the examples:
+
+- Use a max 2-line class comment that summarizes the important details for the example class.
+- Avoid prefixing field-names with underscores in example code, for readability. Use camel-case for field names, starting with a lower-case letter.
+- Prefer arrays over collections where possible, for readability.
+- Put the `IExample` members in a #region below the fields #region. Use the `atring IExample.Category` definition style for the members to indicate these are the examples host interface
+implementation, not strictly part of the example code.
+- Avoid using aliases for types in example code. Import the namespace with `using` or Use the full type name to avoid ambiguity.
