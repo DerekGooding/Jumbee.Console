@@ -93,4 +93,75 @@ public class ListBoxTests
         }
         return false;
     }
+
+    // --- IRenderable items are highlighted when selected, like Tree's IRenderable nodes ---
+
+    [Fact]
+    public void IRenderableItem_IsHighlighted_WhenSelected()
+    {
+        // Items added as IRenderables (not strings) must still show the selection highlight on the selected row.
+        var list = new ListBox(new Spectre.Console.Text("alpha"), new Spectre.Console.Text("beta"));
+
+        var buf = ConsoleSnapshot.Render(list, 12, 2);
+
+        Assert.True(RowHasBackground(buf, 0));    // the selected IRenderable row is highlighted
+        Assert.False(RowHasBackground(buf, 1));   // an unselected one is not
+    }
+
+    [Fact]
+    public void IRenderableItem_MovesTheHighlight_OnDownArrow()
+    {
+        var list = new ListBox(new Spectre.Console.Text("alpha"), new Spectre.Console.Text("beta"));
+
+        var buf = ConsoleSnapshot.RenderAfter(list, 12, 2, ConsoleKey.DownArrow);
+
+        Assert.False(RowHasBackground(buf, 0));
+        Assert.True(RowHasBackground(buf, 1));
+    }
+
+    [Fact]
+    public void IRenderableItem_KeepsItsOwnColour_UnderTheHighlight()
+    {
+        // A colourful label stays colourful under the highlight: the overlay adds the selection background but keeps
+        // each segment's own foreground (Style.Combine). So the selected green row's text foreground matches the
+        // unselected green row's — only the background changes.
+        var list = new ListBox(new Spectre.Console.Markup("[green]alpha[/]"), new Spectre.Console.Markup("[green]beta[/]"));
+
+        var buf = ConsoleSnapshot.Render(list, 12, 2);   // row 0 selected, row 1 not
+
+        Assert.True(RowHasBackground(buf, 0));                       // selected row highlighted
+        Assert.False(RowHasBackground(buf, 1));                      // unselected row not
+        Assert.NotNull(buf[0, 0].Foreground);
+        Assert.Equal(buf[0, 1].Foreground, buf[0, 0].Foreground);   // the label's green survives the highlight
+    }
+
+    [Fact]
+    public void IRenderableItem_UnderlineSelectionStyle_UnderlinesSelectedRow_NotOthers()
+    {
+        var list = new ListBox(new Spectre.Console.Text("alpha"), new Spectre.Console.Text("beta"))
+        {
+            SelectionStyle = SelectionStyle.Underline,
+        };
+
+        var buf = ConsoleSnapshot.Render(list, 14, 2);
+
+        Assert.True(RowHasUnderline(buf, 0));
+        Assert.False(RowHasUnderline(buf, 1));
+    }
+
+    [Fact]
+    public void IRenderableItem_CaretSelectionStyle_PrefixesSelectedRow_AndReservesGutter()
+    {
+        var list = new ListBox(new Spectre.Console.Text("alpha"), new Spectre.Console.Text("beta"))
+        {
+            SelectionStyle = SelectionStyle.Caret,
+        };
+
+        var rows = ConsoleSnapshot.ToText(list, 14, 2).TrimEnd('\n').Split('\n');
+
+        Assert.Contains("▶", rows[0]);                          // caret on the selected IRenderable row
+        Assert.DoesNotContain("▶", rows[1]);                    // not on the unselected one
+        // The gutter is reserved on the unselected row too, so its label starts in the same column as the selected one.
+        Assert.Equal(rows[0].IndexOf("alpha"), rows[1].IndexOf("beta"));
+    }
 }

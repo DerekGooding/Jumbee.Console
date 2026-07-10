@@ -7,6 +7,7 @@ using System.Threading;
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using Spectre.Console.Interop;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
@@ -324,25 +325,90 @@ public partial class ListBox : RenderableControl
         for (int i = 0; i < items.Length; i++)
         {
             var item = items[i];
-            if (i == _selectionIndex && item.Text != null)
+            var selected = i == _selectionIndex;
+            if (item.Text != null)
             {
-                // Indicate the selected row per SelectionStyle: a highlight, an underline, or a caret prefix.
-                var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
-                renderables[i] = new Markup(_selectionStyle.Prefix(_selectionCaret) + item.Text, style);
-            }
-            else if (caret && item.Text != null)
-            {
-                // Blank gutter, keeping the item's own colours, so unselected rows line up with the selected one.
-                renderables[i] = new Markup(gutter + item.Text, new Spectre.Console.Style(item.ForegroundColor, item.BackgroundColor));
+                if (selected)
+                {
+                    // Indicate the selected row per SelectionStyle: a highlight, an underline, or a caret prefix.
+                    var style = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
+                    renderables[i] = new Markup(_selectionStyle.Prefix(_selectionCaret) + item.Text, style);
+                }
+                else if (caret)
+                {
+                    // Blank gutter, keeping the item's own colours, so unselected rows line up with the selected one.
+                    renderables[i] = new Markup(gutter + item.Text, new Spectre.Console.Style(item.ForegroundColor, item.BackgroundColor));
+                }
+                else
+                {
+                    renderables[i] = item.Content;
+                }
             }
             else
             {
-                renderables[i] = item.Content;
+                // An IRenderable item can't be folded into markup, so a selected one is highlighted by RESTYLING its
+                // rendered segments — the selection style is overlaid on each, keeping the segment's own colours so a
+                // colourful label stays colourful under the highlight (the same approach Tree uses for IRenderable
+                // nodes). The caret gutter (Caret mode) is reserved on every row so labels stay aligned as the
+                // selection moves.
+                var overlay = selected ? _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor) : (Spectre.Console.Style?)null;
+                renderables[i] = new HighlightedRenderable(item.Content, overlay, caret ? _selectionCaret : null, selected);
             }
         }
 
         var rows = new Rows(renderables);
         return ((IRenderable)rows).Render(options, maxWidth);
+    }
+    #endregion
+
+    #region Types
+    /// <summary>
+    /// Wraps a <see cref="ListBoxItem"/>'s <see cref="IRenderable"/> content so a selected row is highlighted the way
+    /// <see cref="Tree"/> highlights a selected <see cref="IRenderable"/> node: the selection style is overlaid on
+    /// each rendered segment — keeping the segment's own foreground/background where it set one, so a colourful label
+    /// stays colourful under the highlight. In <see cref="SelectionStyle.Caret"/> mode a caret glyph (selected) or a
+    /// blank spacer (others) is reserved on the left so labels stay aligned as the selection moves.
+    /// </summary>
+    /// <param name="inner">The item's content.</param>
+    /// <param name="overlay">The selection style to overlay when the row is selected; <see langword="null"/> otherwise.</param>
+    /// <param name="caret">The caret glyph to reserve a gutter for in Caret mode; <see langword="null"/> in other modes.</param>
+    /// <param name="selected">Whether this row is the selected one.</param>
+    private sealed class HighlightedRenderable(IRenderable inner, Spectre.Console.Style? overlay, string? caret, bool selected) : IRenderable
+    {
+        private int GutterWidth => caret?.GetCellWidth() ?? 0;
+
+        public Measurement Measure(RenderOptions options, int maxWidth)
+        {
+            var g = GutterWidth;
+            var m = inner.Measure(options, Math.Max(0, maxWidth - g));
+            return new Measurement(m.Min + g, m.Max + g);
+        }
+
+        public IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
+        {
+            var g = GutterWidth;
+            var lines = Segment.SplitLines(inner.Render(options, Math.Max(0, maxWidth - g)));
+            var result = new List<Segment>();
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (g > 0)
+                {
+                    // Caret glyph on the selected row's first line (in the selection style), else a blank spacer.
+                    result.Add(selected && i == 0
+                        ? new Segment(caret!, overlay ?? Spectre.Console.Style.Plain)
+                        : new Segment(new string(' ', g)));
+                }
+
+                // Overlay the selection style on a selected row's segments (each keeps its own colours where set).
+                if (overlay is { } o)
+                    foreach (var seg in lines[i]) result.Add(seg.WithStyle(o.Combine(seg.Style)));
+                else
+                    result.AddRange(lines[i]);
+
+                result.Add(Segment.LineBreak);
+            }
+            return result;
+        }
     }
     #endregion
 

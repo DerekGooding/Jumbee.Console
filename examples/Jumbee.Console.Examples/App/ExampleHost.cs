@@ -22,7 +22,9 @@ public sealed class ExampleHost : CompositeControl
             _active = content;
         }
 
-        var header = new TextLabel(TextLabelOrientation.Horizontal, description);
+        // The description is a passive label, not a focus target — keep it out of focus/Tab traversal so it can't
+        // become the composite's focus child (which would swallow the example's keyboard input).
+        var header = new TextLabel(TextLabelOrientation.Horizontal, description) { Focusable = false };
         SetContent(new DockPanel(DockedControlPlacement.Top, header, Framed(content)));
     }
 
@@ -34,6 +36,12 @@ public sealed class ExampleHost : CompositeControl
     // then fills the bounded height; a scrollable one scrolls inside its own inner frame (see Framed) with a single
     // scrollbar. Ballooning the host instead would make the pane frame a second, redundant scroller.
     protected override bool FillsFrameViewport => true;
+
+    // Delegate focus to the CURRENT example, not the composite's default "first focusable descendant" — which is set
+    // once and never tracks the swapped-in content, so it would stick to a stale/detached control after the first
+    // switch. Clicking or tabbing into the pane (both resolve to this host as the focus unit) therefore focuses the
+    // live example, so keyboard input routes to it. A layout example (not a Control) falls back to the default.
+    protected override Control? FocusChild => _active as Control;
 
     // A scrollable Control (ListBox, editors…) needs a ControlFrame to scroll — the example is a bare control, so we
     // give it a borderless frame here (the pane's own frame supplies the visible border/title). Layouts arrange their
