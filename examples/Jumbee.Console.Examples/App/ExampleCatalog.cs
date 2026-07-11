@@ -40,6 +40,7 @@ public static class ExampleCatalog
         new SpectreTableExample(),
         new MultiTabEditorExample(),
         new MarkdownViewerExample(),
+        new AsciiDocViewerExample(),
     ];
 
     /// <summary>The example shown when the browser opens.</summary>

@@ -1,0 +1,65 @@
+= AsciiDoc Viewer
+:author: Jumbee.Console
+:toc:
+
+A read-only, scrollable *AsciiDoc* viewer built on the pure-managed
+https://github.com/sonatique/Adoc.Net[AdocNet] parser, rendering each AST node
+as a Spectre.Console renderable.
+
+== Inline Formatting
+
+This paragraph shows *bold*, _italic_, and `monospace` text, a
+https://asciidoctor.org[link], and a cross-reference all styled inline.
+
+== Lists
+
+.A checklist
+* [x] Parse the document with AdocNet
+* [x] Emit Spectre renderables per node
+* [ ] Ship it
+
+.Nested, ordered
+. First
+. Second
+.. Sub-item a
+.. Sub-item b
+
+== Admonitions
+
+NOTE: Admonitions render as bordered panels with an accent colour and glyph.
+
+TIP: Wrap the viewer in a ControlFrame for a border, title and scrollbar.
+
+WARNING: Very tall documents clip at the bottom row cap.
+
+== Source Blocks
+
+[source,csharp]
+----
+var viewer = new AsciiDocViewer(File.ReadAllText("doc.adoc"))
+    .WithFrame("AsciiDoc");
+ui.Add(viewer);
+----
+
+== Tables
+
+[cols="1,2",options="header"]
+|===
+|Feature |Rendered as
+
+|Section |Horizontal rule
+|Code |Bordered panel
+|Table |Box-drawn grid
+|===
+
+== Quotes
+
+[quote,Kelsey Hightower]
+____
+No code is the best way to write secure and reliable applications. Write nothing;
+deploy nowhere.
+____
+
+'''
+
+Scroll with the arrows, PgUp/PgDn, Home/End, or the mouse wheel.
