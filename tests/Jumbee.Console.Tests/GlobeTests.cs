@@ -22,6 +22,21 @@ public class GlobeTests
         return n;
     }
 
+    // The globe encodes the surface in per-cell COLOUR (a uniform half-block glyph), so image changes show up in the
+    // foreground colours, not the glyphs ConsoleSnapshot.ToText sees. This signs a render by its foreground colours.
+    private static string ColorSig(Globe g, int w, int h)
+    {
+        var buf = ConsoleSnapshot.Render(g, w, h);
+        var sb = new System.Text.StringBuilder(w * h * 4);
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                var fg = buf[new Position(x, y)].Character.Foreground;
+                sb.Append(fg is { } c ? $"{c.Red},{c.Green},{c.Blue};" : "_;");
+            }
+        return sb.ToString();
+    }
+
     [Fact]
     public void Globe_DrawsACenteredDisc()
     {
@@ -38,9 +53,9 @@ public class GlobeTests
     [Fact]
     public void Globe_RotationChangesTheImage()
     {
-        var a = ConsoleSnapshot.ToText(new Globe { DisplayNight = false, RotationAngle = 0.0 }, 40, 20);
-        var b = ConsoleSnapshot.ToText(new Globe { DisplayNight = false, RotationAngle = 1.5 }, 40, 20);
-        Assert.NotEqual(a, b);   // spinning the globe re-maps the texture
+        var a = ColorSig(new Globe { DisplayNight = false, RotationAngle = 0.0 }, 40, 20);
+        var b = ColorSig(new Globe { DisplayNight = false, RotationAngle = 1.5 }, 40, 20);
+        Assert.NotEqual(a, b);   // spinning the globe re-maps the texture (different surface colours)
     }
 
     [Fact]
@@ -58,9 +73,9 @@ public class GlobeTests
         // counter-orbited the camera by half the angle, which exactly cancelled the scroll — the globe sat still
         // and only the shading moved.) Render, spin a few times, render again: the image must change.
         var g = new Globe { DisplayNight = false };
-        var before = ConsoleSnapshot.ToText(g, 56, 26);
+        var before = ColorSig(g, 56, 26);
         for (int i = 0; i < 10; i++) g.Spin(0.05);
-        var after = ConsoleSnapshot.ToText(g, 56, 26);
+        var after = ColorSig(g, 56, 26);
         Assert.NotEqual(before, after);
     }
 
@@ -69,9 +84,9 @@ public class GlobeTests
     {
         // The light direction drives the day/night shading, so moving it changes the rendered image.
         var a = new Globe { DisplayNight = true, RotationAngle = 1.4 };
-        var before = ConsoleSnapshot.ToText(a, 56, 26);
+        var before = ColorSig(a, 56, 26);
         a.SetLight(-1, 0.5, -0.5, 2.0);   // light swung to the opposite side
-        var after = ConsoleSnapshot.ToText(a, 56, 26);
+        var after = ColorSig(a, 56, 26);
         Assert.NotEqual(before, after);
     }
 

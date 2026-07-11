@@ -31,8 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Textures\earth.txt" />
-    <EmbeddedResource Include="Textures\earth_night.txt" />
     <EmbeddedResource Include="Geo\world_low.txt" />
     <EmbeddedResource Include="Geo\world_high.txt" />
   </ItemGroup>

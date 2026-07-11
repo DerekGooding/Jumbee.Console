@@ -2,6 +2,7 @@ namespace Jumbee.Console;
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 using ConsoleGUI.Data;
@@ -11,14 +12,17 @@ using ConsoleGUI.Space;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
-/// A ray-traced ASCII globe rendered into the control's buffer — a shaded, texture-mapped sphere of the Earth. A ray
-/// is shot through every character cell; where it hits the sphere the surface point is mapped back to a lat/long in
-/// the built-in Earth texture to pick a glyph, and (with <see cref="DisplayNight"/>) shaded by a fixed light so the
+/// A ray-traced globe rendered into the control's buffer — a shaded, colour-mapped sphere of the Earth. Two rays are
+/// shot through every character cell (upper/lower half, drawn with the ▀/▄ half-block glyphs for double vertical
+/// resolution); where a ray hits the sphere the surface point is mapped to a lat/long and coloured from an
+/// ocean-depth → land-elevation → polar-ice ramp, and (with <see cref="DisplayNight"/>) shaded by a fixed light so the
 /// day/night terminator sweeps across as it turns. Spin it by advancing <see cref="RotationAngle"/> (or the
 /// <see cref="Spin"/> helper) from a frame/timer feed; tilt and zoom the camera with <see cref="CameraAlpha"/>,
 /// <see cref="CameraBeta"/> and <see cref="Zoom"/>. Display-only.
 ///
-/// Ported from the C++/Rust "globe" ASCII generator (DinoZ1729 / adamsky).
+/// The land/ocean map is generated at runtime from public-domain Natural Earth coastline data (the same
+/// <c>Geo/world_high.txt</c> the map widgets use). The ray-traced-sphere idea is a common one (cf. the ASCII globes
+/// by DinoZ1729 / adamsky) but this is an independent implementation — no code or data derives from a copyleft source.
 /// </summary>
 public class Globe : Control
 {
@@ -48,6 +52,15 @@ public class Globe : Control
         set => SetAtomicProperty(ref _beta, Math.Clamp(value, -1.5, 1.5));
     }
 
+    /// <summary>Your terminal's cell height-to-width ratio, used to keep the disc circular (a monospace cell is
+    /// taller than it is wide). Default 2.0 suits most terminals; raise it if the globe looks vertically stretched,
+    /// lower it if squashed. Clamped to ≥ 0.5.</summary>
+    public double CellAspect
+    {
+        get => _cellAspect;
+        set => SetAtomicProperty(ref _cellAspect, Math.Max(0.5, value));
+    }
+
     /// <summary>Camera distance from the centre; smaller is closer (a bigger globe). Clamped to ≥ 1.05.</summary>
     public double Zoom
     {
@@ -63,7 +76,7 @@ public class Globe : Control
         set => SetAtomicProperty(ref _displayNight, value);
     }
 
-    /// <summary>When <see langword="true"/> (the default) the surface is coloured from a blue-ocean → green-land ramp;
+    /// <summary>When <see langword="true"/> (the default) the surface is coloured from an ocean → land → ice ramp;
     /// when <see langword="false"/> the globe is drawn in a single <see cref="Foreground"/> tone (classic monochrome).</summary>
     public bool Colored
     {
@@ -71,7 +84,7 @@ public class Globe : Control
         set => SetAtomicProperty(ref _colored, value);
     }
 
-    /// <summary>Base glyph colour used when <see cref="Colored"/> is <see langword="false"/> (default a soft cyan).</summary>
+    /// <summary>Base colour used when <see cref="Colored"/> is <see langword="false"/> (default a soft cyan).</summary>
     public Color Foreground
     {
         get => _foreground;
@@ -107,13 +120,9 @@ public class Globe : Control
     #endregion
 
     #region Methods
-    /// <summary>Spins the globe about its polar axis by <paramref name="delta"/> radians — scrolling the texture
-    /// under a fixed camera and light, so the world turns and the day/night terminator stays put on screen (the
-    /// natural "rotating earth, fixed sun" look). One invalidation.</summary>
-    /// <remarks>Only the texture rotation (<see cref="RotationAngle"/>) is advanced. The reference generator also
-    /// counter-orbited the camera by half the angle each tick, but that <em>exactly cancels</em> the texture scroll
-    /// (at screen centre <c>theta ≈ alpha/π + angle/2π</c>), leaving the globe fixed with only the shading moving —
-    /// so the camera coupling is deliberately omitted here.</remarks>
+    /// <summary>Spins the globe about its polar axis by <paramref name="delta"/> radians — turning the world under a
+    /// fixed camera and light, so the day/night terminator stays put on screen (the natural "rotating earth, fixed
+    /// sun" look). One invalidation.</summary>
     public void Spin(double delta = 0.01)
     {
         UI.Invoke(() =>
@@ -137,10 +146,8 @@ public class Globe : Control
     }
 
     #region Input (active only when Interactive)
-    // Route mouse events to the globe when interactive (Focusable already does this too, but be explicit).
     protected override bool WantsMouse => _interactive;
 
-    // Receive keyboard input (arrow keys / +-) only when interactive; otherwise keys pass through for navigation.
     public override bool HandlesInput => _interactive;
 
     protected override void OnMousePress(Position position)
@@ -202,8 +209,7 @@ public class Globe : Control
     protected internal override bool FillsFrameViewport => true;
 
     // Opt into partial redraw: the disc is inscribed in (and usually narrower than) the pane, so reporting just the
-    // drawn disc lets the compositor skip the blank margins. The disc changes almost everywhere as it spins, so the
-    // win is the margin area, not the disc itself — most valuable in panes wider than 2:1 where the margins are large.
+    // drawn disc lets the compositor skip the blank margins.
     protected override bool TracksDamage => _damageTracking;
 
     protected override void Render()
@@ -214,92 +220,66 @@ public class Globe : Control
         consoleBuffer.Initialize();
         if (w < 2 || h < 2) return;
 
-        // Track the bounding box of the cells we actually draw, to report as damage below.
         int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
+        var mask = EarthMask.Instance;
 
-        var tex = EarthTexture.Instance;
+        // Orthographic camera: a unit sphere viewed from azimuth `alpha` / elevation `beta`. `forward` looks at the
+        // origin; `right`/`up` are the screen axes in world space. Zoom scales the image extent (smaller = bigger disc).
+        double sinA = Math.Sin(_alpha), cosA = Math.Cos(_alpha), sinB = Math.Sin(_beta), cosB = Math.Cos(_beta);
+        double fx = -cosB * sinA, fy = -sinB, fz = -cosB * cosA;              // forward = -cameraDir
+        double rx = fz, ry = 0, rz = -fx;                                     // right = normalize(worldUp × forward)
+        double rl = Math.Sqrt(rx * rx + rz * rz); if (rl < 1e-9) { rx = 1; rz = 0; rl = 1; }
+        rx /= rl; rz /= rl;
+        double ux = fy * rz - fz * ry, uy = fz * rx - fx * rz, uz = fx * ry - fy * rx;   // up = forward × right
 
-        // Camera basis + position for (zoom, alpha, beta). Only the forward transform is needed to turn a screen ray
-        // into a world-space direction (the reference also builds an inverse it never reads).
-        double sinA = Math.Sin(_alpha), cosA = Math.Cos(_alpha);
-        double sinB = Math.Sin(_beta), cosB = Math.Cos(_beta);
-        double ox = _zoom * cosA * cosB, oy = _zoom * sinA * cosB, oz = _zoom * sinB;
-        // 3×3 rotation columns (right, up, forward) of the camera matrix; translation is the camera position.
-        double m0 = -sinA, m1 = cosA, m2 = 0;
-        double m4 = cosA * sinB, m5 = sinA * sinB, m6 = -cosB;
-        double m8 = cosA * cosB, m9 = sinA * cosB, m10 = sinB;
+        // Screen half-extents keep the disc circular for cells that are `CellAspect`× taller than wide (denomY is the
+        // vertical radius in rows, denomX the horizontal radius in cells). At the default zoom the disc just fills the
+        // limiting dimension; larger zoom shrinks it, smaller enlarges it.
+        double aspect = _cellAspect;
+        double unit = Math.Min(w / 2.0, h * aspect / 2.0);
+        double zoomScale = _zoom / FitZoom;
+        double denomX = unit, denomY = unit / aspect, halfW = w / 2.0, halfH = h / 2.0;
 
-        // Screen half-extents in cells, keeping the terminal's ~2:1 cell aspect so the globe stays circular: one
-        // vertical cell spans twice the world of one horizontal cell. `unit` is chosen to fit the limiting dimension
-        // and centre the globe in the pane.
-        double unit = Math.Min(w / 2.0, h);
-        double denomX = unit, denomY = unit / 2.0;
-        double halfW = w / 2.0, halfH = h / 2.0;
-        double r2 = Radius * Radius;
-        double dotOO = ox * ox + oy * oy + oz * oz;
+        // Samples one sub-cell ray; returns whether it hit the sphere and the shaded surface colour.
+        (bool hit, CColor c) Sample(double sxw, double syw)
+        {
+            double r2 = sxw * sxw + syw * syw;
+            if (r2 > 1.0) return (false, default);
+            double z = Math.Sqrt(1.0 - r2);
+            double px = sxw * rx + syw * ux - z * fx;        // surface point on the unit sphere (world space)
+            double py = sxw * ry + syw * uy - z * fy;
+            double pz = sxw * rz + syw * uz - z * fz;
+
+            double lat = Math.Asin(Math.Clamp(py, -1.0, 1.0)) * (180.0 / Math.PI);
+            double lon = (Math.Atan2(px, pz) - _angle) * (180.0 / Math.PI);
+            mask.Sample(lat, lon, out bool land, out int elev, out int depth);
+
+            double bright = 1.0;
+            if (_displayNight)
+            {
+                double lum = _softness * (px * _lx + py * _ly + pz * _lz) + 0.5;
+                bright = 0.15 + 0.85 * (lum < 0 ? 0 : lum > 1 ? 1 : lum);
+            }
+            var baseC = _colored ? Surface(lat, land, elev, depth) : _foreground;
+            return (true, Shade(baseC, bright));
+        }
 
         for (int yi = 0; yi < h; yi++)
         {
-            double sy = ((yi - halfH) + 0.5) / denomY;
             for (int xi = 0; xi < w; xi++)
             {
-                double sx = -(((xi - halfW) + 0.5) / denomX);
+                double sxw = ((xi + 0.5 - halfW) / denomX) * zoomScale;
+                // Screen y grows downward, but +up (north) is toward the top, so negate: the row's upper half-cell
+                // (higher on screen) must map to the higher latitude.
+                var top = Sample(sxw, ((halfH - (yi + 0.25)) / denomY) * zoomScale);
+                var bot = Sample(sxw, ((halfH - (yi + 0.75)) / denomY) * zoomScale);
+                if (!top.hit && !bot.hit) continue;
 
-                // Screen ray (sx, sy, -1) rotated into world space, then made a direction from the camera origin.
-                double dx = sx * m0 + sy * m4 - m8;
-                double dy = sx * m1 + sy * m5 - m9;
-                double dz = sx * m2 + sy * m6 - m10;
-                double invLen = 1.0 / Math.Sqrt(dx * dx + dy * dy + dz * dz);
-                dx *= invLen; dy *= invLen; dz *= invLen;
-
-                // Ray/sphere intersection (sphere centred at origin, radius `Radius`).
-                double dotUO = dx * ox + dy * oy + dz * oz;
-                double disc = dotUO * dotUO - dotOO + r2;
-                if (disc < 0) continue;   // ray misses the globe
-
-                double dist = -Math.Sqrt(disc) - dotUO;
-                double ix = ox + dist * dx, iy = oy + dist * dy, iz = oz + dist * dz;
-
-                // Surface point → lat/long → texture cell.
-                double nInv = 1.0 / Math.Sqrt(ix * ix + iy * iy + iz * iz);
-                double nx = ix * nInv, ny = iy * nInv, nz = iz * nInv;
-
-                double phi = -iz / Radius / 2.0 + 0.5;
-                double theta = Math.Atan(iy / ix) / Math.PI + 0.5 + _angle / 2.0 / Math.PI;
-                theta -= Math.Floor(theta);
-
-                int ex = (int)(theta * tex.Width);
-                int ey = (int)(phi * tex.Height);
-                if (ex < 0) ex = 0; else if (ex >= tex.Width) ex = tex.Width - 1;
-                if (ey < 0) ey = 0; else if (ey >= tex.Height) ey = tex.Height - 1;
-
-                int dayIdx = tex.DayIndex[ey][ex];
-
-                char glyph;
-                double shade;
-                if (_displayNight)
-                {
-                    // Lambertian shade from a fixed directional light; the terminator is where the surface turns away.
-                    // luminance = clamp(softness·(n·L) + 0.5, 0, 1). A lower softness spreads the day→night gradient
-                    // across more of the face (a soft crescent) rather than a hard band; L is tilted toward the camera
-                    // so the terminator sits off to one side instead of dead-centre.
-                    double lum = _softness * (nx * _lx + ny * _ly + nz * _lz) + 0.5;
-                    lum = lum < 0 ? 0 : lum > 1 ? 1 : lum;
-                    int nightIdx = tex.NightIndex[ey][ex];
-                    int blended = (int)((1.0 - lum) * nightIdx + lum * dayIdx);
-                    if (blended < 0 || blended >= tex.Palette.Length) blended = 0;
-                    glyph = tex.Palette[blended];
-                    shade = 0.18 + 0.82 * lum;
-                }
-                else
-                {
-                    glyph = tex.Palette[dayIdx];
-                    shade = 1.0;
-                }
-
-                if (glyph == ' ') glyph = '.';   // keep the disc solid even where a blank blend lands
-                var color = _colored ? Shade(OceanLand(dayIdx, tex.MaxIndex), shade) : Shade(_foreground, shade);
-                consoleBuffer.Write(new Position(xi, yi), new Character(glyph, color));
+                // ▀ paints the fg in the top half and the bg in the bottom; ▄ paints fg in the bottom half.
+                Character ch = top.hit && bot.hit ? new('▀', top.c, bot.c)
+                    : top.hit ? new('▀', top.c, null)
+                    : new('▄', bot.c, null);
+                consoleBuffer.Write(new Position(xi, yi), ch);
 
                 if (xi < minX) minX = xi;
                 if (xi > maxX) maxX = xi;
@@ -310,23 +290,27 @@ public class Globe : Control
 
         if (_damageTracking)
         {
-            // Report the drawn disc, unioned with last frame's, so a shrinking disc (zoom out / tilt) still erases
-            // the cells it vacated. When the disc is stable (a plain spin) the union is just the disc box.
             var cur = maxX >= 0 ? new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1) : Rect.Empty;
             Damage(Rect.Surround(_prevDisc, cur));
             _prevDisc = cur;
         }
     }
 
-    // Maps a day-texture palette index (low = ocean, high = land) to an Earth-like colour ramp.
-    private static CColor OceanLand(int index, int maxIndex)
+    // Surface colour: ocean-depth blue → land-elevation green/tan/brown, whitened toward the poles by latitude.
+    private static CColor Surface(double latDeg, bool land, int elev, int depth)
     {
-        double t = maxIndex <= 0 ? 0 : (double)index / maxIndex;
-        return Ramp(EarthStops, t);
+        var c = land ? Ramp(LandStops, Math.Clamp(elev / 12.0, 0, 1)) : Ramp(OceanStops, Math.Clamp(depth / 10.0, 0, 1));
+        double ice = Math.Clamp((Math.Abs(latDeg) - 66.0) / 14.0, 0, 1);   // sea-ice / ice-sheet toward the poles
+        return ice <= 0 ? c : Mix(c, Ice, ice);
     }
 
     private static CColor Shade(CColor c, double f) =>
         new((byte)(c.Red * f), (byte)(c.Green * f), (byte)(c.Blue * f));
+
+    private static CColor Mix(CColor a, CColor b, double t) => new(
+        (byte)(a.Red + (b.Red - a.Red) * t),
+        (byte)(a.Green + (b.Green - a.Green) * t),
+        (byte)(a.Blue + (b.Blue - a.Blue) * t));
 
     private static CColor Ramp(CColor[] stops, double t)
     {
@@ -334,127 +318,177 @@ public class Globe : Control
         double scaled = t * (stops.Length - 1);
         int i = (int)Math.Floor(scaled);
         if (i >= stops.Length - 1) return stops[^1];
-        double f = scaled - i;
-        var a = stops[i];
-        var b = stops[i + 1];
-        return new CColor(
-            (byte)(a.Red + (b.Red - a.Red) * f),
-            (byte)(a.Green + (b.Green - a.Green) * f),
-            (byte)(a.Blue + (b.Blue - a.Blue) * f));
+        return Mix(stops[i], stops[i + 1], scaled - i);
     }
     #endregion
 
     #region Fields
-    private const double Radius = 1.0;
-
-    // Input sensitivities (tuned for a natural drag/zoom feel; radians per dragged cell, Zoom units per wheel notch).
     private const double DragSpinPerCell = 0.03;
     private const double DragTiltPerCell = 0.03;
     private const double ZoomPerNotch = 0.1;
+    private const double FitZoom = 1.35;   // the zoom at which the disc just fills the limiting screen dimension
 
     private bool _interactive;
     private bool _dragging;
     private Position _lastDrag;
 
-    // Deep ocean → shallow → coast → lowland → land → highland.
-    private static readonly CColor[] EarthStops =
-    [
-        new(12, 34, 92), new(20, 74, 150), new(42, 122, 150),
-        new(70, 140, 72), new(120, 150, 78), new(180, 168, 128),
-    ];
+    // Deep ocean → shallow coastal water.
+    private static readonly CColor[] OceanStops = [new(46, 112, 150), new(24, 74, 132), new(10, 32, 82)];
+    // Coast lowland green → inland green → tan highland → brown mountains.
+    private static readonly CColor[] LandStops = [new(74, 132, 78), new(92, 146, 74), new(150, 148, 96), new(126, 102, 74)];
+    private static readonly CColor Ice = new(232, 238, 245);
 
     private double _angle;
     private double _alpha;
     private double _beta = 0.35;
     private double _zoom = 1.35;
+    private double _cellAspect = 2.0;   // terminal cell height:width; keeps the disc circular
     private bool _displayNight = true;
     private bool _colored = true;
     private CColor _foreground = new(120, 210, 230);
     private bool _damageTracking = true;
     private Rect _prevDisc = Rect.Empty;   // last frame's drawn disc, unioned with this frame's to avoid ghosting
-    // Light mostly overhead (+y) and north (+z) with a little toward the camera (+x). A purely-overhead light (0,1,0)
-    // is perpendicular to the default ~+x camera, which puts the day/night terminator as a hard VERTICAL BAND down the
-    // centre; the +z tilt swings it to a natural diagonal crescent along the lower/right rim (≈¼ of the disc in
-    // shadow) and the small +x keeps it off the exact meridian. Normalized (0.2, 0.8, 0.5).
+    // Light mostly overhead (+y) and north (+z) with a little toward the camera (+x), giving a diagonal terminator.
     private double _lx = 0.2074, _ly = 0.8296, _lz = 0.5185;
     private double _softness = 2.5;        // terminator sharpness: higher = harder day/night edge
     #endregion
 }
 
 /// <summary>
-/// The built-in Earth day/night textures, parsed once into per-cell palette indices. Each texture row is stored
-/// reversed (mirrored horizontally) to match the reference generator's orientation.
+/// A land/ocean + elevation grid baked once from public-domain Natural Earth coastline points: connected coastline
+/// segments rasterized to a barrier, ocean flood-filled from mid-ocean seeds (longitude wraps; Antarctica stays
+/// enclosed = land), then a distance transform gives land elevation (distance inland) and ocean depth (distance from
+/// shore) for colouring. Sampled by lat/long.
 /// </summary>
-internal sealed class EarthTexture
+internal sealed class EarthMask
 {
     #region Constructors
-    private EarthTexture()
+    private EarthMask()
     {
-        // Density ramp: blank → sparse punctuation → dense letters. Index into this = "brightness"/land-ness.
-        Palette = [' ', '.', ':', ';', '\'', ',', 'w', 'i', 'o', 'g', 'O', 'L', 'X', 'H', 'W', 'Y', 'V', '@'];
-        MaxIndex = Palette.Length - 1;
+        var pts = LoadPoints("Jumbee.Console.Geo.world_high.txt");
+        var barrier = new bool[H, W];
 
-        var day = Load("Jumbee.Console.Textures.earth.txt");
-        var night = Load("Jumbee.Console.Textures.earth_night.txt");
+        // Rasterize coastline segments between consecutive nearby points (skip big jumps between separate coastlines).
+        double ColF(double lon) => (lon + 180.0) / 360.0 * W;
+        double RowF(double lat) => (90.0 - lat) / 180.0 * H;
+        void Plot(int x, int y) { if (y >= 0 && y < H) barrier[y, ((x % W) + W) % W] = true; }
+        void Seg(double x0d, double y0d, double x1d, double y1d)
+        {
+            int x0 = (int)Math.Round(x0d), y0 = (int)Math.Round(y0d), x1 = (int)Math.Round(x1d), y1 = (int)Math.Round(y1d);
+            int dx = Math.Abs(x1 - x0), dy = -Math.Abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy;
+            while (true)
+            {
+                Plot(x0, y0);
+                if (x0 == x1 && y0 == y1) break;
+                int e2 = 2 * err;
+                if (e2 >= dy) { err += dy; x0 += sx; }
+                if (e2 <= dx) { err += dx; y0 += sy; }
+            }
+        }
+        const double joinDeg = 8.0;
+        for (int i = 1; i < pts.Count; i++)
+        {
+            var (aLon, aLat) = pts[i - 1];
+            var (bLon, bLat) = pts[i];
+            if (Math.Abs(aLon - bLon) > joinDeg || Math.Abs(aLat - bLat) > joinDeg) { Plot((int)ColF(aLon), (int)RowF(aLat)); continue; }
+            Seg(ColF(aLon), RowF(aLat), ColF(bLon), RowF(bLat));
+        }
 
-        // get_size() in the reference subtracts one, so theta/phi never index the final row/column.
-        Width = day.Length > 0 ? day[0].Length - 1 : 0;
-        Height = day.Length - 1;
+        // Flood-fill ocean from mid-ocean seeds; longitude wraps, poles do not, barriers block.
+        _ocean = new bool[H, W];
+        ReadOnlySpan<(double lon, double lat)> seeds =
+            [(-150, 0), (-40, 10), (-25, -20), (75, -25), (150, -35), (-160, 45), (170, 55), (0, 15)];
+        var q = new Queue<(int y, int x)>();
+        foreach (var (lon, lat) in seeds)
+        {
+            int y = (int)RowF(lat), x = (int)ColF(lon) % W;
+            if (y >= 0 && y < H && !barrier[y, x] && !_ocean[y, x]) { _ocean[y, x] = true; q.Enqueue((y, x)); }
+        }
+        Flood(q, (y, x) => !barrier[y, x] && !_ocean[y, x], (y, x) => _ocean[y, x] = true);
 
-        DayIndex = ToIndices(day);
-        NightIndex = ToIndices(night);
+        // Distance transforms: elevation = steps inland from ocean; depth = steps offshore from land.
+        _elev = Distance(land: true);
+        _depth = Distance(land: false);
     }
     #endregion
 
     #region Properties
-    public static EarthTexture Instance => _instance ??= new EarthTexture();
-
-    public char[] Palette { get; }
-    public int MaxIndex { get; }
-    public int Width { get; }
-    public int Height { get; }
-    public int[][] DayIndex { get; }
-    public int[][] NightIndex { get; }
+    public static EarthMask Instance => _instance ??= new EarthMask();
     #endregion
 
     #region Methods
-    private int[][] ToIndices(char[][] rows)
+    public void Sample(double latDeg, double lonDeg, out bool land, out int elev, out int depth)
     {
-        var result = new int[rows.Length][];
-        for (int y = 0; y < rows.Length; y++)
-        {
-            var row = rows[y];
-            var line = new int[row.Length];
-            for (int x = 0; x < row.Length; x++)
-            {
-                int idx = Array.IndexOf(Palette, row[x]);
-                line[x] = idx < 0 ? 0 : idx;
-            }
-            result[y] = line;
-        }
-        return result;
+        double u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);
+        double v = Math.Clamp((90.0 - latDeg) / 180.0, 0, 0.999999);
+        int x = Math.Clamp((int)(u * W), 0, W - 1), y = Math.Clamp((int)(v * H), 0, H - 1);
+        land = !_ocean[y, x];
+        elev = _elev[y, x];
+        depth = _depth[y, x];
     }
 
-    private static char[][] Load(string resource)
+    private void Flood(Queue<(int y, int x)> q, Func<int, int, bool> open, Action<int, int> mark)
     {
-        using var stream = typeof(EarthTexture).Assembly.GetManifestResourceStream(resource)
-            ?? throw new InvalidOperationException($"Embedded texture '{resource}' not found.");
-        using var reader = new StreamReader(stream);
+        while (q.Count > 0)
+        {
+            var (y, x) = q.Dequeue();
+            Span<(int dy, int dx)> n = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+            foreach (var (dy, dx) in n)
+            {
+                int ny = y + dy; if (ny < 0 || ny >= H) continue;
+                int nx = ((x + dx) % W + W) % W;
+                if (open(ny, nx)) { mark(ny, nx); q.Enqueue((ny, nx)); }
+            }
+        }
+    }
 
-        var rows = new List<char[]>();
+    // Multi-source BFS: seed every cell of the OPPOSITE terrain (distance 0) and count steps into the requested
+    // terrain. land=true → elevation (steps inland from the shore); land=false → ocean depth (steps out from land).
+    private int[,] Distance(bool land)
+    {
+        var dist = new int[H, W];
+        var seen = new bool[H, W];
+        var q = new Queue<(int y, int x)>();
+        for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+                if (!_ocean[y, x] != land) { seen[y, x] = true; q.Enqueue((y, x)); }
+        while (q.Count > 0)
+        {
+            var (y, x) = q.Dequeue();
+            foreach (var (dy, dx) in new[] { (-1, 0), (1, 0), (0, -1), (0, 1) })
+            {
+                int ny = y + dy; if (ny < 0 || ny >= H) continue;
+                int nx = ((x + dx) % W + W) % W;
+                if (!seen[ny, nx] && !_ocean[ny, nx] == land) { seen[ny, nx] = true; dist[ny, nx] = dist[y, x] + 1; q.Enqueue((ny, nx)); }
+            }
+        }
+        return dist;
+    }
+
+    private static List<(double lon, double lat)> LoadPoints(string resource)
+    {
+        using var stream = typeof(EarthMask).Assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException($"Embedded map data '{resource}' not found.");
+        using var reader = new StreamReader(stream);
+        var pts = new List<(double, double)>();
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
-            if (line.Length == 0) continue;
-            var chars = line.ToCharArray();
-            Array.Reverse(chars);   // mirror each row, as the reference does
-            rows.Add(chars);
+            int c = line.IndexOf(',');
+            if (c > 0
+                && double.TryParse(line.AsSpan(0, c), CultureInfo.InvariantCulture, out double lon)
+                && double.TryParse(line.AsSpan(c + 1), CultureInfo.InvariantCulture, out double lat))
+                pts.Add((lon, lat));
         }
-        return [.. rows];
+        return pts;
     }
     #endregion
 
     #region Fields
-    private static EarthTexture? _instance;
+    private const int W = 400, H = 200;
+    private static EarthMask? _instance;
+    private readonly bool[,] _ocean;
+    private readonly int[,] _elev;
+    private readonly int[,] _depth;
     #endregion
 }
