@@ -1,12 +1,15 @@
 namespace Jumbee.Console.DocumentViewers;
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
 using Mermaider;
+
+using Jumbee.Console.DocumentViewers.Mermaid;
 
 /// <summary>
 /// A read-only, scrollable viewer for Mermaid <c>flowchart</c>/<c>graph</c> and <c>stateDiagram</c> diagrams. Parses
@@ -131,9 +134,7 @@ public class MermaidViewer : Control
     {
         try
         {
-            var graph = MermaidRenderer.Parse(text);
-            var positioned = MermaidRenderer.LayoutProvider.LayoutFlowchart(graph);
-            var canvas = new MermaidFlowchartRenderer(styles).Render(positioned);
+            var canvas = BuildCanvas(text, styles);
             var height = Math.Min(canvas.Height, MaxRows);
             var buffer = new ConsoleBuffer { Size = new Size(Math.Max(1, canvas.Width), Math.Max(1, height)) };
             buffer.Initialize();
@@ -148,6 +149,36 @@ public class MermaidViewer : Control
         {
             return RenderMessage("Unable to render Mermaid diagram.");
         }
+    }
+
+    // Routes by diagram type: class diagrams use the vendored ClassParser (Mermaider's is internal) + the public
+    // LayoutClass; flowchart/state go through the public MermaidRenderer.Parse + LayoutFlowchart.
+    private static CellCanvas BuildCanvas(string text, MermaidStyles styles)
+    {
+        var lines = PreprocessLines(text);
+        if (lines.Length > 0 && lines[0].StartsWith("classDiagram", StringComparison.Ordinal))
+        {
+            var diagram = ClassParser.Parse(lines);
+            var positioned = MermaidRenderer.LayoutProvider.LayoutClass(diagram);
+            return new MermaidClassRenderer(styles).Render(positioned);
+        }
+
+        var graph = MermaidRenderer.Parse(text);
+        var flow = MermaidRenderer.LayoutProvider.LayoutFlowchart(graph);
+        return new MermaidFlowchartRenderer(styles).Render(flow);
+    }
+
+    // Trim, drop blank lines and %% comments — the line shape the vendored ClassParser expects (header at index 0).
+    private static string[] PreprocessLines(string text)
+    {
+        var raw = text.Split('\n');
+        var list = new List<string>(raw.Length);
+        foreach (var r in raw)
+        {
+            var t = r.Trim();
+            if (t.Length > 0 && !t.StartsWith("%%", StringComparison.Ordinal)) list.Add(t);
+        }
+        return list.ToArray();
     }
 
     private static (ConsoleBuffer buffer, int height) RenderMessage(string message)

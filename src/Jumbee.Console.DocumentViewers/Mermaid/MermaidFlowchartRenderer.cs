@@ -110,18 +110,39 @@ internal sealed class MermaidFlowchartRenderer
                 return;
         }
 
+        if (node.Shape is NodeShape.Diamond && x1 - x0 >= 4 && y1 - y0 >= 2)
+        {
+            DrawDiamond(canvas, x0, y0, x1, y1);
+            DrawLabel(canvas, node.Label, x0 + 1, cy, x1 - 1, cy);   // one line on the widest (centre) row
+            return;
+        }
+
         var rounded = node.Shape is NodeShape.Rounded or NodeShape.Stadium or NodeShape.Circle
             or NodeShape.DoubleCircle or NodeShape.StateStart or NodeShape.StateEnd;
         canvas.Box(x0, y0, x1, y1, rounded, _s.NodeBorder);
+        DrawLabel(canvas, node.Label, x0 + 1, y0 + 1, x1 - 1, y1 - 1);
+    }
 
-        // Diamonds (decisions) get angle markers on the side mid-cells to hint the rhombus shape.
-        if (node.Shape is NodeShape.Diamond)
+    // A rhombus inscribed in [x0,y0]-[x1,y1]. Iterating per column (the wider axis at the terminal's ~2:1 cell
+    // aspect) keeps the shallow edges gap-free and symmetric: each column gets one top and one bottom edge glyph,
+    // and the rhombus interior is cleared so edges routed beneath don't show through.
+    private void DrawDiamond(CellCanvas canvas, int x0, int y0, int x1, int y1)
+    {
+        int mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+        double halfW = (x1 - x0) / 2.0, halfH = (y1 - y0) / 2.0;
+
+        for (var y = y0; y <= y1; y++)
         {
-            canvas.SetChar(x0, cy, '<', _s.NodeBorder);
-            canvas.SetChar(x1, cy, '>', _s.NodeBorder);
+            var hw = (int)Math.Round(halfW * (1 - Math.Abs(y - my) / halfH));
+            for (var x = mx - hw; x <= mx + hw; x++) canvas.Clear(x, y);
         }
 
-        DrawLabel(canvas, node.Label, x0 + 1, y0 + 1, x1 - 1, y1 - 1);
+        for (var x = x0; x <= x1; x++)
+        {
+            var off = (int)Math.Round(halfH * (1 - Math.Abs(x - mx) / halfW));
+            canvas.SetChar(x, my - off, x <= mx ? '╱' : '╲', _s.NodeBorder);   // upper edge
+            canvas.SetChar(x, my + off, x <= mx ? '╲' : '╱', _s.NodeBorder);   // lower edge
+        }
     }
 
     // Centres the (possibly multi-line) label within the interior box [ix0..ix1] x [iy0..iy1].
@@ -155,32 +176,11 @@ internal sealed class MermaidFlowchartRenderer
         {
             var (ax, ay) = (CX(points[i].X), CY(points[i].Y));
             var (bx, by) = (CX(points[i + 1].X), CY(points[i + 1].Y));
-            foreach (var cell in Line(ax, ay, bx, by))
+            foreach (var cell in CellCanvas.OrthoLine(ax, ay, bx, by))
                 if (path.Count == 0 || path[^1] != cell)
                     path.Add(cell);
         }
         return path;
-    }
-
-    // Orthogonally-connected rasterization: every consecutive cell differs by exactly one axis, so a diagonal
-    // segment becomes a connected staircase (proper ┌┐└┘ corners) instead of gaps. Mermaider's routing includes
-    // gently-diagonal segments that a diagonal Bresenham would break apart. Steps are interleaved by a midpoint
-    // comparison so the staircase tracks the ideal line (jogs distributed, not front-loaded).
-    private static IEnumerable<(int x, int y)> Line(int x0, int y0, int x1, int y1)
-    {
-        int x = x0, y = y0;
-        int dx = Math.Abs(x1 - x0), dy = Math.Abs(y1 - y0);
-        int sx = x0 <= x1 ? 1 : -1, sy = y0 <= y1 ? 1 : -1;
-        int px = 0, py = 0;
-        yield return (x, y);
-        while (x != x1 || y != y1)
-        {
-            if (y == y1) x += sx;
-            else if (x == x1) y += sy;
-            else if ((2 * px + 1) * dy <= (2 * py + 1) * dx) { x += sx; px++; }
-            else { y += sy; py++; }
-            yield return (x, y);
-        }
     }
 
     private static int Dir((int x, int y) a, (int x, int y) b) =>

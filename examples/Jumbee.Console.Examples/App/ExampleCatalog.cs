@@ -42,6 +42,7 @@ public static class ExampleCatalog
         new MarkdownViewerExample(),
         new AsciiDocViewerExample(),
         new MermaidViewerExample(),
+        new MermaidClassExample(),
     ];
 
     /// <summary>The example shown when the browser opens.</summary>

@@ -18,6 +18,12 @@ public sealed class MermaidStyles
     public Color GroupBorder { get; init; } = Color.Grey42;
     public Color GroupLabel { get; init; } = Color.Grey70;
 
+    /// <summary>Class-diagram member text (attributes / methods).</summary>
+    public Color Member { get; init; } = Color.Grey85;
+
+    /// <summary>Class-diagram annotation, e.g. «interface».</summary>
+    public Color Annotation { get; init; } = Color.Grey62;
+
     /// <summary>Pixels per cell column. ~9 ≈ the layout font's per-character advance, so boxes fit their labels.</summary>
     public double ScaleX { get; init; } = 9.0;
 

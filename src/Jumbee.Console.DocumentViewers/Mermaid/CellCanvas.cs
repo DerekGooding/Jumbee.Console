@@ -103,6 +103,26 @@ internal sealed class CellCanvas
         }
     }
 
+    /// <summary>Orthogonally-connected rasterization between two cells: every consecutive cell differs by exactly one
+    /// axis, so a diagonal segment becomes a connected staircase (proper corners) rather than gaps. Shared by the
+    /// flowchart and class renderers for edge polylines.</summary>
+    public static IEnumerable<(int x, int y)> OrthoLine(int x0, int y0, int x1, int y1)
+    {
+        int x = x0, y = y0;
+        int dx = Math.Abs(x1 - x0), dy = Math.Abs(y1 - y0);
+        int sx = x0 <= x1 ? 1 : -1, sy = y0 <= y1 ? 1 : -1;
+        int px = 0, py = 0;
+        yield return (x, y);
+        while (x != x1 || y != y1)
+        {
+            if (y == y1) x += sx;
+            else if (x == x1) y += sy;
+            else if ((2 * px + 1) * dy <= (2 * py + 1) * dx) { x += sx; px++; }
+            else { y += sy; py++; }
+            yield return (x, y);
+        }
+    }
+
     public void Blit(ConsoleBuffer buffer)
     {
         var h = Math.Min(buffer.Size.Height, Height);

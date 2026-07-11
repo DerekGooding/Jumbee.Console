@@ -1,0 +1,363 @@
+using System.Text.RegularExpressions;
+using Mermaider;
+using Mermaider.Models;
+
+namespace Jumbee.Console.DocumentViewers.Mermaid;
+
+// Vendored from Mermaider (MIT) so class-diagram text can be parsed into the public ClassDiagram model (the package's
+// parsers are internal). Source-generated regexes were swapped for runtime compiled Regex, the namespace changed to
+// avoid clashes, and the internal MultilineUtils dependency replaced with a local helper.
+internal static class ClassParser
+{
+	private const int TimeoutMs = 2000;
+	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
+
+	private static readonly Regex NamespaceStart = new(@"^namespace\s+(\S+)\s*\{$", RegexOptions.Compiled, Timeout);
+	private static Regex NamespaceStartPattern() => NamespaceStart;
+
+	private static readonly Regex Direction_ = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
+	private static Regex DirectionPattern() => Direction_;
+
+	private static readonly Regex ClassBlock = new(@"^class\s+(\S+?)(?:\s*~(\w+)~)?\s*\{$", RegexOptions.Compiled, Timeout);
+	private static Regex ClassBlockPattern() => ClassBlock;
+
+	private static readonly Regex ClassOnly = new(@"^class\s+(\S+?)(?:\s*~(\w+)~)?\s*$", RegexOptions.Compiled, Timeout);
+	private static Regex ClassOnlyPattern() => ClassOnly;
+
+	private static readonly Regex InlineAnnotation = new(@"^class\s+(\S+?)\s*\{\s*<<(\w+)>>\s*\}$", RegexOptions.Compiled, Timeout);
+	private static Regex InlineAnnotationPattern() => InlineAnnotation;
+
+	private static readonly Regex Annotation = new(@"^<<(\w+)>>$", RegexOptions.Compiled, Timeout);
+	private static Regex AnnotationPattern() => Annotation;
+
+	private static readonly Regex InlineAttr = new(@"^(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
+	private static Regex InlineAttrPattern() => InlineAttr;
+
+	private static readonly Regex ArrowCheck = new(@"<\|--|--|\*--|o--|-->|\.\.>|\.\.\|>", RegexOptions.Compiled, Timeout);
+	private static Regex ArrowCheckPattern() => ArrowCheck;
+
+	private static readonly Regex Relationship = new(@"^(\S+?)\s+(?:""([^""]*?)""\s+)?(<\|--|<\|\.\.|\*--|o--|-->|--\*|--o|--\|>|\.\.>|\.\.\|>|<--|<\.\.?|--)\s+(?:""([^""]*?)""\s+)?(\S+?)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex RelationshipPattern() => Relationship;
+
+	private static readonly Regex VisibilityPrefix = new(@"^[+\-#~]", RegexOptions.Compiled, Timeout);
+	private static Regex VisibilityPrefixPattern() => VisibilityPrefix;
+
+	private static readonly Regex MethodSignature = new(@"^(.+?)\(([^)]*)\)(?:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex MethodSignaturePattern() => MethodSignature;
+
+	private static readonly Regex Note = new(@"^note\s+(?:for\s+(\S+)\s+)?""([^""]+)""$", RegexOptions.Compiled, Timeout);
+	private static Regex NotePattern() => Note;
+
+	private static readonly Regex Lollipop = new(@"^(\S+?)\s+(--\(\)|\.\.?\(\)|\(\)--|\.?\(\)\.\.)\s+(\S+?)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex LollipopPattern() => Lollipop;
+
+	internal static ClassDiagram Parse(string[] lines)
+	{
+		try
+		{
+			return ParseCore(lines);
+		}
+		catch (RegexMatchTimeoutException ex)
+		{
+			throw new MermaidParseException(
+				$"Parsing timed out after {ex.MatchTimeout.TotalSeconds}s — input may contain pathological patterns.",
+				ex);
+		}
+	}
+
+	private static ClassDiagram ParseCore(string[] lines)
+	{
+		var classMap = new Dictionary<string, (ClassNode Node, List<ClassMember> Attrs, List<ClassMember> Methods)>();
+		var relationships = new List<ClassRelationship>();
+		var namespaces = new List<ClassNamespace>();
+		Direction? direction = null;
+		var notes = new List<ClassNote>();
+
+		ClassNode? currentClass = null;
+		List<ClassMember>? currentAttrs = null;
+		List<ClassMember>? currentMethods = null;
+		var braceDepth = 0;
+
+		string? currentNsName = null;
+		List<string>? currentNsClassIds = null;
+
+		for (var i = 1; i < lines.Length; i++)
+		{
+			var line = lines[i];
+
+			if (currentClass != null && braceDepth > 0)
+			{
+				if (line == "}")
+				{
+					braceDepth--;
+					if (braceDepth == 0)
+					{
+						currentClass = null;
+						currentAttrs = null;
+						currentMethods = null;
+					}
+					continue;
+				}
+
+				var annotMatch = AnnotationPattern().Match(line);
+				if (annotMatch.Success)
+				{
+					var (node, attrs, methods) = classMap[currentClass.Id];
+					classMap[currentClass.Id] = (node with { Annotation = annotMatch.Groups[1].Value }, attrs, methods);
+					currentClass = classMap[currentClass.Id].Node;
+					continue;
+				}
+
+				var member = ParseMember(line);
+				if (member.HasValue)
+				{
+					if (member.Value.Member.IsMethod)
+						currentMethods!.Add(member.Value.Member);
+					else
+						currentAttrs!.Add(member.Value.Member);
+				}
+				continue;
+			}
+
+			var dirMatch = DirectionPattern().Match(line);
+			if (dirMatch.Success)
+			{
+				direction = Enum.Parse<Direction>(dirMatch.Groups[1].Value.ToUpperInvariant());
+				continue;
+			}
+
+			var nsMatch = NamespaceStartPattern().Match(line);
+			if (nsMatch.Success)
+			{
+				currentNsName = nsMatch.Groups[1].Value;
+				currentNsClassIds = [];
+				continue;
+			}
+
+			if (line == "}" && currentNsName != null)
+			{
+				namespaces.Add(new ClassNamespace(currentNsName, currentNsClassIds!));
+				currentNsName = null;
+				currentNsClassIds = null;
+				continue;
+			}
+
+			var classBlockMatch = ClassBlockPattern().Match(line);
+			if (classBlockMatch.Success)
+			{
+				var id = classBlockMatch.Groups[1].Value;
+				var generic = classBlockMatch.Groups[2].Success ? classBlockMatch.Groups[2].Value : null;
+				var (node, attrs, methods) = EnsureClass(classMap, id);
+				if (generic != null)
+				{
+					node = node with { Label = $"{id}<{generic}>" };
+					classMap[id] = (node, attrs, methods);
+				}
+				currentClass = node;
+				currentAttrs = attrs;
+				currentMethods = methods;
+				braceDepth = 1;
+				currentNsClassIds?.Add(id);
+				continue;
+			}
+
+			var classOnlyMatch = ClassOnlyPattern().Match(line);
+			if (classOnlyMatch.Success)
+			{
+				var id = classOnlyMatch.Groups[1].Value;
+				var generic = classOnlyMatch.Groups[2].Success ? classOnlyMatch.Groups[2].Value : null;
+				var (node, attrs, methods) = EnsureClass(classMap, id);
+				if (generic != null)
+				{
+					node = node with { Label = $"{id}<{generic}>" };
+					classMap[id] = (node, attrs, methods);
+				}
+				currentNsClassIds?.Add(id);
+				continue;
+			}
+
+			var inlineAnnotMatch = InlineAnnotationPattern().Match(line);
+			if (inlineAnnotMatch.Success)
+			{
+				var (node, attrs, methods) = EnsureClass(classMap, inlineAnnotMatch.Groups[1].Value);
+				classMap[node.Id] = (node with { Annotation = inlineAnnotMatch.Groups[2].Value }, attrs, methods);
+				continue;
+			}
+
+			var inlineAttrMatch = InlineAttrPattern().Match(line);
+			if (inlineAttrMatch.Success)
+			{
+				var rest = inlineAttrMatch.Groups[2].Value;
+				if (!ArrowCheckPattern().IsMatch(rest))
+				{
+					var (node, attrs, methods) = EnsureClass(classMap, inlineAttrMatch.Groups[1].Value);
+					var member = ParseMember(rest);
+					if (member.HasValue)
+					{
+						if (member.Value.Member.IsMethod)
+							methods.Add(member.Value.Member);
+						else
+							attrs.Add(member.Value.Member);
+					}
+					continue;
+				}
+			}
+
+			var noteMatch = NotePattern().Match(line);
+			if (noteMatch.Success)
+			{
+				var targetClass = noteMatch.Groups[1].Success ? noteMatch.Groups[1].Value : null;
+				var text = noteMatch.Groups[2].Value;
+				notes.Add(new ClassNote(targetClass, text));
+				continue;
+			}
+
+			var lollipopMatch = LollipopPattern().Match(line);
+			if (lollipopMatch.Success)
+			{
+				var from = lollipopMatch.Groups[1].Value;
+				var to = lollipopMatch.Groups[3].Value;
+				_ = EnsureClass(classMap, from);
+				_ = EnsureClass(classMap, to);
+				var label = lollipopMatch.Groups[4].Success ? lollipopMatch.Groups[4].Value.Trim() : null;
+				relationships.Add(new ClassRelationship(from, to, ClassRelationType.Lollipop, ClassMarkerAt.To, label));
+				continue;
+			}
+
+			var rel = ParseRelationship(line);
+			if (rel != null)
+			{
+				_ = EnsureClass(classMap, rel.From);
+				_ = EnsureClass(classMap, rel.To);
+				relationships.Add(rel);
+			}
+		}
+
+		var classes = classMap.Values
+			.Select(v => v.Node with { Attributes = v.Attrs, Methods = v.Methods })
+			.ToList();
+
+		return new ClassDiagram { Classes = classes, Relationships = relationships, Namespaces = namespaces, Direction = direction, Notes = notes };
+	}
+
+	private static (ClassNode Node, List<ClassMember> Attrs, List<ClassMember> Methods) EnsureClass(
+		Dictionary<string, (ClassNode Node, List<ClassMember> Attrs, List<ClassMember> Methods)> classMap,
+		string id)
+	{
+		if (classMap.TryGetValue(id, out var existing))
+			return existing;
+
+		var node = new ClassNode { Id = id, Label = id, Attributes = [], Methods = [] };
+		var attrs = new List<ClassMember>();
+		var methods = new List<ClassMember>();
+		classMap[id] = (node, attrs, methods);
+		return (node, attrs, methods);
+	}
+
+	private static (ClassMember Member, bool IsMethod)? ParseMember(string line)
+	{
+		var trimmed = line.Trim().TrimEnd(';');
+		if (trimmed.Length == 0)
+			return null;
+
+		var visibility = ClassVisibility.None;
+		var rest = trimmed;
+		if (VisibilityPrefixPattern().IsMatch(rest))
+		{
+			visibility = rest[0] switch
+			{
+				'+' => ClassVisibility.Public,
+				'-' => ClassVisibility.Private,
+				'#' => ClassVisibility.Protected,
+				'~' => ClassVisibility.Package,
+				_ => ClassVisibility.None,
+			};
+			rest = rest[1..].TrimStart();
+		}
+
+		var methodMatch = MethodSignaturePattern().Match(rest);
+		if (methodMatch.Success)
+		{
+			var name = methodMatch.Groups[1].Value.Trim();
+			var parms = methodMatch.Groups[2].Success && methodMatch.Groups[2].Value.Trim().Length > 0
+				? methodMatch.Groups[2].Value.Trim()
+				: null;
+			var type = methodMatch.Groups[3].Success && methodMatch.Groups[3].Value.Trim().Length > 0
+				? methodMatch.Groups[3].Value.Trim()
+				: null;
+			var isStatic = name.EndsWith('$') || rest.Contains('$');
+			var isAbstract = name.EndsWith('*') || rest.Contains('*');
+
+			return (new ClassMember(
+				visibility,
+				name.TrimEnd('$', '*'),
+				type,
+				isStatic,
+				isAbstract,
+				IsMethod: true,
+				parms), true);
+		}
+
+		var parts = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		string memberName;
+		string? memberType = null;
+		if (parts.Length >= 2)
+		{
+			memberType = parts[0];
+			memberName = string.Join(' ', parts[1..]);
+		}
+		else
+		{
+			memberName = parts.Length > 0 ? parts[0] : rest;
+		}
+
+		var isStaticAttr = memberName.EndsWith('$');
+		var isAbstractAttr = memberName.EndsWith('*');
+
+		return (new ClassMember(
+			visibility,
+			memberName.TrimEnd('$', '*'),
+			memberType,
+			isStaticAttr,
+			isAbstractAttr), false);
+	}
+
+	private static ClassRelationship? ParseRelationship(string line)
+	{
+		var match = RelationshipPattern().Match(line);
+		if (!match.Success)
+			return null;
+
+		var from = match.Groups[1].Value;
+		var fromCard = match.Groups[2].Success ? MultilineUtils.NormalizeBrTags(match.Groups[2].Value) : null;
+		var arrow = match.Groups[3].Value.Trim();
+		var toCard = match.Groups[4].Success ? MultilineUtils.NormalizeBrTags(match.Groups[4].Value) : null;
+		var to = match.Groups[5].Value;
+		var label = match.Groups[6].Success ? MultilineUtils.NormalizeBrTags(match.Groups[6].Value.Trim()) : null;
+
+		var parsed = ParseArrow(arrow);
+		if (parsed == null)
+			return null;
+
+		return new ClassRelationship(from, to, parsed.Value.Type, parsed.Value.MarkerAt, label, fromCard, toCard);
+	}
+
+	private static (ClassRelationType Type, ClassMarkerAt MarkerAt)? ParseArrow(string arrow) =>
+		arrow switch
+		{
+			"<|--" => (ClassRelationType.Inheritance, ClassMarkerAt.From),
+			"--|>" => (ClassRelationType.Inheritance, ClassMarkerAt.To),
+			"<|.." => (ClassRelationType.Realization, ClassMarkerAt.From),
+			"..|>" => (ClassRelationType.Realization, ClassMarkerAt.To),
+			"*--" => (ClassRelationType.Composition, ClassMarkerAt.From),
+			"--*" => (ClassRelationType.Composition, ClassMarkerAt.To),
+			"o--" => (ClassRelationType.Aggregation, ClassMarkerAt.From),
+			"--o" => (ClassRelationType.Aggregation, ClassMarkerAt.To),
+			"-->" => (ClassRelationType.Association, ClassMarkerAt.To),
+			"<--" => (ClassRelationType.Association, ClassMarkerAt.From),
+			"..>" => (ClassRelationType.Dependency, ClassMarkerAt.To),
+			"<.." => (ClassRelationType.Dependency, ClassMarkerAt.From),
+			"--" => (ClassRelationType.Association, ClassMarkerAt.To),
+			_ => null,
+		};
+}

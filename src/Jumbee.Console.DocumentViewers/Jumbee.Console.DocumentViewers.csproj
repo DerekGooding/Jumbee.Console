@@ -26,4 +26,10 @@
     <ProjectReference Include="..\Jumbee.Console\Jumbee.Console.csproj" />
   </ItemGroup>
 
+  <!-- Vendored Mermaider class-diagram parser (MIT). Mermaider ships its parsers as internal, so the text→ClassDiagram
+       step is compiled in here (regexes de-source-generated, namespace changed). Layout + models come from the package. -->
+  <ItemGroup>
+    <Compile Include="..\..\ext\Mermaider\Parsing\ClassParser.cs" Link="Mermaid\Vendored\ClassParser.cs" />
+  </ItemGroup>
+
 </Project>
