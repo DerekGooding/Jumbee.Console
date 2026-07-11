@@ -20,6 +20,7 @@
     <EmbeddedResource Include="Examples\**\*.cs" />
     <EmbeddedResource Include="Examples\**\*.md" />
     <EmbeddedResource Include="Examples\**\*.adoc" />
+    <EmbeddedResource Include="Examples\**\*.mmd" />
   </ItemGroup>
 
   <!-- Also embed the source of the library controls/layouts the examples derive from, so the viewer can show a
@@ -30,6 +31,7 @@
     <EmbeddedResource Include="..\..\src\Jumbee.Console\Layouts\**\*.cs" Link="LayoutSource\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console\SpectreControl.cs" Link="ControlSource\SpectreControl.cs" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\AsciiDocViewer.cs" Link="ControlSource\AsciiDocViewer.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\Mermaid\MermaidViewer.cs" Link="ControlSource\MermaidViewer.cs" />
   </ItemGroup>
 
   <!-- Embed an internal design doc as the sample content for the Markdown Viewer example (rendered live in the pane,

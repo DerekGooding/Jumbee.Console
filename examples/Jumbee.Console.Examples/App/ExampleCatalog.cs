@@ -41,6 +41,7 @@ public static class ExampleCatalog
         new MultiTabEditorExample(),
         new MarkdownViewerExample(),
         new AsciiDocViewerExample(),
+        new MermaidViewerExample(),
     ];
 
     /// <summary>The example shown when the browser opens.</summary>

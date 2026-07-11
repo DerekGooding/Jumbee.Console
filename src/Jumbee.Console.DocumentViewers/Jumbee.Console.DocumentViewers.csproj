@@ -19,6 +19,7 @@
   <ItemGroup>
     <PackageReference Include="AdocNet.Core" Version="1.0.21" />
     <PackageReference Include="AdocNet.Parser" Version="1.0.21" />
+    <PackageReference Include="Mermaider" Version="0.8.0" />
   </ItemGroup>
 
   <ItemGroup>

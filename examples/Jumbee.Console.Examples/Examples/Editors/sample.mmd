@@ -1,0 +1,13 @@
+graph TD
+  A[User request] --> B{Cached?}
+  B -->|Yes| C[Return cached]
+  subgraph backend [Backend]
+    B -->|No| D[Query database]
+    D --> E{Found?}
+    E -->|Yes| F[Build response]
+    E -->|No| G[Return 404]
+    F --> H[Write cache]
+  end
+  H -.-> C
+  C --> I([Done])
+  G --> I
