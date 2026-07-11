@@ -30,6 +30,8 @@
        step is compiled in here (regexes de-source-generated, namespace changed). Layout + models come from the package. -->
   <ItemGroup>
     <Compile Include="..\..\ext\Mermaider\Parsing\ClassParser.cs" Link="Mermaid\Vendored\ClassParser.cs" />
+    <Compile Include="..\..\ext\Mermaider\Parsing\ErParser.cs" Link="Mermaid\Vendored\ErParser.cs" />
+    <Compile Include="..\..\ext\Mermaider\Parsing\SequenceParser.cs" Link="Mermaid\Vendored\SequenceParser.cs" />
   </ItemGroup>
 
 </Project>

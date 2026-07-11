@@ -1,30 +1,33 @@
 using System.Text.RegularExpressions;
+using Mermaider;
 using Mermaider.Models;
-using Mermaider.Text;
 
-namespace Mermaider.Parsing;
+namespace Jumbee.Console.DocumentViewers.Mermaid;
 
-internal static partial class ErParser
+// Vendored from Mermaider (MIT) — same treatment as ClassParser: source-generated regexes swapped for runtime
+// compiled Regex, namespace changed, internal MultilineUtils replaced with the local helper.
+internal static class ErParser
 {
 	private const int TimeoutMs = 2000;
+	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
 
-	[GeneratedRegex(@"^(\S+?)(?:\[(?:""([^""]+)""|([^\]]+))\])?\s*\{$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex EntityBlockPattern();
+	private static readonly Regex EntityBlock = new(@"^(\S+?)(?:\[(?:""([^""]+)""|([^\]]+))\])?\s*\{$", RegexOptions.Compiled, Timeout);
+	private static Regex EntityBlockPattern() => EntityBlock;
 
-	[GeneratedRegex(@"^(\S+)\s+(\S+)(?:\s+(.+))?$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex AttributePattern();
+	private static readonly Regex Attribute = new(@"^(\S+)\s+(\S+)(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex AttributePattern() => Attribute;
 
-	[GeneratedRegex(@"""([^""]*)""", RegexOptions.None, TimeoutMs)]
-	private static partial Regex CommentPattern();
+	private static readonly Regex Comment = new(@"""([^""]*)""", RegexOptions.Compiled, Timeout);
+	private static Regex CommentPattern() => Comment;
 
-	[GeneratedRegex(@"^(\S+)\s+([|o}{]+(?:--|\.\.)[|o}{]+)\s+(\S+)(?:\s*:\s*(.+))?$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex RelationshipPattern();
+	private static readonly Regex Relationship = new(@"^(\S+)\s+([|o}{]+(?:--|\.\.)[|o}{]+)\s+(\S+)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex RelationshipPattern() => Relationship;
 
-	[GeneratedRegex(@"^([|o}{]+)(--|\.\.)([|o}{]+)$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex CardinalitySplitPattern();
+	private static readonly Regex CardinalitySplit = new(@"^([|o}{]+)(--|\.\.)([|o}{]+)$", RegexOptions.Compiled, Timeout);
+	private static Regex CardinalitySplitPattern() => CardinalitySplit;
 
-	[GeneratedRegex(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase, TimeoutMs)]
-	private static partial Regex DirectionPattern();
+	private static readonly Regex Direction_ = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
+	private static Regex DirectionPattern() => Direction_;
 
 	internal static ErDiagram Parse(string[] lines)
 	{

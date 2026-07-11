@@ -43,6 +43,8 @@ public static class ExampleCatalog
         new AsciiDocViewerExample(),
         new MermaidViewerExample(),
         new MermaidClassExample(),
+        new MermaidErExample(),
+        new MermaidSequenceExample(),
     ];
 
     /// <summary>The example shown when the browser opens.</summary>

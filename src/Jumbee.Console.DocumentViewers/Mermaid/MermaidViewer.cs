@@ -39,6 +39,7 @@ public class MermaidViewer : Control
             if (v == _mermaid) return;
             _mermaid = v;
             _version++;
+            _hscroll.Reset();   // a new diagram starts scrolled to the left edge
             Initialize();
         });
     }
@@ -47,7 +48,7 @@ public class MermaidViewer : Control
     public MermaidStyles? Styles
     {
         get => _styles;
-        set => UI.Invoke(() => { _styles = value; _version++; Initialize(); });
+        set => UI.Invoke(() => { _styles = value; _version++; _hscroll.Reset(); Initialize(); });
     }
 
     public override bool HandlesInput => true;
@@ -59,6 +60,7 @@ public class MermaidViewer : Control
     protected override HelpInfo? GetHelpInfo() => new HelpInfo("Mermaid", "Mermaid Viewer",
         "A read-only, scrollable Mermaid diagram viewer.")
         .WithKey("↑ / ↓", "Scroll a line")
+        .WithKey("← / →", "Pan horizontally")
         .WithKey("PgUp / PgDn", "Scroll a page")
         .WithKey("Home / End", "Top / bottom");
 
@@ -77,6 +79,18 @@ public class MermaidViewer : Control
 
     protected override void OnInput(InputEvent inputEvent)
     {
+        // Horizontal panning is control-managed (Blit offset via HScroll), so it works with or without a frame.
+        switch (inputEvent.Key.Key)
+        {
+            case ConsoleKey.LeftArrow:
+                if (_hscroll.Pan(-HScrollStep, _content.Size.Width, consoleBuffer.Size.Width)) Invalidate();
+                inputEvent.Handled = true; return;
+            case ConsoleKey.RightArrow:
+                if (_hscroll.Pan(HScrollStep, _content.Size.Width, consoleBuffer.Size.Width)) Invalidate();
+                inputEvent.Handled = true; return;
+        }
+
+        // Vertical scrolling is frame-driven.
         if (Frame is not { } frame) return;
         var page = Math.Max(1, frame.ViewportSize.Height - 1);
         switch (inputEvent.Key.Key)
@@ -85,7 +99,7 @@ public class MermaidViewer : Control
             case ConsoleKey.UpArrow: frame.Scroll(-1); inputEvent.Handled = true; break;
             case ConsoleKey.PageDown: frame.Scroll(page); inputEvent.Handled = true; break;
             case ConsoleKey.PageUp: frame.Scroll(-page); inputEvent.Handled = true; break;
-            case ConsoleKey.Home: frame.Top = 0; inputEvent.Handled = true; break;
+            case ConsoleKey.Home: frame.Top = 0; _hscroll.Reset(); Invalidate(); inputEvent.Handled = true; break;
             case ConsoleKey.End: frame.Top = int.MaxValue / 2; inputEvent.Handled = true; break;
         }
     }
@@ -162,6 +176,18 @@ public class MermaidViewer : Control
             var positioned = MermaidRenderer.LayoutProvider.LayoutClass(diagram);
             return new MermaidClassRenderer(styles).Render(positioned);
         }
+        if (lines.Length > 0 && lines[0].StartsWith("erDiagram", StringComparison.Ordinal))
+        {
+            var diagram = ErParser.Parse(lines);
+            var positioned = MermaidRenderer.LayoutProvider.LayoutEr(diagram);
+            return new MermaidErRenderer(styles).Render(positioned);
+        }
+        if (lines.Length > 0 && lines[0].StartsWith("sequenceDiagram", StringComparison.Ordinal))
+        {
+            // Sequence has no public Mermaider layout, so we lay the parsed model out ourselves in cell space.
+            var diagram = SequenceParser.Parse(lines);
+            return new MermaidSequenceRenderer(styles).Render(diagram);
+        }
 
         var graph = MermaidRenderer.Parse(text);
         var flow = MermaidRenderer.LayoutProvider.LayoutFlowchart(graph);
@@ -195,11 +221,15 @@ public class MermaidViewer : Control
     private void Blit()
     {
         var src = _content;
+        var w = consoleBuffer.Size.Width;
+        var left = _hscroll.Clamp(src.Size.Width, w);   // re-clamp in case a resize widened the viewport
         var h = Math.Min(consoleBuffer.Size.Height, src.Size.Height);
-        var w = Math.Min(consoleBuffer.Size.Width, src.Size.Width);
         for (var y = 0; y < h; y++)
             for (var x = 0; x < w; x++)
-                consoleBuffer.Write(new Position(x, y), src[x, y]);
+            {
+                var sx = x + left;
+                if (sx < src.Size.Width) consoleBuffer.Write(new Position(x, y), src[sx, y]);
+            }
     }
 
     private int EstimateHeight()
@@ -212,10 +242,12 @@ public class MermaidViewer : Control
 
     #region Fields
     private const int MaxRows = 1024;
+    private const int HScrollStep = 3;   // columns panned per ← / → press
 
     private string _mermaid;
     private MermaidStyles? _styles;
     private int _version;
+    private HScroll _hscroll;   // horizontal pan offset (the frame only scrolls vertically)
 
     private ConsoleBuffer _content = new();
     private int _contentHeight;

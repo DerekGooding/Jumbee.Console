@@ -1,43 +1,46 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Mermaider;
 using Mermaider.Models;
-using Mermaider.Text;
 
-namespace Mermaider.Parsing;
+namespace Jumbee.Console.DocumentViewers.Mermaid;
 
-internal static partial class SequenceParser
+// Vendored from Mermaider (MIT) — same treatment as ClassParser/ErParser: source-generated regexes swapped for
+// runtime compiled Regex, namespace changed, internal MultilineUtils replaced with the local helper.
+internal static class SequenceParser
 {
 	private const int TimeoutMs = 2000;
+	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
 
-	[GeneratedRegex(@"^(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex ActorPattern();
+	private static readonly Regex Actor = new(@"^(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex ActorPattern() => Actor;
 
-	[GeneratedRegex(@"^Note\s+(left of|right of|over)\s+([^:]+):\s*(.+)$", RegexOptions.IgnoreCase, TimeoutMs)]
-	private static partial Regex NotePattern();
+	private static readonly Regex Note = new(@"^Note\s+(left of|right of|over)\s+([^:]+):\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
+	private static Regex NotePattern() => Note;
 
-	[GeneratedRegex(@"^(loop|alt|opt|par|critical|break|rect)\s*(.*)$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex BlockStartPattern();
+	private static readonly Regex BlockStart = new(@"^(loop|alt|opt|par|critical|break|rect)\s*(.*)$", RegexOptions.Compiled, Timeout);
+	private static Regex BlockStartPattern() => BlockStart;
 
-	[GeneratedRegex(@"^(else|and)\s*(.*)$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex DividerPattern();
+	private static readonly Regex Divider = new(@"^(else|and)\s*(.*)$", RegexOptions.Compiled, Timeout);
+	private static Regex DividerPattern() => Divider;
 
-	[GeneratedRegex(@"^(\S+?)\s*(->>|-->>|-\)|--\)|-x|--x|->|-->)\s*([+-]?)(\S+?)\s*:\s*(.+)$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex MessagePattern();
+	private static readonly Regex Message = new(@"^(\S+?)\s*(->>|-->>|-\)|--\)|-x|--x|->|-->)\s*([+-]?)(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
+	private static Regex MessagePattern() => Message;
 
-	[GeneratedRegex(@"^autonumber(?:\s+(\d+))?(?:\s+(\d+))?\s*$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex AutonumberPattern();
+	private static readonly Regex Autonumber = new(@"^autonumber(?:\s+(\d+))?(?:\s+(\d+))?\s*$", RegexOptions.Compiled, Timeout);
+	private static Regex AutonumberPattern() => Autonumber;
 
-	[GeneratedRegex(@"^(\S+?)\s*<<(->>|-->>)\s*(\S+?)\s*:\s*(.+)$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex BidirectionalMessagePattern();
+	private static readonly Regex BidirectionalMessage = new(@"^(\S+?)\s*<<(->>|-->>)\s*(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
+	private static Regex BidirectionalMessagePattern() => BidirectionalMessage;
 
-	[GeneratedRegex(@"^box(?:\s+(\S+))?(?:\s+(.+))?$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex BoxPattern();
+	private static readonly Regex Box = new(@"^box(?:\s+(\S+))?(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex BoxPattern() => Box;
 
-	[GeneratedRegex(@"^create\s+(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex CreatePattern();
+	private static readonly Regex Create = new(@"^create\s+(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static Regex CreatePattern() => Create;
 
-	[GeneratedRegex(@"^destroy\s+(\S+)\s*$", RegexOptions.None, TimeoutMs)]
-	private static partial Regex DestroyPattern();
+	private static readonly Regex Destroy = new(@"^destroy\s+(\S+)\s*$", RegexOptions.Compiled, Timeout);
+	private static Regex DestroyPattern() => Destroy;
 
 	internal static SequenceDiagram Parse(string[] lines)
 	{

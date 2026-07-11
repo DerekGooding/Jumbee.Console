@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant B as Browser
+    participant S as Server
+    participant D as Database
+    B->>S: GET /page
+    S->>D: query rows
+    D-->>S: result set
+    S-->>B: 200 OK
+    Note over B: render DOM
+    loop every 30s
+        B->>S: poll updates
+        S-->>B: 204 No Content
+    end
