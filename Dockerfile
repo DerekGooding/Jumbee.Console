@@ -16,6 +16,13 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     LC_ALL=C.UTF-8 \
     TERM=xterm-256color
 
+# Patch the base OS packages to the latest available at build time — trims the (mostly medium, build-tool) CVEs
+# Docker Scout flags in the SDK image. Rebuild with `docker build --pull` to also refresh the base image itself and
+# re-fetch fresh patches (a plain rebuild reuses this cached layer). Cleaned up in the same layer to stay small.
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /src
 
 # Copy the repo (see .dockerignore) and build the examples browser in Release. This
