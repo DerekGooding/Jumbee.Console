@@ -1,0 +1,22 @@
+= Live AsciiDoc
+:toc:
+
+Edit on the *left*; the preview on the _right_ updates as you type.
+
+== A list
+
+* first item
+* second item
+* third item
+
+== Formatting
+
+*bold*, _italic_, and `monospace` text, plus a
+link: https://asciidoc.org[link].
+
+NOTE: The preview renders off the UI thread, so typing never blocks.
+
+[source,ruby]
+----
+puts "hello, world"
+----

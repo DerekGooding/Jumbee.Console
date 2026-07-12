@@ -110,40 +110,24 @@ internal sealed class MermaidFlowchartRenderer
                 return;
         }
 
-        if (node.Shape is NodeShape.Diamond && x1 - x0 >= 4 && y1 - y0 >= 2)
-        {
-            DrawDiamond(canvas, x0, y0, x1, y1);
-            DrawLabel(canvas, node.Label, x0 + 1, cy, x1 - 1, cy);   // one line on the widest (centre) row
-            return;
-        }
-
-        var rounded = node.Shape is NodeShape.Rounded or NodeShape.Stadium or NodeShape.Circle
-            or NodeShape.DoubleCircle or NodeShape.StateStart or NodeShape.StateEnd;
-        canvas.Box(x0, y0, x1, y1, rounded, _s.NodeBorder);
+        // Every node is a rectangular box; the shape is conveyed by the border style and colour instead of a
+        // non-rectangular outline (cleaner to read and consistent with the other boxes). Decision (diamond) → a
+        // double-lined amber box; terminal (circle) → rounded green; special (hexagon/cylinder/subroutine) → double
+        // purple; ordinary process → square/rounded blue.
+        var (border, color) = NodeStyle(node.Shape);
+        canvas.Box(x0, y0, x1, y1, border, color);
         DrawLabel(canvas, node.Label, x0 + 1, y0 + 1, x1 - 1, y1 - 1);
     }
 
-    // A rhombus inscribed in [x0,y0]-[x1,y1]. Iterating per column (the wider axis at the terminal's ~2:1 cell
-    // aspect) keeps the shallow edges gap-free and symmetric: each column gets one top and one bottom edge glyph,
-    // and the rhombus interior is cleared so edges routed beneath don't show through.
-    private void DrawDiamond(CellCanvas canvas, int x0, int y0, int x1, int y1)
+    // Maps a node shape to its box border style + colour.
+    private (CellCanvas.BoxBorder border, Color color) NodeStyle(NodeShape shape) => shape switch
     {
-        int mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
-        double halfW = (x1 - x0) / 2.0, halfH = (y1 - y0) / 2.0;
-
-        for (var y = y0; y <= y1; y++)
-        {
-            var hw = (int)Math.Round(halfW * (1 - Math.Abs(y - my) / halfH));
-            for (var x = mx - hw; x <= mx + hw; x++) canvas.Clear(x, y);
-        }
-
-        for (var x = x0; x <= x1; x++)
-        {
-            var off = (int)Math.Round(halfH * (1 - Math.Abs(x - mx) / halfW));
-            canvas.SetChar(x, my - off, x <= mx ? '╱' : '╲', _s.NodeBorder);   // upper edge
-            canvas.SetChar(x, my + off, x <= mx ? '╲' : '╱', _s.NodeBorder);   // lower edge
-        }
-    }
+        NodeShape.Diamond => (CellCanvas.BoxBorder.Double, _s.NodeDecision),
+        NodeShape.Circle or NodeShape.DoubleCircle => (CellCanvas.BoxBorder.Rounded, _s.NodeTerminal),
+        NodeShape.Hexagon or NodeShape.Cylinder or NodeShape.Subroutine => (CellCanvas.BoxBorder.Double, _s.NodeSpecial),
+        NodeShape.Rounded or NodeShape.Stadium => (CellCanvas.BoxBorder.Rounded, _s.NodeBorder),
+        _ => (CellCanvas.BoxBorder.Square, _s.NodeBorder),
+    };
 
     // Centres the (possibly multi-line) label within the interior box [ix0..ix1] x [iy0..iy1].
     private void DrawLabel(CellCanvas canvas, string label, int ix0, int iy0, int ix1, int iy1)

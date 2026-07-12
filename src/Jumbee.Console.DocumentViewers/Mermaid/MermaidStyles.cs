@@ -10,7 +10,18 @@ public sealed class MermaidStyles
     /// <summary>A shared default style set.</summary>
     public static MermaidStyles Default { get; } = new();
 
+    /// <summary>Border colour for ordinary process nodes (rectangle / rounded).</summary>
     public Color NodeBorder { get; init; } = Color.DeepSkyBlue1;
+
+    /// <summary>Border colour for decision nodes (drawn as a double-lined box instead of a diamond).</summary>
+    public Color NodeDecision { get; init; } = Color.Orange1;
+
+    /// <summary>Border colour for terminal nodes (circle / double-circle — start/end/connector).</summary>
+    public Color NodeTerminal { get; init; } = Color.SpringGreen2;
+
+    /// <summary>Border colour for special nodes (hexagon / cylinder / subroutine).</summary>
+    public Color NodeSpecial { get; init; } = Color.MediumPurple1;
+
     public Color NodeLabel { get; init; } = Color.Grey93;
     public Color Edge { get; init; } = Color.Grey62;
     public Color Arrow { get; init; } = Color.Aquamarine1;

@@ -80,7 +80,7 @@ public sealed class PerfHud : GlassPanel
         double exc = m.ExceptionsPerSecond;
         long locks = m.LockContentions;
 
-        var g = new S.Grid();
+        var g = new S.Grid();       
         g.AddColumn(new S.GridColumn { Padding = new S.Padding(0, 0, 2, 0) });
         g.AddColumn();
         // Each metric on one row: the AVERAGE (the typical/steady value) in bright ink, then the PEAK — the worst

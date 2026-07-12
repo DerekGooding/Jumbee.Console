@@ -39,6 +39,10 @@ internal sealed class CellCanvas
     /// <summary>Line weight for <see cref="Link"/>: normal, heavy (thick edges), or dashed (dotted edges).</summary>
     public enum LineStyle : byte { Normal = 0, Heavy = 1, Dashed = 2 }
 
+    /// <summary>Border style for <see cref="Box"/>: square corners, rounded (arc) corners, double lines, or heavy lines.
+    /// Used to distinguish node kinds (e.g. decision vs process) without drawing non-rectangular shapes.</summary>
+    public enum BoxBorder : byte { Square = 0, Rounded = 1, Double = 2, Heavy = 3 }
+
     /// <summary>Writes an opaque glyph (node borders, labels, arrowheads), clearing any accumulated line mask.</summary>
     public void SetChar(int x, int y, char c, CColor? color)
     {
@@ -78,19 +82,32 @@ internal sealed class CellCanvas
         for (var y = y0; y < y1; y++) { Link((x0, y), (x0, y + 1), color); Link((x1, y), (x1, y + 1), color); }
     }
 
-    /// <summary>Draws a box outline and clears its interior. <paramref name="rounded"/> picks arc corners.</summary>
-    public void Box(int x0, int y0, int x1, int y1, bool rounded, CColor? color)
+    /// <summary>Draws a box outline (square corners) and clears its interior.</summary>
+    public void Box(int x0, int y0, int x1, int y1, bool rounded, CColor? color) =>
+        Box(x0, y0, x1, y1, rounded ? BoxBorder.Rounded : BoxBorder.Square, color);
+
+    /// <summary>Draws a box outline in the given <paramref name="border"/> style and clears its interior.</summary>
+    public void Box(int x0, int y0, int x1, int y1, BoxBorder border, CColor? color)
     {
         for (var y = y0 + 1; y < y1; y++)
             for (var x = x0 + 1; x < x1; x++)
                 Clear(x, y);
 
-        for (var x = x0 + 1; x < x1; x++) { SetChar(x, y0, '─', color); SetChar(x, y1, '─', color); }
-        for (var y = y0 + 1; y < y1; y++) { SetChar(x0, y, '│', color); SetChar(x1, y, '│', color); }
-        SetChar(x0, y0, rounded ? '╭' : '┌', color);
-        SetChar(x1, y0, rounded ? '╮' : '┐', color);
-        SetChar(x0, y1, rounded ? '╰' : '└', color);
-        SetChar(x1, y1, rounded ? '╯' : '┘', color);
+        // (horizontal, vertical, top-left, top-right, bottom-left, bottom-right) glyphs per border style.
+        var (h, v, tl, tr, bl, br) = border switch
+        {
+            BoxBorder.Rounded => ('─', '│', '╭', '╮', '╰', '╯'),
+            BoxBorder.Double => ('═', '║', '╔', '╗', '╚', '╝'),
+            BoxBorder.Heavy => ('━', '┃', '┏', '┓', '┗', '┛'),
+            _ => ('─', '│', '┌', '┐', '└', '┘'),
+        };
+
+        for (var x = x0 + 1; x < x1; x++) { SetChar(x, y0, h, color); SetChar(x, y1, h, color); }
+        for (var y = y0 + 1; y < y1; y++) { SetChar(x0, y, v, color); SetChar(x1, y, v, color); }
+        SetChar(x0, y0, tl, color);
+        SetChar(x1, y0, tr, color);
+        SetChar(x0, y1, bl, color);
+        SetChar(x1, y1, br, color);
     }
 
     /// <summary>Writes text starting at (x,y), clipped to the right edge; does not wrap.</summary>
