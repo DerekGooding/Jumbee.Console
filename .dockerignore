@@ -1,0 +1,21 @@
+# Build outputs — regenerated inside the image (and stale host artifacts must not leak in).
+**/bin/
+**/obj/
+
+# Version control, IDE, and local tooling state.
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+.claude/
+*.user
+
+# Large trees the examples build does not need (keep ext/, src/, examples/, docs/).
+reference/
+tests/
+BenchmarkDotNet.Artifacts/
+
+# The Docker build files themselves.
+Dockerfile
+.dockerignore
