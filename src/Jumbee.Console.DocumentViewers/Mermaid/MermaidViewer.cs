@@ -148,7 +148,7 @@ public class MermaidViewer : Control
     {
         try
         {
-            var canvas = BuildCanvas(text, styles);
+            var canvas = MermaidCanvas.Build(text, styles);
             var height = Math.Min(canvas.Height, MaxRows);
             var buffer = new ConsoleBuffer { Size = new Size(Math.Max(1, canvas.Width), Math.Max(1, height)) };
             buffer.Initialize();
@@ -163,48 +163,6 @@ public class MermaidViewer : Control
         {
             return RenderMessage("Unable to render Mermaid diagram.");
         }
-    }
-
-    // Routes by diagram type: class diagrams use the vendored ClassParser (Mermaider's is internal) + the public
-    // LayoutClass; flowchart/state go through the public MermaidRenderer.Parse + LayoutFlowchart.
-    private static CellCanvas BuildCanvas(string text, MermaidStyles styles)
-    {
-        var lines = PreprocessLines(text);
-        if (lines.Length > 0 && lines[0].StartsWith("classDiagram", StringComparison.Ordinal))
-        {
-            var diagram = ClassParser.Parse(lines);
-            var positioned = MermaidRenderer.LayoutProvider.LayoutClass(diagram);
-            return new MermaidClassRenderer(styles).Render(positioned);
-        }
-        if (lines.Length > 0 && lines[0].StartsWith("erDiagram", StringComparison.Ordinal))
-        {
-            var diagram = ErParser.Parse(lines);
-            var positioned = MermaidRenderer.LayoutProvider.LayoutEr(diagram);
-            return new MermaidErRenderer(styles).Render(positioned);
-        }
-        if (lines.Length > 0 && lines[0].StartsWith("sequenceDiagram", StringComparison.Ordinal))
-        {
-            // Sequence has no public Mermaider layout, so we lay the parsed model out ourselves in cell space.
-            var diagram = SequenceParser.Parse(lines);
-            return new MermaidSequenceRenderer(styles).Render(diagram);
-        }
-
-        var graph = MermaidRenderer.Parse(text);
-        var flow = MermaidRenderer.LayoutProvider.LayoutFlowchart(graph);
-        return new MermaidFlowchartRenderer(styles).Render(flow);
-    }
-
-    // Trim, drop blank lines and %% comments — the line shape the vendored ClassParser expects (header at index 0).
-    private static string[] PreprocessLines(string text)
-    {
-        var raw = text.Split('\n');
-        var list = new List<string>(raw.Length);
-        foreach (var r in raw)
-        {
-            var t = r.Trim();
-            if (t.Length > 0 && !t.StartsWith("%%", StringComparison.Ordinal)) list.Add(t);
-        }
-        return list.ToArray();
     }
 
     private static (ConsoleBuffer buffer, int height) RenderMessage(string message)

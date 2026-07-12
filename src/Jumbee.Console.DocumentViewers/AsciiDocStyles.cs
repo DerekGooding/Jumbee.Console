@@ -32,6 +32,9 @@ public sealed class AsciiDocStyles
     /// <summary>Border colour of code / example / sidebar panels and thematic breaks.</summary>
     public string PanelBorder { get; init; } = "grey42";
 
+    /// <summary>Colours/scale for embedded <c>[source,mermaid]</c> diagram blocks.</summary>
+    public MermaidStyles Mermaid { get; init; } = MermaidStyles.Default;
+
     /// <summary>Accent (border) colours for the five admonition kinds.</summary>
     public string AdmonitionNote { get; init; } = "deepskyblue1";
     public string AdmonitionTip { get; init; } = "green";

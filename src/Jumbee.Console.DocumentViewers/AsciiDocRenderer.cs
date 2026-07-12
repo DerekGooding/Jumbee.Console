@@ -151,6 +151,19 @@ internal sealed class AsciiDocRenderer
             case DelimitedBlockKind.Listing:
             case DelimitedBlockKind.Literal:
             {
+                // A `[source,mermaid]` block renders the diagram itself, not its text — parse+rasterize it and drop
+                // the cell grid into the panel via the CellCanvas→IRenderable adapter.
+                if (IsMermaid(block.Language) && RenderMermaid(block.Content ?? string.Empty) is { } diagram)
+                {
+                    return new Panel(diagram)
+                    {
+                        Border = BoxBorder.Rounded,
+                        BorderStyle = Style.Parse(_s.PanelBorder),
+                        Header = new PanelHeader(" mermaid "),
+                        Expand = false,
+                    };
+                }
+
                 var panel = new Panel(CodeContent(block.Content ?? string.Empty, block.Language))
                 {
                     Border = BoxBorder.Rounded,
@@ -253,6 +266,17 @@ internal sealed class AsciiDocRenderer
     {
         var node = parent.AddNode(new Markup(Wrap(_s.CrossReference, Esc(entry.Title))));
         foreach (var child in entry.Children) AddTocEntry(node, child);
+    }
+
+    private static bool IsMermaid(string? language) =>
+        language?.Trim().ToLowerInvariant() is "mermaid" or "mmd";
+
+    // Rasterizes a Mermaid block to a renderable, or null on a parse/render failure (the caller then falls back to
+    // showing the block as plain source, so a bad diagram never blanks the surrounding document).
+    private IRenderable? RenderMermaid(string source)
+    {
+        try { return MermaidCanvas.Build(source, _s.Mermaid).ToRenderable(); }
+        catch { return null; }
     }
 
     // Verbatim block body: syntax-highlighted Markup when the language is recognised, else plain styled text.

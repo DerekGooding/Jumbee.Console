@@ -11,7 +11,8 @@ using CColor = ConsoleGUI.Data.Color;
 /// <summary>
 /// Lays out and renders a parsed Mermaid <see cref="SequenceDiagram"/> directly in cell space (Mermaider has no
 /// public sequence layout, and sequence layout is simple): actor boxes across the top, dashed lifelines down, and
-/// messages stacked top-to-bottom as horizontal arrows, plus block frames (loop/alt/…) and notes.
+/// messages stacked top-to-bottom as horizontal arrows, plus block frames (loop/alt/…), notes, activation bars,
+/// participant boxes (actor grouping) and create/destroy markers.
 /// </summary>
 internal sealed class MermaidSequenceRenderer
 {
@@ -29,6 +30,9 @@ internal sealed class MermaidSequenceRenderer
 
         var msgs = diagram.Messages;
 
+        // Participant boxes reserve a title row above the actor boxes; without any, the top band is zero.
+        var actorTop = diagram.Boxes.Count > 0 ? 1 : 0;
+
         // ── Horizontal: actor box widths, then centre X per column (gap widened by adjacent-actor message labels) ──
         var boxW = actors.Select(a => Math.Max(MinActorW, a.Label.Length + 4)).ToArray();
         var gap = new int[Math.Max(0, actors.Count - 1)];
@@ -40,15 +44,22 @@ internal sealed class MermaidSequenceRenderer
             if (Math.Abs(a - b) == 1) gap[lo] = Math.Max(gap[lo], m.Label.Length + 3);
         }
         var left = new int[actors.Count];
-        var cx = new int[actors.Count];
+        _cx = new int[actors.Count];
         var x = LeftMargin;
         for (var i = 0; i < actors.Count; i++)
         {
             left[i] = x;
-            cx[i] = x + boxW[i] / 2;
+            _cx[i] = x + boxW[i] / 2;
             x += boxW[i] + (i < gap.Length ? gap[i] : 0);
         }
         var width = left[^1] + boxW[^1] + RightMargin + SelfLoopWidth;   // room for a self-loop off the last actor
+
+        // A right-of / over note on an edge actor can extend past the actor columns — widen to fit it.
+        foreach (var n in diagram.Notes)
+        {
+            var (_, nx1) = NoteRect(n, col);
+            width = Math.Max(width, nx1 + RightMargin);
+        }
 
         // ── Vertical: assign a row to every event (block start/divider/message/note/block end), in message order ──
         var startsAt = Bucket(diagram.Blocks, b => b.StartIndex);
@@ -61,7 +72,7 @@ internal sealed class MermaidSequenceRenderer
         var noteY = new Dictionary<SequenceNote, int>();
         var dividerY = new List<(int y, string label, SequenceBlock block)>();
 
-        var y = ActorBoxH + 1;
+        var y = actorTop + ActorBoxH + 1;
         for (var i = 0; i < msgs.Count; i++)
         {
             foreach (var b in startsAt(i)) { blockTop[b] = y; y += 2; }
@@ -79,34 +90,96 @@ internal sealed class MermaidSequenceRenderer
         var lifelineBottom = y;
         var height = y + 1;
 
+        // ── Per-actor lifeline extents: created actors' lifelines start at the create message; destroyed ones end
+        //    at the destroy marker (with an ✗). AtMessageIndex maps through msgY to a row. ──
+        var lifeStart = new int[actors.Count];
+        var lifeEnd = new int[actors.Count];
+        var createY = new int[actors.Count];
+        var destroyY = new int[actors.Count];
+        Array.Fill(createY, -1);
+        Array.Fill(destroyY, -1);
+        for (var i = 0; i < actors.Count; i++) { lifeStart[i] = actorTop + ActorBoxH; lifeEnd[i] = lifelineBottom; }
+        foreach (var c in diagram.Creates)
+            if (col.TryGetValue(c.ActorId, out var i) && (uint)c.AtMessageIndex < (uint)msgs.Count)
+            { createY[i] = msgY[c.AtMessageIndex]; lifeStart[i] = createY[i] + 2; }
+        foreach (var d in diagram.Destroys)
+            if (col.TryGetValue(d.ActorId, out var i) && (uint)d.AtMessageIndex < (uint)msgs.Count)
+            { destroyY[i] = msgY[d.AtMessageIndex]; lifeEnd[i] = destroyY[i]; }
+
+        // ── Activation bars: walk messages tracking an open-activation stack per actor (Activate targets the
+        //    receiver, Deactivate the sender). Nested bars offset right by their depth. ──
+        _bars = BuildActivations(msgs, msgY, col, lifeEnd);
+
         var canvas = new CellCanvas(width, height);
 
-        // ── Draw: lifelines → block frames → messages → notes → actor boxes (opaque, on top) ──
-        foreach (var c in cx.Distinct())
-            for (var yy = ActorBoxH; yy <= lifelineBottom; yy++)
-                canvas.SetChar(c, yy, '┆', _s.Edge);
+        // ── Draw: participant boxes → lifelines → activation bars → block frames → messages → notes → actor boxes ──
+        foreach (var b in diagram.Boxes)
+            DrawParticipantBox(canvas, b, col, left, boxW, actorTop, width);
+
+        for (var i = 0; i < actors.Count; i++)
+            for (var yy = lifeStart[i]; yy <= lifeEnd[i]; yy++)
+                canvas.SetChar(_cx[i], yy, '┆', _s.Edge);
+
+        foreach (var bar in _bars)
+            DrawActivation(canvas, bar);
 
         foreach (var b in diagram.Blocks)
-            DrawBlock(canvas, b, cx, blockTop, blockBot, width);
+            DrawBlock(canvas, b, _cx, blockTop, blockBot, width);
         foreach (var (dy, label, _) in dividerY)
             DrawDivider(canvas, dy, label, width);
 
         for (var i = 0; i < msgs.Count; i++)
-            DrawMessage(canvas, msgs[i], col, cx, msgY[i]);
+            DrawMessage(canvas, msgs[i], col, msgY[i]);
 
         foreach (var (note, ny) in noteY)
-            DrawNote(canvas, note, col, cx, ny);
+            DrawNote(canvas, note, col, ny);
 
         for (var i = 0; i < actors.Count; i++)
         {
-            canvas.Box(left[i], 0, left[i] + boxW[i] - 1, ActorBoxH - 1, rounded: actors[i].Type == SequenceActorType.Actor, _s.NodeBorder);
-            Centered(canvas, actors[i].Label, cx[i], 1, _s.NodeLabel);
+            var top = createY[i] >= 0 ? createY[i] - 1 : actorTop;
+            canvas.Box(left[i], top, left[i] + boxW[i] - 1, top + ActorBoxH - 1,
+                rounded: actors[i].Type == SequenceActorType.Actor, _s.NodeBorder);
+            Centered(canvas, actors[i].Label, _cx[i], top + 1, _s.NodeLabel);
+            if (destroyY[i] >= 0) canvas.SetChar(_cx[i], destroyY[i], '✗', _s.Arrow);
         }
 
         return canvas;
     }
 
-    private void DrawMessage(CellCanvas canvas, SequenceMessage m, Dictionary<string, int> col, int[] cx, int y)
+    // Resolves activation spans from Activate/Deactivate flags. Each actor keeps a stack of open bars; a `+` message
+    // pushes one on its receiver (depth = current stack size), a `-` pops one off its sender. Bars left open at the
+    // end run to the actor's lifeline bottom.
+    private static List<Bar> BuildActivations(IReadOnlyList<SequenceMessage> msgs, int[] msgY,
+        Dictionary<string, int> col, int[] lifeEnd)
+    {
+        var bars = new List<Bar>();
+        var open = new Dictionary<int, Stack<Bar>>();
+        Stack<Bar> StackFor(int a) => open.TryGetValue(a, out var s) ? s : open[a] = new Stack<Bar>();
+
+        for (var i = 0; i < msgs.Count; i++)
+        {
+            var m = msgs[i];
+            if (m.Activate && col.TryGetValue(m.To, out var t))
+            {
+                var stack = StackFor(t);
+                var bar = new Bar { Actor = t, Depth = stack.Count, Y0 = msgY[i], Y1 = lifeEnd[t] };
+                stack.Push(bar);
+                bars.Add(bar);
+            }
+            if (m.Deactivate && col.TryGetValue(m.From, out var f) && open.TryGetValue(f, out var fs) && fs.Count > 0)
+                fs.Pop().Y1 = msgY[i];
+        }
+        return bars;
+    }
+
+    private void DrawActivation(CellCanvas canvas, Bar bar)
+    {
+        var (x0, x1) = BarExtentX(bar);
+        var y1 = Math.Max(bar.Y0 + 1, bar.Y1);
+        canvas.Box(x0, bar.Y0, x1, y1, rounded: false, _s.NodeBorder);
+    }
+
+    private void DrawMessage(CellCanvas canvas, SequenceMessage m, Dictionary<string, int> col, int y)
     {
         if (!col.TryGetValue(m.From, out var a) || !col.TryGetValue(m.To, out var b)) return;
         var style = m.LineStyle == SequenceLineStyle.Dashed ? CellCanvas.LineStyle.Dashed : CellCanvas.LineStyle.Normal;
@@ -114,7 +187,7 @@ internal sealed class MermaidSequenceRenderer
 
         if (a == b)   // self-message: a small loop off the right of the lifeline
         {
-            int x0 = cx[a], r = cx[a] + SelfLoopWidth - 1;
+            int x0 = ActiveEdge(a, y, _cx[a] + 1), r = x0 + SelfLoopWidth - 1;
             for (var xx = x0; xx < r; xx++) canvas.Link((xx, y), (xx + 1, y), _s.Edge, style);
             canvas.Link((r, y), (r, y + 1), _s.Edge, style);
             canvas.Link((r, y + 1), (r, y + 2), _s.Edge, style);
@@ -124,11 +197,54 @@ internal sealed class MermaidSequenceRenderer
             return;
         }
 
-        int x1 = cx[a], x2 = cx[b], lo = Math.Min(x1, x2), hi = Math.Max(x1, x2);
+        // Endpoints meet the near edge of any active bar on each actor, not the lifeline centre.
+        int x1 = ActiveEdge(a, y, _cx[b]), x2 = ActiveEdge(b, y, _cx[a]);
+        int lo = Math.Min(x1, x2), hi = Math.Max(x1, x2);
         for (var xx = lo; xx < hi; xx++) canvas.Link((xx, y), (xx + 1, y), _s.Edge, style);
         var head = x2 > x1 ? (filled ? '▶' : '▷') : (filled ? '◀' : '◁');
         canvas.SetChar(x2, y, head, _s.Arrow);
-        Centered(canvas, m.Label, (x1 + x2) / 2, y - 1, _s.EdgeLabel);
+        Centered(canvas, m.Label, (_cx[a] + _cx[b]) / 2, y - 1, _s.EdgeLabel);
+    }
+
+    // The x where an arrow coming from `fromX` should meet `actor` at row `y`: the near edge of the widest active
+    // bar covering that row, or the lifeline centre when the actor is idle there.
+    private int ActiveEdge(int actor, int y, int fromX)
+    {
+        int lo = int.MaxValue, hi = int.MinValue;
+        foreach (var bar in _bars)
+        {
+            if (bar.Actor != actor || y < bar.Y0 || y > Math.Max(bar.Y0 + 1, bar.Y1)) continue;
+            var (x0, x1) = BarExtentX(bar);
+            lo = Math.Min(lo, x0);
+            hi = Math.Max(hi, x1);
+        }
+        if (lo == int.MaxValue) return _cx[actor];
+        return fromX <= _cx[actor] ? lo : hi;
+    }
+
+    // A bar is a 3-cell-wide box centred on the lifeline, shifted right by its nesting depth so nested bars overlap
+    // like mermaid's stacked activations.
+    private (int x0, int x1) BarExtentX(Bar bar)
+    {
+        var c = _cx[bar.Actor] + bar.Depth;
+        return (c - 1, c + 1);
+    }
+
+    private void DrawParticipantBox(CellCanvas canvas, SequenceBox box, Dictionary<string, int> col,
+        int[] left, int[] boxW, int actorTop, int width)
+    {
+        var idx = box.ActorIds.Where(col.ContainsKey).Select(id => col[id]).ToList();
+        if (idx.Count == 0) return;
+        int lo = idx.Min(), hi = idx.Max();
+        int x0 = Math.Max(0, left[lo] - 1);
+        int x1 = Math.Min(width - 1, left[hi] + boxW[hi]);
+        int y1 = actorTop + ActorBoxH - 1;
+        canvas.LinkRect(x0, 0, x1, y1, _s.GroupBorder);
+        // The parser splits `box <color> <title>` greedily, so a title-only `box Frontend` lands in Color; fall back
+        // to it when Title is empty.
+        var title = string.IsNullOrEmpty(box.Title) ? box.Color : box.Title;
+        if (!string.IsNullOrEmpty(title))
+            canvas.Text(x0 + 2, 0, Clip($" {title} ", x1 - x0 - 3), _s.GroupLabel);
     }
 
     private void DrawBlock(CellCanvas canvas, SequenceBlock b, int[] cx,
@@ -151,9 +267,17 @@ internal sealed class MermaidSequenceRenderer
         if (!string.IsNullOrEmpty(label)) canvas.Text(3, y, Clip($"[{label}]", width - 6), _s.GroupLabel);
     }
 
-    private void DrawNote(CellCanvas canvas, SequenceNote note, Dictionary<string, int> col, int[] cx, int y)
+    private void DrawNote(CellCanvas canvas, SequenceNote note, Dictionary<string, int> col, int y)
     {
-        var centres = note.ActorIds.Where(col.ContainsKey).Select(id => cx[col[id]]).DefaultIfEmpty(cx[0]).ToList();
+        var (x0, x1) = NoteRect(note, col);
+        canvas.Box(x0, y, x1, y + NoteHeight - 1, rounded: false, _s.NodeBorder);
+        Centered(canvas, note.Text, (x0 + x1) / 2, y + 1, _s.Member);
+    }
+
+    // Horizontal extent of a note box, shared by width sizing and drawing so they can't disagree.
+    private (int x0, int x1) NoteRect(SequenceNote note, Dictionary<string, int> col)
+    {
+        var centres = note.ActorIds.Where(col.ContainsKey).Select(id => _cx[col[id]]).DefaultIfEmpty(_cx[0]).ToList();
         int lo = centres.Min(), hi = centres.Max();
         int w = Math.Max(note.Text.Length + 2, 6);
         int x0 = note.Position switch
@@ -163,9 +287,7 @@ internal sealed class MermaidSequenceRenderer
             _ => (lo + hi) / 2 - w / 2,   // Over: centred across the actor span
         };
         x0 = Math.Max(0, x0);
-        int x1 = x0 + w;
-        canvas.Box(x0, y, x1, y + NoteHeight - 1, rounded: false, _s.NodeBorder);
-        Centered(canvas, note.Text, (x0 + x1) / 2, y + 1, _s.Member);
+        return (x0, x0 + w);
     }
 
     private static Func<int, IEnumerable<T>> Bucket<T>(IEnumerable<T> items, Func<T, int> key)
@@ -199,5 +321,17 @@ internal sealed class MermaidSequenceRenderer
     private const int NoteHeight = 3;
 
     private readonly MermaidStyles _s;
+    private int[] _cx = null!;         // per-render actor centre X (assigned at the top of Render)
+    private List<Bar> _bars = null!;   // per-render activation bars (assigned at the top of Render)
+    #endregion
+
+    #region Types
+    private sealed class Bar
+    {
+        public int Actor;
+        public int Depth;
+        public int Y0;
+        public int Y1;
+    }
     #endregion
 }

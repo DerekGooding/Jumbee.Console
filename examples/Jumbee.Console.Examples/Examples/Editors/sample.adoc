@@ -41,6 +41,19 @@ var viewer = new AsciiDocViewer(File.ReadAllText("doc.adoc"))
 ui.Add(viewer);
 ----
 
+== Diagrams
+
+A `[source,mermaid]` block renders the diagram itself, drawn as box graphics:
+
+[source,mermaid]
+----
+flowchart LR
+    A[Parse] --> B{Cached?}
+    B -->|yes| C[Blit]
+    B -->|no| D[Render]
+    D --> C
+----
+
 == Tables
 
 [cols="1,2",options="header"]

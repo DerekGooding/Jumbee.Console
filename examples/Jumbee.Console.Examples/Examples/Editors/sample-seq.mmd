@@ -1,13 +1,24 @@
 sequenceDiagram
-    participant B as Browser
-    participant S as Server
-    participant D as Database
-    B->>S: GET /page
-    S->>D: query rows
-    D-->>S: result set
-    S-->>B: 200 OK
+    box Frontend
+        participant B as Browser
+    end
+    box Backend
+        participant S as Server
+        participant D as Database
+    end
+    B->>+S: GET /page
+    S->>+D: query rows
+    D-->>-S: result set
+    S-->>-B: 200 OK
     Note over B: render DOM
+    B->>+S: POST /job
+    create participant W as Worker
+    S->>+W: enqueue task
+    W-->>-S: ack
+    S-->>-B: 202 Accepted
     loop every 30s
         B->>S: poll updates
         S-->>B: 204 No Content
     end
+    destroy W
+    S-xW: shutdown

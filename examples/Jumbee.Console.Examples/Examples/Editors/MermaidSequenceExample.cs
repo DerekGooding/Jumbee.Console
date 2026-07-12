@@ -6,7 +6,8 @@ using Jumbee.Console.DocumentViewers;
 
 /// <summary>
 /// The <see cref="MermaidViewer"/> rendering a Mermaid <c>sequenceDiagram</c> — actor boxes with lifelines, stacked
-/// message arrows (solid/dashed), notes and a loop frame; scroll with arrows/PgUp/PgDn/wheel.
+/// message arrows (solid/dashed), notes, a loop frame, activation bars, participant boxes and create/destroy markers;
+/// scroll with arrows/PgUp/PgDn/wheel.
 /// </summary>
 public sealed class MermaidSequenceExample : MermaidViewer, IExample
 {
@@ -16,7 +17,7 @@ public sealed class MermaidSequenceExample : MermaidViewer, IExample
     string IExample.Category => "Editors and Viewers";
     string IExample.Title => "Mermaid Sequence Diagram";
     string IExample.Description =>
-        "Renders a Mermaid sequence diagram — lifelines, message arrows, notes and block frames — as scrollable box-drawing graphics.";
+        "Renders a Mermaid sequence diagram — lifelines, message arrows, activations, participant boxes, create/destroy, notes and block frames — as scrollable box-drawing graphics.";
     IReadOnlyList<string> IExample.SourceFiles => ["MermaidSequenceExample.cs", "MermaidViewer.cs", "sample-seq.mmd"];
     #endregion
 }

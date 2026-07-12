@@ -139,9 +139,15 @@ public class MarkdownViewer : Control
         if (relayout) { Initialize(); Invalidate(); }
     }
 
+    /// <summary>Discards the cached render so the next layout re-renders — for a subclass that adds render inputs
+    /// (e.g. diagram styles) beyond <see cref="Markdown"/>/<see cref="Styles"/>. Call on the UI thread.</summary>
+    protected void InvalidateContent() { _version++; Initialize(); }
+
     // Renders the markdown into a fresh offscreen buffer at `width` and returns it with its measured content height.
-    // Resilient: any failure in the third-party writer yields a blank buffer rather than throwing.
-    private static (ConsoleBuffer buffer, int height) RenderMarkdown(string text, MarkdownStyles styles, int width)
+    // Resilient: any failure in the third-party writer yields a blank buffer rather than throwing. Instance-virtual so
+    // a subclass can post-process the document (e.g. rasterize embedded diagrams); the base body uses only its
+    // arguments (no instance state), so it stays safe to call on the background render thread.
+    protected virtual (ConsoleBuffer buffer, int height) RenderMarkdown(string text, MarkdownStyles styles, int width)
     {
         var cap = Math.Clamp(LineCount(text) * 3 + 40, 8, MaxRows);
         var buffer = new ConsoleBuffer { Size = new Size(width, cap) };
@@ -195,7 +201,7 @@ public class MarkdownViewer : Control
     #region Fields
     // The rendered content is capped at this many rows — beyond the control's own ~1000-row size clamp nothing is
     // reachable anyway, so a taller document simply clips at the bottom.
-    private const int MaxRows = 1024;
+    protected const int MaxRows = 1024;
 
     private string _markdown;
     private MarkdownStyles? _styles;

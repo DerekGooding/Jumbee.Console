@@ -123,6 +123,16 @@ internal sealed class CellCanvas
         }
     }
 
+    /// <summary>The glyph at (x, y); a space when out of range.</summary>
+    internal char GlyphAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _chars[y * Width + x] : ' ';
+
+    /// <summary>The foreground colour at (x, y), or <see langword="null"/> when unset or out of range.</summary>
+    internal CColor? ColorAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _fg[y * Width + x] : null;
+
+    /// <summary>Wraps this canvas as a Spectre.Console renderable so a rasterized diagram can compose into a
+    /// renderable tree (e.g. an embedded <c>[source,mermaid]</c> block in the AsciiDoc viewer).</summary>
+    public Spectre.Console.Rendering.IRenderable ToRenderable() => new CellCanvasRenderable(this);
+
     public void Blit(ConsoleBuffer buffer)
     {
         var h = Math.Min(buffer.Size.Height, Height);
