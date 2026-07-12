@@ -31,7 +31,19 @@ internal sealed class AnsiTerminalConsole : IConsole
     #endregion
 
     #region Methods
-    public void Initialize() => _inner.Initialize();   // UTF-8 + hide-cursor + clear, on genuine (re)init only
+    public void Initialize()
+    {
+        // UTF-8 output, then hide the cursor and clear the screen via ANSI — deliberately NOT Console.Clear() /
+        // Console.CursorVisible. On Windows those are Win32 console calls that act on the PRIMARY screen buffer even
+        // while the alternate screen is active, so on exit (when we switch back from the alt screen) the user's prior
+        // terminal output would be blanked instead of restored. `\x1b[2J` clears only the visible screen (scrollback
+        // untouched); the renderer then repaints every cell, so no separate clear is needed for correctness.
+        // Set UTF-8 only if it isn't already: setting Console.OutputEncoding recreates the Console.Out stream, and
+        // Initialize runs on every resize — no need to churn the stream (or clobber a wrapping writer) each time.
+        try { if (Console.OutputEncoding.CodePage != 65001) Console.OutputEncoding = System.Text.Encoding.UTF8; }
+        catch { /* not a real console (redirected) */ }
+        try { Console.Out.Write("\x1b[?25l\x1b[2J\x1b[H"); Console.Out.Flush(); } catch { /* best effort */ }
+    }
     public void OnRefresh() => _inner.OnRefresh();
     public void Write(Position position, in Character character) { }   // unused on the ANSI path (acsb writes directly)
     public ConsoleKeyInfo ReadKey() => throw new NotSupportedException();

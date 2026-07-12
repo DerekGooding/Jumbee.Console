@@ -21,10 +21,18 @@ public static class UI
     /// <summary>
     /// Initializes the console and starts the UI.
     /// </summary>
-    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null)
+    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null, bool useAlternateScreen = true)
     {
         if (isRunning) return runCompletion.Task;
         ProcessMetrics.Start();
+        // Enter the alternate screen FIRST — before ConsoleManager.Console is assigned (setting it runs Initialize,
+        // which clears the screen) and before any rendering — so the clear and the whole session land on the alternate
+        // buffer and the user's primary screen (their prompt/output) is saved intact and restored on exit. Gated to a
+        // real interactive ANSI terminal with no caller-supplied console (a test/headless stub must never emit this to
+        // real stdout) — the same gate the default VT input source uses.
+        altScreen = (isAnsiTerminal && useAlternateScreen && console is null
+            && IsInteractiveTerminal() && !NonInteractiveEnvironment())
+            ? AlternateScreen.Enter() : null;
         // Drives the renderer: ANSI escape sequences when true, IConsole.Write (16-colour System.Console) when false.
         ConsoleManager.AnsiEnabled = isAnsiTerminal;
         if (console != null)
@@ -137,7 +145,12 @@ public static class UI
         // Restore the terminal synchronously (best effort) so it happens before the process terminates, then let
         // the signal's default action stop us — we do NOT Cancel, so exit is guaranteed even if the loop is stuck.
         isRunning = false;
+        // Drain in-flight frame writes first (short bound — a signal must stay responsive) so the restore sequences
+        // aren't corrupted by a frame being written to stdout concurrently. See the note in Stop(). The render loop
+        // is not stopped here (we let the signal's default action end us), so this is best-effort on an abrupt exit.
+        try { ConsoleManager.OutputIdle.Wait(150); } catch { /* best effort */ }
         try { (inputSource as IDisposable)?.Dispose(); } catch { /* best effort */ }
+        try { altScreen?.Dispose(); altScreen = null; } catch { /* best effort */ }
     }
 
     /// <summary>
@@ -225,14 +238,29 @@ public static class UI
         if (!isRunning) return;
         isRunning = false;
         cts.Cancel();
-        (inputSource as IDisposable)?.Dispose();   // restores terminal mode for a VtInputSource; helps unblock a reader
+
+        // Shut down in an order that restores the terminal cleanly. Frames are written to stdout on a thread-pool
+        // thread via ConsoleManager's output sink, whereas the terminal-restore sequences (mouse/focus/paste reporting
+        // off, and leaving the alternate screen) are written via Console.Out on this thread. So:
+        //   1. Stop the render loop so no more frames are emitted (joins the UI thread when Stop is called off it).
+        //   2. Drain any already-queued frame writes.
+        //   3. Only then restore the terminal — making the restore sequences the sole, final writers to stdout.
+        // Otherwise a restore sequence could interleave with a frame write (splitting the escape, so the terminal
+        // keeps reporting mouse/focus after exit — the shell echoes the stray reports as garbage), or a late frame
+        // could repaint the primary screen after we've switched back to it. Waits are bounded so a wedged write or a
+        // stuck UI thread can never hang exit.
+        dispatcher.Stop();
+        try { ConsoleManager.OutputIdle.Wait(500); } catch { /* best effort */ }
+        (inputSource as IDisposable)?.Dispose();   // mouse/focus/paste off + console-mode restore; unblocks the reader
+        altScreen?.Dispose();                      // reset SGR, show cursor, leave the alternate screen (last write)
+        altScreen = null;
+
         // Wait for the input reader thread to actually exit before returning. It reads the static `inputSource`, so a
         // reader left running from a previous Start would otherwise keep consuming — and reorder — a later run's input
         // (two consumers on one queue). It is a background thread and never the caller, so this join is safe/bounded.
         var reader = inputThread;
         inputThread = null;
         if (reader is not null && reader != Thread.CurrentThread) reader.Join(1000);
-        dispatcher.Stop();
         if (signalRegistrations is not null)   // not disposed from a signal callback, so this never self-deadlocks
         {
             foreach (var r in signalRegistrations) r.Dispose();
@@ -715,6 +743,7 @@ public static class UI
     private static IGlyphTheme _glyphTheme = new DefaultGlyphTheme();
     private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
+    private static AlternateScreen? altScreen;   // alternate-screen session (ANSI interactive only), restored on Stop
     private static List<PosixSignalRegistration>? signalRegistrations;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     private static CancellationTokenSource cts = new CancellationTokenSource();
