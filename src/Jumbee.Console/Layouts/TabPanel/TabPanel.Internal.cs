@@ -37,8 +37,8 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
         // Cap ONLY the cross-axis to the label thickness; the main axis is left unconstrained so the labels lay out
         // along it.
         _boundary = IsHorizontalTabBar
-            ? new Boundary { MinHeight = barThickness, MaxHeight = barThickness, Content = _bar }
-            : new Boundary { MinWidth = barThickness, MaxWidth = barThickness, Content = _bar };
+            ? new ConsoleGUI.Controls.Boundary { MinHeight = barThickness, MaxHeight = barThickness, Content = _bar }
+            : new ConsoleGUI.Controls.Boundary { MinWidth = barThickness, MaxWidth = barThickness, Content = _bar };
         DockedControl = _boundary;
     }
     #endregion
@@ -70,6 +70,6 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
 
     #region Fields
     private readonly CControl _bar;
-    private readonly Boundary _boundary;
+    private readonly ConsoleGUI.Controls.Boundary _boundary;
     #endregion
 }

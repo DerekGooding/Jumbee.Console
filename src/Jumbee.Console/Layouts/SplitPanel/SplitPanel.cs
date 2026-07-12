@@ -42,6 +42,9 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     #endregion
 
     #region Properties
+    /// <summary>How the two panes are arranged (fixed at construction).</summary>
+    public SplitOrientation Orientation => _orientation;
+
     /// <summary>The draggable divider (for theming or focusing).</summary>
     public SplitDivider Divider => _divider;
 

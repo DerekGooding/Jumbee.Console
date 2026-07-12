@@ -20,12 +20,12 @@ public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
         var horizontal = orientation == SplitOrientation.Horizontal;
 
         _firstBoundary = horizontal
-            ? new Boundary { MinWidth = firstExtent, MaxWidth = firstExtent, Content = first }
-            : new Boundary { MinHeight = firstExtent, MaxHeight = firstExtent, Content = first };
+            ? new ConsoleGUI.Controls.Boundary { MinWidth = firstExtent, MaxWidth = firstExtent, Content = first }
+            : new ConsoleGUI.Controls.Boundary { MinHeight = firstExtent, MaxHeight = firstExtent, Content = first };
 
         var dividerBoundary = horizontal
-            ? new Boundary { MinWidth = 1, MaxWidth = 1, Content = Divider }
-            : new Boundary { MinHeight = 1, MaxHeight = 1, Content = Divider };
+            ? new ConsoleGUI.Controls.Boundary { MinWidth = 1, MaxWidth = 1, Content = Divider }
+            : new ConsoleGUI.Controls.Boundary { MinHeight = 1, MaxHeight = 1, Content = Divider };
 
         var placement = horizontal ? DockedControlPlacement.Left : DockedControlPlacement.Top;
 
@@ -53,6 +53,6 @@ public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
     #endregion
 
     #region Fields
-    private readonly Boundary _firstBoundary;
+    private readonly ConsoleGUI.Controls.Boundary _firstBoundary;
     #endregion
 }
