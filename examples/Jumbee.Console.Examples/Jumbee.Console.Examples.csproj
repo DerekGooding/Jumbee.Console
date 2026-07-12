@@ -32,6 +32,7 @@
     <EmbeddedResource Include="..\..\src\Jumbee.Console\SpectreControl.cs" Link="ControlSource\SpectreControl.cs" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\AsciiDocViewer.cs" Link="ControlSource\AsciiDocViewer.cs" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\MarkdownExtendedViewer.cs" Link="ControlSource\MarkdownExtendedViewer.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\InteractiveMermaidEditor.cs" Link="ControlSource\InteractiveMermaidEditor.cs" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\Mermaid\MermaidViewer.cs" Link="ControlSource\MermaidViewer.cs" />
   </ItemGroup>
 
