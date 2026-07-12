@@ -41,6 +41,7 @@ public static class ExampleCatalog
         new MultiTabEditorExample(),
         new MarkdownViewerExample(),
         new MarkdownExtendedViewerExample(),
+        new InteractiveMarkdownEditorExample(),
         new AsciiDocViewerExample(),
         new MermaidViewerExample(),
         new MermaidClassExample(),
