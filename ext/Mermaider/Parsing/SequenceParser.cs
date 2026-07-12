@@ -12,35 +12,16 @@ internal static class SequenceParser
 	private const int TimeoutMs = 2000;
 	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
 
-	private static readonly Regex Actor = new(@"^(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex ActorPattern() => Actor;
-
-	private static readonly Regex Note = new(@"^Note\s+(left of|right of|over)\s+([^:]+):\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
-	private static Regex NotePattern() => Note;
-
-	private static readonly Regex BlockStart = new(@"^(loop|alt|opt|par|critical|break|rect)\s*(.*)$", RegexOptions.Compiled, Timeout);
-	private static Regex BlockStartPattern() => BlockStart;
-
-	private static readonly Regex Divider = new(@"^(else|and)\s*(.*)$", RegexOptions.Compiled, Timeout);
-	private static Regex DividerPattern() => Divider;
-
-	private static readonly Regex Message = new(@"^(\S+?)\s*(->>|-->>|-\)|--\)|-x|--x|->|-->)\s*([+-]?)(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
-	private static Regex MessagePattern() => Message;
-
-	private static readonly Regex Autonumber = new(@"^autonumber(?:\s+(\d+))?(?:\s+(\d+))?\s*$", RegexOptions.Compiled, Timeout);
-	private static Regex AutonumberPattern() => Autonumber;
-
-	private static readonly Regex BidirectionalMessage = new(@"^(\S+?)\s*<<(->>|-->>)\s*(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
-	private static Regex BidirectionalMessagePattern() => BidirectionalMessage;
-
-	private static readonly Regex Box = new(@"^box(?:\s+(\S+))?(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex BoxPattern() => Box;
-
-	private static readonly Regex Create = new(@"^create\s+(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex CreatePattern() => Create;
-
-	private static readonly Regex Destroy = new(@"^destroy\s+(\S+)\s*$", RegexOptions.Compiled, Timeout);
-	private static Regex DestroyPattern() => Destroy;
+	private static readonly Regex ActorPattern = new(@"^(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex NotePattern = new(@"^Note\s+(left of|right of|over)\s+([^:]+):\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
+	private static readonly Regex BlockStartPattern = new(@"^(loop|alt|opt|par|critical|break|rect)\s*(.*)$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex DividerPattern = new(@"^(else|and)\s*(.*)$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex MessagePattern = new(@"^(\S+?)\s*(->>|-->>|-\)|--\)|-x|--x|->|-->)\s*([+-]?)(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex AutonumberPattern = new(@"^autonumber(?:\s+(\d+))?(?:\s+(\d+))?\s*$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex BidirectionalMessagePattern = new(@"^(\S+?)\s*<<(->>|-->>)\s*(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex BoxPattern = new(@"^box(?:\s+(\S+))?(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex CreatePattern = new(@"^create\s+(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex DestroyPattern = new(@"^destroy\s+(\S+)\s*$", RegexOptions.Compiled, Timeout);
 
 	internal static SequenceDiagram Parse(string[] lines)
 	{
@@ -77,7 +58,7 @@ internal static class SequenceParser
 		{
 			var line = lines[i];
 
-			var autoMatch = AutonumberPattern().Match(line);
+			var autoMatch = AutonumberPattern.Match(line);
 			if (autoMatch.Success)
 			{
 				autoNumber = autoMatch.Groups[1].Success ? int.Parse(autoMatch.Groups[1].Value, CultureInfo.InvariantCulture) : 1;
@@ -86,7 +67,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var boxMatch = BoxPattern().Match(line);
+			var boxMatch = BoxPattern.Match(line);
 			if (boxMatch.Success)
 			{
 				var color = boxMatch.Groups[1].Success ? boxMatch.Groups[1].Value : null;
@@ -95,7 +76,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var createMatch = CreatePattern().Match(line);
+			var createMatch = CreatePattern.Match(line);
 			if (createMatch.Success)
 			{
 				var type = createMatch.Groups[1].Value == "actor" ? SequenceActorType.Actor : SequenceActorType.Participant;
@@ -108,14 +89,14 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var destroyMatch = DestroyPattern().Match(line);
+			var destroyMatch = DestroyPattern.Match(line);
 			if (destroyMatch.Success)
 			{
 				pendingDestroy = destroyMatch.Groups[1].Value;
 				continue;
 			}
 
-			var actorMatch = ActorPattern().Match(line);
+			var actorMatch = ActorPattern.Match(line);
 			if (actorMatch.Success)
 			{
 				var type = actorMatch.Groups[1].Value == "actor" ? SequenceActorType.Actor : SequenceActorType.Participant;
@@ -129,7 +110,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var noteMatch = NotePattern().Match(line);
+			var noteMatch = NotePattern.Match(line);
 			if (noteMatch.Success)
 			{
 				var posStr = noteMatch.Groups[1].Value.ToLowerInvariant();
@@ -151,7 +132,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var blockMatch = BlockStartPattern().Match(line);
+			var blockMatch = BlockStartPattern.Match(line);
 			if (blockMatch.Success)
 			{
 				var blockType = Enum.Parse<SequenceBlockType>(blockMatch.Groups[1].Value, ignoreCase: true);
@@ -161,7 +142,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var dividerMatch = DividerPattern().Match(line);
+			var dividerMatch = DividerPattern.Match(line);
 			if (dividerMatch.Success && blockStack.Count > 0)
 			{
 				var rawLabel = dividerMatch.Groups[2].Success ? dividerMatch.Groups[2].Value.Trim() : "";
@@ -192,7 +173,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var biMatch = BidirectionalMessagePattern().Match(line);
+			var biMatch = BidirectionalMessagePattern.Match(line);
 			if (biMatch.Success)
 			{
 				var from = biMatch.Groups[1].Value;
@@ -227,7 +208,7 @@ internal static class SequenceParser
 				continue;
 			}
 
-			var msgMatch = MessagePattern().Match(line);
+			var msgMatch = MessagePattern.Match(line);
 			if (msgMatch.Success)
 			{
 				var from = msgMatch.Groups[1].Value;

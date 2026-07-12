@@ -2,6 +2,8 @@ namespace Jumbee.Console;
 
 using System;
 
+using ColorCode;
+
 /// <summary>
 /// A composite control pairing a <see cref="TextEditor"/> with a <see cref="LineNumberGutter"/> docked to its
 /// left. The gutter is kept in sync with the editor (line count + active line) by listening to the editor's
@@ -16,9 +18,15 @@ using System;
 public class CodeEditor : CompositeControl
 {
     #region Constructors
-    public CodeEditor(Language language = Language.None)
+    public CodeEditor(Language language = Language.None) : this(new TextEditor(language)) { }
+
+    /// <summary>Creates an editor highlighted by a custom ColorCode grammar — for languages outside the built-in
+    /// <see cref="Language"/> enum (e.g. a Mermaid grammar defined by another project).</summary>
+    public CodeEditor(ILanguage customLanguage) : this(new TextEditor(customLanguage)) { }
+
+    private CodeEditor(TextEditor editor)
     {
-        _editor = new TextEditor(language);
+        _editor = editor;
         _gutter = new LineNumberGutter
         {
             // Pulled each render: wrap-aware labels (0 = a soft-wrapped continuation row) + the caret's visual row.

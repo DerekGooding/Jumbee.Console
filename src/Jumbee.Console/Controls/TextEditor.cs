@@ -51,9 +51,17 @@ public class TextEditor : Control
         this._language = language;
         this._showCursor = showCursor;
         this._blinkCursor = blinkCursor;
+        this._ccLang = ColorCodeLanguage(language);
         ansiConsole.wrap = true;   // character-level soft wrap at the buffer's right edge
         ApplyTheme();
     }
+
+    /// <summary>Creates an editor highlighted by a custom ColorCode grammar — for languages outside the built-in
+    /// <see cref="Language"/> enum (e.g. a Mermaid grammar defined by another project). The grammar is applied by the
+    /// same segment formatter/cache as the built-in languages.</summary>
+    public TextEditor(ILanguage customLanguage, bool showCursor = true, bool blinkCursor = false)
+        : this(Language.None, showCursor, blinkCursor)
+        => _ccLang = customLanguage ?? throw new ArgumentNullException(nameof(customLanguage));
     #endregion
 
     #region Properties
@@ -635,11 +643,11 @@ public class TextEditor : Control
 
     private void WriteHighlighted(Language language, string text)
     {
-        // ColorCode-highlighted languages go through the segment cache (a full regex parse is the single most
-        // expensive operation here); the remaining writers highlight cheaply/directly and are left as-is.
-        if (ColorCodeLanguage(language) is { } ccLang)
+        // ColorCode-highlighted languages (built-in or a custom grammar) go through the segment cache (a full regex
+        // parse is the single most expensive operation here); the remaining writers highlight cheaply/directly.
+        if (_ccLang is { } ccLang)
         {
-            ansiConsole.Write(HighlightSegments(language, text, ccLang));
+            ansiConsole.Write(HighlightSegments(text, ccLang));
             return;
         }
 
@@ -680,13 +688,14 @@ public class TextEditor : Control
     // each time. Cache the parsed segments and reuse them while the text reference and language are unchanged, so a
     // re-layout just re-blits the cached highlight and only a real edit re-parses. The formatter reuses its own list
     // between calls, so the segments are copied out to own them.
-    private IReadOnlyList<Segment> HighlightSegments(Language language, string text, ILanguage ccLang)
+    private IReadOnlyList<Segment> HighlightSegments(string text, ILanguage ccLang)
     {
-        if (_cachedSegments is not null && language == _cachedLanguage && ReferenceEquals(text, _cachedText))
+        // The grammar (_ccLang) is fixed for the editor's lifetime, so the cache key is just the text reference: a
+        // real edit reassigns `input` to a new string, invalidating it; a re-layout reuses the same reference and hits.
+        if (_cachedSegments is not null && ReferenceEquals(text, _cachedText))
             return _cachedSegments;
 
         _cachedSegments = new List<Segment>(ccFormatter.Format(text, ccLang, ccSyntaxTheme, ccSyntaxOptions));
-        _cachedLanguage = language;
         _cachedText = text;
         return _cachedSegments;
     }
@@ -722,11 +731,14 @@ public class TextEditor : Control
     SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
     SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0,   };
 
+    // The resolved ColorCode grammar for this editor (a built-in mapped from _language, or a custom ILanguage passed
+    // to the constructor), or null for languages that use a non-ColorCode writer or render plain. Fixed at construction.
+    private readonly ILanguage? _ccLang;
+
     // Cached syntax-highlight segments, reused across size-only re-renders (see HighlightSegments). Invalidated
-    // implicitly: a real edit reassigns `input` (a new string reference) and a language switch changes _cachedLanguage,
-    // so either misses this cache and re-parses. The syntax theme is fixed at construction, so colours can't go stale.
+    // implicitly: a real edit reassigns `input` (a new string reference), so it misses this cache and re-parses. The
+    // grammar and syntax theme are fixed at construction, so colours can't go stale.
     private List<Segment>? _cachedSegments;
     private string? _cachedText;
-    private Language _cachedLanguage;
     #endregion
 }

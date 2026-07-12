@@ -12,44 +12,19 @@ internal static class ClassParser
 	private const int TimeoutMs = 2000;
 	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
 
-	private static readonly Regex NamespaceStart = new(@"^namespace\s+(\S+)\s*\{$", RegexOptions.Compiled, Timeout);
-	private static Regex NamespaceStartPattern() => NamespaceStart;
-
-	private static readonly Regex Direction_ = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
-	private static Regex DirectionPattern() => Direction_;
-
-	private static readonly Regex ClassBlock = new(@"^class\s+(\S+?)(?:\s*~(\w+)~)?\s*\{$", RegexOptions.Compiled, Timeout);
-	private static Regex ClassBlockPattern() => ClassBlock;
-
-	private static readonly Regex ClassOnly = new(@"^class\s+(\S+?)(?:\s*~(\w+)~)?\s*$", RegexOptions.Compiled, Timeout);
-	private static Regex ClassOnlyPattern() => ClassOnly;
-
-	private static readonly Regex InlineAnnotation = new(@"^class\s+(\S+?)\s*\{\s*<<(\w+)>>\s*\}$", RegexOptions.Compiled, Timeout);
-	private static Regex InlineAnnotationPattern() => InlineAnnotation;
-
-	private static readonly Regex Annotation = new(@"^<<(\w+)>>$", RegexOptions.Compiled, Timeout);
-	private static Regex AnnotationPattern() => Annotation;
-
-	private static readonly Regex InlineAttr = new(@"^(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
-	private static Regex InlineAttrPattern() => InlineAttr;
-
-	private static readonly Regex ArrowCheck = new(@"<\|--|--|\*--|o--|-->|\.\.>|\.\.\|>", RegexOptions.Compiled, Timeout);
-	private static Regex ArrowCheckPattern() => ArrowCheck;
-
-	private static readonly Regex Relationship = new(@"^(\S+?)\s+(?:""([^""]*?)""\s+)?(<\|--|<\|\.\.|\*--|o--|-->|--\*|--o|--\|>|\.\.>|\.\.\|>|<--|<\.\.?|--)\s+(?:""([^""]*?)""\s+)?(\S+?)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex RelationshipPattern() => Relationship;
-
-	private static readonly Regex VisibilityPrefix = new(@"^[+\-#~]", RegexOptions.Compiled, Timeout);
-	private static Regex VisibilityPrefixPattern() => VisibilityPrefix;
-
-	private static readonly Regex MethodSignature = new(@"^(.+?)\(([^)]*)\)(?:\s*(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex MethodSignaturePattern() => MethodSignature;
-
-	private static readonly Regex Note = new(@"^note\s+(?:for\s+(\S+)\s+)?""([^""]+)""$", RegexOptions.Compiled, Timeout);
-	private static Regex NotePattern() => Note;
-
-	private static readonly Regex Lollipop = new(@"^(\S+?)\s+(--\(\)|\.\.?\(\)|\(\)--|\.?\(\)\.\.)\s+(\S+?)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex LollipopPattern() => Lollipop;
+	private static readonly Regex NamespaceStartPattern = new(@"^namespace\s+(\S+)\s*\{$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex DirectionPattern = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
+	private static readonly Regex ClassBlockPattern = new(@"^class\s+(\S+?)(?:\s*~(\w+)~)?\s*\{$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex ClassOnlyPattern = new(@"^class\s+(\S+?)(?:\s*~(\w+)~)?\s*$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex InlineAnnotationPattern = new(@"^class\s+(\S+?)\s*\{\s*<<(\w+)>>\s*\}$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex AnnotationPattern = new(@"^<<(\w+)>>$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex InlineAttrPattern = new(@"^(\S+?)\s*:\s*(.+)$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex ArrowCheckPattern = new(@"<\|--|--|\*--|o--|-->|\.\.>|\.\.\|>", RegexOptions.Compiled, Timeout);
+	private static readonly Regex RelationshipPattern = new(@"^(\S+?)\s+(?:""([^""]*?)""\s+)?(<\|--|<\|\.\.|\*--|o--|-->|--\*|--o|--\|>|\.\.>|\.\.\|>|<--|<\.\.?|--)\s+(?:""([^""]*?)""\s+)?(\S+?)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex VisibilityPrefixPattern = new(@"^[+\-#~]", RegexOptions.Compiled, Timeout);
+	private static readonly Regex MethodSignaturePattern = new(@"^(.+?)\(([^)]*)\)(?:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex NotePattern = new(@"^note\s+(?:for\s+(\S+)\s+)?""([^""]+)""$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex LollipopPattern = new(@"^(\S+?)\s+(--\(\)|\.\.?\(\)|\(\)--|\.?\(\)\.\.)\s+(\S+?)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
 
 	internal static ClassDiagram Parse(string[] lines)
 	{
@@ -99,7 +74,7 @@ internal static class ClassParser
 					continue;
 				}
 
-				var annotMatch = AnnotationPattern().Match(line);
+				var annotMatch = AnnotationPattern.Match(line);
 				if (annotMatch.Success)
 				{
 					var (node, attrs, methods) = classMap[currentClass.Id];
@@ -119,14 +94,14 @@ internal static class ClassParser
 				continue;
 			}
 
-			var dirMatch = DirectionPattern().Match(line);
+			var dirMatch = DirectionPattern.Match(line);
 			if (dirMatch.Success)
 			{
 				direction = Enum.Parse<Direction>(dirMatch.Groups[1].Value.ToUpperInvariant());
 				continue;
 			}
 
-			var nsMatch = NamespaceStartPattern().Match(line);
+			var nsMatch = NamespaceStartPattern.Match(line);
 			if (nsMatch.Success)
 			{
 				currentNsName = nsMatch.Groups[1].Value;
@@ -142,7 +117,7 @@ internal static class ClassParser
 				continue;
 			}
 
-			var classBlockMatch = ClassBlockPattern().Match(line);
+			var classBlockMatch = ClassBlockPattern.Match(line);
 			if (classBlockMatch.Success)
 			{
 				var id = classBlockMatch.Groups[1].Value;
@@ -161,7 +136,7 @@ internal static class ClassParser
 				continue;
 			}
 
-			var classOnlyMatch = ClassOnlyPattern().Match(line);
+			var classOnlyMatch = ClassOnlyPattern.Match(line);
 			if (classOnlyMatch.Success)
 			{
 				var id = classOnlyMatch.Groups[1].Value;
@@ -176,7 +151,7 @@ internal static class ClassParser
 				continue;
 			}
 
-			var inlineAnnotMatch = InlineAnnotationPattern().Match(line);
+			var inlineAnnotMatch = InlineAnnotationPattern.Match(line);
 			if (inlineAnnotMatch.Success)
 			{
 				var (node, attrs, methods) = EnsureClass(classMap, inlineAnnotMatch.Groups[1].Value);
@@ -184,11 +159,11 @@ internal static class ClassParser
 				continue;
 			}
 
-			var inlineAttrMatch = InlineAttrPattern().Match(line);
+			var inlineAttrMatch = InlineAttrPattern.Match(line);
 			if (inlineAttrMatch.Success)
 			{
 				var rest = inlineAttrMatch.Groups[2].Value;
-				if (!ArrowCheckPattern().IsMatch(rest))
+				if (!ArrowCheckPattern.IsMatch(rest))
 				{
 					var (node, attrs, methods) = EnsureClass(classMap, inlineAttrMatch.Groups[1].Value);
 					var member = ParseMember(rest);
@@ -203,7 +178,7 @@ internal static class ClassParser
 				}
 			}
 
-			var noteMatch = NotePattern().Match(line);
+			var noteMatch = NotePattern.Match(line);
 			if (noteMatch.Success)
 			{
 				var targetClass = noteMatch.Groups[1].Success ? noteMatch.Groups[1].Value : null;
@@ -212,7 +187,7 @@ internal static class ClassParser
 				continue;
 			}
 
-			var lollipopMatch = LollipopPattern().Match(line);
+			var lollipopMatch = LollipopPattern.Match(line);
 			if (lollipopMatch.Success)
 			{
 				var from = lollipopMatch.Groups[1].Value;
@@ -262,7 +237,7 @@ internal static class ClassParser
 
 		var visibility = ClassVisibility.None;
 		var rest = trimmed;
-		if (VisibilityPrefixPattern().IsMatch(rest))
+		if (VisibilityPrefixPattern.IsMatch(rest))
 		{
 			visibility = rest[0] switch
 			{
@@ -275,7 +250,7 @@ internal static class ClassParser
 			rest = rest[1..].TrimStart();
 		}
 
-		var methodMatch = MethodSignaturePattern().Match(rest);
+		var methodMatch = MethodSignaturePattern.Match(rest);
 		if (methodMatch.Success)
 		{
 			var name = methodMatch.Groups[1].Value.Trim();
@@ -324,7 +299,7 @@ internal static class ClassParser
 
 	private static ClassRelationship? ParseRelationship(string line)
 	{
-		var match = RelationshipPattern().Match(line);
+		var match = RelationshipPattern.Match(line);
 		if (!match.Success)
 			return null;
 

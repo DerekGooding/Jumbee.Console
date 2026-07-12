@@ -11,23 +11,12 @@ internal static class ErParser
 	private const int TimeoutMs = 2000;
 	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
 
-	private static readonly Regex EntityBlock = new(@"^(\S+?)(?:\[(?:""([^""]+)""|([^\]]+))\])?\s*\{$", RegexOptions.Compiled, Timeout);
-	private static Regex EntityBlockPattern() => EntityBlock;
-
-	private static readonly Regex Attribute = new(@"^(\S+)\s+(\S+)(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex AttributePattern() => Attribute;
-
-	private static readonly Regex Comment = new(@"""([^""]*)""", RegexOptions.Compiled, Timeout);
-	private static Regex CommentPattern() => Comment;
-
-	private static readonly Regex Relationship = new(@"^(\S+)\s+([|o}{]+(?:--|\.\.)[|o}{]+)\s+(\S+)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
-	private static Regex RelationshipPattern() => Relationship;
-
-	private static readonly Regex CardinalitySplit = new(@"^([|o}{]+)(--|\.\.)([|o}{]+)$", RegexOptions.Compiled, Timeout);
-	private static Regex CardinalitySplitPattern() => CardinalitySplit;
-
-	private static readonly Regex Direction_ = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
-	private static Regex DirectionPattern() => Direction_;
+	private static readonly Regex EntityBlockPattern = new(@"^(\S+?)(?:\[(?:""([^""]+)""|([^\]]+))\])?\s*\{$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex AttributePattern = new(@"^(\S+)\s+(\S+)(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex CommentPattern = new(@"""([^""]*)""", RegexOptions.Compiled, Timeout);
+	private static readonly Regex RelationshipPattern = new(@"^(\S+)\s+([|o}{]+(?:--|\.\.)[|o}{]+)\s+(\S+)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex CardinalitySplitPattern = new(@"^([|o}{]+)(--|\.\.)([|o}{]+)$", RegexOptions.Compiled, Timeout);
+	private static readonly Regex DirectionPattern = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
 
 	internal static ErDiagram Parse(string[] lines)
 	{
@@ -57,7 +46,7 @@ internal static class ErParser
 
 			if (currentEntity == null)
 			{
-				var dirMatch = DirectionPattern().Match(line);
+				var dirMatch = DirectionPattern.Match(line);
 				if (dirMatch.Success)
 				{
 					direction = Enum.Parse<Direction>(dirMatch.Groups[1].Value.ToUpperInvariant());
@@ -80,7 +69,7 @@ internal static class ErParser
 				continue;
 			}
 
-			var entityMatch = EntityBlockPattern().Match(line);
+			var entityMatch = EntityBlockPattern.Match(line);
 			if (entityMatch.Success)
 			{
 				var id = entityMatch.Groups[1].Value;
@@ -129,7 +118,7 @@ internal static class ErParser
 
 	private static ErAttributeInfo? ParseAttribute(string line)
 	{
-		var match = AttributePattern().Match(line);
+		var match = AttributePattern.Match(line);
 		if (!match.Success)
 			return null;
 
@@ -140,11 +129,11 @@ internal static class ErParser
 		var keys = new List<ErKeyType>();
 		string? comment = null;
 
-		var commentMatch = CommentPattern().Match(rest);
+		var commentMatch = CommentPattern.Match(rest);
 		if (commentMatch.Success)
 			comment = MultilineUtils.NormalizeBrTags(commentMatch.Groups[1].Value);
 
-		var restWithoutComment = CommentPattern().Replace(rest, "").Trim();
+		var restWithoutComment = CommentPattern.Replace(rest, "").Trim();
 		foreach (var part in restWithoutComment.Split(' ', StringSplitOptions.RemoveEmptyEntries))
 		{
 			var upper = part.ToUpperInvariant();
@@ -161,7 +150,7 @@ internal static class ErParser
 
 	private static ErRelationship? ParseRelationshipLine(string line)
 	{
-		var match = RelationshipPattern().Match(line);
+		var match = RelationshipPattern.Match(line);
 		if (!match.Success)
 			return null;
 
@@ -171,7 +160,7 @@ internal static class ErParser
 		var rawLabel = match.Groups[4].Success ? match.Groups[4].Value.Trim().Trim('"', '\'') : "";
 		var label = rawLabel.Length > 0 ? MultilineUtils.NormalizeBrTags(rawLabel) : "";
 
-		var lineMatch = CardinalitySplitPattern().Match(cardinalityStr);
+		var lineMatch = CardinalitySplitPattern.Match(cardinalityStr);
 		if (!lineMatch.Success)
 			return null;
 
