@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Jumbee.Console.Documents\Jumbee.Console.Documents.csproj" />
     <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
-    <ProjectReference Include="..\..\src\Jumbee.Console.DocumentViewers\Jumbee.Console.DocumentViewers.csproj" />
   </ItemGroup>
 
   <!-- Embed each example's own source so the browser's right pane can show exactly what compiled. The files stay
@@ -30,12 +30,12 @@
     <EmbeddedResource Include="..\..\src\Jumbee.Console\Controls\**\*.cs" Link="ControlSource\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console\Layouts\**\*.cs" Link="LayoutSource\%(RecursiveDir)%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\src\Jumbee.Console\SpectreControl.cs" Link="ControlSource\SpectreControl.cs" />
-    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\AsciiDocViewer.cs" Link="ControlSource\AsciiDocViewer.cs" />
-    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\MarkdownExtendedViewer.cs" Link="ControlSource\MarkdownExtendedViewer.cs" />
-    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\InteractiveMermaidEditor.cs" Link="ControlSource\InteractiveMermaidEditor.cs" />
-    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\InteractiveAsciiDocEditor.cs" Link="ControlSource\InteractiveAsciiDocEditor.cs" />
-    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\InteractiveMarkdownExtendedEditor.cs" Link="ControlSource\InteractiveMarkdownExtendedEditor.cs" />
-    <EmbeddedResource Include="..\..\src\Jumbee.Console.DocumentViewers\Mermaid\MermaidViewer.cs" Link="ControlSource\MermaidViewer.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.Documents\AsciiDoc\AsciiDocViewer.cs" Link="ControlSource\AsciiDocViewer.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.Documents\AsciiDoc\InteractiveAsciiDocEditor.cs" Link="ControlSource\InteractiveAsciiDocEditor.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.Documents\Markdown\InteractiveMarkdownExtendedEditor.cs" Link="ControlSource\InteractiveMarkdownExtendedEditor.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.Documents\Markdown\MarkdownExtendedViewer.cs" Link="ControlSource\MarkdownExtendedViewer.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.Documents\Mermaid\InteractiveMermaidEditor.cs" Link="ControlSource\InteractiveMermaidEditor.cs" />
+    <EmbeddedResource Include="..\..\src\Jumbee.Console.Documents\Mermaid\MermaidViewer.cs" Link="ControlSource\MermaidViewer.cs" />
   </ItemGroup>
 
   <!-- Embed an internal design doc as the sample content for the Markdown Viewer example (rendered live in the pane,

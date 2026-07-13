@@ -71,7 +71,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsolePlot", "..\ext\Conso
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ColorCode.Core", "..\ext\ColorCode.Core\ColorCode.Core.csproj", "{2CFB3019-5000-49BF-B843-6342706AD3D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.DocumentViewers", "Jumbee.Console.DocumentViewers\Jumbee.Console.DocumentViewers.csproj", "{25A98065-66F3-484B-9109-9F7FB71B1164}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Documents", "Jumbee.Console.Documents\Jumbee.Console.Documents.csproj", "{25A98065-66F3-484B-9109-9F7FB71B1164}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
