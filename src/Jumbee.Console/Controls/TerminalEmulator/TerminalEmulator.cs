@@ -32,10 +32,13 @@ public class TerminalEmulator : Control
     /// console once it is sized. Pass <see langword="null"/> (or whitespace) to skip spawning and drive the
     /// emulator manually by pushing bytes through <see cref="Feed"/> — useful for embedding an existing stream
     /// (e.g. an SSH channel) or for headless tests.
+    /// <para><paramref name="workingDirectory"/> sets the child process's initial directory (e.g. a project folder
+    /// so <c>dotnet build</c> resolves there); <see langword="null"/> inherits the host process's directory.</para>
     /// </summary>
-    public TerminalEmulator(string? commandLine = "cmd.exe")
+    public TerminalEmulator(string? commandLine = "cmd.exe", string? workingDirectory = null)
     {
         _commandLine = commandLine;
+        _workingDirectory = workingDirectory;
         _terminal = new VirtualTerminalController();
         _consumer = new DataConsumer(_terminal);
         _terminal.SendData += OnTerminalSendData;   // terminal responses (DSR/DA/…) → back to the process
@@ -83,7 +86,7 @@ public class TerminalEmulator : Control
 
         if (_pty is null)
         {
-            _pty = Pty.Start(_commandLine, cols, rows);
+            _pty = Pty.Start(_commandLine, cols, rows, _workingDirectory);
             _pty.Exited += () => UI.Post(() => { Invalidate(); Exited?.Invoke(); });
             _cts = new CancellationTokenSource();
             _ = ReadLoopAsync(_pty, _cts.Token);
@@ -481,6 +484,7 @@ public class TerminalEmulator : Control
     private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, Decoration.None);
     private static readonly Character ScrollTrack = new('░', new CColor(0x44, 0x44, 0x44), null, Decoration.None);
     private readonly string? _commandLine;
+    private readonly string? _workingDirectory;
     private readonly VirtualTerminalController _terminal;
     private readonly DataConsumer _consumer;
     private IPty? _pty;

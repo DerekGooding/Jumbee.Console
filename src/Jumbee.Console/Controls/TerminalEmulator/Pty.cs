@@ -8,13 +8,15 @@ using System;
 /// </summary>
 public static class Pty
 {
-    /// <summary>Launches <paramref name="commandLine"/> in a new pseudo terminal of the given size.</summary>
-    public static IPty Start(string commandLine, short columns, short rows)
+    /// <summary>Launches <paramref name="commandLine"/> in a new pseudo terminal of the given size. When
+    /// <paramref name="workingDirectory"/> is non-null the child starts in that directory; otherwise it inherits the
+    /// host process's current directory.</summary>
+    public static IPty Start(string commandLine, short columns, short rows, string? workingDirectory = null)
     {
         if (OperatingSystem.IsWindows())
-            return ConPty.Start(commandLine, columns, rows);
+            return ConPty.Start(commandLine, columns, rows, workingDirectory);
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-            return UnixPty.Start(commandLine, columns, rows);
+            return UnixPty.Start(commandLine, columns, rows, workingDirectory);
         throw new PlatformNotSupportedException("A pseudo terminal requires Windows (ConPTY) or Linux/macOS.");
     }
 

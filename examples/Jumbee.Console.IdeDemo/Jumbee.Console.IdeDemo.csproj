@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Jumbee.Console.IdeDemo</AssemblyName>
+    <RootNamespace>Jumbee.Console.IdeDemo</RootNamespace>
+  </PropertyGroup>
+
+  <!-- The bundled sample project is DATA, not part of this app's compilation: exclude its sources from the compile
+       glob and ship the whole folder as content copied next to the output, so the running IDE can open it and the
+       user can `dotnet build`/`dotnet run` it (the SDK is present locally and in the Docker image). -->
+  <ItemGroup>
+    <Compile Remove="SampleProject\**\*.cs" />
+    <Content Include="SampleProject\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
+    <!-- Used only by the headless verify smoke check to render the layout offscreen. -->
+    <ProjectReference Include="..\..\src\Jumbee.Console.Snapshot\Jumbee.Console.Snapshot.csproj" />
+  </ItemGroup>
+
+</Project>

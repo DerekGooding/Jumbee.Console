@@ -40,8 +40,9 @@ public sealed class ConPty : IPty
     #endregion
 
     #region Methods
-    /// <summary>Launches <paramref name="commandLine"/> in a new pseudo console of the given size.</summary>
-    public static ConPty Start(string commandLine, short columns, short rows)
+    /// <summary>Launches <paramref name="commandLine"/> in a new pseudo console of the given size, optionally in
+    /// <paramref name="workingDirectory"/> (null inherits the host process's directory).</summary>
+    public static ConPty Start(string commandLine, short columns, short rows, string? workingDirectory = null)
     {
         // Two pipes: one feeds the PTY (we write → child reads), one drains it (child writes → we read).
         CreatePipe(out var inputRead, out var inputWrite);
@@ -51,7 +52,7 @@ public sealed class ConPty : IPty
         var hr = CreatePseudoConsole(size, inputRead, outputWrite, 0, out var hPC);
         if (hr != 0) throw new Win32Exception(hr, "CreatePseudoConsole failed");
 
-        var process = StartProcess(commandLine, hPC);
+        var process = StartProcess(commandLine, hPC, workingDirectory);
 
         // Close our copies of the PTY-end pipe handles only AFTER the child is launched (the conhost has dup'd them
         // by now). Closing them before CreateProcess can leave the child attached to the parent console instead.
@@ -87,7 +88,7 @@ public sealed class ConPty : IPty
         Exited?.Invoke();
     });
 
-    private static SafeProcessHandle StartProcess(string commandLine, IntPtr hPC)
+    private static SafeProcessHandle StartProcess(string commandLine, IntPtr hPC, string? workingDirectory)
     {
         var attrSize = IntPtr.Zero;
         InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref attrSize);
@@ -110,8 +111,9 @@ public sealed class ConPty : IPty
 
             // CreateProcess may mutate the command line buffer, so hand it a mutable copy.
             var cmd = new string(commandLine.ToCharArray());
+            var cwd = string.IsNullOrEmpty(workingDirectory) ? null : workingDirectory;   // null → inherit host CWD
             if (!CreateProcess(null, cmd, IntPtr.Zero, IntPtr.Zero, false,
-                    EXTENDED_STARTUPINFO_PRESENT, IntPtr.Zero, null, ref startup, out var pi))
+                    EXTENDED_STARTUPINFO_PRESENT, IntPtr.Zero, cwd, ref startup, out var pi))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcess failed");
 
             CloseHandle(pi.hThread);

@@ -41,8 +41,9 @@ public sealed class UnixPty : IPty
     #endregion
 
     #region Methods
-    /// <summary>Launches <paramref name="commandLine"/> in a new pty of the given size.</summary>
-    public static UnixPty Start(string commandLine, short columns, short rows)
+    /// <summary>Launches <paramref name="commandLine"/> in a new pty of the given size, optionally starting the
+    /// child in <paramref name="workingDirectory"/> (null inherits the host process's directory).</summary>
+    public static UnixPty Start(string commandLine, short columns, short rows, string? workingDirectory = null)
     {
         // Open the pty controller (master) and unlock + name the subordinate (slave) side.
         var controller = posix_openpt(O_RDWR);
@@ -67,6 +68,7 @@ public sealed class UnixPty : IPty
         var (envElems, envPtr) = BuildStringArray(BuildEnvironment());
         var appPtr = Marshal.StringToCoTaskMemUTF8(app);
         var subPtr = Marshal.StringToCoTaskMemUTF8(subName);
+        var cwdPtr = string.IsNullOrEmpty(workingDirectory) ? IntPtr.Zero : Marshal.StringToCoTaskMemUTF8(workingDirectory);
 
         // File actions: the child opens the subordinate as stdin (acquiring it as its controlling terminal once it
         // is a session leader — see SETSID below), dups it to stdout/stderr, and closes the inherited controller.
@@ -84,6 +86,16 @@ public sealed class UnixPty : IPty
             posix_spawn_file_actions_adddup2(fa, 0, 2);
             posix_spawn_file_actions_addclose(fa, controller);
 
+            // Start the child in workingDirectory by adding a chdir to the file actions — it runs inside the spawned
+            // child (post-fork, pre-exec) in native code, so it's fork-safe like the rest (a managed chdir would be
+            // process-global). addchdir_np is glibc 2.29+ / macOS 10.15+; on an older libc it's absent, so degrade to
+            // the inherited directory rather than failing the whole launch.
+            if (cwdPtr != IntPtr.Zero)
+            {
+                try { posix_spawn_file_actions_addchdir_np(fa, cwdPtr); }
+                catch (EntryPointNotFoundException) { }
+            }
+
             posix_spawnattr_init(at);
             posix_spawnattr_setflags(at, POSIX_SPAWN_SETSID);   // new session → the opened tty becomes controlling
 
@@ -100,6 +112,7 @@ public sealed class UnixPty : IPty
             FreeAll(envElems); Marshal.FreeCoTaskMem(envPtr);
             Marshal.FreeCoTaskMem(appPtr);
             Marshal.FreeCoTaskMem(subPtr);
+            if (cwdPtr != IntPtr.Zero) Marshal.FreeCoTaskMem(cwdPtr);
         }
 
         // The controller fd is bidirectional; use a duplicate so the read loop and input writes don't contend on
@@ -195,6 +208,7 @@ public sealed class UnixPty : IPty
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addopen(IntPtr fileActions, int fd, IntPtr path, int oflag, uint mode);
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_adddup2(IntPtr fileActions, int fd, int newFd);
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addclose(IntPtr fileActions, int fd);
+    [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addchdir_np(IntPtr fileActions, IntPtr path);
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_destroy(IntPtr fileActions);
 
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_init(IntPtr attr);
