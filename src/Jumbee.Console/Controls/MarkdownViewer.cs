@@ -98,69 +98,91 @@ public class MarkdownViewer : Control
     // Kicks off (or reuses) a render at `width` for the current text/styles. Runs on a background thread while the UI
     // is live so a slow parse never stalls a frame; runs synchronously when headless (tests / first layout) so the
     // result is available immediately to the MeasureHeight that requested it.
+    //
+    // At most one background render is in flight at a time (the `_rendering` gate). A width/version change while a
+    // render runs is simply dropped here; when that render completes, ApplyAndContinue re-lays-out, and the resulting
+    // measure/paint calls back in to start exactly one follow-up at the now-current width/version. This serialization
+    // is what makes the ping-pong buffer reuse (`_back`) race-free: only the one in-flight render writes `_back`, and
+    // `_back` is never the front buffer the UI thread blits. It also collapses a resize storm's many concurrent
+    // renders into one-at-a-time targeting only the latest size.
     private void EnsureRender(int width)
     {
         if (width <= 0) return;
         if (_renderedWidth == width && _renderedVersion == _version) return;   // already up to date
-        if (_renderingWidth == width && _renderingVersion == _version) return; // already in flight for this
-
-        var version = _version;
-        var text = _markdown;
-        var styles = _styles ?? MarkdownStyles.Default;
-        _renderingWidth = width;
-        _renderingVersion = version;
 
         if (!UI.IsRunning)
         {
-            var (buffer, height) = RenderMarkdown(text, styles, width);
-            Apply(buffer, height, width, version, relayout: false);   // caller reads _contentHeight straight back
+            // Headless: render synchronously into the back buffer and publish it, so the MeasureHeight that requested
+            // this reads _contentHeight straight back.
+            var version = _version;
+            var height = RenderMarkdown(_markdown, _styles ?? MarkdownStyles.Default, width, _back);
+            Publish(height, width, version);
             return;
         }
 
+        if (_rendering) return;   // one already in flight; its completion re-evaluates and starts the next if needed
+        StartRender(width, _version);
+    }
+
+    private void StartRender(int width, int version)
+    {
+        _rendering = true;
+        var text = _markdown;
+        var styles = _styles ?? MarkdownStyles.Default;
+        var target = _back;   // the spare buffer; never the front (_content) the UI thread blits
         Task.Run(() =>
         {
-            var (buffer, height) = RenderMarkdown(text, styles, width);
-            UI.Post(() => Apply(buffer, height, width, version, relayout: true));
+            var height = RenderMarkdown(text, styles, width, target);
+            UI.Post(() => ApplyAndContinue(height, width, version));
         });
     }
 
-    private void Apply(ConsoleBuffer buffer, int height, int width, int version, bool relayout)
+    private void ApplyAndContinue(int height, int width, int version)
     {
-        _renderingWidth = -1;
-        _renderingVersion = -1;
-        // Discard a render superseded by a newer text/style (a fresh one is kicked off by the relayout / next measure).
+        _rendering = false;
+        // Discard a render superseded by a newer text/style; only publish one that still matches the current version.
         if (version == _version && width > 0)
-        {
-            _content = buffer;
-            _contentHeight = Math.Max(1, height);
-            _renderedWidth = width;
-            _renderedVersion = version;
-        }
-        if (relayout) { Initialize(); Invalidate(); }
+            Publish(height, width, version);
+        // Re-lay-out / repaint: the resulting MeasureHeight / Render calls back into EnsureRender, which (with
+        // _rendering now clear) starts exactly one follow-up render if the current width/version isn't yet satisfied.
+        Initialize();
+        Invalidate();
+    }
+
+    // Publishes the just-rendered back buffer as the displayed content, swapping the old front buffer into the spare
+    // slot for the next render to reuse. Capacity-retentive ConsoleBuffer.Resize then makes subsequent same-or-smaller
+    // renders allocation-free — instead of a fresh multi-row Cell[][] per render.
+    private void Publish(int height, int width, int version)
+    {
+        (_content, _back) = (_back, _content);
+        _contentHeight = Math.Max(1, height);
+        _renderedWidth = width;
+        _renderedVersion = version;
     }
 
     /// <summary>Discards the cached render so the next layout re-renders — for a subclass that adds render inputs
     /// (e.g. diagram styles) beyond <see cref="Markdown"/>/<see cref="Styles"/>. Call on the UI thread.</summary>
     protected void InvalidateContent() { _version++; Initialize(); }
 
-    // Renders the markdown into a fresh offscreen buffer at `width` and returns it with its measured content height.
-    // Resilient: any failure in the third-party writer yields a blank buffer rather than throwing. Instance-virtual so
-    // a subclass can post-process the document (e.g. rasterize embedded diagrams); the base body uses only its
-    // arguments (no instance state), so it stays safe to call on the background render thread.
-    protected virtual (ConsoleBuffer buffer, int height) RenderMarkdown(string text, MarkdownStyles styles, int width)
+    // Renders the markdown into the reusable `target` buffer at `width` and returns its measured content height. The
+    // caller owns `target` and reuses it across renders (see Publish), so this resizes it in place rather than
+    // allocating. Resilient: any failure in the third-party writer yields a blank buffer rather than throwing.
+    // Instance-virtual so a subclass can post-process the document (e.g. rasterize embedded diagrams); the base body
+    // uses only its arguments (no instance state), so it stays safe to call on the background render thread.
+    protected virtual int RenderMarkdown(string text, MarkdownStyles styles, int width, ConsoleBuffer target)
     {
         var cap = Math.Clamp(LineCount(text) * 3 + 40, 8, MaxRows);
-        var buffer = new ConsoleBuffer { Size = new Size(width, cap) };
-        buffer.Initialize();
+        target.Size = new Size(width, cap);   // capacity-retentive: no realloc once the high-water mark is reached
+        target.Initialize();
         try
         {
-            var console = new AnsiConsoleBuffer(buffer);
+            var console = new AnsiConsoleBuffer(target);
             console.WriteMarkdown(text, styles);
-            return (buffer, MeasureRenderedHeight(buffer));
+            return MeasureRenderedHeight(target);
         }
         catch
         {
-            return (buffer, 1);
+            return 1;
         }
     }
 
@@ -207,11 +229,15 @@ public class MarkdownViewer : Control
     private MarkdownStyles? _styles;
     private int _version;                       // bumped when the text/styles change, invalidating a cached render
 
-    private ConsoleBuffer _content = new();     // the last completed render, blitted into consoleBuffer each paint
+    // Ping-pong pair: _content is the front buffer blitted into consoleBuffer each paint (read on the UI thread);
+    // _back is the spare the next render writes into (the in-flight render's target). Publish swaps them. Reusing
+    // these across renders keeps ConsoleBuffer's capacity-retention alive, so a render no longer allocates a fresh
+    // Cell[][] every call.
+    private ConsoleBuffer _content = new();
+    private ConsoleBuffer _back = new();
     private int _contentHeight;
     private int _renderedWidth = -1;            // (width, version) the cached _content was rendered for
     private int _renderedVersion = -1;
-    private int _renderingWidth = -1;           // (width, version) a render is currently in flight for, or -1
-    private int _renderingVersion = -1;
+    private bool _rendering;                     // true while the single background render is in flight
     #endregion
 }

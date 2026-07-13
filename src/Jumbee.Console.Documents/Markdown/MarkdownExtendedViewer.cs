@@ -35,25 +35,36 @@ public class MarkdownExtendedViewer : MarkdownViewer
 
     #region Methods
     // Splits the document at fenced ```mermaid blocks, renders markdown spans via the base viewer and diagram spans via
-    // the mermaid rasterizer, then stacks the pieces into one content buffer. Falls straight through to the base single
-    // pass when there are no diagrams, so plain markdown pays only one O(lines) scan.
-    protected override (ConsoleBuffer buffer, int height) RenderMarkdown(string text, MarkdownStyles styles, int width)
+    // the mermaid rasterizer, then stacks the pieces into the reusable `target` content buffer. Falls straight through
+    // to the base single pass when there are no diagrams, so plain markdown pays only one O(lines) scan.
+    // Only `target` (the caller's reused ping-pong buffer) is reused; the per-segment part buffers are still transient
+    // (a future pass can pool them).
+    protected override int RenderMarkdown(string text, MarkdownStyles styles, int width, ConsoleBuffer target)
     {
         var segments = Split(text);
         if (segments.Count == 1 && !segments[0].IsMermaid)
-            return base.RenderMarkdown(text, styles, width);
+            return base.RenderMarkdown(text, styles, width, target);
 
         var parts = new List<(ConsoleBuffer buf, int height)>();
         foreach (var (isMermaid, content) in segments)
         {
             if (string.IsNullOrWhiteSpace(content)) continue;
-            parts.Add(isMermaid ? RenderDiagram(content, styles, width) : base.RenderMarkdown(content, styles, width));
+            if (isMermaid)
+            {
+                parts.Add(RenderDiagram(content, styles, width));
+            }
+            else
+            {
+                var part = new ConsoleBuffer();
+                var h = base.RenderMarkdown(content, styles, width, part);
+                parts.Add((part, h));
+            }
         }
-        return Stack(parts, width);
+        return Stack(parts, width, target);
     }
 
-    // Rasterizes one mermaid block into a width-clipped buffer; on any parse/render failure shows the block as a plain
-    // fenced code block (via the base) rather than losing it.
+    // Rasterizes one mermaid block into a width-clipped transient buffer; on any parse/render failure shows the block
+    // as a plain fenced code block (via the base) rather than losing it.
     private (ConsoleBuffer buffer, int height) RenderDiagram(string code, MarkdownStyles styles, int width)
     {
         try
@@ -67,31 +78,33 @@ public class MarkdownExtendedViewer : MarkdownViewer
         }
         catch
         {
-            return base.RenderMarkdown($"```\n{code}```", styles, width);
+            var buffer = new ConsoleBuffer();
+            var h = base.RenderMarkdown($"```\n{code}```", styles, width, buffer);
+            return (buffer, h);
         }
     }
 
-    // Vertically concatenates the rendered pieces (a blank spacer row between them) into a single buffer.
-    private static (ConsoleBuffer buffer, int height) Stack(List<(ConsoleBuffer buf, int height)> parts, int width)
+    // Vertically concatenates the rendered pieces (a blank spacer row between them) into the reusable `target` buffer.
+    private static int Stack(List<(ConsoleBuffer buf, int height)> parts, int width, ConsoleBuffer target)
     {
         var total = 0;
         for (var i = 0; i < parts.Count; i++) total += parts[i].height + (i > 0 ? 1 : 0);
         total = Math.Clamp(total, 1, MaxRows);
 
-        var combined = new ConsoleBuffer { Size = new Size(Math.Max(1, width), total) };
-        combined.Initialize();
+        target.Size = new Size(Math.Max(1, width), total);   // capacity-retentive reuse of the caller's buffer
+        target.Initialize();
 
         var y = 0;
         foreach (var (buf, height) in parts)
         {
-            var rows = Math.Min(height, combined.Size.Height - y);
+            var rows = Math.Min(height, target.Size.Height - y);
             for (var yy = 0; yy < rows; yy++)
                 for (var x = 0; x < width && x < buf.Size.Width; x++)
-                    combined.Write(x, y + yy, buf[x, yy]);
+                    target.Write(x, y + yy, buf[x, yy]);
             y += height + 1;   // blank spacer row before the next piece
-            if (y >= combined.Size.Height) break;
+            if (y >= target.Size.Height) break;
         }
-        return (combined, Math.Min(y, combined.Size.Height));
+        return Math.Min(y, target.Size.Height);
     }
 
     // Line-scans for top-level ``` / ~~~ mermaid fences (the common case). Returns alternating spans: mermaid spans

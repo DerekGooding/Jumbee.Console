@@ -108,6 +108,12 @@ public sealed class PerfHud : GlassPanel
 
     private void OnHudPaint(object? sender, UI.PaintEventArgs e)
     {
+        // Only sample metrics / rebuild the readout while the HUD is actually on screen. OnHudPaint stays subscribed
+        // to UI.Paint for the control's whole lifetime (ctor→Dispose), so without this guard Build() — a Process/GC/
+        // Monitor sample plus a fresh Grid/Panel/Markup graph — and its subsequent Spectre render (GetSegments) run
+        // ~4×/s from launch even while hidden. _refresh keeps ticking while hidden, so the first paint after Show()
+        // is already past RefreshMs and refreshes immediately (no staleness on show).
+        if (!IsShown) return;
         if (_refresh.ElapsedMilliseconds >= RefreshMs)
         {
             _refresh.Restart();
