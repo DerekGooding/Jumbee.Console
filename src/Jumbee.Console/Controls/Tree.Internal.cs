@@ -48,6 +48,7 @@ public partial class Tree
             set
             {
                 field = value;
+                _cachedLabelLines = null;   // the label changed -> drop its cached render (see Tree.Render)
                 UpdateTree();
             }
         }
@@ -162,6 +163,11 @@ public partial class Tree
         private uint childIndex = 0;
         private bool _selected;
         private bool _expanded = true;
+        // Cached result of Segment.SplitLines(Label.Render(options, width)) for the node's UNFOLDED render, reused
+        // across selection/hover/navigation repaints (which re-render the whole tree but don't change this node's
+        // label). Keyed on the width it was produced at; invalidated when Label changes. See Tree.Render.
+        internal List<SegmentLine>? _cachedLabelLines;
+        internal int _cachedLabelWidth = -1;
         #endregion
     }
 }

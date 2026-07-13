@@ -404,7 +404,7 @@ public partial class Tree : RenderableControl
                 levels.AddOrReplaceLast(GetGuide(options, TreeGuidePart.End));
             }
 
-            var prefix = levels.Skip(1).ToList();
+            var prefix = levels.GetRange(1, levels.Count - 1);   // a per-node mutable copy of the guide prefix (no LINQ iterator)
             
             // The gutter icon drawn before the label: a disclosure glyph for a parent (expanded/collapsed), or the
             // leaf glyph for a childless node. The leaf glyph carries its own foreground colour; the disclosure glyph
@@ -443,13 +443,31 @@ public partial class Tree : RenderableControl
             }
 
             var labelWidth = maxWidth - Segment.CellCount(prefix) - (folded ? 0 : iconWidth + caretPad);
-            var renderableLines = Segment.SplitLines(renderable.Render(options, labelWidth));
+            // Reuse the node's cached label render when it isn't folded and the width is unchanged. Selection/hover/
+            // navigation repaints re-run Render for the whole tree, but a node's own label segments depend only on its
+            // renderable and labelWidth — so this skips Spectre's Markup/Paragraph SplitLines for every unchanged node
+            // (the bulk of Tree.Render's allocations). Folded nodes (selected/hovered text) build a fresh Markup and
+            // always render; they're only ever 1-2 nodes.
+            List<SegmentLine> renderableLines;
+            if (!folded && current._cachedLabelWidth == labelWidth && current._cachedLabelLines is { } cachedLines)
+            {
+                renderableLines = cachedLines;
+            }
+            else
+            {
+                renderableLines = Segment.SplitLines(renderable.Render(options, labelWidth));
+                if (!folded)
+                {
+                    current._cachedLabelLines = renderableLines;
+                    current._cachedLabelWidth = labelWidth;
+                }
+            }
 
             foreach (var (_, isFirstLine, _, line) in renderableLines.Enumerate())
             {
                 if (prefix.Count > 0)
                 {
-                    result.AddRange(prefix.ToList());
+                    result.AddRange(prefix);   // AddRange copies now; prefix's later mutation doesn't affect result
                 }
 
                 // For a non-folded node, draw the caret reservation (caret mode) then the gutter icon — the glyph on

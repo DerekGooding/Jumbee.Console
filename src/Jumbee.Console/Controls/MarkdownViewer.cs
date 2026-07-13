@@ -128,7 +128,7 @@ public class MarkdownViewer : Control
     {
         _rendering = true;
         var text = _markdown;
-        var styles = _styles ?? MarkdownStyles.Default;
+        var styles = _styles ?? MarkdownStyles.Default;   // shared singleton (see MarkdownStyles.Default — do not mutate)
         var target = _back;   // the spare buffer; never the front (_content) the UI thread blits
         Task.Run(() =>
         {
