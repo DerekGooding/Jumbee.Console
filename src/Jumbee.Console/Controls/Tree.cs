@@ -281,7 +281,7 @@ public partial class Tree : RenderableControl
     {
         if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position); return; }
         if (NodeAt(position.Y) is not { } node) return;
-        if (node.Nodes.Count > 0 && OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
+        if (node.Nodes.Count > 0 && OnGlyph(node, position)) node.Expanded = !node.Expanded;
         SelectNode(node);
     }
 
@@ -293,7 +293,9 @@ public partial class Tree : RenderableControl
         if (node.Nodes.Count > 0)
         {
             // A glyph click was already toggled by the preceding single-click; only toggle here for a label double-click.
-            if (!OnGlyph(node, position.X)) node.Expanded = !node.Expanded;
+            // OnGlyph is now row-aware, so a wrapped continuation row (which has no glyph) counts as a label click and
+            // toggles here as expected.
+            if (!OnGlyph(node, position)) node.Expanded = !node.Expanded;
         }
         else
         {
@@ -337,19 +339,45 @@ public partial class Tree : RenderableControl
         }
     }
 
-    // The visible node at a content row, or null if the row is past the tree.
-    private TreeNode? NodeAt(int row)
+    // The visible node occupying content row `row`, or null if the row is past the tree. Uses the row map built by the
+    // last Render so a wrapped (multi-row) label maps every one of its rows back to the same node — a plain
+    // row==flattened-index assumption mis-identifies every node below the first wrap.
+    private TreeNode? NodeAt(int row) => row >= 0 && row < _rowMap.Count ? _rowMap[row].node : null;
+
+    // True when `row` is a node's first (glyph-bearing) row; a wrapped continuation row draws a spacer, not the
+    // disclosure glyph, so a click there must not toggle expansion.
+    private bool IsGlyphRow(int row) => row >= 0 && row < _rowMap.Count && _rowMap[row].first;
+
+    // The content row where `node` starts in the last render and how many rows it spans, or (-1, 0) if it wasn't
+    // rendered (not yet painted, or hidden under a collapsed ancestor). A node's rows are contiguous in the map.
+    private (int start, int height) RowSpanOf(TreeNode node)
     {
-        var nodes = Flatten(_root).ToList();
-        return row >= 0 && row < nodes.Count ? nodes[row] : null;
+        var start = -1;
+        for (var i = 0; i < _rowMap.Count; i++)
+        {
+            if (ReferenceEquals(_rowMap[i].node, node))
+            {
+                if (start < 0) start = i;
+            }
+            else if (start >= 0)
+            {
+                return (start, i - start);
+            }
+        }
+        return start < 0 ? (-1, 0) : (start, _rowMap.Count - start);
     }
 
-    // True when content-space X falls within the node's gutter glyph (drawn at depth * guide-part width).
-    private bool OnGlyph(TreeNode node, int x)
+    // True when `position` lands on the node's gutter glyph: on the node's first (glyph-bearing) row AND within the
+    // glyph's column (drawn at depth * guide-part width). A wrapped continuation row draws a spacer, not the glyph,
+    // so a click there is a label click, never a glyph click — keeping toggle behaviour consistent across all rows.
+    private bool OnGlyph(TreeNode node, Position position)
     {
+        if (!IsGlyphRow(position.Y)) return false;
         var glyphStart = Depth(node) * GuidePartWidth();
-        var glyph = node.Nodes.Count > 0 ? (node.Expanded ? _treeExpanded : _treeCollapsed) : _leafGlyph;
-        return x >= glyphStart && x < glyphStart + glyph.GetCellWidth();
+        var glyph = node.Nodes.Count > 0
+            ? (node.Expanded ? node.ExpandedGlyph ?? _treeExpanded : node.CollapsedGlyph ?? _treeCollapsed)
+            : (node.LeafGlyph ?? _leafGlyph);
+        return position.X >= glyphStart && position.X < glyphStart + glyph.GetCellWidth();
     }
 
     // The node's depth (root = 0); its guide prefix is this many fixed-width guide parts.
@@ -368,6 +396,7 @@ public partial class Tree : RenderableControl
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var result = new List<Segment>();
+        _rowMap.Clear();   // rebuilt below: content row -> owning node, for wrap-aware mouse hit-testing (see NodeAt)
         var visitedNodes = new HashSet<TreeNode>();
 
         var stack = new Stack<Queue<TreeNode>>();
@@ -407,13 +436,18 @@ public partial class Tree : RenderableControl
             var prefix = levels.GetRange(1, levels.Count - 1);   // a per-node mutable copy of the guide prefix (no LINQ iterator)
             
             // The gutter icon drawn before the label: a disclosure glyph for a parent (expanded/collapsed), or the
-            // leaf glyph for a childless node. The leaf glyph carries its own foreground colour; the disclosure glyph
-            // uses the guide style. Both should share a cell width so labels stay aligned.
+            // leaf glyph for a childless node. Each node may override the tree-wide glyph and colour for whichever it
+            // shows — LeafGlyph/LeafGlyphColor for a leaf, ExpandedGlyph/CollapsedGlyph/DisclosureGlyphColor for a
+            // parent; a null override falls back to the tree-wide value. Keep all glyphs the same cell width so labels
+            // stay aligned. (A leaf's colour defaults to the theme leaf colour; a disclosure glyph's to the guide style.)
             var hasChildren = current.Nodes.Count > 0;
-            var icon = hasChildren ? (current.Expanded ? _treeExpanded : _treeCollapsed) : _leafGlyph;
+            var icon = hasChildren
+                ? (current.Expanded ? current.ExpandedGlyph ?? _treeExpanded : current.CollapsedGlyph ?? _treeCollapsed)
+                : current.LeafGlyph ?? _leafGlyph;
             var iconWidth = icon.GetCellWidth();
-            var iconStyle = !hasChildren && _leafGlyphColor is { } leafColor
-                ? new Spectre.Console.Style(foreground: leafColor)
+            var iconColor = hasChildren ? current.DisclosureGlyphColor : current.LeafGlyphColor ?? _leafGlyphColor;
+            var iconStyle = iconColor is { } ic
+                ? new Spectre.Console.Style(foreground: ic)
                 : Style.SpectreConsoleStyle;
 
             var caret = _selectionStyle == SelectionStyle.Caret;
@@ -463,8 +497,13 @@ public partial class Tree : RenderableControl
                 }
             }
 
-            foreach (var (_, isFirstLine, _, line) in renderableLines.Enumerate())
+            // Indexed loop (not .Enumerate()): renderableLines is a List, and Enumerate() would box its enumerator and
+            // allocate a yield state machine per node on every render (including cache hits). We only need isFirstLine.
+            for (var lineIndex = 0; lineIndex < renderableLines.Count; lineIndex++)
             {
+                var isFirstLine = lineIndex == 0;
+                var line = renderableLines[lineIndex];
+                _rowMap.Add((current, isFirstLine));   // this loop emits exactly one content row per iteration
                 if (prefix.Count > 0)
                 {
                     result.AddRange(prefix);   // AddRange copies now; prefix's later mutation doesn't affect result
@@ -537,7 +576,7 @@ public partial class Tree : RenderableControl
         var current = nodes.FirstOrDefault(n => n.Selected);
         if (current is not null && !ReferenceEquals(current, nodes[index])) current.Selected = false;
         nodes[index].Selected = true;
-        AutoScroll(index);
+        AutoScroll(nodes[index], index);
     }
 
     // The flattened (visible) index of the selected node, or 0 when nothing is selected.
@@ -571,7 +610,7 @@ public partial class Tree : RenderableControl
         }
 
         nodes[nextIndex].Selected = true;
-        AutoScroll(nextIndex);
+        AutoScroll(nodes[nextIndex], nextIndex);
     }
 
     // Move the selection to a specific (visible) node, clearing any previous selection and scrolling it into view.
@@ -583,29 +622,31 @@ public partial class Tree : RenderableControl
 
         foreach (var n in nodes) if (n.Selected && !ReferenceEquals(n, node)) n.Selected = false;
         node.Selected = true;
-        AutoScroll(index);
+        AutoScroll(node, index);
     }
 
     /// <summary>
-    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the row at <paramref name="y"/>
-    /// (the selected node's position in the flattened, visible tree) stays within the viewport.
-    /// Each visible node occupies one row.
+    /// Scrolls the containing <see cref="ControlFrame"/> (if any) so <paramref name="node"/> stays within the
+    /// viewport. Uses the node's actual rendered row span, so a wrapped (multi-row) node is kept fully in view;
+    /// <paramref name="fallbackRow"/> (its flattened index) is used only before the first render populates the map.
     /// </summary>
-    private void AutoScroll(int y)
+    private void AutoScroll(TreeNode node, int fallbackRow)
     {
         if (Frame == null) return;
-
-        var top = Frame.Top;
         var viewportHeight = Frame.ViewportSize.Height;
         if (viewportHeight <= 0) return;
 
-        if (y < top)
+        var (start, height) = RowSpanOf(node);
+        if (start < 0) { start = fallbackRow; height = 1; }
+
+        var top = Frame.Top;
+        if (start < top)
         {
-            Frame.Top = y;
+            Frame.Top = start;                                // above the viewport -> show from its first row
         }
-        else if (y >= top + viewportHeight)
+        else if (start + height > top + viewportHeight)
         {
-            Frame.Top = y - viewportHeight + 1;
+            Frame.Top = start + height - viewportHeight;      // below -> scroll so its last row is visible
         }
     }
 
@@ -643,5 +684,9 @@ public partial class Tree : RenderableControl
     private Style _hoverStyle;
     private bool _hoverHighlighting;
     private TreeNode? _hoveredNode;
+    // Content row -> (owning node, is that node's first/glyph row) for the last render. Lets the mouse handlers map a
+    // clicked row to the correct node when labels wrap onto multiple rows. Written in Render, read in the mouse
+    // handlers — both on the UI thread.
+    private readonly List<(TreeNode node, bool first)> _rowMap = new();
     #endregion
 }

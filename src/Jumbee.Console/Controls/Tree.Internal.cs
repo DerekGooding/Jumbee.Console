@@ -53,6 +53,52 @@ public partial class Tree
             }
         }
 
+        /// <summary>A glyph shown before THIS node when it is a leaf (has no children), overriding the tree-wide
+        /// <see cref="Tree.LeafGlyph"/>. Include any trailing spacing, and keep its cell width equal to the tree's
+        /// other glyphs so labels stay aligned. <see langword="null"/> (the default) uses the tree-wide glyph.
+        /// Has no effect while the node has children (it then shows the disclosure glyph).</summary>
+        public string? LeafGlyph
+        {
+            get => field;
+            set { field = value; UpdateTree(); }
+        }
+
+        /// <summary>Foreground colour for this node's <see cref="LeafGlyph"/>, overriding the tree-wide
+        /// <see cref="Tree.LeafGlyphColor"/>. <see langword="null"/> (the default) uses the tree-wide colour. Ignored
+        /// while the node is selected (the glyph highlights together with the label).</summary>
+        public Color? LeafGlyphColor
+        {
+            get => field;
+            set { field = value; UpdateTree(); }
+        }
+
+        /// <summary>Disclosure glyph shown before THIS node while it has children and is expanded, overriding the
+        /// tree-wide <see cref="IGlyphTheme.TreeExpanded"/> glyph. Include any trailing spacing and keep its cell
+        /// width equal to the tree's other glyphs so labels stay aligned. <see langword="null"/> (the default) uses
+        /// the tree-wide glyph. Dormant while the node is a leaf (it then shows the leaf glyph).</summary>
+        public string? ExpandedGlyph
+        {
+            get => field;
+            set { field = value; UpdateTree(); }
+        }
+
+        /// <summary>Disclosure glyph shown before THIS node while it has children and is collapsed, overriding the
+        /// tree-wide <see cref="IGlyphTheme.TreeCollapsed"/> glyph. <see langword="null"/> (the default) uses the
+        /// tree-wide glyph.</summary>
+        public string? CollapsedGlyph
+        {
+            get => field;
+            set { field = value; UpdateTree(); }
+        }
+
+        /// <summary>Foreground colour for THIS node's disclosure glyph (expanded/collapsed). <see langword="null"/>
+        /// (the default) draws it in the tree's guide style, as before. Ignored while the node is selected.</summary>
+        public Color? DisclosureGlyphColor
+        {
+            get => field;
+            set { field = value; UpdateTree(); }
+        }
+
         /// <summary>
         /// Gets the tree node's child nodes.
         /// </summary>

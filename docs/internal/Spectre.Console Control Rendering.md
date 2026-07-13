@@ -153,6 +153,24 @@ Because `Panel` delegates to `child.Render`, and that child might be a `Table`, 
 *   **Coordinate Systems**: Unlike 2D pixel buffers, `Spectre.Console` is largely flow-based. Controls render "current line" segments. However, the `Segment.SplitLines` utility allows controls like `Panel` or `Columns` to treat the output of their children as 2D blocks of text that can be manipulated (wrapped with borders, placed side-by-side).
 *   **State**: The `RenderOptions` object is immutable (a C# `record`). Modifications (like changing `Height` or `Justification`) are done via `with` expressions, ensuring isolation between branches of the render tree.
 
+## 6. Allocation Guidance for New Controls (Rendering Hot Path)
+
+`Render` (and `Measure`) run on the **rendering hot path** — for a live/animated control, once per frame; for a container like `Tree`, once per node per render. `Segment`/`SegmentLine`/`Style` are immutable classes, so every renderable produces a stream of **freshly-allocated objects** each time it is rendered; Spectre's `Segment.SplitLines`, `Paragraph`/`Markup` rendering (which internally clones its lines), and `GetSegments` (pipeline array + result `List` + `Segment.Merge`) all allocate proportionally to output size. These costs are **inherent** — the lever is not to micro-optimize Spectre internals but to **avoid re-rendering when nothing changed**, and to keep the code that *does* run allocation-lean. Concrete rules, all learned from profiling real controls:
+
+1.  **Don't re-render unchanged content — cache the segments.** `RenderableControl.Render` is already gated by `_contentDirty` (an interactive-only repaint reuses the cached buffer). Beyond that, cache the produced segments keyed on a cheap **content signature you own** (not the renderable's `GetHashCode` — Spectre widgets use reference identity, so a rebuilt-each-frame renderable never matches and a mutated-in-place one falsely matches). Examples: `MarkdownViewer` caches the rendered buffer by `(width, version)`; `Tree` caches each node's `SplitLines(Label.Render(...))` by `labelWidth`, invalidated when the node's `Label` changes; `CodeEditor` caches its highlight+render. A selection/hover/scroll repaint typically changes 1–2 items — cache the rest.
+
+2.  **No LINQ on the hot path.** `Skip`/`Where`/`Select`/`Max`/`OrderBy`/`ToList` each allocate an iterator (and usually a delegate) *per call* — multiplied by node/row/frame. Use indexed `for` loops, `List.GetRange`, and manual min/max. (In `Tree.Render`, `levels.Skip(1).ToList()` → `GetRange`, and a redundant `result.AddRange(prefix.ToList())` → `AddRange(prefix)`.)
+
+3.  **Avoid the `Enumerate()` / `SelectIndex()` interop helpers in loops.** `EnumerableExtensions.Enumerate` boxes the source's enumerator *and* allocates a yield state machine every call. If you only need the index / first / last, use an indexed `for` over a `List`. (`Tree.Render` did this per node, even on cache hits.)
+
+4.  **Resolve heavy defaults once, not per render.** A `static X Default => new()` allocates a whole graph on *every* access — `MarkdownStyles.Default` (30 styles + 24 nested language-style trees) was being read *per markdown token*. Cache such defaults in a `static readonly`/`{ get; } = new()` singleton and treat them as read-only.
+
+5.  **Reuse buffers instead of allocating per render.** `ConsoleBuffer.Resize` is capacity-retentive, but only for a *reused instance* — allocating a fresh `ConsoleBuffer` each render defeats it. Where a control renders off the UI thread (so it needs a buffer the compositor isn't reading), ping-pong two persistent buffers rather than `new`-ing one each time (`MarkdownViewer`).
+
+6.  **Gate paint-driven self-refresh on visibility/activity.** A control that refreshes from a `UI.Paint` handler keeps that handler subscribed for its whole lifetime — `Hide()` does not unsubscribe it. Guard the handler on an `IsShown`/active flag so a hidden control (e.g. `PerfHud`) doesn't sample metrics, rebuild renderables, and re-run `GetSegments` every tick while invisible.
+
+7.  **Measure before optimizing, and stop at the Spectre boundary.** Profile allocations by call tree; the biggest wins here were *structural* (cache / gate / reuse), not shaving bytes off individual `Segment`s. Do **not** modify `ext/spectre.console` render internals for allocation — the returns-`IEnumerable<Segment>` contract and per-line `Clone` are load-bearing; caching at the control level is the safe, high-ROI lever.
+
 ## Summary
 
 1.  **Measure**: Parents ask children "How big do you want to be given width X?"

@@ -198,6 +198,100 @@ public class ConsoleSnapshotTests
     }
 
     [Fact]
+    public void Tree_Click_MapsRowToCorrectNode_WhenLabelsWrap()
+    {
+        // Regression: NodeAt used to assume one console row per node, so once a label wrapped onto a 2nd row every
+        // node below it was mis-identified — clicking one item could select another. Now Render records a
+        // content-row -> node map that the click uses.
+        var tree = new Tree("Root");                          // row 0
+        var wrapping = tree.AddNode("alpha beta gamma delta");// long label -> wraps at this narrow width
+        var below = tree.AddNode("ZZ");                       // short, distinctive; rendered AFTER the wrap
+        const int w = 16, h = 12;
+        ConsoleSnapshot.Render(tree, w, h);
+
+        var lines = ConsoleSnapshot.ToText(tree, w, h).Replace("\r", "").Split('\n');
+        var belowRow = Array.FindIndex(lines, l => l.Contains("ZZ"));
+        Assert.True(belowRow >= 0, "the node below the wrap should render");
+        // With one row per node 'ZZ' would sit at row 2 (Root=0, wrapping=1); a wrap pushes it to >= 3.
+        Assert.True(belowRow >= 3, $"the long label should have wrapped, pushing 'ZZ' to row {belowRow}");
+
+        // Clicking the row 'ZZ' renders on selects 'ZZ' — not the wrapping node (the old bug), and not nothing.
+        ClickTree(tree, 8, belowRow);
+        Assert.True(below.Selected);
+        Assert.False(wrapping.Selected);
+
+        // Clicking a wrapped CONTINUATION row of the long node (row 2 is inside its span) selects THAT node.
+        ConsoleSnapshot.Render(tree, w, h);   // repaint after the selection change, as the app would
+        ClickTree(tree, 8, 2);
+        Assert.True(wrapping.Selected);
+        Assert.False(below.Selected);
+    }
+
+    [Fact]
+    public void Tree_DoubleClick_OnWrappedParentContinuationRow_TogglesIt()
+    {
+        // Regression for the wrapped-parent edge: double-clicking the spacer column of a wrapped parent's 2nd row
+        // (where the disclosure glyph sits on the 1st row) must toggle it, like a label double-click. Before the
+        // row-aware OnGlyph fix, OnGlyph reported "on glyph" there (x-only), so the toggle was suppressed.
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("alpha beta gamma delta epsilon");   // long parent label -> wraps
+        folder.AddChild("Child");
+        Assert.True(folder.Expanded);
+        const int w = 18, h = 12;
+        ConsoleSnapshot.Render(tree, w, h);
+
+        // Confirm the parent label wrapped so row 2 is one of its continuation rows (Root=0, folder starts at 1).
+        var lines = ConsoleSnapshot.ToText(tree, w, h).Replace("\r", "").Split('\n');
+        var childRow = Array.FindIndex(lines, l => l.Contains("Child"));
+        Assert.True(childRow >= 3, $"the parent label should have wrapped (Child at row {childRow})");
+
+        // Double-click the glyph column (x = 4, the depth-1 disclosure column) on the folder's continuation row (2),
+        // which draws a spacer, not the glyph -> should collapse the folder.
+        ClickTree(tree, 4, 2);
+        ClickTree(tree, 4, 2);
+        Assert.False(folder.Expanded);
+    }
+
+    [Fact]
+    public void Tree_LeafNode_CanOverrideItsGlyph_PerNode()
+    {
+        var tree = new Tree("Root");
+        var alpha = tree.AddNode("Alpha");     // leaf
+        tree.AddNode("Beta");                  // leaf, keeps the tree default
+        alpha.LeafGlyph = "★ ";                // per-node override (same 2-cell width as the default "• ")
+        ConsoleSnapshot.Render(tree, 24, 10);
+
+        var lines = ConsoleSnapshot.ToText(tree, 24, 10).Replace("\r", "").Split('\n');
+        var alphaLine = Array.Find(lines, l => l.Contains("Alpha"));
+        var betaLine = Array.Find(lines, l => l.Contains("Beta"));
+        Assert.NotNull(alphaLine);
+        Assert.NotNull(betaLine);
+        Assert.Contains("★", alphaLine);       // Alpha shows its own glyph
+        Assert.DoesNotContain("★", betaLine!); // Beta still uses the tree-wide glyph
+    }
+
+    [Fact]
+    public void Tree_ParentNode_CanOverrideItsDisclosureGlyph_PerNode()
+    {
+        var tree = new Tree("Root");
+        var folder = tree.AddNode("Folder");   // parent (has a child) -> shows a disclosure glyph
+        folder.AddChild("Child");
+        folder.ExpandedGlyph = "▿ ";           // per-node expanded disclosure glyph (default is "▼ ")
+        folder.CollapsedGlyph = "▹ ";          // per-node collapsed disclosure glyph (default is "► ")
+        ConsoleSnapshot.Render(tree, 24, 10);
+
+        var expandedLine = Array.Find(ConsoleSnapshot.ToText(tree, 24, 10).Replace("\r", "").Split('\n'),
+            l => l.Contains("Folder"));
+        Assert.Contains("▿", expandedLine);    // uses its own expanded glyph while expanded
+
+        folder.Expanded = false;
+        ConsoleSnapshot.Render(tree, 24, 10);
+        var collapsedLine = Array.Find(ConsoleSnapshot.ToText(tree, 24, 10).Replace("\r", "").Split('\n'),
+            l => l.Contains("Folder"));
+        Assert.Contains("▹", collapsedLine);   // and its own collapsed glyph while collapsed
+    }
+
+    [Fact]
     public void Tree_Click_OnDisclosureGlyph_TogglesNode()
     {
         var tree = new Tree("Root");
