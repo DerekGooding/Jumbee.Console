@@ -53,6 +53,22 @@ public class TerminalEmulator : Control
     /// <summary>The window title the running program set via OSC 0/2, or <see langword="null"/> if none. Hosts can
     /// bind this (or <see cref="TitleChanged"/>) to a frame title.</summary>
     public string? WindowTitle { get; private set; }
+
+    /// <summary>Whether a child process is currently attached and running.</summary>
+    public bool IsRunning => _pty is not null;
+
+    /// <summary>
+    /// Background colour for cells the running program leaves at the terminal default (it didn't set an explicit
+    /// background). Lets the emulator blend with the control/theme instead of painting default cells solid black.
+    /// <see langword="null"/> (the default) paints them with no background, so the control's own background shows
+    /// through; set a colour to force a specific default background across the whole terminal area. Cells that carry
+    /// their own (non-default) background are unaffected.
+    /// </summary>
+    public Color? DefaultBackground
+    {
+        get => _defaultBackground;
+        set => SetAtomicProperty(ref _defaultBackground, value);
+    }
     #endregion
 
     #region Events
@@ -84,18 +100,65 @@ public class TerminalEmulator : Control
         // No command line → manual-drive mode (bytes arrive via Feed); nothing to spawn or resize.
         if (string.IsNullOrWhiteSpace(_commandLine)) { Invalidate(); return; }
 
-        if (_pty is null)
-        {
-            _pty = Pty.Start(_commandLine, cols, rows, _workingDirectory);
-            _pty.Exited += () => UI.Post(() => { Invalidate(); Exited?.Invoke(); });
-            _cts = new CancellationTokenSource();
-            _ = ReadLoopAsync(_pty, _cts.Token);
-        }
-        else
-        {
-            _pty.Resize(cols, rows);
-        }
+        if (_pty is null) TrySpawn(cols, rows);   // first sizing (or a restart after StopProcess), when a run is wanted
+        else _pty.Resize(cols, rows);
         Invalidate();
+    }
+
+    /// <summary>
+    /// Requests that the child process run: starts it now if the terminal is sized and idle, otherwise it starts as
+    /// soon as the control is first laid out. Use to restart a shell previously ended with <see cref="StopProcess"/>
+    /// (e.g. a host that stops the shell while the terminal is hidden). No-op for a manually-driven terminal (null
+    /// command line) or when a process is already running.
+    /// </summary>
+    public void StartProcess() => UI.Invoke(() =>
+    {
+        _wantRunning = true;
+        TrySpawn((short)Math.Max(1, ContentWidth), (short)Math.Max(1, ActualHeight));
+    });
+
+    /// <summary>
+    /// Stops the child process and its output reader, leaving the emulator screen as drawn. Restart with
+    /// <see cref="StartProcess"/>. Does not raise <see cref="Exited"/> (a deliberate stop is not a process exit the
+    /// host should hear about). No-op if not running.
+    /// </summary>
+    public void StopProcess() => UI.Invoke(() =>
+    {
+        _wantRunning = false;
+        if (_pty is not null) { Teardown(); Invalidate(); }
+    });
+
+    // Spawn the child if a run is wanted and none is live. Split out so StartProcess and the initial sizing share it.
+    // Runs on the UI thread; needs a real cell area, so callers pass the current size (spawn is retried on next init).
+    private void TrySpawn(short cols, short rows)
+    {
+        if (_pty is not null || !_wantRunning || string.IsNullOrWhiteSpace(_commandLine)) return;
+        if (cols <= 1 && rows <= 1) return;   // not sized yet — Control_OnInitialization spawns once it is
+
+        var pty = Pty.Start(_commandLine, cols, rows, _workingDirectory);
+        _cts = new CancellationTokenSource();
+        // Capture the pty so a deliberate Teardown (StopProcess/Dispose clears _pty) suppresses this callback — only a
+        // real child exit, while this pty is still the current one, clears state and surfaces Exited to the host.
+        pty.Exited += () => UI.Post(() =>
+        {
+            if (!ReferenceEquals(_pty, pty)) return;
+            _pty = null;
+            Invalidate();
+            Exited?.Invoke();
+        });
+        _pty = pty;
+        _ = ReadLoopAsync(pty, _cts.Token);
+    }
+
+    // Kill the current child and stop its reader. Clears _pty first so the pty's async Exited callback is suppressed.
+    // Runs on the UI thread.
+    private void Teardown()
+    {
+        var pty = _pty;
+        if (pty is null) return;
+        _pty = null;
+        _cts?.Cancel();
+        pty.Dispose();
     }
 
     /// <summary>
@@ -373,10 +436,16 @@ public class TerminalEmulator : Control
         if (width <= 0 || height <= 0) return;
         var contentWidth = ContentWidth;
 
+        // Resolve the configured default background once (null = no background, i.e. the control's own shows through),
+        // and use it for both the blank fill and any cell the program left at the terminal default (see below), so
+        // the whole terminal area is consistent instead of default-text cells painting solid black.
+        CColor? defaultBg = _defaultBackground is { } dbg ? dbg.ToConsoleGUIColor() : null;
+        var blank = defaultBg is null ? Blank : new Character(' ', null, defaultBg, Decoration.None);
+
         // Blank the area first (the emulator only describes occupied spans).
         for (var y = 0; y < height; y++)
             for (var x = 0; x < width; x++)
-                consoleBuffer.Write(new Position(x, y), Blank);
+                consoleBuffer.Write(new Position(x, y), blank);
 
         try
         {
@@ -393,7 +462,10 @@ public class TerminalEmulator : Control
                 foreach (var span in rows[y].Spans)
                 {
                     var fg = ParseWebColor(span.ForgroundColor);
-                    var bg = ParseWebColor(span.BackgroundColor);
+                    // A cell at the terminal-default background (VtNetCore reports it as #000000) takes the configured
+                    // DefaultBackground instead, so default output blends with the control rather than reading solid
+                    // black. Cells with an explicit (non-default) background keep it.
+                    var bg = span.BackgroundColor == DefaultBgWeb ? defaultBg : ParseWebColor(span.BackgroundColor);
                     var deco = Decoration.None;
                     if (span.Bold) deco |= Decoration.Bold;
                     if (span.Italic) deco |= Decoration.Italic;
@@ -471,16 +543,19 @@ public class TerminalEmulator : Control
 
     public override void Dispose()
     {
-        _cts?.Cancel();
-        _pty?.Dispose();
-        _pty = null;
+        _wantRunning = false;
+        Teardown();
         base.Dispose();
     }
     #endregion
 
     #region Fields
     private const int ScrollbarWidth = 1;
+    // The web colour VtNetCore reports for the terminal-default background (ETerminalColor.Black → #000000); cells at
+    // this value are treated as "no explicit background" and take DefaultBackground.
+    private const string DefaultBgWeb = "#000000";
     private static readonly Character Blank = new(' ');
+    private Color? _defaultBackground;
     private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, Decoration.None);
     private static readonly Character ScrollTrack = new('░', new CColor(0x44, 0x44, 0x44), null, Decoration.None);
     private readonly string? _commandLine;
@@ -489,6 +564,9 @@ public class TerminalEmulator : Control
     private readonly DataConsumer _consumer;
     private IPty? _pty;
     private CancellationTokenSource? _cts;
+    // Desired run state: true = keep a child alive while sized (auto-start on first layout). Toggled by
+    // Start/StopProcess so a host can stop the shell while hidden and restart it on return.
+    private bool _wantRunning = true;
     // Scrollback view state: _follow pins the view to the live bottom; when false, _viewTop is the absolute top line.
     private bool _follow = true;
     private int _viewTop;

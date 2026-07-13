@@ -1,0 +1,2 @@
+# Jumbee.Console Examples
+Jumbee.Console.Examples is the main examples browser project. Jumbee.Console.IdeDemo features a text-based IDE with a multi-tab editor, a file explorer tree control, and terminal emulator, built with Jumbee.Console.

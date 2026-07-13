@@ -3,6 +3,8 @@ namespace Jumbee.Console.Drawing;
 using System;
 using System.Collections.Generic;
 
+using CColor = ConsoleGUI.Data.Color;
+
 /// <summary>
 /// A shape that can be drawn on a <see cref="Jumbee.Console.Canvas"/> via <see cref="Jumbee.Console.Canvas.Add"/>.
 /// The built-in shapes (<see cref="Line"/>, <see cref="FilledLine"/>, <see cref="Rectangle"/>, <see cref="Points"/>,

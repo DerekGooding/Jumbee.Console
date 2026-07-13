@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
+using CColor = ConsoleGUI.Data.Color;
+
 /// <summary>The point density of a <see cref="WorldMap"/> — how finely the coastlines are sampled.</summary>
 public enum MapResolution
 {

@@ -4,6 +4,7 @@ using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 using CPlot = ConsolePlot.Plot;
+using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A <see cref="ConsolePlot.Plot"/> whose <see cref="Render"/> blits the rendered image into a

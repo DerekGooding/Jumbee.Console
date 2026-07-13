@@ -3,6 +3,8 @@ namespace Jumbee.Console.Drawing;
 using System;
 using System.Collections.Generic;
 
+using CColor = ConsoleGUI.Data.Color;
+
 /// <summary>
 /// Converts canvas (world) coordinates to grid dot coordinates and paints them, for use by <see cref="IShape"/>
 /// implementations. The origin of the canvas coordinate system is the bottom-left corner (unlike the terminal's

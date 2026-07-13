@@ -215,6 +215,41 @@ public class TerminalEmulatorTests
     }
 
     [Fact]
+    public void DefaultBackground_Unset_DefaultText_HasNoBackground()
+    {
+        // VtNetCore reports the terminal-default background as #000000; by default the emulator paints those cells
+        // with no background so the control's own shows through, rather than solid black.
+        var t = Manual();
+        ConsoleSnapshot.ToText(t, 10, 2);
+        t.Feed(Encoding.ASCII.GetBytes("hi"));
+
+        Assert.Null(ConsoleSnapshot.Render(t, 10, 2)[0, 0].Character.Background);
+    }
+
+    [Fact]
+    public void DefaultBackground_Set_AppliesToDefaultText()
+    {
+        var t = Manual();
+        t.DefaultBackground = new Jumbee.Console.Color(10, 20, 30);
+        ConsoleSnapshot.ToText(t, 10, 2);
+        t.Feed(Encoding.ASCII.GetBytes("hi"));
+
+        Assert.Equal(new ConsoleGUI.Data.Color(10, 20, 30), ConsoleSnapshot.Render(t, 10, 2)[0, 0].Character.Background);
+    }
+
+    [Fact]
+    public void ExplicitBackground_IsPreserved_NotOverriddenByDefault()
+    {
+        // A cell the program gave an explicit (non-default) background keeps it, even with DefaultBackground set.
+        var t = Manual();
+        t.DefaultBackground = new Jumbee.Console.Color(10, 20, 30);
+        ConsoleSnapshot.ToText(t, 10, 2);
+        t.Feed(Encoding.ASCII.GetBytes("\x1b[41mX\x1b[0m"));   // red background (SGR 41 → #CD0000)
+
+        Assert.Equal(new ConsoleGUI.Data.Color(205, 0, 0), ConsoleSnapshot.Render(t, 10, 2)[0, 0].Character.Background);
+    }
+
+    [Fact]
     public void Framed_SizesToViewport_NotScrollBalloon()
     {
         // A scrolling ControlFrame offers unbounded height; without MeasureHeight the terminal would balloon to

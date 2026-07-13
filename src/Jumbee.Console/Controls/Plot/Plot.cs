@@ -8,6 +8,7 @@ using ConsolePlot.Drawing.Tools;
 using ConsolePlot.Plotting;
 
 using CPlot = ConsolePlot.Plot;
+using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A line/scatter chart backed by the ConsolePlot library, rendered into the control's buffer. Add data with

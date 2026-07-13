@@ -13,6 +13,7 @@ using Spectre.Console.Rendering;
 
 using Character = ConsoleGUI.Data.Character;
 using Decoration = ConsoleGUI.Data.Decoration;
+using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,

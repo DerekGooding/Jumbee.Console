@@ -1,6 +1,5 @@
 namespace Jumbee.Console;
 
-using SCColor = Spectre.Console.Color;
 using SCStyle = Spectre.Console.Style;
 using SCDecoration = Spectre.Console.Decoration;
 
@@ -30,7 +29,7 @@ public static class SelectionStylesExtensions
 
     /// <summary>The text style for the selected item: Highlight uses foreground + background; Underline uses the
     /// foreground plus an underline; Caret uses the foreground only (the caret carries the indication).</summary>
-    public static SCStyle TextStyle(this SelectionStyle style, SCColor? foreground, SCColor? background) => style switch
+    public static SCStyle TextStyle(this SelectionStyle style, Color? foreground, Color? background) => style switch
     {
         SelectionStyle.Highlight => new SCStyle(foreground, background),
         SelectionStyle.Underline => new SCStyle(foreground, null, SCDecoration.Underline),

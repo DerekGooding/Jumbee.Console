@@ -8,6 +8,8 @@ using ConsoleGUI.Space;
 
 using Spectre.Console.Rendering;
 
+using CColor = ConsoleGUI.Data.Color;
+
 // The unqualified name Color in this namespace resolves to Jumbee.Console(.Styles).Color, which has static
 // Red/Green/Blue and no Mix; use the project's CColor alias (Global.cs) for the alpha-capable ConsoleGUI colour.
 

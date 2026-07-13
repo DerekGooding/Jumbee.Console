@@ -56,6 +56,11 @@ Note the following important considerations when deriving from these classes:
 - Prefer concise code over more verbose constructs.
 - Avoid modifying external library code located in the @ext directory. Changes should be limited to the code in the @src directory only whenever possible.
 
+### Color type convention
+- **Public and protected APIs use `Jumbee.Console.Color`** (the Styles struct) — constructor params, properties, fluent setters, method params, and return types. Never expose `ConsoleGUI.Data.Color` (the `CColor` alias) or `Spectre.Console.Color` on a consumer-reachable surface. `Jumbee.Console.Color` has implicit conversions both ways to each, so change the signature and let the cast happen at the internal boundary.
+- **Internal rendering keeps `CColor`** — that's what `ConsoleBuffer`/`Character` take. `CColor` is intentionally *not* a global alias (removed): a file that writes to the buffer declares its own `using CColor = ConsoleGUI.Data.Color;`, so reaching for the ConsoleGUI type is a deliberate, visible act. Public members of `internal` types (e.g. Canvas grids, `PlotImage`) may stay `CColor` since they aren't consumer-reachable.
+- Gotcha: in a file with `using ConsoleGUI.Data;`, bare `Color` still resolves to `Jumbee.Console.Color` (a same-namespace type beats a using-imported one) — but a test/example file that imports `ConsoleGUI.Data` and needs the ConsoleGUI type must qualify it as `ConsoleGUI.Data.Color`. A ternary mixing `Color` and `CColor` is ambiguous (implicit both ways) — cast one branch.
+
 ## Project coding style:
 - Use the existing #regions in a file to organize class constructors, indexers, events, properties, methods, fields, and child types.
 - Use 4 spaces for indentation.
