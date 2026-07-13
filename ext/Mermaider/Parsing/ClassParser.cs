@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using Mermaider;
 using Mermaider.Models;
 
-namespace Jumbee.Console.DocumentViewers.Mermaid;
+namespace Jumbee.Console.Documents.Mermaid;
 
 // Vendored from Mermaider (MIT) so class-diagram text can be parsed into the public ClassDiagram model (the package's
 // parsers are internal). Source-generated regexes were swapped for runtime compiled Regex, the namespace changed to

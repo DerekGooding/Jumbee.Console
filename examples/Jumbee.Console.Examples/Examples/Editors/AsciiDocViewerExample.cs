@@ -2,7 +2,7 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 
 /// <summary>
 /// A read-only <see cref="AsciiDocViewer"/> rendering a sample AsciiDoc doc — sections, inline formatting, lists and

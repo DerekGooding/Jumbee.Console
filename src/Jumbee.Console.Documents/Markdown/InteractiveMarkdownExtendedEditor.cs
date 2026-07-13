@@ -1,8 +1,8 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
 using NTokenizers.Extensions.Spectre.Console.Styles;
 
-using Jumbee.Console.DocumentViewers.Mermaid;
+using Jumbee.Console.Documents.Mermaid;
 
 /// <summary>
 /// A live, split-pane Markdown editor whose preview renders embedded <c>```mermaid</c> code blocks as diagrams — the

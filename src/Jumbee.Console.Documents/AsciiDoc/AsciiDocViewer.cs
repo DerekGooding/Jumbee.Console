@@ -1,4 +1,4 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
 using System;
 using System.Threading.Tasks;

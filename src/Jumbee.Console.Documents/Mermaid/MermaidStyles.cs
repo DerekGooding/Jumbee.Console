@@ -1,4 +1,4 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
 /// <summary>
 /// Colours and scale for <see cref="MermaidViewer"/>. Colours are <see cref="Jumbee.Console.Color"/>; the two scale

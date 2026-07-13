@@ -1,4 +1,4 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
 /// <summary>
 /// A live, split-pane AsciiDoc editor for the terminal: the left pane is a <see cref="CodeEditor"/> with AsciiDoc

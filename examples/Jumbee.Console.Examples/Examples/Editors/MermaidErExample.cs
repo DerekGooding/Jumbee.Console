@@ -2,7 +2,7 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 
 /// <summary>
 /// The <see cref="MermaidViewer"/> rendering a Mermaid <c>erDiagram</c> — entity tables (typed attributes with

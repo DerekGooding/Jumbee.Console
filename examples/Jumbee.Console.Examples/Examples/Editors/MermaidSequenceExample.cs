@@ -2,7 +2,7 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 
 /// <summary>
 /// The <see cref="MermaidViewer"/> rendering a Mermaid <c>sequenceDiagram</c> — actor boxes with lifelines, stacked

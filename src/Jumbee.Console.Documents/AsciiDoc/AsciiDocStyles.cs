@@ -1,4 +1,4 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
 /// <summary>
 /// Visual styling for <see cref="AsciiDocViewer"/>. Each value is a Spectre.Console markup style string

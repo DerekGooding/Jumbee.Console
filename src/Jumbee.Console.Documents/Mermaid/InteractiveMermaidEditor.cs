@@ -1,6 +1,6 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
-using Jumbee.Console.DocumentViewers.Mermaid;
+using Jumbee.Console.Documents.Mermaid;
 
 /// <summary>
 /// A live, split-pane Mermaid editor for the terminal: the left pane is a <see cref="CodeEditor"/> with Mermaid syntax

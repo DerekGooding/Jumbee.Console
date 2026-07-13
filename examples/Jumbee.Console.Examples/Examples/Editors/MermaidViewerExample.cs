@@ -2,7 +2,7 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 
 /// <summary>
 /// A read-only <see cref="MermaidViewer"/> rendering a Mermaid flowchart — node boxes, rectilinear edges with

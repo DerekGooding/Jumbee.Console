@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Mermaider;
 using Mermaider.Models;
 
-namespace Jumbee.Console.DocumentViewers.Mermaid;
+namespace Jumbee.Console.Documents.Mermaid;
 
 // Vendored from Mermaider (MIT) — same treatment as ClassParser/ErParser: source-generated regexes swapped for
 // runtime compiled Regex, namespace changed, internal MultilineUtils replaced with the local helper.

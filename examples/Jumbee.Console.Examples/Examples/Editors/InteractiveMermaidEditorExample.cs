@@ -2,7 +2,7 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 
 /// <summary>
 /// A live split-pane Mermaid editor with a "Layout" dropdown (a <see cref="Select"/>) that switches the panes between

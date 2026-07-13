@@ -3,7 +3,7 @@ namespace Jumbee.Console.Tests;
 using System;
 
 using Jumbee.Console;
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 using Jumbee.Console.Snapshot;
 
 using Xunit;

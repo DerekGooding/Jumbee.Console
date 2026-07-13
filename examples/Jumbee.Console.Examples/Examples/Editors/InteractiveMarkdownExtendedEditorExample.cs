@@ -2,7 +2,7 @@ namespace Jumbee.Console.Examples;
 
 using System.Collections.Generic;
 
-using Jumbee.Console.DocumentViewers;
+using Jumbee.Console.Documents;
 
 /// <summary>
 /// A live split-pane Markdown editor whose preview renders embedded <c>```mermaid</c> diagrams — the editor complement

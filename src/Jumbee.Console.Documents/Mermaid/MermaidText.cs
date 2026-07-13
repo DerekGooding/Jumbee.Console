@@ -1,4 +1,4 @@
-namespace Jumbee.Console.DocumentViewers.Mermaid;
+namespace Jumbee.Console.Documents.Mermaid;
 
 /// <summary>
 /// Minimal replacement for Mermaider's internal <c>MultilineUtils</c>, used by the vendored <see cref="ClassParser"/>.

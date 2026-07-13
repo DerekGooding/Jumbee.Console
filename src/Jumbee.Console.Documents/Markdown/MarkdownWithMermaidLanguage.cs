@@ -1,11 +1,11 @@
-namespace Jumbee.Console.DocumentViewers;
+namespace Jumbee.Console.Documents;
 
 using System.Collections.Generic;
 
 using ColorCode;
 using ColorCode.Common;
 
-using Jumbee.Console.DocumentViewers.Mermaid;
+using Jumbee.Console.Documents.Mermaid;
 
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> that highlights Markdown <em>and</em> the contents of embedded
