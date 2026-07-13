@@ -694,6 +694,13 @@ public static class UI
     /// Controls subscribe in their constructor and unsubscribe on <see cref="IDisposable.Dispose"/>.</summary>
     public static event EventHandler? ThemeChanged;
 
+    /// <summary>Raised whenever any control's focus changes, so a framed <see cref="CompositeControl"/> can update its
+    /// border cue when focus moves into or out of a descendant (its own <see cref="ControlFrame.IsFocused"/> doesn't
+    /// change in that case). Frames subscribe/unsubscribe via <see cref="Control.Frame"/>, mirroring
+    /// <see cref="ThemeChanged"/>. Fired on the UI thread from <see cref="Control.IsFocused"/>.</summary>
+    internal static event Action? FocusChanged;
+    internal static void RaiseFocusChanged() => FocusChanged?.Invoke();
+
     private static EventHandler<PaintEventArgs>? _Paint;
     public static event EventHandler<PaintEventArgs> Paint
     {

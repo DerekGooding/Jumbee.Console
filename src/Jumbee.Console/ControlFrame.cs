@@ -418,10 +418,25 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                 OnLostFocus?.Invoke();
             }
             _control.IsFocused = field;
-            // Repaint the border so the focused style/colour appears (or clears). Geometry is unaffected — the
-            // border offset comes from BorderPlacement, not the shape — so this redraws in place without reflow.
-            if (field != old) _Redraw();
+            // Repaint the border so the focused style/colour appears (or clears) — via the focus-cue path so direct
+            // focus and contained (nested-descendant) focus share one repaint rule. Geometry is unaffected (the
+            // border offset comes from BorderPlacement, not the shape), so this redraws in place without reflow.
+            OnFocusChanged();
         }
+    }
+
+    // The frame draws its focus cue when it is directly focused OR when focus is nested inside it — a framed
+    // CompositeControl lights up when any descendant is focused (Control.FocusedControl tracks that top-down). Cached
+    // in _focusCueVisible so the border repaints only when the cue actually flips.
+    private bool ContainsFocus => IsFocused || _control.FocusedControl is not null;
+
+    // Handles a focus change (the frame's own IsFocused, or the global UI.FocusChanged for a nested descendant):
+    // repaint the border only when this frame's focus cue flips.
+    internal void OnFocusChanged()
+    {
+        if (ContainsFocus == _focusCueVisible) return;
+        _focusCueVisible = ContainsFocus;
+        _Redraw();
     }
 
     public IFocusable FocusableControl => this;
@@ -672,14 +687,15 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     private Cell GetBorderCell(BoxBorderPart part)
     {
-        // While focused, draw the focused shape (when the theme supplies one) and prefer the focused border colour.
-        var box = IsFocused && _focusedBoxBorder is { } focusedBox ? focusedBox : _boxBorder;
+        // While the frame shows its focus cue (directly focused OR containing a focused descendant), draw the focused
+        // shape (when the theme supplies one) and prefer the focused border colour.
+        var box = _focusCueVisible && _focusedBoxBorder is { } focusedBox ? focusedBox : _boxBorder;
         var str = box.GetPart(part);
         var ch = string.IsNullOrEmpty(str) ? ' ' : str[0];
 
         var character = new Character(ch);
 
-        var fg = (IsFocused ? _focusedBorderFgColor : null) ?? _borderFgColor ?? _foreground;
+        var fg = (_focusCueVisible ? _focusedBorderFgColor : null) ?? _borderFgColor ?? _foreground;
         if (fg.HasValue) character = character.WithForeground(fg.Value);
 
         var bg = _borderBgColor ?? _background;
@@ -966,6 +982,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     // the resting shape) and the focused border colour, applied on the render path while focused (see GetBorderCell).
     private BorderStyle? _focusedBorderStyle;
     private SpectreBoxBorder? _focusedBoxBorder;
+    // Whether the border currently shows its focus cue (see ContainsFocus). Cached so OnFocusChanged repaints only on
+    // an actual flip, and so GetBorderCell reads a value consistent with the last repaint.
+    private bool _focusCueVisible;
     private Color? _focusedBorderFgColor;
     private DrawingContext _controlContext = DrawingContext.Dummy;
     private string? _title;

@@ -90,6 +90,26 @@ public class FocusIndicatorTests
                 Assert.NotEqual(Tint, buf[x, y].Background);   // the border is the cue, not the tint
     });
 
+    [Fact]
+    public void FramedComposite_ShowsFocusBorder_WhenNestedDescendantIsFocused() => WithTheme(new FocusBorderTheme(), () =>
+    {
+        // A framed composite-of-composites (MultiTabCodeEditor → tabbed CodeEditors): focusing the deeply-nested inner
+        // editor does NOT change the outer composite's own IsFocused (SetOwnership stops at the nested composite, and
+        // the Owner chain doesn't reach it), so the outer frame must light via the "contains focus" path
+        // (UI.FocusChanged) rather than the direct one.
+        var editor = new MultiTabCodeEditor(Language.CSharp);
+        editor.WithFrame(borderStyle: BorderStyle.None);   // borderless at rest; the theme adds a border only on focus
+        var doc = editor.OpenDocument("a.cs", "class A { }");
+
+        var unfocused = ConsoleSnapshot.Render(editor, 40, 10);
+        Assert.True(unfocused[0, 0].Content is null or ' ', "no border corner while nothing inside is focused");
+
+        UI.SetFocus(doc.Editor);   // focus the deeply-nested inner TextEditor
+        var focused = ConsoleSnapshot.Render(editor, 40, 10);
+        Assert.True(focused[0, 0].Content is { } c && c != ' ',
+            "the outer frame should show its focus border when a nested descendant is focused");
+    });
+
     private static void WithTheme(IStyleTheme theme, System.Action body)
     {
         var prev = UI.StyleTheme;

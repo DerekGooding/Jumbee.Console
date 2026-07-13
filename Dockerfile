@@ -33,6 +33,13 @@ WORKDIR /src
 COPY . .
 RUN dotnet build examples/Jumbee.Console.Examples/Jumbee.Console.Examples.csproj -c Release
 
+# Also build the VS Code–style IDE demo (a separate standalone app). It is NOT the default entrypoint; it opens a
+# bundled sample C# project you can edit and `dotnet build`/`dotnet run` right in its terminal pane (the SDK above
+# makes that work in-container). Run it by overriding the entrypoint:
+#     docker run --rm -it --entrypoint dotnet jumbee-console \
+#         /src/examples/Jumbee.Console.IdeDemo/bin/Release/net10.0/Jumbee.Console.IdeDemo.dll
+RUN dotnet build examples/Jumbee.Console.IdeDemo/Jumbee.Console.IdeDemo.csproj -c Release
+
 # The examples are an INTERACTIVE full-screen TUI (mouse, alternate screen, raw key
 # input), so the container MUST be given a TTY:
 #     docker build -t jumbee-console .

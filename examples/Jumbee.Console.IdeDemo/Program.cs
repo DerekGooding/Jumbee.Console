@@ -11,6 +11,14 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        // MSBuild's Terminal Logger (default in .NET 8+) renders `dotnet build` progress with a compact full-screen
+        // layout (clear-screen + absolute cursor positioning + a live progress region). The embedded TerminalEmulator
+        // now parses those sequences correctly (VtNetCore OSC 7-bit-ST fix), but in a short build pane plain,
+        // linearly-scrolling output reads better — so force the classic console logger for every dotnet command in the
+        // terminal (the child shell and its dotnet children inherit this process's environment). Remove this line to
+        // see the Terminal Logger layout instead.
+        Environment.SetEnvironmentVariable("MSBUILDTERMINALLOGGER", "off");
+
         if (args.Contains("--verify"))
             return Verify(ResolveProjectDir([.. args.Where(a => a != "--verify")]));
         if (args.Contains("--dump"))   // dev aid: print the offscreen-rendered layout and exit

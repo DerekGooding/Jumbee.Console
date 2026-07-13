@@ -23,13 +23,17 @@ internal sealed class IdeApp
         _editor.DocumentClosed += ed =>
         {
             if (_pathByEditor.Remove(ed, out var path)) _openByPath.Remove(path);
+            UpdateStatus();
         };
+        // Keep the status bar's caret readout hooked to whichever editor is active.
+        _editor.ActiveDocumentChanged += _ => { RehookActiveEditor(); UpdateStatus(); };
 
         // A real shell rooted in the project directory (the workingDirectory support added for this demo), so the
         // user can type `dotnet build`, `dotnet run`, etc. and have them resolve against the open project.
         _terminal = new TerminalEmulator(headless ? null : Pty.DefaultShell, workingDirectory: projectDir);
 
         _menu = BuildMenu();
+        _status = new TextLabel(TextLabelOrientation.Horizontal, " Ready", StatusColor);
         _footer = new Footer(
             new FooterHint("^E", "Explorer"),
             new FooterHint("^L", "Editor"),
@@ -39,6 +43,7 @@ internal sealed class IdeApp
             new FooterHint("^Q", "Quit"));
 
         _root = BuildLayout();
+        UpdateStatus();
     }
     #endregion
 
@@ -68,12 +73,14 @@ internal sealed class IdeApp
         var editors = _editor.WithFrame(BorderStyle.Rounded, title: "Editor");
         var terminal = _terminal.WithFrame(BorderStyle.Rounded, title: "Terminal");
 
-        // Editor over terminal on the right; explorer sidebar on the left; menu on top, footer at the bottom.
+        // Editor over terminal on the right; explorer sidebar on the left; menu on top; status line + key hints
+        // stacked at the bottom.
         var editorAndTerminal = new SplitPanel(SplitOrientation.Vertical, editors, terminal, splitPosition: 26);
         var main = new SplitPanel(SplitOrientation.Horizontal, explorer, editorAndTerminal, splitPosition: 34);
 
         return new DockPanel(DockedControlPlacement.Bottom, _footer,
-                   new DockPanel(DockedControlPlacement.Top, _menu, main));
+                   new DockPanel(DockedControlPlacement.Bottom, _status,
+                       new DockPanel(DockedControlPlacement.Top, _menu, main)));
     }
 
     private MenuBar BuildMenu() => new MenuBar()
@@ -170,8 +177,47 @@ internal sealed class IdeApp
         {
             File.WriteAllText(path, editor.Text);
             _editor.SetDirty(editor, false);
+            UpdateStatus();
         }
-        catch { /* Phase 5: surface errors in the status footer */ }
+        catch { /* a real IDE would surface this; the demo leaves the file dirty */ }
+    }
+
+    // ── Status bar ──────────────────────────────────────────────────────────────────────────────────────────────
+
+    // Re-point the caret readout at the active editor: unhook the previous editor's Changed and hook the new one
+    // (TextEditor.Changed fires on caret moves too, so the Ln/Col updates as you navigate).
+    private void RehookActiveEditor()
+    {
+        if (_hookedEditor is not null) _hookedEditor.Editor.Changed -= OnActiveEditorChanged;
+        _hookedEditor = _editor.ActiveEditor;
+        if (_hookedEditor is not null) _hookedEditor.Editor.Changed += OnActiveEditorChanged;
+    }
+
+    private void OnActiveEditorChanged(object? sender, EventArgs e) => UpdateStatus();
+
+    private void UpdateStatus() => _status.Text = StatusText();
+
+    private string StatusText()
+    {
+        if (_editor.ActiveEditor is not { } editor)
+            return $"  {Path.GetFileName(_projectDir)}   —   no file open";
+        var name = _pathByEditor.TryGetValue(editor, out var path)
+            ? Path.GetFileName(path)
+            : _editor.ActiveDocumentName ?? "untitled";
+        var dirty = _editor.IsDirty(editor) ? " ●" : "";
+        var (line, column) = CaretLineCol(editor);
+        // Ln/Col fixed-width so a caret move within one file doesn't change the label length (avoids a relayout).
+        return $"  {name}{dirty}    Ln {line,-4}Col {column,-4}{_projectDir}";
+    }
+
+    // 1-based (line, column) of the caret: line from CaretLine (0-based), column by scanning back to the newline.
+    private static (int line, int column) CaretLineCol(CodeEditor editor)
+    {
+        var text = editor.Text;
+        var index = Math.Clamp(editor.Editor.CaretIndex, 0, text.Length);
+        var column = 1;
+        for (var i = index - 1; i >= 0 && text[i] != '\n'; i--) column++;
+        return (editor.Editor.CaretLine + 1, column);
     }
 
     private static Language LanguageFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch
@@ -207,14 +253,17 @@ internal sealed class IdeApp
     private static readonly Color FolderColor = new(0x8f, 0xd0, 0xff);   // soft blue
     private static readonly Color SourceColor = new(0x8f, 0xd0, 0x66);   // C# green
     private static readonly Color ProjectColor = new(0xe0, 0xa0, 0x50);  // project orange
+    private static readonly Color StatusColor = new(0x9a, 0xa6, 0xc0);   // muted status text
 
     private readonly string _projectDir;
     private readonly Tree _tree;
     private readonly MultiTabCodeEditor _editor;
     private readonly TerminalEmulator _terminal;
     private readonly MenuBar _menu;
+    private readonly TextLabel _status;
     private readonly Footer _footer;
     private readonly ILayout _root;
+    private CodeEditor? _hookedEditor;
 
     private readonly Dictionary<Tree.TreeNode, string> _filePaths = new();                       // leaf node -> path
     private readonly Dictionary<string, CodeEditor> _openByPath = new(StringComparer.OrdinalIgnoreCase);

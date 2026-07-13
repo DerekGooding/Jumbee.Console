@@ -123,11 +123,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         set
         {
             if (ReferenceEquals(field, value)) return;
-            // The frame participates in runtime theme switches via its own UI.ThemeChanged subscription; manage
-            // it here so the lifecycle follows attachment (and a replaced frame is detached).
-            if (field is not null) UI.ThemeChanged -= field.OnThemeChanged;
+            // The frame participates in runtime theme switches (UI.ThemeChanged) and reflects focus moving into/out of
+            // its subtree (UI.FocusChanged, for framed composites — see ControlFrame.OnFocusChanged). Manage both
+            // subscriptions here so their lifecycle follows attachment (and a replaced frame is detached).
+            if (field is not null) { UI.ThemeChanged -= field.OnThemeChanged; UI.FocusChanged -= field.OnFocusChanged; }
             field = value;
-            if (value is not null) UI.ThemeChanged += value.OnThemeChanged;
+            if (value is not null) { UI.ThemeChanged += value.OnThemeChanged; UI.FocusChanged += value.OnFocusChanged; }
         }
     }
 
@@ -156,6 +157,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
                     OnFocus?.Invoke();
                 else
                     OnLostFocus?.Invoke();
+                // Notify framed composites so an ancestor frame can light/clear its border when focus moves into or
+                // out of its subtree — its own IsFocused doesn't change, and the Owner chain doesn't reach it for a
+                // dynamically-added descendant, so a global signal is the reliable trigger.
+                UI.RaiseFocusChanged();
                 // Repaint so RenderCursor runs for both the old and new focus: only the focused control owns the
                 // terminal cursor, so the defocused one must clear its IsCursor cell.
                 InvalidateInteractive();
