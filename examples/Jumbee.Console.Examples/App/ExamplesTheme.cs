@@ -9,4 +9,6 @@ namespace Jumbee.Console.Examples;
 public sealed class ExamplesTheme : IStyleTheme
 {
     public BorderStyle? FocusedFrameBorder => BorderStyle.Rounded;
+
+    public TitleStyle TitleStyle { get; } = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Inline); 
 }

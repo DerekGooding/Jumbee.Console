@@ -1,0 +1,9 @@
+@echo off
+echo Building Jumbee.Console...
+dotnet restore src\Jumbee.Console.sln
+echo Building Jumbee.Console examples project...
+dotnet build examples\Jumbee.Console.Examples\Jumbee.Console.Examples.csproj /p:Configuration=Release
+echo Jumbee.Console build complete.
+echo Building Docker image...
+docker build $* -t jumbee-console .
+
