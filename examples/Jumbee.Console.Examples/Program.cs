@@ -9,15 +9,16 @@ internal static class Program
     static void Main(string[] args)
     {
         if (args.Contains("--verify")) { Environment.Exit(Verify.Run()); return; }
+        ConsoleGUI.ConsoleManager.EmulateBlinkingCursor = true;
 
         // Show keyboard focus as a border on the focused pane (not the default full-background tint). Set before
         // building controls so they capture it.
         UI.StyleTheme = new ExamplesTheme();
 
         // --- the three panes + footer (plain controls; the shell is wired up right here) ---
-        var tree = new Tree(".NET · Jumbee.Console");
-        var host = new ExampleHost();                 // swappable middle pane
-        var source = new MultiTabCodeEditor();        // read-only source viewer
+        var tree = new Tree("Jumbee.Console").WithFrame(title: "Examples");
+        var host = new ExampleHost().WithFrame(title: "Example");                 // swappable middle pane
+        var source = new MultiTabCodeEditor().WithFrame(title: "Source");        // read-only source viewer
         source.Tabs.ClosableTabs = false;
         source.Tabs.ShowAddButton = false;
         var status = new StatusBar();
@@ -39,11 +40,8 @@ internal static class Program
 
         // Layout: tree | (example | source), over the status bar. Nested SplitPanels are resizable (drag/arrow the
         // divider); Ctrl+arrows move focus between the panes.
-        var treeFramed = tree.WithFrame(title: "Examples");
-        var hostFramed = host.WithFrame(title: "Example");
-        var sourceFramed = source.WithFrame(title: "Source");
-        var editorSplit = new SplitPanel(SplitOrientation.Horizontal, hostFramed, sourceFramed, splitPosition: 62);
-        var treeSplit = new SplitPanel(SplitOrientation.Horizontal, treeFramed, editorSplit, splitPosition: 28);
+        var editorSplit = new SplitPanel(SplitOrientation.Horizontal, host, source, splitPosition: 102);
+        var treeSplit = new SplitPanel(SplitOrientation.Horizontal, tree, editorSplit, splitPosition: 40);
         var root = new DockPanel(DockedControlPlacement.Bottom, status, treeSplit);
 
         // Select an example: swap the middle demo, retitle the pane, refresh the footer, reload the source tabs.

@@ -12,8 +12,7 @@ public sealed class MultiTabEditorExample : CompositeControl, IActivatableExampl
     public MultiTabEditorExample()
     {
         editor = new MultiTabCodeEditor(Language.CSharp);
-        terminal = new TerminalEmulator(Pty.DefaultShell);   // a real shell, started/stopped by the IActivatable hooks
-
+        terminal = new TerminalEmulator(Pty.DefaultShell);   // a real shell, started/stopped by the IActivatable hooks        
         editor.OpenDocument("Program.cs",
             "static class Program\n{\n    static void Main()\n    {\n        System.Console.WriteLine(\"Hello, Jumbee!\");\n    }\n}\n");
         editor.OpenDocument("notes.md",
