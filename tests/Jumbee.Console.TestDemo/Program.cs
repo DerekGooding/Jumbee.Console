@@ -20,7 +20,7 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        MultiTabCodeEditorDemo(args);
+        //MultiTabCodeEditorDemo(args);
         //TerminalDemo(args);
         //NavigationDemo(args);
         //TabsDemo(args);
@@ -40,7 +40,7 @@ public class Program
         //InputsDemo(args);
         //DialogDemo(args);
         //ChatPromptDemo(args);
-        //PostingDemo(args);
+        PostingDemo(args);
         //DynamicTabsDemo(args);
         //MultiTabCodeEditorDemo(args);
         //ConsoleStudioDemo(args);

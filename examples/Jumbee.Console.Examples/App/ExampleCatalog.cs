@@ -37,6 +37,7 @@ public static class ExampleCatalog
         new InteractiveGlobeExample(),
         new BouncingBallsExample(),
         new DialogExample(),
+        new LayoutGalleryExample(),
         new SplitPanelExample(),
         new SpectreTableExample(),
         new MultiTabEditorExample(),
