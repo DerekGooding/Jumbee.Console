@@ -11,6 +11,7 @@ public static class ExampleCatalog
     public static IReadOnlyList<IExample> All { get; } =
     [
         new WelcomeExample(),
+        new BorderShowcaseExample(),
         new ButtonExample(),
         new ListBoxExample(),
         new PlotExample(),

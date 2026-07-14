@@ -22,11 +22,18 @@ internal static class Program
         source.Tabs.ShowAddButton = false;
         var status = new StatusBar();
 
-        // Group the catalogue under category nodes; remember which node maps to which example.
+        // Group the catalogue under category nodes; remember which node maps to which example. Categories in
+        // CategoryGlyphs get a custom folder glyph + colour so a themed section (e.g. Appearance) stands out.
         var map = new Dictionary<Tree.TreeNode, IExample>();
         foreach (var group in ExampleCatalog.All.GroupBy(e => e.Category))
         {
             var category = tree.AddNode(group.Key);
+            if (CategoryGlyphs.TryGetValue(group.Key, out var glyph))
+            {
+                category.CollapsedGlyph = glyph.collapsed;
+                category.ExpandedGlyph = glyph.expanded;
+                category.DisclosureGlyphColor = glyph.color;
+            }
             foreach (var example in group) map[category.AddChild(example.Title)] = example;
         }
 
@@ -82,4 +89,11 @@ internal static class Program
         run.Wait();
         host.DeactivateActive();   // belt-and-braces for a stop triggered elsewhere (e.g. a termination signal)
     }
+
+    // Category name -> custom folder glyphs (collapsed / expanded) + disclosure colour, so a themed section stands
+    // out in the tree. Glyphs are 2 cells wide to match the tree's default disclosure width and keep labels aligned.
+    private static readonly Dictionary<string, (string collapsed, string expanded, Color color)> CategoryGlyphs = new()
+    {
+        ["Appearance"] = ("◇ ", "◈ ", new Color(0xc8, 0x92, 0xf0)),   // hollow / filled diamond in soft orchid
+    };
 }

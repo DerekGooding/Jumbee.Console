@@ -12,8 +12,13 @@ using Spectre.Console.Rendering;
 using SpectreBoxBorder = Spectre.Console.BoxBorder;
 using SpectreBoxBorderPart = Spectre.Console.Rendering.BoxBorderPart;
 
-// BorderStyle, TitlePos, TitleBorderStyle, TitleColorStyle and TitleStyle live in the Jumbee.Console.Styles
-// project (BorderStyle.cs / TitleStyle.cs); a frame composes its defaults from the active themes (see ctor).
+// The public BorderPlacement type is the Jumbee.Console.Styles enum; internally we keep ConsoleGUI's identically-valued
+// enum (CBorderPlacement) because the border geometry uses its HasBorder/AsOffset extensions. The public property casts
+// between them at the boundary (same underlying values), just like Color <-> CColor.
+using CBorderPlacement = ConsoleGUI.Data.BorderPlacement;
+
+// BorderStyle, TitlePos, TitleBorderStyle, TitleColorStyle, TitleStyle and BorderPlacement live in the
+// Jumbee.Console.Styles project; a frame composes its defaults from the active themes (see ctor).
 
 /// <summary>
 /// Draws a border around a control together with margins and a title bar, and sets the foreground and background colors.
@@ -106,8 +111,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
             // The title is drawn in either the top or bottom border, depending on its position.
             var titleEdge = TitleAtTop ? top : bottom;
-            var titleEdgeBorder = TitleAtTop ? BorderPlacement.Top : BorderPlacement.Bottom;
-            var hasTitle = !string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(titleEdgeBorder);
+            var titleEdgeBorder = TitleAtTop ? CBorderPlacement.Top : CBorderPlacement.Bottom;
+            var hasTitle = !string.IsNullOrEmpty(Title) && _borderPlacement.HasBorder(titleEdgeBorder);
 
             // Inline title: drawn within the single (top or bottom) border row, replacing some border line characters.
             if (hasTitle && _titleStyle.BorderStyle == TitleBorderStyle.Inline && position.Y == titleEdge)
@@ -116,28 +121,28 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                     return inlineTitleCell;
             }
 
-            if (position.X == left && position.Y == top && BorderPlacement.HasBorder(BorderPlacement.Top | BorderPlacement.Left))
+            if (position.X == left && position.Y == top && _borderPlacement.HasBorder(CBorderPlacement.Top | CBorderPlacement.Left))
                 return GetBorderCell(BoxBorderPart.TopLeft);
 
-            if (position.X == right && position.Y == top && BorderPlacement.HasBorder(BorderPlacement.Top | BorderPlacement.Right))
+            if (position.X == right && position.Y == top && _borderPlacement.HasBorder(CBorderPlacement.Top | CBorderPlacement.Right))
                 return GetBorderCell(BoxBorderPart.TopRight);
 
-            if (position.X == left && position.Y == bottom && BorderPlacement.HasBorder(BorderPlacement.Bottom | BorderPlacement.Left))
+            if (position.X == left && position.Y == bottom && _borderPlacement.HasBorder(CBorderPlacement.Bottom | CBorderPlacement.Left))
                 return GetBorderCell(BoxBorderPart.BottomLeft);
 
-            if (position.X == right && position.Y == bottom && BorderPlacement.HasBorder(BorderPlacement.Bottom | BorderPlacement.Right))
+            if (position.X == right && position.Y == bottom && _borderPlacement.HasBorder(CBorderPlacement.Bottom | CBorderPlacement.Right))
                 return GetBorderCell(BoxBorderPart.BottomRight);
 
-            if (position.X == left && position.Y >= top && position.Y <= bottom && BorderPlacement.HasBorder(BorderPlacement.Left))
+            if (position.X == left && position.Y >= top && position.Y <= bottom && _borderPlacement.HasBorder(CBorderPlacement.Left))
                 return GetBorderCell(BoxBorderPart.Left);
 
-            if (position.X == right && position.Y >= top && position.Y <= bottom && BorderPlacement.HasBorder(BorderPlacement.Right))
+            if (position.X == right && position.Y >= top && position.Y <= bottom && _borderPlacement.HasBorder(CBorderPlacement.Right))
                 return GetBorderCell(BoxBorderPart.Right);
 
-            if (position.Y == top && position.X >= left && position.X <= right && BorderPlacement.HasBorder(BorderPlacement.Top))
+            if (position.Y == top && position.X >= left && position.X <= right && _borderPlacement.HasBorder(CBorderPlacement.Top))
                 return GetBorderCell(BoxBorderPart.Top);
 
-            if (position.Y == bottom && position.X >= left && position.X <= right && BorderPlacement.HasBorder(BorderPlacement.Bottom))
+            if (position.Y == bottom && position.X >= left && position.X <= right && _borderPlacement.HasBorder(CBorderPlacement.Bottom))
                 return GetBorderCell(BoxBorderPart.Bottom);
 
             if (hasTitle && _titleStyle.BorderStyle == TitleBorderStyle.Double)
@@ -224,13 +229,14 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     public BorderPlacement BorderPlacement
     {
-        get => _borderPlacement;
+        get => (BorderPlacement)_borderPlacement;
         set
         {
-            UI.Invoke(() => 
+            UI.Invoke(() =>
             {
-                if (_borderPlacement == value) return;
-                _borderPlacement = value;              
+                var placement = (CBorderPlacement)value;
+                if (_borderPlacement == placement) return;
+                _borderPlacement = placement;
                 Initialize();
             });
         }
@@ -471,7 +477,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// the themed default focus tint and defers to this border; a fully borderless frame shows no cue, so the tint
     /// applies instead.</summary>
     internal bool ShowsFocusCue =>
-        (_focusedBorderStyle ?? _borderStyle) != BorderStyle.None && _borderPlacement != BorderPlacement.None;
+        (_focusedBorderStyle ?? _borderStyle) != BorderStyle.None && _borderPlacement != CBorderPlacement.None;
     #endregion
 
     #region Methods    
@@ -638,12 +644,12 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     private Offset GetBorderOffset()
     {
-        var borderOffset = BorderPlacement.AsOffset();
+        var borderOffset = _borderPlacement.AsOffset();
 
         // The Double title style reserves two extra rows (title row + separator row) inside the title's
         // border. The Inline style draws the title within the existing single border row, so needs no extra space.
-        var titleEdgeBorder = TitleAtTop ? BorderPlacement.Top : BorderPlacement.Bottom;
-        if (!string.IsNullOrEmpty(Title) && BorderPlacement.HasBorder(titleEdgeBorder)
+        var titleEdgeBorder = TitleAtTop ? CBorderPlacement.Top : CBorderPlacement.Bottom;
+        if (!string.IsNullOrEmpty(Title) && _borderPlacement.HasBorder(titleEdgeBorder)
             && _titleStyle.BorderStyle == TitleBorderStyle.Double)
         {
             borderOffset = TitleAtTop
@@ -834,8 +840,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         var display = _titleStyle.BorderStyle == TitleBorderStyle.Inline ? $" {Title} " : Title;
 
         // The title is laid out within the columns between the vertical borders (when present).
-        var innerLeft = BorderPlacement.HasBorder(BorderPlacement.Left) ? left + 1 : left;
-        var innerRight = BorderPlacement.HasBorder(BorderPlacement.Right) ? right - 1 : right;
+        var innerLeft = _borderPlacement.HasBorder(CBorderPlacement.Left) ? left + 1 : left;
+        var innerRight = _borderPlacement.HasBorder(CBorderPlacement.Right) ? right - 1 : right;
         var innerWidth = innerRight - innerLeft + 1;
         if (innerWidth <= 0) return null;
 
@@ -971,7 +977,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private SpectreBoxBorder _boxBorder;
     private BorderStyle _borderStyle;
     private Control _control;
-    private BorderPlacement _borderPlacement = BorderPlacement.All;
+    private CBorderPlacement _borderPlacement = CBorderPlacement.All;
     private Offset borderOffset;
     private Offset _margin;
     private Color? _foreground;

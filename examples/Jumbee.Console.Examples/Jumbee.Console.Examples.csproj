@@ -12,7 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Jumbee.Console.Documents\Jumbee.Console.Documents.csproj" />
     <ProjectReference Include="..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
-  </ItemGroup>
+</ItemGroup>
 
   <!-- Embed each example's own source so the browser's right pane can show exactly what compiled. The files stay
        Compile items too (a file may be both), and embedded resources work under PublishAot. -->

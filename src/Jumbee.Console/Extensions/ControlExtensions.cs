@@ -76,7 +76,7 @@ public static class ControlExtensions
         control.Frame = frame;
         return control;
     }
-    public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control
+    public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null) where T : Control
     {
         // Assign only the arguments actually supplied: self-assigning (x ?? frame.x) would fire the themeable
         // setters and wrongly mark those properties as explicit overrides, freezing them against theme switches.
@@ -88,6 +88,7 @@ public static class ControlExtensions
         if (title is not null) frame.Title = title;
         if (borderFgColor.HasValue) frame.BorderFgColor = borderFgColor.Value;
         if (borderBgColor.HasValue) frame.BorderBgColor = borderBgColor.Value;
+        if (borderPlacement.HasValue) frame.BorderPlacement = borderPlacement.Value;
         return control;
     }
 
@@ -107,12 +108,13 @@ public static class ControlExtensions
 
     public static T WithMargin<T>(this T control, int offset) where T : Control => control.WithMargin(offset, offset, offset, offset);
 
-    public static T WithBorder<T>(this T control, BorderStyle? style, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control
+    public static T WithBorder<T>(this T control, BorderStyle? style, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
         if (style.HasValue) frame.BorderStyle = style.Value;
         if (borderFgColor.HasValue) frame.BorderFgColor = borderFgColor.Value;
         if (borderBgColor.HasValue) frame.BorderBgColor = borderBgColor.Value;
+        if (borderPlacement.HasValue) frame.BorderPlacement = borderPlacement.Value;
         return control;
     }
 
@@ -128,6 +130,14 @@ public static class ControlExtensions
         var frame = control.Frame ??= new ControlFrame(control);
         frame.Title = title;
         frame.TitleStyle = titleStyle;
+        return control;
+    }
+
+    public static T WithTitle<T>(this T control, string title, TitlePos pos, TitleBorderStyle borderStyle, TitleColorStyle color) where T : Control
+    {
+        var frame = control.Frame ??= new ControlFrame(control);
+        frame.Title = title;
+        frame.TitleStyle = new TitleStyle(pos, borderStyle, color);
         return control;
     }
 
