@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// The everyday form controls in one pane — text fields, a type-ahead field, a drop-down, radio and check lists,
-/// and a list box — each wired to report its value. Tab moves between them; the status line shows the last change.
+/// The everyday form controls in one pane — text fields, a type-ahead field, a drop-down, radio and check lists, and
+/// both list-box highlight modes — each wired to report its value. Click or Tab between them; the status line shows
+/// the last change.
 /// </summary>
 public sealed class FormControlsExample : CompositeControl, IExample
 {
@@ -22,6 +23,7 @@ public sealed class FormControlsExample : CompositeControl, IExample
         density.SelectionChanged += (_, _) => Report($"density: {density.SelectedValue}");
         features.SelectionChanged += (_, _) => Report($"features: {Join(features.SelectedValues)}");
         files.SelectionChanged += (_, index) => Report($"file: {Files[index]}");
+        notifications.SelectionChanged += (_, index) => Report($"notification: {Cards[index].Title}");
 
         SetContent(new VerticalStackPanel(
             Header("Text entry — TextInput: a placeholder hint, and PasswordChar to mask"),
@@ -42,15 +44,29 @@ public sealed class FormControlsExample : CompositeControl, IExample
                 [Framed(density, "Density", Orange), Framed(features, "Features", Orange)],
             ]),
 
-            Header("Lists — ListBox: click it to focus, then move the selection with the arrows"),
-            Framed(files, "Recent files", Green).FocusableControl,
+            Header("Lists — ListBox highlighting: item-width (left) vs full-width cards (right)"),
+            new Grid([10], [30, 30],
+            [
+                [Framed(files, "Text · item-width", Green), Framed(notifications, "Markup cards · full-width", Green)],
+            ]),
 
             status));
     }
 
+    // A form is several fields the user moves between, so Tab belongs to the form rather than to the focused field
+    // (the default, which suits a composite built around one editor). Clicking a field focuses it either way.
+    protected override bool TabNavigatesChildren => true;
+
     private void Report(string what) => status.Text = "▸ " + what;
 
     private static string Join(IReadOnlyList<string> values) => values.Count == 0 ? "none" : string.Join(", ", values);
+
+    // A list row can be any Spectre renderable, not just text — here an icon and a bold title over a grey detail
+    // line. Two rows per card, so the full-width highlight has something to span.
+    private static Spectre.Console.Rendering.IRenderable Card((string Icon, string Title, string Detail) card) =>
+        new Spectre.Console.Markup(
+            $"{card.Icon}  [bold]{Spectre.Console.Markup.Escape(card.Title)}[/]\n" +
+            $"    [grey]{Spectre.Console.Markup.Escape(card.Detail)}[/]");
 
     // Every field is framed so its extent reads on screen — a TextInput fills whatever width it is given, and the
     // frame is what bounds it.
@@ -64,9 +80,9 @@ public sealed class FormControlsExample : CompositeControl, IExample
     string IExample.Category => "Controls";
     string IExample.Title => "Form Controls";
     string IExample.Description =>
-        "The everyday desktop controls — text fields, type-ahead, a drop-down, radio and check lists, and a list box — each reporting its value.";
+        "The everyday desktop controls — text fields, type-ahead, a drop-down, radio and check lists, and both list highlight modes — each reporting its value.";
     IReadOnlyList<string> IExample.SourceFiles =>
-        ["FormControlsExample.cs", "TextInput.cs", "Autocomplete.cs", "Select.cs", "RadioSet.cs"];
+        ["FormControlsExample.cs", "TextInput.cs", "Autocomplete.cs", "Select.cs", "ListBox.cs"];
     #endregion
 
     #region Fields
@@ -88,10 +104,22 @@ public sealed class FormControlsExample : CompositeControl, IExample
 
     private readonly ListBox files = new ListBox(Files);
 
+    // HighlightFullWidth makes the selected card a bar across every row it occupies; the default (left) highlights
+    // only the item's own text.
+    private readonly ListBox notifications = new ListBox(Cards.Select(Card).ToArray()) { HighlightFullWidth = true };
+
     private readonly TextLabel status = new TextLabel(TextLabelOrientation.Horizontal, "▸ change something…", StatusColor);
 
     private static readonly string[] Files =
         ["Program.cs", "Control.cs", "ControlFrame.cs", "Layout.cs", "UI.cs", "Dispatcher.cs", "Theme.cs"];
+
+    private static readonly (string Icon, string Title, string Detail)[] Cards =
+    [
+        ("✉", "New message",  "from Ada · 2m ago"),
+        ("⚠", "Build failed", "3 tests · main"),
+        ("★", "Starred",      "Plot.cs"),
+        ("✔", "Deployed",     "v1.4.2 · prod"),
+    ];
 
     private static readonly string[] Languages =
         ["C#", "F#", "Ada", "Assembly", "Basic", "Haskell", "JavaScript", "Java", "Python", "Rust", "Scala", "TypeScript"];

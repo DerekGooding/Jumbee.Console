@@ -244,10 +244,19 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
             }
             else if (f is CompositeControl composite && composite.ContentLayout is { } content)
             {
-                // Route through the composite's internal layout so its nested tunnels (e.g. a TabPanel's Alt+arrow
-                // tab switching) run before the key reaches the focused child — a direct FocusedControl dispatch
-                // would skip them.
-                if (composite.FocusedControl is not null) content.OnInput(inputEventArgs);
+                // Let the composite's own tunnel consume the key first (e.g. a form tabbing between its fields),
+                // then route through its internal layout so nested tunnels (e.g. a TabPanel's Alt+arrow tab
+                // switching) run before the key reaches the focused child — a direct FocusedControl dispatch would
+                // skip them.
+                if (composite.FocusedControl is not null)
+                {
+                    if (composite.RouteInterceptInput(inputEventArgs))
+                    {
+                        if (inputEventArgs.InputEvent is { } consumed) consumed.Handled = true;
+                        return;
+                    }
+                    content.OnInput(inputEventArgs);
+                }
             }
             else
             {

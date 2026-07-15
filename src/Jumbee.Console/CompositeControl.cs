@@ -1,5 +1,9 @@
 namespace Jumbee.Console;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
@@ -65,8 +69,17 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     public override bool HandlesInput => true;
 
     /// <summary>The child that receives focus when the composite is focused (and input/caret follow). Defaults to the
-    /// first focusable child; override to choose a different default.</summary>
-    protected virtual Control? FocusChild => _firstFocusable;
+    /// child focus was last requested for (a clicked field, or a <see cref="MoveFocusToChild"/> step), else the first
+    /// focusable child; override to choose a different default.</summary>
+    protected virtual Control? FocusChild => _focusChild ?? _focusables.FirstOrDefault();
+
+    /// <summary>The focusable children, in layout order — the stops <see cref="MoveFocusToChild"/> walks.</summary>
+    protected IReadOnlyList<Control> Focusables => _focusables;
+
+    /// <summary>When <see langword="true"/>, Tab / Shift+Tab move focus between the composite's focusable children
+    /// (cycling within it) instead of reaching the focused child. Off by default: Tab belongs to the focused control
+    /// (a <see cref="TextEditor"/> indents with it). Turn it on for a form — several fields the user tabs between.</summary>
+    protected virtual bool TabNavigatesChildren => false;
     #endregion
 
     #region Indexers
@@ -119,9 +132,50 @@ public abstract class CompositeControl : Control, IDrawingContextListener
         if (FocusedControl is Control child && !ReferenceEquals(child, this)) child.IsFocused = false;
     }
 
-    // Claim focusable descendants as ours so focus resolves to this composite (the navigable unit); the first one
-    // becomes the default FocusChild. Stops at nested composites (they own their own children). Runs at construction
-    // before layout, so it walks structure rather than laid-out leaves (it can't depend on HasLayout).    
+    /// <summary>
+    /// A first look at each key on its way to the focused child, mirroring a layout's <c>InterceptInput</c> tunnel —
+    /// so a composite can define its own navigation keys. Return <see langword="true"/> to consume the key. The base
+    /// handles Tab / Shift+Tab when <see cref="TabNavigatesChildren"/> is set.
+    /// </summary>
+    protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs)
+    {
+        if (!TabNavigatesChildren || inputEventArgs.InputEvent is not { Key: var key } || key.Key != ConsoleKey.Tab)
+            return false;
+        return MoveFocusToChild((key.Modifiers & ConsoleModifiers.Shift) != 0 ? -1 : +1);
+    }
+
+    /// <summary>Moves focus to the next (<c>+1</c>) or previous (<c>-1</c>) focusable child, wrapping. Returns
+    /// <see langword="false"/> when there are fewer than two to move between.</summary>
+    protected bool MoveFocusToChild(int direction)
+    {
+        if (_focusables.Count < 2) return false;
+        var from = _focusables.FindIndex(c => c.IsFocused);
+        var to = ((Math.Max(from, 0) + direction) % _focusables.Count + _focusables.Count) % _focusables.Count;
+        if (from >= 0) _focusables[from].IsFocused = false;
+        _focusables[to].IsFocused = true;
+        _focusChild = _focusables[to];
+        return true;
+    }
+
+    // The routing layer's entry to the tunnel above (Layout.OnInput, and ControlFrame for a framed composite).
+    internal bool RouteInterceptInput(UI.InputEventArgs inputEventArgs) => InterceptInput(inputEventArgs);
+
+    // Remembers the child focus was requested for, so Control_OnFocus delegates to it rather than the first child.
+    // Called by UI.SetFocus (click-to-focus and Control.Focus both resolve a child up to its composite).
+    internal void OnChildFocusRequest(Control child)
+    {
+        _focusChild = child;
+        if (!IsFocused) return;   // not focused yet: Control_OnFocus applies FocusChild when focus arrives
+        // Already focused, so SetFocus's own `IsFocused = true` is a no-op and won't re-run Control_OnFocus —
+        // move focus between the children here instead.
+        if (FocusedControl is Control current && !ReferenceEquals(current, child)) current.IsFocused = false;
+        child.IsFocused = true;
+    }
+
+    // Claim focusable descendants as ours so focus resolves to this composite (the navigable unit); they become the
+    // focus stops, the first being the default FocusChild. Stops at nested composites (they own their own children).
+    // Runs at construction before layout, so it walks structure rather than laid-out leaves (it can't depend on
+    // HasLayout).
     private void SetOwnership(IFocusable? node)
     {
         switch (node)
@@ -131,7 +185,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
             case ControlFrame frame: SetOwnership(frame.Control); return;
             case Control control when control.Focusable:
                 control.Owner ??= this;
-                _firstFocusable ??= control;
+                if (!_focusables.Contains(control)) _focusables.Add(control);
                 return;
         }
     }
@@ -169,7 +223,10 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     #region Fields
     private ILayout? _content;
     private DrawingContext _contentContext = DrawingContext.Dummy;
-    // The first focusable descendant claimed in SetContent — the default FocusChild (e.g. a CodeEditor's editor).
-    private Control? _firstFocusable;
+    // The focusable descendants claimed in SetContent, in layout order — the focus stops. The first is the default
+    // FocusChild (e.g. a CodeEditor's editor).
+    private readonly List<Control> _focusables = [];
+    // The child focus was last requested for (clicked, or tabbed to); overrides the default FocusChild.
+    private Control? _focusChild;
     #endregion
 }

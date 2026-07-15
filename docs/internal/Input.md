@@ -228,6 +228,27 @@ That single override is what lets keyboard input route *through* the composite t
 the child's listener (in child coordinates) reaches `ConsoleManager` directly. The composite wires inter-child
 behaviour itself (e.g. the editor's `Changed`/`MouseWheeled` events) — there is no event bus.
 
+### Which child gets the focus
+
+Focusing a child resolves *up* to the composite (`UI.SetFocus` → `Control.FocusRoot`), which delegates back down to
+one child via `Control_OnFocus` → `FocusChild`. So the composite decides, and it must follow what was asked for:
+`SetFocus` first tells the owning composite (`OnChildFocusRequest`) which child was requested, and that child becomes
+the default `FocusChild`. Without that step a composite always re-focuses the child it happened to claim first —
+clicking any *other* field of a form would do nothing, and a focusable-but-passive sibling (a description label) would
+swallow the keys meant for the content. Override `FocusChild` to pin a specific child regardless (e.g. `Dialog`).
+
+### A composite's key tunnel
+
+A composite gets a first look at keys headed for its focused child via `InterceptInput` — the same tunnel shape a
+layout has (§7), so it can define its own navigation keys. **Both** routing paths run it: `Layout.OnInput`'s composite
+branch, and `ControlFrame.OnInput` (the routing layer hands the key to the *frame* for a framed composite, which would
+otherwise dispatch straight to the focused descendant and skip the tunnel).
+
+The base implementation handles Tab / Shift+Tab when a subclass opts in with `TabNavigatesChildren` — the form case,
+where several fields are tabbed between. It is **opt-in** because Tab otherwise belongs to the focused control
+(§5: a `TextEditor` indents with it), and because `Ctrl+N`/`Ctrl+P` region cycling deliberately does not descend into a
+composite.
+
 ## 7. Layouts and nesting
 
 `Layout.Controls` enumerates the layout's cells (`this[row, column]` over `Rows × Columns`). For a plain container

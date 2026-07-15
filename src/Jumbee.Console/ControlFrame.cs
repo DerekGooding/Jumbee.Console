@@ -497,6 +497,15 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         this.OnInput(inputEvent);
         if (!inputEvent.Handled)
         {
+            // A framed composite still gets its tunnel: the routing layer hands the key to the frame (the focus
+            // node), so dispatching straight to the focused descendant below would skip the composite's own
+            // navigation keys (e.g. a form tabbing between its fields).
+            if (_control is CompositeControl composite && composite.RouteInterceptInput(inputEventArgs))
+            {
+                inputEvent.Handled = true;
+                return;
+            }
+
             // Forward to the focused descendant (the wrapped control itself for a leaf, or the focused child of a
             // composite), not blindly to the wrapped control — so input reaches the right control when nested.
             (_control.FocusedControl ?? (IFocusable)_control).OnInput(inputEventArgs);

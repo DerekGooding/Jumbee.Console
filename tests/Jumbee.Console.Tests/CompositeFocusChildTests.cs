@@ -8,9 +8,10 @@ using Jumbee.Console.Snapshot;
 using Xunit;
 
 // Reproduces the examples-browser middle pane: a content-swapping composite whose live content is a framed control,
-// with a focusable-but-non-input description label docked above it. The default CompositeControl focus child is the
-// first focusable descendant it claimed — which is the label — so focus (and therefore keyboard input) never reaches
-// the content. Overriding FocusChild to point at the current content fixes it.
+// with a focusable-but-non-input description label docked above it. Focusing a child resolves to the composite (the
+// navigable unit), which delegates focus back to a child — so the composite must delegate to the child that was
+// actually asked for, not to the first focusable descendant it claimed (here the label, which would swallow the
+// keys). Overriding FocusChild pins the content regardless of what was asked for.
 public class CompositeFocusChildTests
 {
     private sealed class PaneHost : CompositeControl
@@ -50,14 +51,14 @@ public class CompositeFocusChildTests
     }
 
     [Fact]
-    public void FocusableHeader_StealsCompositeFocus_SoArrowKeysMissTheContent()
+    public void FocusingContent_ReachesIt_DespiteAnEarlierFocusableSibling()
     {
         var (list, root) = BuildPane(overrideFocusChild: false);
 
-        list.Focus();   // click-to-focus resolves to the host, which delegates to its (wrong) focus child
+        list.Focus();   // resolves to the host, which must delegate back to the list — not to the label it claimed first
         root.OnInput(new UI.InputEventArgs(new InputEvent(Down)));
 
-        Assert.Equal(0, list.SelectedIndex);   // the key never reached the list — the documented bug
+        Assert.Equal(1, list.SelectedIndex);   // DownArrow reached the list
     }
 
     [Fact]

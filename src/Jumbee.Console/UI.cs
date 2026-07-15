@@ -280,8 +280,14 @@ public static class UI
         {
             // Resolve a composite's inner child up to the composite (the navigable focus unit); the composite then
             // delegates focus back to the appropriate child via Control_OnFocus. Click-to-focus and keyboard
-            // navigation therefore agree on which control is "focused".
-            if (target is Control tc) target = tc.FocusRoot;
+            // navigation therefore agree on which control is "focused". Tell the owning composite which child was
+            // asked for first, so it delegates back to that one — without this a composite always re-focuses its
+            // first child, and clicking any other field in a form would do nothing.
+            if (target is Control tc)
+            {
+                tc.Owner?.OnChildFocusRequest(tc);
+                target = tc.FocusRoot;
+            }
             var keep = target.FocusableControl;
             foreach (var c in controls)
             {
