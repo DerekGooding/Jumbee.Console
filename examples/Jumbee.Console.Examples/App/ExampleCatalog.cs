@@ -13,6 +13,7 @@ public static class ExampleCatalog
         new WelcomeExample(),
         new BorderShowcaseExample(),
         new ButtonExample(),
+        new FormControlsExample(),
         new ListBoxExample(),
         new PlotExample(),
         new CanvasExample(),
