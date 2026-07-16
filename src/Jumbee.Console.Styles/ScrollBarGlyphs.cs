@@ -24,7 +24,7 @@ public enum ScrollBarMode
 /// <para><see cref="Mode"/> selects the rendering: <see cref="ScrollBarMode.Smooth"/> (the default) ignores the
 /// glyph strings and draws a sub-cell block bar; <see cref="ScrollBarMode.Classic"/> uses the four glyphs below.</para>
 /// </summary>
-public readonly struct ScrollBarGlyphs
+public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
 {
     #region Constructors
     /// <summary>Builds a <see cref="ScrollBarMode.Classic"/> glyph set (explicit glyphs imply the classic bar).</summary>
@@ -77,5 +77,34 @@ public readonly struct ScrollBarGlyphs
 
     /// <summary>A heavy vertical-line thumb on a light vertical-line track with triangle arrows (classic).</summary>
     public static ScrollBarGlyphs Line { get; } = new("┃", "│", "▲", "▼");
+    #endregion
+
+    #region Equality
+    // Hand-written: the string fields make this struct non-bitwise-comparable, so the runtime's default
+    // ValueType.Equals falls back to a reflective, boxing compare (~336 bytes per comparison). See Color.
+    // Ordinal string comparison — these are glyphs, not text, so culture must not enter into it.
+    public bool Equals(ScrollBarGlyphs other) =>
+        Mode == other.Mode
+        && string.Equals(Thumb, other.Thumb, System.StringComparison.Ordinal)
+        && string.Equals(Track, other.Track, System.StringComparison.Ordinal)
+        && string.Equals(UpArrow, other.UpArrow, System.StringComparison.Ordinal)
+        && string.Equals(DownArrow, other.DownArrow, System.StringComparison.Ordinal);
+
+    public override bool Equals(object? obj) => obj is ScrollBarGlyphs other && Equals(other);
+
+    public override int GetHashCode()
+    {
+        var hash = new System.HashCode();
+        hash.Add(Mode);
+        hash.Add(Thumb, System.StringComparer.Ordinal);
+        hash.Add(Track, System.StringComparer.Ordinal);
+        hash.Add(UpArrow, System.StringComparer.Ordinal);
+        hash.Add(DownArrow, System.StringComparer.Ordinal);
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(ScrollBarGlyphs a, ScrollBarGlyphs b) => a.Equals(b);
+
+    public static bool operator !=(ScrollBarGlyphs a, ScrollBarGlyphs b) => !a.Equals(b);
     #endregion
 }

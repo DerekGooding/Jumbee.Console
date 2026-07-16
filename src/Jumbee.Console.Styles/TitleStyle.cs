@@ -42,7 +42,7 @@ public enum TitleColorStyle
 /// Describes how a control frame title is aligned, bordered, and colored. A frame's default title style comes
 /// from <see cref="IStyleTheme.TitleStyle"/>.
 /// </summary>
-public readonly struct TitleStyle
+public readonly struct TitleStyle : System.IEquatable<TitleStyle>
 {
     public TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
     {
@@ -57,4 +57,18 @@ public readonly struct TitleStyle
 
     /// <summary>The default title style (top-left, double border, normal colors), matching the original behavior.</summary>
     public static TitleStyle Default { get; } = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Double, TitleColorStyle.Normal);
+
+    #region Equality
+    // Hand-written: without it, comparing through EqualityComparer<T>.Default (as SetAtomicProperty does on every
+    // assignment) boxes both operands and compares reflectively. See Color.
+    public bool Equals(TitleStyle other) => Pos == other.Pos && BorderStyle == other.BorderStyle && Color == other.Color;
+
+    public override bool Equals(object? obj) => obj is TitleStyle other && Equals(other);
+
+    public override int GetHashCode() => System.HashCode.Combine(Pos, BorderStyle, Color);
+
+    public static bool operator ==(TitleStyle a, TitleStyle b) => a.Equals(b);
+
+    public static bool operator !=(TitleStyle a, TitleStyle b) => !a.Equals(b);
+    #endregion
 }

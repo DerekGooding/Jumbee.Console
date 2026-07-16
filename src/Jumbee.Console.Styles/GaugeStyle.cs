@@ -5,7 +5,7 @@ namespace Jumbee.Console;
 /// the empty track behind it, and the percent/value readout (and any inline label). Only the foreground colour of
 /// <see cref="Fill"/>/<see cref="Track"/> is used — the bar is drawn as a solid colour band.
 /// </summary>
-public readonly struct GaugeStyle
+public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
 {
     #region Constructors
     public GaugeStyle(Style fill, Style track, Style text)
@@ -38,5 +38,19 @@ public readonly struct GaugeStyle
         fill: new Color(90, 160, 240),
         track: new Color(48, 48, 58),
         text: Style.Grey85);
+    #endregion
+
+    #region Equality
+    // Hand-written: Style holds a reference, so the runtime's default ValueType.Equals falls back to a reflective,
+    // boxing field-by-field compare — which is what SetAtomicProperty would run on every assignment. See Color.
+    public bool Equals(GaugeStyle other) => Fill == other.Fill && Track == other.Track && Text == other.Text;
+
+    public override bool Equals(object? obj) => obj is GaugeStyle other && Equals(other);
+
+    public override int GetHashCode() => System.HashCode.Combine(Fill, Track, Text);
+
+    public static bool operator ==(GaugeStyle a, GaugeStyle b) => a.Equals(b);
+
+    public static bool operator !=(GaugeStyle a, GaugeStyle b) => !a.Equals(b);
     #endregion
 }

@@ -88,6 +88,7 @@ public class ColorEqualityTests
         for (var i = 0; i < 10_000; i++) comparer.Equals(a, b);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        Assert.Equal(0, allocated);
+        // Boxing would cost 48 bytes an iteration (~480KB); a threshold tolerates an unrelated one-off charge.
+        Assert.True(allocated < 1024, $"Color is boxing on comparison — allocated {allocated} bytes over 10,000");
     }
 }

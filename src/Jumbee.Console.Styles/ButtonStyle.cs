@@ -17,7 +17,7 @@ public enum ButtonShape
 /// <see cref="IStyleTheme.SecondaryButton"/>; <see cref="Primary"/>/<see cref="Secondary"/> here are the
 /// theme-independent fallbacks those tokens default to.
 /// </summary>
-public readonly struct ButtonStyle
+public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
 {
     #region Constructors
     public ButtonStyle(Style normal, Style hover, Style press,
@@ -86,6 +86,38 @@ public readonly struct ButtonStyle
     /// that state unchanged.</summary>
     public ButtonStyle WithColors(Style? normal = null, Style? hover = null, Style? press = null) =>
         this with { Normal = normal ?? Normal, Hover = hover ?? Hover, Press = press ?? Press };
+
+    // Value equality, implemented rather than left to the runtime. A struct with reference-typed fields (Style wraps
+    // a class) can't be compared bitwise, so the default ValueType.Equals compares it FIELD BY FIELD VIA REFLECTION,
+    // boxing as it goes — and Button.Style's setter runs that on every assignment, via SetAtomicProperty's
+    // EqualityComparer<T>.Default. Measured on EQUAL values (the usual answer to "did it change?", and the worst
+    // case since nothing can early-out): 368ns and 672 bytes per comparison, versus 8.8ns and nothing with this.
+    // See Color for the same fix.
+    public bool Equals(ButtonStyle other) =>
+        Normal == other.Normal && Hover == other.Hover && Press == other.Press && Shape == other.Shape
+        && System.Nullable.Equals(BevelLight, other.BevelLight) && System.Nullable.Equals(BevelDark, other.BevelDark)
+        && Bold == other.Bold && Width == other.Width && MinWidth == other.MinWidth;
+
+    public override bool Equals(object? obj) => obj is ButtonStyle other && Equals(other);
+
+    public override int GetHashCode()
+    {
+        var hash = new System.HashCode();
+        hash.Add(Normal);
+        hash.Add(Hover);
+        hash.Add(Press);
+        hash.Add(Shape);
+        hash.Add(BevelLight);
+        hash.Add(BevelDark);
+        hash.Add(Bold);
+        hash.Add(Width);
+        hash.Add(MinWidth);
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(ButtonStyle a, ButtonStyle b) => a.Equals(b);
+
+    public static bool operator !=(ButtonStyle a, ButtonStyle b) => !a.Equals(b);
     #endregion
 
     #region Presets

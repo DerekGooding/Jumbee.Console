@@ -5,7 +5,7 @@ namespace Jumbee.Console;
 /// vertical scrollbar. The glyphs come separately from <see cref="ScrollBarGlyphs"/> (via
 /// <see cref="IGlyphTheme.ScrollBar"/>); a control frame composes the two into its scrollbar cells.
 /// </summary>
-public readonly struct ScrollBarStyle
+public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 {
     #region Constructors
     public ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow)
@@ -55,5 +55,20 @@ public readonly struct ScrollBarStyle
         track: new Color(68, 68, 68),
         upArrow: Style.Plain,
         downArrow: Style.Plain);
+    #endregion
+
+    #region Equality
+    // Hand-written: Style holds a reference, so the runtime's default ValueType.Equals falls back to a reflective,
+    // boxing field-by-field compare — which is what SetAtomicProperty would run on every assignment. See Color.
+    public bool Equals(ScrollBarStyle other) =>
+        Thumb == other.Thumb && Track == other.Track && UpArrow == other.UpArrow && DownArrow == other.DownArrow;
+
+    public override bool Equals(object? obj) => obj is ScrollBarStyle other && Equals(other);
+
+    public override int GetHashCode() => System.HashCode.Combine(Thumb, Track, UpArrow, DownArrow);
+
+    public static bool operator ==(ScrollBarStyle a, ScrollBarStyle b) => a.Equals(b);
+
+    public static bool operator !=(ScrollBarStyle a, ScrollBarStyle b) => !a.Equals(b);
     #endregion
 }
