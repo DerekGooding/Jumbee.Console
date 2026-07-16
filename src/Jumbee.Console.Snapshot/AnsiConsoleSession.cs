@@ -47,7 +47,12 @@ public sealed class AnsiConsoleSession : IDisposable
         var session = new AnsiConsoleSession(width, height);
         ConsoleManager.Console = new HeadlessConsole { Size = new Size(width, height) };
         ConsoleManager.Setup();
-        ConsoleManager.Content = content;
+        // Bind a layout's wrapped control, never the layout proxy: a DrawingContext identity-checks the control
+        // bubbling damage against its Child, and a Layout's wrapped ConsoleGUI control bubbles as itself — so
+        // binding the proxy silently drops every damage report from the layout's children. The first frame still
+        // paints (it is a full redraw), which makes the failure look like "live updates just don't work". UI.Start
+        // and ConsoleSnapshot.Render both unwrap for the same reason.
+        ConsoleManager.Content = content is ILayout layout ? layout.CControl : content;
         await session.FrameAsync().ConfigureAwait(false);
         return session;
     }

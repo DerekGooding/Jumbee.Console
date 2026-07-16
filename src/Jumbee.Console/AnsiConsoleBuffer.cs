@@ -27,9 +27,16 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         _exclusivityMode = this;
         _pipeline = new RenderPipeline();
         _profile = new Profile(this, Encoding.UTF8);
-        _profile.Capabilities.Ansi = AnsiConsole.Profile.Capabilities.Ansi;
+        // This profile describes THIS BUFFER, not the process's stdout, so Ansi/Interactive are intrinsic rather
+        // than detected: a buffer always accepts styled segments, and Jumbee re-composites it every frame, so live
+        // widgets work regardless of what the host's stdout is. Inheriting the ambient detection meant that whenever
+        // output was redirected (a pipe, CI, a debugger, any headless test) Spectre saw a non-interactive console and
+        // silently swapped Progress's live renderer for FallbackProgressRenderer — which draws nothing at all.
+        _profile.Capabilities.Ansi = true;
+        _profile.Capabilities.Interactive = true;
+        // Colour depth and glyph coverage DO describe the eventual output device, so those stay detected: they decide
+        // how Spectre downsamples colours and picks glyphs, and that has to match the real terminal.
         _profile.Capabilities.ColorSystem = AnsiConsole.Profile.Capabilities.ColorSystem;
-        _profile.Capabilities.Interactive = AnsiConsole.Profile.Capabilities.Interactive;
         _profile.Capabilities.Unicode = AnsiConsole.Profile.Capabilities.Unicode;
         _cursorX = 0;
         _cursorY = 0;
