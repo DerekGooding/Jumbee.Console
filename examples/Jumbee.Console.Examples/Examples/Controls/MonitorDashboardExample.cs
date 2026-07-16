@@ -69,11 +69,12 @@ public sealed class MonitorDashboardExample : CompositeControl, IActivatableExam
              _weather.WithFrame(BorderStyle.Rounded, title: "Weather")],
         ]);
 
-        // A full-width "global outage map" below the grid: a braille world map whose Dot-layer overlay + rich markup
-        // labels are refreshed by the feed to simulate outages popping up and recovering around the world. Stacked
-        // under the grid so the whole example scrolls if the pane is too short to show both.
+        // A full-width "global outage map" below the grid: a braille world map with rich markup labels, refreshed by
+        // the feed to simulate outages popping up and recovering around the world. Stacked under the grid so the
+        // whole example scrolls if the pane is too short to show both.
         _map = new Canvas { Height = MapHeight };
         _map.WithMarker(CanvasMarker.Braille).WithXBounds(-180, 180).WithYBounds(-90, 90);
+        _map.Add(new WorldMap(MapCoast, MapResolution.High));   // added ONCE — the coastline never changes (see RedrawMap)
         SeedOutages();
         RedrawMap();
         var mapFramed = _map.WithFrame(BorderStyle.Rounded, title: "Global Outage Map — live");
@@ -155,15 +156,24 @@ public sealed class MonitorDashboardExample : CompositeControl, IActivatableExam
         }
     }
 
-    // Rebuilds the map: dim coastline base layer, then a Dot layer of outage markers with rich markup labels on top.
+    // Redraws only what changed — the outage markers and their labels — over the coastline added once at startup.
+    // Two things make this cheap, and they are worth copying for any mostly-static canvas:
+    //
+    //   ClearLabels() instead of Clear() keeps the shapes, so the canvas does not re-rasterize the whole world map
+    //   for every outage. The markers are labels too ("•"), since changing any shape would invalidate that raster.
+    //
+    //   Canvas.DamageTracking (on by default) then reports just the cells these labels touch, so the compositor
+    //   skips the rest of the map instead of re-scanning all of it.
+    //
+    // Measured on a 120x20 map (tests/Jumbee.Console.Benchmarks, RESULTS.md section 10): 303us -> 100us per refresh
+    // and 105KB -> 27KB. Most of that is the cached coastline; damage tracking cuts the compositor's scan from 2400
+    // cells to 190 but only ~1.16x of the frame, because rasterizing the map cost more than compositing it did.
     private void RedrawMap()
     {
-        _map.Clear();
-        _map.Add(new WorldMap(MapCoast, MapResolution.High));
-        _map.Layer(CanvasMarker.Dot);
+        _map.ClearLabels();
         foreach (var o in _outages)
         {
-            _map.Add(new Points([(o.Lon, o.Lat)], o.Dot));
+            _map.Print(o.Lon, o.Lat, "•", o.Dot);
             _map.PrintMarkup(o.Lon + 3, o.Lat, o.Markup);
         }
     }

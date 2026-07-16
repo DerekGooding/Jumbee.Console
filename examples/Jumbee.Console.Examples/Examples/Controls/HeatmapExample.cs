@@ -30,7 +30,7 @@ public sealed class HeatmapExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Heatmap";
     string IExample.Description =>
         "A 2D value grid coloured by the Viridis map — the color-grid plot family, built on per-cell colouring.";

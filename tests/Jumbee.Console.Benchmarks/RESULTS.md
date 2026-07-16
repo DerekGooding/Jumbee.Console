@@ -305,3 +305,56 @@ for any control that opts in. It reuses the existing 32-rect dirty accumulator; 
 
 **Gap for a future experiment:** no wrap-heavy render workload yet (RenderParagraph / RenderLog with long wrapped
 text) — the slice-bound case where the section 2 `Segment` change should show its largest win.
+
+## 10. The dashboard's outage map — `Canvas.DamageTracking` + `ClearLabels()`
+
+The MonitorDashboard's live map looked like the case section 9 said would win big: a 120×20 canvas that is almost
+entirely static (a braille world coastline) with a handful of outage markers and rich markup city labels moving over
+it. It refreshed by calling `Clear()`, re-adding the coastline, and re-adding the markers — reporting the whole panel
+dirty *and* throwing away the cached layer raster. `MapPanelBenchmarks`, one op = one refresh frame
+(rebuild + paint + composite) through the real compositor:
+
+| Configuration | Mean | Allocated | Cells scanned |
+|---------------|-----:|----------:|--------------:|
+| 1. rebuild + no tracking (before) | 302.7 µs | 105.4 KB | 2400 / 2400 |
+| 2. rebuild + damage tracking      | 261.6 µs | 105.4 KB |  309 / 2400 |
+| 3. keep coastline + tracking (now)|  **99.9 µs** | **26.9 KB** |  190 / 2400 |
+
+The cell counts are exact (`ConsoleManager.LastFrameDirtyCells`); the split below comes from
+`MapPanelDiagnostics` (`-- --diag <mode>`), which is noisier than BDN but is the only thing that separates render
+from composite:
+
+| Configuration | Render | Composite |
+|---------------|-------:|----------:|
+| 1. rebuild + no tracking | ~191 µs | ~83 µs |
+| 2. rebuild + damage tracking | ~217 µs | **~20 µs** |
+| 3. keep coastline + tracking | **~81 µs** | ~17 µs |
+
+**`Canvas.DamageTracking`** (new, default on) does exactly what section 9 promises — the composite drops ~4× and the
+scan goes from 2400 to 309 cells. But it only buys **1.16×** on the frame, because the composite was never the
+expensive half here: it was ~30% of the frame, and the diff costs ~20 µs of render to find the change.
+
+**`Canvas.ClearLabels()`** (new) is what actually fixed the map: keeping the coastline's rasterized layers instead of
+rebuilding them every refresh is ~2.4× on the render, **3.0× on the frame and 3.9× on allocations**. The outage
+markers became `"•"` labels rather than `Points` shapes, since changing any shape invalidates the raster.
+
+**Two measurement traps, both of which produced confidently wrong numbers first:**
+
+1. *Where the diff runs.* Diffing the finished buffer in a separate pass over all 2400 cells added **~100 µs** to the
+   render — more than the composite saving. Moving it into the blit loop that already resolves every cell, and
+   damaging labels by their own old∪new rects, cut that to ~20 µs. A damage scheme that costs a full pass to discover
+   a small change defeats itself.
+2. *Synthesized equality is not free.* The per-cell snapshot was a `record struct`; its generated `Equals` routes each
+   field through `EqualityComparer<T>.Default`, which for `Color?` falls back to a boxing comparer — **18 KB of
+   garbage per frame** and three virtual calls per cell. A hand-written `Matches(sym, fg, bg)` using lifted `==` made
+   tracking allocation-neutral (row 2 now matches row 1 exactly).
+
+**Takeaway — and a correction to the intuition that started this.** "The whole map redraws when a label changes" was
+right about the symptom and wrong about the cost: the expensive part was the canvas *re-rasterizing* the world map,
+not the compositor re-scanning it. Damage tracking is necessary but not sufficient; a canvas that re-adds its static
+backdrop every tick pays for it twice over, and no amount of compositor skipping touches that half. Section 9's rule
+still holds — the win scales with how localized the change is — but only once the render is out of the way.
+
+**Method note:** an earlier version of the split harness measured all three configurations in one process and
+disagreed with BDN by ~2×: whichever ran last benefited from a fully-warmed JIT. It now runs one mode per process.
+Where BDN and a hand-rolled loop disagree, BDN is right.

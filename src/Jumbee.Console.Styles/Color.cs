@@ -3,7 +3,9 @@
 using ConsoleGUIColor = ConsoleGUI.Data.Color;
 using SpectreColor = Spectre.Console.Color;
 using SystemDrawingColor = System.Drawing.Color;
-public readonly partial struct Color
+
+/// <summary>An RGB colour. Value type: two colours are equal when their channels are.</summary>
+public readonly partial struct Color : System.IEquatable<Color>
 {
     #region Constructors
     public Color(byte r, byte g, byte b)
@@ -58,9 +60,25 @@ public readonly partial struct Color
             (byte)(a.B + (b.B - a.B) * t));
     }
 
+    // Value equality, implemented rather than left to the runtime's default. Without IEquatable<Color> every
+    // generic comparison — notably the EqualityComparer<T>.Default in Control.SetAtomicProperty, which each colour
+    // property setter goes through — resolves to ObjectEqualityComparer, which boxes BOTH operands and falls back
+    // to the reflective ValueType.Equals: 48 bytes of garbage and ~90x the cost of a real compare, per comparison.
+    // (Style carries the same implementation for the same reason.)
+    public bool Equals(Color other) => R == other.R && G == other.G && B == other.B;
+
+    public override bool Equals(object? obj) => obj is Color other && Equals(other);
+
+    // R/G/B fit in 24 bits, so packing them is a perfect hash — distinct colours never collide.
+    public override int GetHashCode() => (R << 16) | (G << 8) | B;
+
     #endregion
 
     #region Operators
+    public static bool operator ==(Color a, Color b) => a.Equals(b);
+
+    public static bool operator !=(Color a, Color b) => !a.Equals(b);
+
     public static implicit operator SpectreColor(Color color) => color.ToSpectreColor();
 
     public static implicit operator Color(SpectreColor color) => FromSpectreColor(color);

@@ -71,6 +71,20 @@ public class Canvas : Control
     }
 
     /// <summary>
+    /// When <see langword="true"/> (the default), the canvas reports only the cells that actually changed since the
+    /// last render, so the compositor skips the unchanged remainder instead of re-scanning the whole panel. This is
+    /// what makes a mostly-static canvas cheap to update — a world map whose coastline never moves but whose few
+    /// markers and labels do costs about what the markers cost, not what the map costs. It is pure win when little
+    /// changes and roughly free otherwise (a canvas that changes everywhere just reports everything), so it is on by
+    /// default; set <see langword="false"/> to fall back to reporting the whole area.
+    /// </summary>
+    public bool DamageTracking
+    {
+        get => _damageTracking;
+        set => SetAtomicProperty(ref _damageTracking, value, watch: (_, _) => _snapshotValid = false);
+    }
+
+    /// <summary>
     /// When <see langword="true"/>, the canvas responds to user input by panning and zooming its
     /// <see cref="XBounds"/>/<see cref="YBounds"/> window: <b>drag</b> to pan (the content follows the cursor), the
     /// <b>mouse wheel</b> to zoom about the pointer, and (while focused) the <b>arrow keys</b> to pan with <b>+/-</b>
@@ -237,6 +251,25 @@ public class Canvas : Control
         return this;
     }
 
+    /// <summary>
+    /// Removes every label, leaving the shapes and layers intact. Fluent.
+    /// <para>
+    /// Prefer this to <see cref="Clear"/> when only the annotations change: shapes are rasterized into layers and
+    /// cached, and clearing them all forces that raster to be rebuilt from scratch on the next render. For a canvas
+    /// whose shapes are an unchanging backdrop — a world map, a floor plan, a chart's axes — with labels moving over
+    /// it, re-adding the backdrop each update is most of the frame's cost and buys nothing.
+    /// </para>
+    /// </summary>
+    public Canvas ClearLabels()
+    {
+        UI.Invoke(() =>
+        {
+            _labels.Clear();
+            Invalidate();   // labels are drawn from _labels each render; the cached layers stay valid
+        });
+        return this;
+    }
+
     private void Rebuild()
     {
         _dirty = true;
@@ -374,8 +407,50 @@ public class Canvas : Control
         }
 
         consoleBuffer.Initialize();
-        Blit(_layers, w, h);
-        DrawLabels(w, h);
+        Blit(_layers, w, h);        // diffs the layer content against the last frame and damages what moved
+        DrawLabels(w, h);           // damages each label's old and new footprint
+        FinishDamage(w, h);
+    }
+
+    protected override bool TracksDamage => _damageTracking;
+
+    // Damage is reported from the two places that write cells — Blit (layers) and DrawLabels — rather than by
+    // re-reading the finished buffer afterwards. An after-the-fact readback of every cell was the obvious way to do
+    // it and cost ~100us per render on a 120x20 map, which ate a third of what the skipped composite saved: the
+    // point of the API is to touch FEWER cells, so paying a full extra pass to find that out defeats it. Both writers
+    // already visit exactly the cells they change, so the diff rides along for almost nothing.
+
+    // A cell of blitted layer content — what Blit resolves before it writes. Compared against the previous frame's.
+    // Deliberately a plain struct with a hand-written comparison: a record struct's synthesized equality routes each
+    // field through EqualityComparer<T>.Default, i.e. three virtual calls per cell, which cost ~20us per frame on a
+    // 120x20 map — a third of what skipping the composite saves. The lifted == operators below compile to inline
+    // compares instead.
+    private readonly struct Cel(char? sym, CColor? fg, CColor? bg)
+    {
+        private readonly char? _sym = sym;
+        private readonly CColor? _fg = fg;
+        private readonly CColor? _bg = bg;
+
+        public bool Matches(char? s, CColor? f, CColor? b) => _sym == s && _fg == f && _bg == b;
+    }
+
+    // True when there is a previous frame to diff against; otherwise this render reports everything once.
+    private bool _canDiff;
+
+    private bool BeginDamage(int count, int w)
+    {
+        if (!_damageTracking) { _snapshotValid = false; return false; }
+        bool resized = _cells is null || _cells.Length < count || _snapshotWidth != w;
+        if (resized) { _cells = new Cel[count]; _snapshotWidth = w; }
+        _canDiff = _snapshotValid && !resized;
+        return true;
+    }
+
+    private void FinishDamage(int w, int h)
+    {
+        if (!_damageTracking) return;
+        if (!_canDiff) { DamageAll(); }   // first render, a resize, or tracking just turned on
+        _snapshotValid = true;
     }
 
     private List<Layer> BuildLayers(int width, int height)
@@ -415,13 +490,30 @@ public class Canvas : Control
             }
         }
 
-        for (int i = 0; i < count; i++)
+        bool diff = BeginDamage(count, width);
+        for (int y = 0, i = 0; y < height; y++)
         {
-            char? symbol = _sym[i];
-            CColor? fg = _fg[i];
-            CColor? bg = _bg[i] ?? _background;
-            if (symbol is null && fg is null && bg is null) continue;   // leave the blank cell Initialize wrote
-            consoleBuffer.Write(new Position(i % width, i / width), new Character(symbol ?? ' ', fg, bg));
+            int first = -1, last = -1;
+            for (int x = 0; x < width; x++, i++)
+            {
+                char? symbol = _sym[i];
+                CColor? fg = _fg[i];
+                CColor? bg = _bg[i] ?? _background;
+
+                if (diff)
+                {
+                    // Compare and record as we go — this loop already resolves every cell, so the diff is a few
+                    // field compares on top, not a second pass over the panel.
+                    if (_canDiff && !_cells![i].Matches(symbol, fg, bg)) { if (first < 0) first = x; last = x; }
+                    _cells![i] = new Cel(symbol, fg, bg);
+                }
+
+                if (symbol is null && fg is null && bg is null) continue;   // leave the blank cell Initialize wrote
+                consoleBuffer.Write(new Position(x, y), new Character(symbol ?? ' ', fg, bg));
+            }
+            // One rect per changed row, spanning its first-to-last change: canvas changes are runs (a label) or
+            // points (a marker), so a row span bounds them tightly and there are at most `height` rects.
+            if (first >= 0) Damage(new Rect(first, y, last - first + 1, 1));
         }
     }
 
@@ -438,6 +530,14 @@ public class Canvas : Control
     // to the buffer's right edge.
     private void DrawLabels(int width, int height)
     {
+        // Labels sit on top of the layers, so the layer diff in Blit can't see them: a label that moved away leaves
+        // blit content that is identical to last frame's, reporting nothing, and the old text would stay on screen.
+        // Damage where the labels WERE as well as where they are now — the union-of-old-and-new rule any moving
+        // region has to follow here.
+        bool trackLabels = _damageTracking && _canDiff;
+        if (trackLabels) foreach (var r in _prevLabelRects) Damage(r);
+        _prevLabelRects.Clear();
+
         if (_labels.Count == 0) return;
         var (left, right) = _xBounds;
         var (bottom, top) = _yBounds;
@@ -459,6 +559,13 @@ public class Canvas : Control
                 var sc = chars[k];
                 consoleBuffer.Write(new Position(col, y), new Character(sc.C, sc.Fg, sc.Bg, sc.Deco));
             }
+
+            if (!_damageTracking) continue;
+            int from = Math.Max(x, 0), to = Math.Min(x + chars.Length - 1, width - 1);
+            if (to < from) continue;
+            var rect = new Rect(from, y, to - from + 1, 1);
+            _prevLabelRects.Add(rect);
+            if (trackLabels) Damage(rect);
         }
     }
     #endregion
@@ -539,5 +646,12 @@ public class Canvas : Control
     private char?[] _sym = [];
     private CColor?[] _fg = [];
     private CColor?[] _bg = [];
+    private bool _damageTracking = true;
+    // Last frame's blitted layer content, diffed in Blit to report damage. Invalid until the first full report.
+    private Cel[]? _cells;
+    private int _snapshotWidth = -1;
+    private bool _snapshotValid;
+    // Where the labels were drawn last frame, so a label that moves damages the cells it vacated.
+    private readonly List<Rect> _prevLabelRects = [];
     #endregion
 }

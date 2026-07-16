@@ -19,7 +19,7 @@ public sealed class PlotExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Plot";
     string IExample.Description =>
         "A line/scatter chart backed by ConsolePlot with smooth Braille curves, axes, grid and ticks.";
