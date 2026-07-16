@@ -20,9 +20,9 @@ using CColor = ConsoleGUI.Data.Color;
 /// <see cref="Spin"/> helper) from a frame/timer feed; tilt and zoom the camera with <see cref="CameraAlpha"/>,
 /// <see cref="CameraBeta"/> and <see cref="Zoom"/>. Display-only.
 ///
-/// The land/ocean map is generated at runtime from public-domain Natural Earth coastline data (the same
-/// <c>Geo/world_high.txt</c> the map widgets use). The ray-traced-sphere idea is a common one (cf. the ASCII globes
-/// by DinoZ1729 / adamsky) but this is an independent implementation — no code or data derives from a copyleft source.
+/// The land/ocean map is generated at runtime from public-domain Natural Earth land polygons
+/// (<c>Geo/land_110m.txt</c>). The ray-traced-sphere idea is a common one (cf. the ASCII globes by DinoZ1729 /
+/// adamsky) but this is an independent implementation — no code or data derives from a copyleft source.
 /// </summary>
 public class Globe : Control
 {
@@ -227,10 +227,13 @@ public class Globe : Control
         // origin; `right`/`up` are the screen axes in world space. Zoom scales the image extent (smaller = bigger disc).
         double sinA = Math.Sin(_alpha), cosA = Math.Cos(_alpha), sinB = Math.Sin(_beta), cosB = Math.Cos(_beta);
         double fx = -cosB * sinA, fy = -sinB, fz = -cosB * cosA;              // forward = -cameraDir
-        double rx = fz, ry = 0, rz = -fx;                                     // right = normalize(worldUp × forward)
+        // right = normalize(forward × worldUp), NOT worldUp × forward: that yields the left-handed basis which
+        // mirrors the globe east-west (screen +x would sample decreasing longitude, putting the Americas the wrong
+        // way round and reversing the drag direction).
+        double rx = -fz, ry = 0, rz = fx;
         double rl = Math.Sqrt(rx * rx + rz * rz); if (rl < 1e-9) { rx = 1; rz = 0; rl = 1; }
         rx /= rl; rz /= rl;
-        double ux = fy * rz - fz * ry, uy = fz * rx - fx * rz, uz = fx * ry - fy * rx;   // up = forward × right
+        double ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx;   // up = right × forward
 
         // Screen half-extents keep the disc circular for cells that are `CellAspect`× taller than wide (denomY is the
         // vertical radius in rows, denomX the horizontal radius in cells). At the default zoom the disc just fills the
@@ -355,56 +358,50 @@ public class Globe : Control
 }
 
 /// <summary>
-/// A land/ocean + elevation grid baked once from public-domain Natural Earth coastline points: connected coastline
-/// segments rasterized to a barrier, ocean flood-filled from mid-ocean seeds (longitude wraps; Antarctica stays
-/// enclosed = land), then a distance transform gives land elevation (distance inland) and ocean depth (distance from
-/// shore) for colouring. Sampled by lat/long.
+/// A land/ocean + elevation grid baked once from public-domain Natural Earth 1:110m land polygons: each grid row is
+/// scanline-filled by the even-odd rule against the polygon rings, then a distance transform gives land elevation
+/// (distance inland) and ocean depth (distance from shore) for colouring. Sampled by lat/long.
 /// </summary>
 internal sealed class EarthMask
 {
     #region Constructors
     private EarthMask()
     {
-        var pts = LoadPoints("Jumbee.Console.Geo.world_high.txt");
-        var barrier = new bool[H, W];
+        // Filled from closed land RINGS, not from the coastline point cloud the map widgets scatter-plot: that cloud
+        // carries no polyline structure, so the outline had to be guessed by joining nearby points and the result
+        // flood-filled — and a single missed segment let the ocean into a whole continent (Africa, then Asia).
+        // Rings make the fill exact: no seeds, no join threshold, nothing to leak through.
+        var rings = LoadRings("Jumbee.Console.Geo.land_110m.txt");
+        _ocean = new bool[H, W];
 
-        // Rasterize coastline segments between consecutive nearby points (skip big jumps between separate coastlines).
-        double ColF(double lon) => (lon + 180.0) / 360.0 * W;
-        double RowF(double lat) => (90.0 - lat) / 180.0 * H;
-        void Plot(int x, int y) { if (y >= 0 && y < H) barrier[y, ((x % W) + W) % W] = true; }
-        void Seg(double x0d, double y0d, double x1d, double y1d)
+        // Even-odd scanline fill. For each row's centre latitude, collect where the rings cross it, sort, and fill
+        // between alternate pairs — which also punches out holes (an inland sea's ring simply flips parity back).
+        var xs = new List<double>();
+        for (int y = 0; y < H; y++)
         {
-            int x0 = (int)Math.Round(x0d), y0 = (int)Math.Round(y0d), x1 = (int)Math.Round(x1d), y1 = (int)Math.Round(y1d);
-            int dx = Math.Abs(x1 - x0), dy = -Math.Abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy;
-            while (true)
+            double lat = 90.0 - (y + 0.5) / H * 180.0;
+            xs.Clear();
+            foreach (var ring in rings)
+                for (int i = 1; i < ring.Count; i++)
+                {
+                    var (aLon, aLat) = ring[i - 1];
+                    var (bLon, bLat) = ring[i];
+                    // Half-open test: a vertex exactly on the row counts once, so parity can't be corrupted.
+                    if (aLat > lat == bLat > lat) continue;
+                    xs.Add(aLon + (lat - aLat) / (bLat - aLat) * (bLon - aLon));
+                }
+            xs.Sort();
+            for (int i = 0; i + 1 < xs.Count; i += 2)
             {
-                Plot(x0, y0);
-                if (x0 == x1 && y0 == y1) break;
-                int e2 = 2 * err;
-                if (e2 >= dy) { err += dy; x0 += sx; }
-                if (e2 <= dx) { err += dx; y0 += sy; }
+                int x0 = (int)Math.Ceiling((xs[i] + 180.0) / 360.0 * W - 0.5);
+                int x1 = (int)Math.Floor((xs[i + 1] + 180.0) / 360.0 * W - 0.5);
+                for (int x = Math.Max(x0, 0); x <= Math.Min(x1, W - 1); x++) _ocean[y, x] = true;   // inside a ring = land
             }
         }
-        const double joinDeg = 8.0;
-        for (int i = 1; i < pts.Count; i++)
-        {
-            var (aLon, aLat) = pts[i - 1];
-            var (bLon, bLat) = pts[i];
-            if (Math.Abs(aLon - bLon) > joinDeg || Math.Abs(aLat - bLat) > joinDeg) { Plot((int)ColF(aLon), (int)RowF(aLat)); continue; }
-            Seg(ColF(aLon), RowF(aLat), ColF(bLon), RowF(bLat));
-        }
-
-        // Flood-fill ocean from mid-ocean seeds; longitude wraps, poles do not, barriers block.
-        _ocean = new bool[H, W];
-        ReadOnlySpan<(double lon, double lat)> seeds =
-            [(-150, 0), (-40, 10), (-25, -20), (75, -25), (150, -35), (-160, 45), (170, 55), (0, 15)];
-        var q = new Queue<(int y, int x)>();
-        foreach (var (lon, lat) in seeds)
-        {
-            int y = (int)RowF(lat), x = (int)ColF(lon) % W;
-            if (y >= 0 && y < H && !barrier[y, x] && !_ocean[y, x]) { _ocean[y, x] = true; q.Enqueue((y, x)); }
-        }
-        Flood(q, (y, x) => !barrier[y, x] && !_ocean[y, x], (y, x) => _ocean[y, x] = true);
+        // The scan marked the INSIDE of the rings; invert so the field means what it says (ocean = outside all land).
+        for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+                _ocean[y, x] = !_ocean[y, x];
 
         // Distance transforms: elevation = steps inland from ocean; depth = steps offshore from land.
         _elev = Distance(land: true);
@@ -425,21 +422,6 @@ internal sealed class EarthMask
         land = !_ocean[y, x];
         elev = _elev[y, x];
         depth = _depth[y, x];
-    }
-
-    private void Flood(Queue<(int y, int x)> q, Func<int, int, bool> open, Action<int, int> mark)
-    {
-        while (q.Count > 0)
-        {
-            var (y, x) = q.Dequeue();
-            Span<(int dy, int dx)> n = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-            foreach (var (dy, dx) in n)
-            {
-                int ny = y + dy; if (ny < 0 || ny >= H) continue;
-                int nx = ((x + dx) % W + W) % W;
-                if (open(ny, nx)) { mark(ny, nx); q.Enqueue((ny, nx)); }
-            }
-        }
     }
 
     // Multi-source BFS: seed every cell of the OPPOSITE terrain (distance 0) and count steps into the requested
@@ -465,12 +447,14 @@ internal sealed class EarthMask
         return dist;
     }
 
-    private static List<(double lon, double lat)> LoadPoints(string resource)
+    /// <summary>Reads the embedded land polygons: one <c>lon,lat</c> per line, a blank line ending each closed ring.</summary>
+    private static List<List<(double lon, double lat)>> LoadRings(string resource)
     {
         using var stream = typeof(EarthMask).Assembly.GetManifestResourceStream(resource)
             ?? throw new InvalidOperationException($"Embedded map data '{resource}' not found.");
         using var reader = new StreamReader(stream);
-        var pts = new List<(double, double)>();
+        var rings = new List<List<(double lon, double lat)>>();
+        var ring = new List<(double lon, double lat)>();
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
@@ -478,9 +462,17 @@ internal sealed class EarthMask
             if (c > 0
                 && double.TryParse(line.AsSpan(0, c), CultureInfo.InvariantCulture, out double lon)
                 && double.TryParse(line.AsSpan(c + 1), CultureInfo.InvariantCulture, out double lat))
-                pts.Add((lon, lat));
+            {
+                ring.Add((lon, lat));
+            }
+            else if (ring.Count > 0)
+            {
+                rings.Add(ring);
+                ring = [];
+            }
         }
-        return pts;
+        if (ring.Count > 0) rings.Add(ring);
+        return rings;
     }
     #endregion
 

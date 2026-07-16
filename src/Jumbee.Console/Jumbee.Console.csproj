@@ -31,8 +31,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Coastline POINT CLOUDS, scatter-plotted by the Canvas WorldMap shape. -->
     <EmbeddedResource Include="Geo\world_low.txt" />
     <EmbeddedResource Include="Geo\world_high.txt" />
+    <!-- Land POLYGONS (closed rings), filled by the Globe's EarthMask. -->
+    <EmbeddedResource Include="Geo\land_110m.txt" />
   </ItemGroup>
 
 </Project>
