@@ -25,7 +25,7 @@ public sealed class GroupedBarExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Grouped Bars";
     string IExample.Description =>
         "Multiple series drawn side by side within each x slot — the classic grouped bar chart, sharing the axes.";

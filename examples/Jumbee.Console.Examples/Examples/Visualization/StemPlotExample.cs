@@ -17,7 +17,7 @@ public sealed class StemPlotExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Stem Plot";
     string IExample.Description =>
         "A vertical stem from the baseline to each point, capped with a marker — for discrete / impulse signals.";

@@ -19,7 +19,7 @@ public sealed class HorizontalBarExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Horizontal Bars";
     string IExample.Description =>
         "Bars growing along the X axis from a baseline, one per category on the Y axis, with sub-cell right edges.";

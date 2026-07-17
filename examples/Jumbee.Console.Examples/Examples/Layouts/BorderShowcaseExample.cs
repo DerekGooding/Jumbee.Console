@@ -93,7 +93,7 @@ public sealed class BorderShowcaseExample : CompositeControl, IExample
         new TextLabel(TextLabelOrientation.Horizontal, text, HeaderColor) { Focusable = false };
 
     #region IExample
-    string IExample.Category => "Appearance";
+    string IExample.Category => "Layouts";
     string IExample.Title => "Frame Borders";
     string IExample.Description =>
         "Every frame BorderStyle, a palette of border colours, and the title-placement styles — a sampler for choosing a framed-control look.";

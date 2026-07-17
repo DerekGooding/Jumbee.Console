@@ -137,7 +137,7 @@ public sealed class BouncingBallsExample : Control, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Graphics";
     string IExample.Title => "Bouncing Balls";
     string IExample.Description =>
         "Balls bounce over a static field; only each ball's old and new cell is redrawn (opt-in partial redraw) — watch the Perf HUD's dirty % stay near zero.";

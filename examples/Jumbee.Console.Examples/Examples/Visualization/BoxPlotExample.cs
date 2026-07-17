@@ -39,7 +39,7 @@ public sealed class BoxPlotExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Box Plot";
     string IExample.Description =>
         "Box-and-whisker plot — Q1–Q3 box with median line and min/max whiskers, quartiles computed from raw samples.";

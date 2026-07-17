@@ -24,7 +24,7 @@ public sealed class ErrorBarExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Error Bars";
     string IExample.Description =>
         "A line series with vertical error bars — ±error whiskers with caps and a centre marker — sharing the axes.";

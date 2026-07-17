@@ -26,7 +26,7 @@ public sealed class ConfusionMatrixExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Confusion Matrix";
     string IExample.Description =>
         "An annotated heatmap — counts drawn in each cell with contrast text on the cell colour (per-cell background).";

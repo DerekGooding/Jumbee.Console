@@ -32,7 +32,7 @@ public sealed class CandlestickExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Candlestick";
     string IExample.Description =>
         "OHLC candlesticks with half-cell wicks and bodies — green up, red down — the classic financial chart.";

@@ -26,7 +26,7 @@ public sealed class AnnotatedPlotExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Annotations";
     string IExample.Description =>
         "Label points with foreground/background colours — anchored to data coordinates, without rescaling the axes.";

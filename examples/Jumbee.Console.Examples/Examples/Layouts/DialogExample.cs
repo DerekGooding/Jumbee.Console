@@ -20,7 +20,7 @@ public sealed class DialogExample : CompositeControl, IExample
     }
 
     #region IExample
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Layouts";
     string IExample.Title => "Modal Dialogs";
     string IExample.Description =>
         "Real modal dialogs: they take exclusive focus, dim the layer behind, and report a result.";

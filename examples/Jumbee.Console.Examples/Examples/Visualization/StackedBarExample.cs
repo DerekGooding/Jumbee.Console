@@ -24,7 +24,7 @@ public sealed class StackedBarExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Stacked Bars";
     string IExample.Description =>
         "Series stacked from the baseline at each x — each bar's total height is the sum of its components.";

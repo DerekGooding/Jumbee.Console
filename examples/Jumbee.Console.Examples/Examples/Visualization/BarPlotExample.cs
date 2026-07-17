@@ -18,7 +18,7 @@ public sealed class BarPlotExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Bar Plot";
     string IExample.Description =>
         "Filled bars from a baseline with eighth-block sub-cell tops, sharing the plot's axes and grid.";

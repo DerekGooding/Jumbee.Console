@@ -22,7 +22,7 @@ public sealed class HistogramExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Histogram";
     string IExample.Description =>
         "Values binned into buckets and drawn as touching bars — the distribution's shape at a glance.";

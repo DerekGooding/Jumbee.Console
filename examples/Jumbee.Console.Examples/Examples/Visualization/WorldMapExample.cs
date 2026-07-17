@@ -47,7 +47,7 @@ public sealed class WorldMapExample : Canvas, IExample
     #endregion
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "World Map";
     string IExample.Description =>
         "An explorable braille world map with labelled cities — drag to pan, scroll to zoom. Combines the Canvas map, per-layer markers, text labels and pan/zoom.";

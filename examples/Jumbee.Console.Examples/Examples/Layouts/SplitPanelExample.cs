@@ -24,7 +24,7 @@ public sealed class SplitPanelExample : SplitPanel, IExample
         });
 
     #region IExample
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Layouts";
     string IExample.Title => "Resizable Layout";
     string IExample.Description =>
         "A SplitPanel gives two panes a draggable divider. Drag it, or focus the divider and use the arrow keys.";

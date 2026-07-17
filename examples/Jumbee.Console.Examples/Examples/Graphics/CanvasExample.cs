@@ -66,7 +66,7 @@ public sealed class CanvasExample : Canvas, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    string IExample.Category => "Controls";
+    string IExample.Category => "Graphics";
     string IExample.Title => "Canvas";
     string IExample.Description =>
         "The Canvas control (ported from Ratatui): shapes drawn in an arbitrary coordinate system with sub-cell braille — a live rose curve, radar sweep and orbiting blip.";

@@ -360,9 +360,9 @@ public sealed class MonitorDashboardExample : CompositeControl, IActivatableExam
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    string IExample.Category => "Flexibility";
-    string IExample.Title => "System Monitor";
+    string IExample.Category => "Dashboards";
+    string IExample.Title => "Live Dashboard";
     string IExample.Description =>
-        "A sampler-style monitor — streaming charts, a CPU meter, a live Task Manager, a server log — over a full-width live global outage map with rich markup labels.";
+        "A sampler-style dashboard — streaming charts, a CPU meter, a live Task Manager, a server log — over a full-width live global outage map with rich markup labels.";
     #endregion
 }

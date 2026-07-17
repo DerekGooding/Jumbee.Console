@@ -68,7 +68,7 @@ public sealed class CanvasMarkersExample : CompositeControl, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    string IExample.Category => "Controls";
+    string IExample.Category => "Graphics";
     string IExample.Title => "Canvas Markers";
     string IExample.Description =>
         "The same live drawing in every Canvas marker, side by side — a direct comparison of sub-cell resolution (Braille/Quadrant/HalfBlock vs Block/Bar/Dot).";

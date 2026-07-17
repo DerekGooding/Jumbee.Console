@@ -112,7 +112,7 @@ public sealed class LayoutGalleryExample : CompositeControl, IExample
     #endregion
 
     #region IExample
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Layouts";
     string IExample.Title => "Layout Gallery";
     string IExample.Description =>
         "One tab per layout — a fixed Grid tile board, a docked app shell, stacked cards, and nested split panes. The tabs themselves are a TabPanel.";
