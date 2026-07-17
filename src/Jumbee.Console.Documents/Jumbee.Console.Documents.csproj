@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyVersion>$(ProjectAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(ProjectAssemblyVersion)</FileVersion>
+    <Version>$(ProjectAssemblyVersion)</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

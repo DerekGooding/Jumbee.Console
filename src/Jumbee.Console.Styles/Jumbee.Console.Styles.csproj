@@ -6,6 +6,9 @@
     <LangVersion>preview</LangVersion>
     <IsTrimmable>True</IsTrimmable>
     <IsAotCompatible>True</IsAotCompatible>
+    <AssemblyVersion>$(ProjectAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(ProjectAssemblyVersion)</FileVersion>
+    <Version>$(ProjectAssemblyVersion)</Version>
     <!-- Assembly name carries the "Styles" suffix, but the root namespace stays Jumbee.Console so the
          Color/Style types keep their existing fully-qualified names and consumers' usings don't change. -->
     <RootNamespace>Jumbee.Console</RootNamespace>
