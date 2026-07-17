@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Build the Jumbee.Console TestDemo and Examples projects (and thee dependency chain: core, Styles, VtNetCore, …).
+# Build the Jumbee.Console Examples projects (and thee dependency chain: core, Styles, VtNetCore, …).
 # Extra args are passed through to `dotnet build`, e.g. ./build -c Release
 set -euo pipefail
 cd "$(dirname "$0")"
 echo "Building Jumbee.Console..."
-echo "Building Jumbee.Console examples..."
 dotnet build examples/Jumbee.Console.Examples/Jumbee.Console.Examples.csproj -c Release "$@"
+dotnet build examples/Jumbee.Console.AgentHarnessDemo/Jumbee.Console.AgentHarnessDemo.csproj -c Release "$@"
+dotnet build examples/Jumbee.Console.IdeDemo/Jumbee.Console.IdeDemo.csproj -c Release "$@"
 echo "Jumbee.Console build complete."
