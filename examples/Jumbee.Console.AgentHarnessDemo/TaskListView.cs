@@ -52,6 +52,22 @@ internal sealed class TaskListView : RenderableControl
     /// <summary>Re-renders after a caller mutated a step's <see cref="AgentStep.Status"/> (row count unchanged).</summary>
     public void Refresh() => Invalidate();
 
+    /// <summary>Completes the first Active step and promotes the next Pending step to Active. Returns <see langword="true"/>
+    /// if a pending step was promoted, <see langword="false"/> when the checklist is finished — a demo helper for
+    /// walking the list forward one beat at a time.</summary>
+    public bool AdvanceStep()
+    {
+        var promoted = false;
+        UI.Invoke(() =>
+        {
+            foreach (var s in _steps) if (s.Status == StepStatus.Active) s.Status = StepStatus.Done;
+            foreach (var s in _steps)
+                if (s.Status == StepStatus.Pending) { s.Status = StepStatus.Active; promoted = true; break; }
+            Invalidate();
+        });
+        return promoted;
+    }
+
     /// <summary>Removes all steps and re-lays-out.</summary>
     public void Clear() => UI.Invoke(() => { _steps.Clear(); Initialize(); Invalidate(); });
 

@@ -89,10 +89,10 @@ internal sealed class Sidebar
         return list;
     }
 
-    // Bottom account row: a bold coral avatar glyph, the name, then a muted plan suffix.
+    // Bottom account row: a bold coral avatar glyph, the name, then a muted plan suffix (fictitious demo account).
     private static SpectreControl<Spectre.Console.Rows> BuildAccount() => Section(1,
         new Spectre.Console.Markup(
-            $" {Frag((Style)Palette.Coral | Style.Bold, "A")}  {Frag((Style)Palette.Text, "Allister")} {Frag((Style)Palette.TextMuted, "· Max")}"));
+            $" {Frag((Style)Palette.Coral | Style.Bold, "R")}  {Frag((Style)Palette.Text, "Robin Hale")} {Frag((Style)Palette.TextMuted, "· Max")}"));
 
     // A fixed-height passive section wrapping static Markup rows. The explicit Height docks it correctly; Focusable is
     // off so it is never a tab/focus target.

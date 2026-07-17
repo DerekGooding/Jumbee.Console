@@ -82,7 +82,7 @@ internal sealed class AgentHarnessApp
         // docked edge takes its child's fixed height and the rest fills).
         var promptRow = new Boundary(_prompt.WithFrame(BorderStyle.Rounded, borderFgColor: Palette.Coral), height: 3);
         var selectorsRow = new Boundary(ControlsRow(), height: 1);
-        var header = HeaderBar($" [{_coral}]✦[/] [{_text} bold]Silvergun[/]   [{_faint}]main · claude-opus-4-8[/]",
+        var header = HeaderBar($" [{_coral}]✦[/] [{_text} bold]Harbor API[/]   [{_faint}]main · claude-opus-4-8[/]",
                                $"[{_muted}]↻  ⋯[/]", rightCells: 5);
 
         var centre = new DockPanel(DockedControlPlacement.Bottom, _footer,
@@ -90,14 +90,14 @@ internal sealed class AgentHarnessApp
                 new DockPanel(DockedControlPlacement.Bottom, promptRow,
                     new DockPanel(DockedControlPlacement.Top, header, _transcript.WithFrame(BorderStyle.None)))));
 
-        // Right column: the live task list over the document viewer.
+        // Right column: the live task list over the document viewer. The task pane is short so its checklist scrolls.
         var tasks = new DockPanel(DockedControlPlacement.Top,
-            HeaderBar($" [{_muted}]‹[/]  [{_text}]Rename analyzer/disassembler tests[/]", $"[{_faint}]✕[/]", rightCells: 3),
+            HeaderBar($" [{_muted}]‹[/]  [{_text}]Add cursor pagination to /orders[/]", $"[{_faint}]✕[/]", rightCells: 3),
             _tasks.WithFrame(BorderStyle.None));
         var doc = new DockPanel(DockedControlPlacement.Top,
-            HeaderBar($" [{_coral}]▤[/]  [{_text}]prior-art-supply-chain.md[/]", "", rightCells: 0),
+            HeaderBar($" [{_coral}]▤[/]  [{_text}]pagination-design.md[/]", "", rightCells: 0),
             _doc.WithFrame(BorderStyle.None));
-        var right = new SplitPanel(SplitOrientation.Vertical, tasks, doc, splitPosition: 22);
+        var right = new SplitPanel(SplitOrientation.Vertical, tasks, doc, splitPosition: 15);
 
         // Left rail | (centre | right).
         var centreAndRight = new SplitPanel(SplitOrientation.Horizontal, centre, right, splitPosition: 74);
@@ -184,72 +184,91 @@ internal sealed class AgentHarnessApp
 
     // ── Seed content ────────────────────────────────────────────────────────────────────────────────────────────
 
+    // Fictitious recents — a believable mix of coding and personal chats, no real project or data.
     private static IEnumerable<SessionItem> Sessions() =>
     [
-        new("Silvergun", Active: true),
-        new("OnlyHumans"),
-        new("OnlyHumans VS tests"),
-        new("Jumbee.Console"),
-        new("Camel", Warn: true),
-        new("E theorem prover MSYS build errors"),
-        new("VsSolidity"),
-        new("General coding session"),
-        new("SRL-2015"),
-        new("SRL-ROCBA"),
-        new("SRL-2018"),
-        new("DFWRS2008"),
-        new("NITROBA"),
-        new("NIST_HACKING_CASE"),
-        new("ALIHADI"),
-        new("NIST_DATA_LEAKAGE"),
+        new("Harbor API", Active: true),
+        new("weekend recipe planner"),
+        new("resume rewrite"),
+        new("regex for log parsing"),
+        new("docker compose won't start", Warn: true),
+        new("vacation itinerary — Lisbon"),
+        new("sql query help"),
+        new("book notes: The Left Hand of Darkness"),
+        new("css grid cheatsheet"),
+        new("budget spreadsheet formulas"),
+        new("guitar practice plan"),
+        new("interview prep — system design"),
+        new("garden planting schedule"),
+        new("unit test flakiness"),
+        new("markdown to slides"),
+        new("name ideas for a puppy"),
     ];
 
-    // Pre-populates the panes so the app opens mid-session, like the reference screenshot. Deliberately long enough
-    // that the transcript and both right-hand panes scroll.
+    // Pre-populates the panes so the app opens mid-session (all fictitious). Deliberately long so the transcript and
+    // both right-hand panes scroll.
     private void SeedSession()
     {
-        // Earlier history (scrollback above the current exchange).
-        _transcript.AddUser("let's start Silvergun — a CIL-level capability scanner for .NET packages");
+        // ── Transcript: a fictional "add pagination to /orders" session ──────────────────────────────────────────
+        _transcript.AddUser("the /orders endpoint loads every order in one response and the dashboard keeps timing out. can we paginate it?");
         _transcript.AddAssistant(
-            $"Good scope. The plan: read the assembly with [{_coral}]CciAssembly[/], walk the IL of every method, and " +
-            $"match called APIs against a capability ruleset (filesystem, network, process, reflection). I'll set up the " +
-            $"solution and a first end-to-end scan of a sample package.");
-        MarkDone(_transcript.AddTool("◇", "Read 12 files", Palette.Blue));
-        MarkDone(_transcript.AddTool("◆", "Created Silvergun.Core, Silvergun.Cli", Palette.Green, "+840 -0"));
+            $"Yes. Two common approaches:\n" +
+            $"[{_text}]•[/] [{_coral}]Offset[/] (`?page=2&limit=50`) — trivial and lets you jump to any page, but it drifts " +
+            $"when rows are inserted mid-scroll and gets slow on deep pages (the DB still scans the skipped rows).\n" +
+            $"[{_text}]•[/] [{_coral}]Cursor[/] / keyset — stable under writes and stays fast because it seeks by an indexed " +
+            $"key. The trade-off is no random page jumps.\n\n" +
+            $"For an orders feed that's constantly appended to, I'd go with cursor pagination.");
+        MarkDone(_transcript.AddTool("◇", "Read 5 files", Palette.Blue));
+
+        _transcript.AddUser("makes sense — let's do cursor pagination keyed on created_at");
+        _transcript.AddAssistant(
+            $"Plan: add a `limit` and an opaque `cursor` query param, translate the cursor into a keyset predicate " +
+            $"[{_coral}]WHERE (created_at, id) < (@ts, @id)[/], and return a `nextCursor` in the response envelope. " +
+            $"Starting on the controller and repository.");
+        MarkDone(_transcript.AddTool("◆", "Edited OrdersController.cs", Palette.Green, "+38 -6"));
+        MarkDone(_transcript.AddTool("◆", "Edited OrderRepository.cs", Palette.Green, "+52 -9"));
+        _transcript.AddAssistant(
+            $"The cursor is a base64 of `{{createdAt, id}}` so clients treat it as opaque. Added a small encoder/decoder.");
+        MarkDone(_transcript.AddTool("◆", "Created CursorToken.cs", Palette.Green, "+64 -0"));
+
+        _transcript.AddUser("double-check the ordering is stable — we had duplicates at the same timestamp before");
+        _transcript.AddAssistant(
+            $"Good catch. Ordering by `created_at` alone isn't a total order, so two orders sharing a timestamp can " +
+            $"straddle a page boundary and get skipped or repeated. The fix is a tiebreaker: order by " +
+            $"[{_coral}](created_at, id)[/] and carry the same compound key in the cursor.");
+        var failing = _transcript.AddTool("▸", "Ran a command — dotnet test", Palette.Yellow);
+        failing.Status = ToolStatus.Error;
+        failing.Label = "Ran a command — dotnet test (1 failing)";
+        _transcript.Refresh();
+        _transcript.AddAssistant($"Confirmed — a case with three orders in the same second was flaky. Adding the `id` tiebreaker.");
+        MarkDone(_transcript.AddTool("◆", "Edited OrderRepository.cs", Palette.Green, "+7 -3"));
         MarkDone(_transcript.AddTool("▸", "Ran a command — dotnet test", Palette.Yellow));
+        _transcript.AddAssistant($"[{_green}]All 24 tests green[/] now, including the same-timestamp case.");
+
+        _transcript.AddUser("nice. what does the response look like now?");
         _transcript.AddAssistant(
-            $"Increment 0 is in: [{_green}]end-to-end scan works[/] on the sample and the ruleset engine is wired. " +
-            $"Next I'll harden the IL reader and land increment 1.");
+            $"The envelope is `{{ data, nextCursor, hasMore }}`. When `hasMore` is false, `nextCursor` is null " +
+            $"and the client stops. Remaining before this is PR-ready:\n" +
+            $"[{_coral}]1.[/] update the integration tests for the new envelope\n" +
+            $"[{_coral}]2.[/] add `nextCursor` to the OpenAPI schema and regenerate the client types\n" +
+            $"[{_coral}]3.[/] open the PR.");
 
-        _transcript.AddUser("go ahead with increment 1, then increment 2");
-
-        _transcript.AddAssistant(
-            $"Increment 1 verified (55 IL + 29 package, CLI builds) and now in review. The [{_coral}]CciAssembly[/] " +
-            $"contract tests are being added in parallel. Once clean, the capability scan is fully CCI-native and " +
-            $"lock-free — increments 2 (ObfuscationAnalysis retarget) and eventually the metadata consolidation follow.");
-
-        MarkDone(_transcript.AddTool("◇", "Read 6 files", Palette.Blue));
-        MarkDone(_transcript.AddTool("◆", "Edited RESEARCH-JOURNAL.md", Palette.Green, "+29 -0"));
-        MarkDone(_transcript.AddTool("▸", "Ran a command, ran 2 agents", Palette.Yellow));
-
-        _transcript.AddAssistant(
-            $"Two things for your input:\n" +
-            $"[{_text}]1.[/] Research decision — Application Inspector [{_coral}]RulesEngine[/] is a standalone NuGet library.\n" +
-            $"[{_text}]2.[/] Still open: the SharpCompress NU1902 decision (bump / pin / accept).");
-
-        // Task list (right-top) — the "Rename analyzer/disassembler tests" run from the screenshot (long enough to scroll).
-        Done(_tasks.AddStep("Read the task spec and mapped references"));
-        Done(_tasks.AddStep("Examined each affected file"));
-        Done(_tasks.AddStep("Read 6 files", indent: 1));
-        Done(_tasks.AddStep("Read the analysis-net test files"));
-        Done(_tasks.AddStep("Read the CCI consumer files"));
-        Done(_tasks.AddStep("Read 3 files", indent: 1));
-        Done(_tasks.AddStep("Renamed analysis-net → Disassembler first"));
-        Fail(_tasks.AddStep("Failed to rename test files in collision-safe order"));
-        Done(_tasks.AddStep("Recovered — moved untracked cci files via git mv"));
-        Active(_tasks.AddStep("Verifying state and updating references"));
-        _tasks.AddStep("Rebuild + run the analyzer test suite");
-        _tasks.AddStep("Update RESEARCH-JOURNAL.md");
+        // ── Task list (right-top): the pagination checklist. Ends at an Active step with pending ones below, so it
+        //    scrolls and the simulator can walk it forward with AdvanceStep(). ──────────────────────────────────────
+        Done(_tasks.AddStep("Read the orders controller"));
+        Done(_tasks.AddStep("Read the order repository + query builder"));
+        Done(_tasks.AddStep("Read 5 files", indent: 1));
+        Done(_tasks.AddStep("Add limit query param (default 50, max 200)"));
+        Done(_tasks.AddStep("Add opaque cursor query param"));
+        Done(_tasks.AddStep("Translate cursor → keyset WHERE predicate"));
+        Done(_tasks.AddStep("Encode/decode the cursor token (base64)"));
+        Fail(_tasks.AddStep("Ordering unstable on duplicate timestamps"));
+        Done(_tasks.AddStep("Recovered — added a (created_at, id) tiebreaker"));
+        Done(_tasks.AddStep("Re-ran the same-timestamp test case"));
+        Done(_tasks.AddStep("Add nextCursor + hasMore to the response"));
+        Active(_tasks.AddStep("Update integration tests for the new envelope"));
+        _tasks.AddStep("Add nextCursor to the OpenAPI schema");
+        _tasks.AddStep("Regenerate the API client types");
         _tasks.AddStep("Open the PR for review");
 
         _doc.Markdown = ResearchDoc;
@@ -294,43 +313,34 @@ internal sealed class AgentHarnessApp
 
     #region Fields
     private const string ResearchDoc =
-        "# Prior-art landscape\n\n" +
-        "## supply-chain / capability analysis for package security\n\n" +
-        "**Compiled:** 2026-07-16 — every claim carries a source URL. Confidence `[V]` = page fetched & quoted this " +
-        "session, `[K]` = well-established.\n\n" +
-        "## Executive summary\n\n" +
-        "- **Correction (post-publication):** the earlier claim that Capslock is Go-only is **wrong** — it has grown " +
-        "into a multi-implementation project: **JCapsLock** analyzes Java bytecode, and **cargo-capslock** analyzes " +
-        "Rust at the LLVM IR level.\n" +
-        "- CIL-level (.NET) capability analysis specifically remains **unoccupied**; Silvergun is not the first to " +
-        "analyze compiled bytecode for capabilities, but is the first to do so for the CLR.\n\n" +
-        "## Comparators\n\n" +
-        "| Tool | Target | Level |\n" +
-        "|------|--------|-------|\n" +
-        "| Capslock | Go | source + call graph |\n" +
-        "| JCapsLock | Java | bytecode |\n" +
-        "| cargo-capslock | Rust | LLVM IR |\n" +
-        "| **Silvergun** | **.NET** | **CIL** |\n\n" +
-        "## Comparators in detail\n\n" +
-        "- **Capslock (Go).** Analyzes the call graph from source; capabilities are derived from the standard library " +
-        "packages a function transitively reaches. Mature, Google-maintained.\n" +
-        "- **JCapsLock (Java).** Operates on compiled `.class` bytecode via a Maven plugin — no source required. Closest " +
-        "in spirit to Silvergun, one runtime over.\n" +
-        "- **cargo-capslock (Rust).** Works at the LLVM IR level, so it sees post-monomorphization calls.\n\n" +
-        "## Why CIL is unoccupied\n\n" +
-        "The CLR's verifiable IL keeps enough type and call information to recover a precise call graph without source, " +
-        "yet no shipping tool targets it for capability analysis. Silvergun reads assemblies with `CciAssembly`, walks " +
-        "each method body, and resolves `call`/`callvirt`/`newobj` targets against the ruleset.\n\n" +
-        "## Ruleset sources\n\n" +
-        "1. Reuse OSSGadget's MIT-licensed backdoor rules verbatim.\n" +
-        "2. Application Inspector's 400+ rules via its `RulesEngine` library.\n" +
-        "3. A small hand-authored set for CLR-specific sinks (reflection emit, `Process.Start`, P/Invoke).\n\n" +
+        "# Pagination design\n\n" +
+        "## /orders endpoint\n\n" +
+        "**Status:** in progress · cursor pagination\n\n" +
+        "## Problem\n\n" +
+        "The `/orders` endpoint returns the full table in one response. On large accounts the dashboard request times " +
+        "out and the payload is several megabytes.\n\n" +
+        "## Options considered\n\n" +
+        "| Approach | Pros | Cons |\n" +
+        "|----------|------|------|\n" +
+        "| Offset (`page`/`limit`) | trivial; jump to any page | drifts on insert; slow deep pages |\n" +
+        "| Cursor / keyset | stable under writes; fast seeks | no random page jumps; needs a total order |\n\n" +
+        "## Decision\n\n" +
+        "Use **cursor (keyset) pagination** ordered by the compound key `(created_at, id)`:\n\n" +
+        "- `GET /orders?limit=50&cursor=<opaque>`\n" +
+        "- The cursor is a base64 of `{ createdAt, id }` — clients treat it as opaque.\n" +
+        "- The query seeks: `WHERE (created_at, id) < (@ts, @id) ORDER BY created_at DESC, id DESC LIMIT @limit`.\n" +
+        "- Response envelope: `{ data, nextCursor, hasMore }`; `nextCursor` is null when `hasMore` is false.\n\n" +
+        "## Why the tiebreaker\n\n" +
+        "`created_at` alone is not a total order — orders created in the same second can straddle a page boundary and " +
+        "be skipped or duplicated. Adding `id` as a tiebreaker makes the key unique and the paging deterministic.\n\n" +
+        "## Rollout\n\n" +
+        "1. Ship additively (the new fields don't break existing clients).\n" +
+        "2. Update the OpenAPI schema and regenerate client types.\n" +
+        "3. Frontend switches the dashboard to follow `nextCursor`.\n\n" +
         "## Open questions\n\n" +
-        "1. Does the AppInspector `RulesEngine` cleanly consume as a library?\n" +
-        "2. Bump vs pin vs accept for the SharpCompress `NU1902` advisory.\n" +
-        "3. Should P/Invoke surface as its own capability, or fold into `native`?\n" +
-        "4. How to weight reflection — capability or a separate risk signal?\n\n" +
-        "> Note: confidence tags — `[V]` verified this session, `[K]` well-established — carry through to the final report.\n";
+        "1. Do we need an offset fallback for the admin export? *(leaning no — use a streaming export instead)*\n" +
+        "2. Cap `limit` at 200? *(yes for now)*\n\n" +
+        "> Note: the same keyset technique applies to `/invoices` and `/events` once this lands.\n";
 
     private readonly string _coral;
     private readonly string _green;

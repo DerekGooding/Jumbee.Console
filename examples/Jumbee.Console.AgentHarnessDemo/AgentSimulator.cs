@@ -34,39 +34,33 @@ internal sealed class AgentSimulator(TranscriptView transcript, TaskListView tas
             });
             await Task.Delay(450);
 
-            // Close out the step that was mid-flight in the seed, then open the new increment.
-            await OnUi(() => tasks.AddStep("Green-lit increment 2 (ObfuscationAnalysis retarget)").Status = StepStatus.Done);
             var reply = await OnUi(() => transcript.AddAssistant());
             await Stream(reply,
-                $"On it — retargeting [{Coral}]ObfuscationAnalysis[/] onto the CCI reader so the whole capability " +
-                $"scan runs off one lock-free [{Coral}]CciAssembly[/] instance.");
+                $"On it — I'll finish the integration tests, add [{Coral}]nextCursor[/] to the OpenAPI schema, " +
+                $"regenerate the client types, then open the PR.");
 
-            var scanStep = await OnUi(() => tasks.AddStep("Retarget ObfuscationAnalysis onto CciAssembly"));
-            await OnUi(() => scanStep.Status = StepStatus.Active);
-            await OnUi(() => tasks.Refresh());
+            // Walk the seeded checklist forward, one tool call per beat (AdvanceStep completes the active step and
+            // promotes the next pending one).
+            await Chip("◆", "Edited orders.integration.test.ts", Palette.Green, "+90 -20", 900);
+            await OnUi(() => tasks.AdvanceStep());
+            await Chip("▸", "Ran a command — dotnet test", Palette.Yellow, null, 900);
+            var green = await OnUi(() => transcript.AddAssistant());
+            await Stream(green, $"[{Green}]All 24 tests green.[/]");
 
-            await Chip("◇", "Read 4 files", Palette.Blue, null, 700);
-            await Chip("◆", "Edited ObfuscationAnalysis.cs", Palette.Green, "+64 -12", 900);
-            await OnUi(() =>
-            {
-                scanStep.Status = StepStatus.Done;
-                tasks.AddStep("Ran capability scan (55 IL, lock-free)").Status = StepStatus.Active;
-                tasks.Refresh();
-            });
-
-            await Chip("▸", "Ran a command — dotnet test", Palette.Yellow, null, 1000);
+            await Chip("◆", "Edited openapi.yaml", Palette.Green, "+14 -0", 700);
+            await OnUi(() => tasks.AdvanceStep());
+            await Chip("▸", "Ran a command — npm run gen:client", Palette.Yellow, null, 800);
+            await OnUi(() => tasks.AdvanceStep());
+            await Chip("▸", "Ran a command — gh pr create", Palette.Yellow, null, 900);
+            await OnUi(() => tasks.AdvanceStep());
 
             var summary = await OnUi(() => transcript.AddAssistant());
             await Stream(summary,
-                $"Done. ObfuscationAnalysis now shares the CCI reader — [{Green}]55/55 IL tests green[/], no new " +
-                $"allocations on the scan path. Journal updated; the SharpCompress [{Coral}]NU1902[/] call is still yours.");
+                $"Done — cursor pagination is [{Green}]ready for review[/]. PR [{Coral}]#482[/] is open: opaque cursor, " +
+                $"a `(created_at, id)` tiebreaker, a `nextCursor`/`hasMore` envelope, and the OpenAPI schema + client " +
+                $"types updated. Left the admin-export offset fallback out, per the design doc.");
 
-            await OnUi(() =>
-            {
-                doc.Markdown = DocWithUpdate;
-                tasks.Refresh();
-            });
-            await OnUi(MarkAllActiveDone);
+            await OnUi(() => doc.Markdown = DocWithUpdate);
         }
         catch { /* a demo swallows script errors rather than crashing the UI thread */ }
         finally
@@ -100,13 +94,6 @@ internal sealed class AgentSimulator(TranscriptView transcript, TaskListView tas
         await OnUi(() => { chip.Status = ToolStatus.Done; transcript.Refresh(); });
     }
 
-    private void MarkAllActiveDone()
-    {
-        // The last active step completes at the end of the turn.
-        tasks.AddStep("Committed increment 2").Status = StepStatus.Done;
-        tasks.Refresh();
-    }
-
     // Runs `action` on the UI thread and completes when it has run.
     private static Task OnUi(Action action)
     {
@@ -128,22 +115,22 @@ internal sealed class AgentSimulator(TranscriptView transcript, TaskListView tas
 
     #region Fields
     private const string DocWithUpdate =
-        "# Prior-art landscape\n\n" +
-        "## supply-chain / capability analysis for package security\n\n" +
-        "**Compiled:** 2026-07-16 · **Updated:** increment 2 landed.\n\n" +
-        "## Executive summary\n\n" +
-        "- CIL-level (.NET) capability analysis remains **unoccupied**; Silvergun is the first for the CLR.\n" +
-        "- **ObfuscationAnalysis** now runs off the shared `CciAssembly` reader — lock-free, 55/55 IL tests green.\n\n" +
-        "## Comparators\n\n" +
-        "| Tool | Target | Level |\n" +
-        "|------|--------|-------|\n" +
-        "| Capslock | Go | source + call graph |\n" +
-        "| JCapsLock | Java | bytecode |\n" +
-        "| cargo-capslock | Rust | LLVM IR |\n" +
-        "| **Silvergun** | **.NET** | **CIL** |\n\n" +
+        "# Pagination design\n\n" +
+        "## /orders endpoint\n\n" +
+        "**Status:** shipped · PR #482 open for review\n\n" +
+        "## Decision\n\n" +
+        "**Cursor (keyset) pagination** ordered by `(created_at, id)`:\n\n" +
+        "- `GET /orders?limit=50&cursor=<opaque>` — base64 of `{ createdAt, id }`.\n" +
+        "- Seeks `WHERE (created_at, id) < (@ts, @id) ORDER BY created_at DESC, id DESC LIMIT @limit`.\n" +
+        "- Envelope: `{ data, nextCursor, hasMore }`.\n\n" +
+        "## Shipped in PR #482\n\n" +
+        "- Opaque cursor + `(created_at, id)` tiebreaker (fixes the same-timestamp paging bug).\n" +
+        "- `nextCursor` / `hasMore` response envelope.\n" +
+        "- OpenAPI schema updated and client types regenerated.\n" +
+        "- **All 24 integration tests green.**\n\n" +
         "## Open questions\n\n" +
-        "1. ~~Does the AppInspector `RulesEngine` consume cleanly as a library?~~ **Resolved: yes.**\n" +
-        "2. Bump vs pin vs accept for the SharpCompress `NU1902` advisory. *(still open)*\n";
+        "1. ~~Do we need an offset fallback for the admin export?~~ **Resolved: no — use a streaming export.**\n" +
+        "2. Cap `limit` at 200? *(yes for now)*\n";
 
     private bool _busy;
     #endregion

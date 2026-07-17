@@ -193,6 +193,10 @@ public partial class ListBox : RenderableControl
 
     public void Update() => Invalidate();
 
+    // The selected row is the focus indicator, so don't also tint the whole control when it's focused (a borderless
+    // list would otherwise light up entirely on focus). A framed list already shows focus through its border colour.
+    protected override bool RendersOwnFocus => true;
+
     // Default the selected-row colours from the theme so a bare ListBox shows a visible selection (re-applied on a
     // runtime theme switch; explicit SelectedForeground/BackgroundColor overrides are left alone).
     protected override void ApplyTheme()

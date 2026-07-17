@@ -31,7 +31,7 @@ internal static class Program
     {
         var app = new AgentHarnessApp();
         var text = ConsoleSnapshot.ToText(app.Root, 150, 44);
-        string[] expected = ["Silvergun", "Recents", "Allister", "Rename analyzer", "prior-art"];
+        string[] expected = ["Harbor API", "Recents", "Robin Hale", "cursor pagination", "Pagination"];
         var missing = expected.Where(e => !text.Contains(e)).ToArray();
         if (missing.Length > 0)
         {
