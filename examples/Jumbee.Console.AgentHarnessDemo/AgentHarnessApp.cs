@@ -21,6 +21,7 @@ internal sealed class AgentHarnessApp
 
         // Markup fragments for the panel header bars, resolved once from the theme.
         _coral = ((Style)Palette.Coral).ToMarkup();
+        _green = ((Style)Palette.Green).ToMarkup();
         _text = ((Style)Palette.Text).ToMarkup();
         _muted = ((Style)Palette.TextMuted).ToMarkup();
         _faint = ((Style)Palette.TextFaint).ToMarkup();
@@ -52,6 +53,8 @@ internal sealed class AgentHarnessApp
         SeedSession();
 
         _prompt.Submitted += (_, text) => _sim.Run(text);
+        _sidebar.CustomizeInvoked += OpenCustomizeDialog;          // left-nav "Customize" → modal
+        _sidebar.Sessions.ContextMenu = BuildSessionMenu();        // right-click a session → menu
     }
     #endregion
 
@@ -66,6 +69,7 @@ internal sealed class AgentHarnessApp
         UI.RegisterHotKey(UI.HotKeys.Ctrl(System.ConsoleKey.Q), UI.Stop);
         var run = UI.Start(_root, width: 150, height: 44, isAnsiTerminal: true, input: new VtInputSource(anyMotion: true));
         UI.SetFocus(_prompt.Input);
+        UI.Post(_transcript.ScrollToBottom);   // open pinned to the newest message (frame is attached now)
         run.Wait();
     }
 
@@ -136,6 +140,48 @@ internal sealed class AgentHarnessApp
             PopupPosition = SelectPopupPosition.Above,
         };
 
+    // ── Interactivity ───────────────────────────────────────────────────────────────────────────────────────────
+
+    // The right-click menu for a session row (demo only — Rename/Delete pop a dialog, the rest are inert). The ListBox
+    // selects the clicked row before showing this, so handlers could read Sessions.SelectedItem.
+    private static ContextMenu BuildSessionMenu() => new(
+    [
+        new MenuItem("Open in", [new MenuItem("New window"), new MenuItem("Split right"), new MenuItem("Browser")]),
+        new MenuItem("Pin") { Shortcut = "P" },
+        new MenuItem("Mark as unread") { Shortcut = "U" },
+        new MenuItem("Rename", () => Dialog.Message("Rename", "Renaming isn't wired up in this UI demo.")) { Shortcut = "R" },
+        new MenuItem("Fork") { Shortcut = "F" },
+        MenuItem.Separator,
+        new MenuItem("Move to group", [new MenuItem("Work"), new MenuItem("Personal"), new MenuItem("Research")]),
+        MenuItem.Separator,
+        new MenuItem("Archive") { Shortcut = "A" },
+        new MenuItem("Delete", () => Dialog.Confirm("Delete chat", "Delete this conversation? This can't be undone.", _ => { })) { Shortcut = "D" },
+    ]);
+
+    // Left-nav "Customize" opens a modal Settings-style panel (a Skills/Customize list), like the desktop app.
+    private void OpenCustomizeDialog()
+    {
+        var list = new ListBox
+        {
+            HighlightFullWidth = true,
+            SelectedBackgroundColor = Palette.RaisedBg,
+            SelectedForegroundColor = Palette.Text,
+        };
+        (string Glyph, string Label)[] rows =
+        [
+            ("◐", "General"), ("○", "Account"), ("◇", "Privacy"), ("▤", "Billing"), ("▣", "Usage"),
+            ("◈", "Capabilities"), ("↺", "Reflect"), ("◔", "Time and focus"), ("◆", "Claude Code"),
+            ("≣", "Cowork"), ("★", "Skills"), ("▦", "Connectors"),
+        ];
+        foreach (var (glyph, label) in rows)
+            list.AddItem(new Spectre.Console.Markup($"  [{_muted}]{glyph}[/]  [{_text}]{label}[/]"));
+        list.SelectedIndex = 10;   // Skills, as in the screenshot
+        list.Width = 40;
+        list.Height = rows.Length;
+
+        Dialog.Show("Customize", list, DialogButtons.Close, _ => { });
+    }
+
     // ── Seed content ────────────────────────────────────────────────────────────────────────────────────────────
 
     private static IEnumerable<SessionItem> Sessions() =>
@@ -158,10 +204,24 @@ internal sealed class AgentHarnessApp
         new("NIST_DATA_LEAKAGE"),
     ];
 
-    // Pre-populates the panes so the app opens mid-session, like the reference screenshot.
+    // Pre-populates the panes so the app opens mid-session, like the reference screenshot. Deliberately long enough
+    // that the transcript and both right-hand panes scroll.
     private void SeedSession()
     {
-        _transcript.AddUser("go ahead with increment 2");
+        // Earlier history (scrollback above the current exchange).
+        _transcript.AddUser("let's start Silvergun — a CIL-level capability scanner for .NET packages");
+        _transcript.AddAssistant(
+            $"Good scope. The plan: read the assembly with [{_coral}]CciAssembly[/], walk the IL of every method, and " +
+            $"match called APIs against a capability ruleset (filesystem, network, process, reflection). I'll set up the " +
+            $"solution and a first end-to-end scan of a sample package.");
+        MarkDone(_transcript.AddTool("◇", "Read 12 files", Palette.Blue));
+        MarkDone(_transcript.AddTool("◆", "Created Silvergun.Core, Silvergun.Cli", Palette.Green, "+840 -0"));
+        MarkDone(_transcript.AddTool("▸", "Ran a command — dotnet test", Palette.Yellow));
+        _transcript.AddAssistant(
+            $"Increment 0 is in: [{_green}]end-to-end scan works[/] on the sample and the ruleset engine is wired. " +
+            $"Next I'll harden the IL reader and land increment 1.");
+
+        _transcript.AddUser("go ahead with increment 1, then increment 2");
 
         _transcript.AddAssistant(
             $"Increment 1 verified (55 IL + 29 package, CLI builds) and now in review. The [{_coral}]CciAssembly[/] " +
@@ -177,14 +237,20 @@ internal sealed class AgentHarnessApp
             $"[{_text}]1.[/] Research decision — Application Inspector [{_coral}]RulesEngine[/] is a standalone NuGet library.\n" +
             $"[{_text}]2.[/] Still open: the SharpCompress NU1902 decision (bump / pin / accept).");
 
-        // Task list (right-top) — the "Rename analyzer/disassembler tests" run from the screenshot.
+        // Task list (right-top) — the "Rename analyzer/disassembler tests" run from the screenshot (long enough to scroll).
         Done(_tasks.AddStep("Read the task spec and mapped references"));
         Done(_tasks.AddStep("Examined each affected file"));
         Done(_tasks.AddStep("Read 6 files", indent: 1));
         Done(_tasks.AddStep("Read the analysis-net test files"));
+        Done(_tasks.AddStep("Read the CCI consumer files"));
+        Done(_tasks.AddStep("Read 3 files", indent: 1));
         Done(_tasks.AddStep("Renamed analysis-net → Disassembler first"));
         Fail(_tasks.AddStep("Failed to rename test files in collision-safe order"));
-        Active(_tasks.AddStep("Verifying state and moving untracked cci files"));
+        Done(_tasks.AddStep("Recovered — moved untracked cci files via git mv"));
+        Active(_tasks.AddStep("Verifying state and updating references"));
+        _tasks.AddStep("Rebuild + run the analyzer test suite");
+        _tasks.AddStep("Update RESEARCH-JOURNAL.md");
+        _tasks.AddStep("Open the PR for review");
 
         _doc.Markdown = ResearchDoc;
     }
@@ -245,11 +311,29 @@ internal sealed class AgentHarnessApp
         "| JCapsLock | Java | bytecode |\n" +
         "| cargo-capslock | Rust | LLVM IR |\n" +
         "| **Silvergun** | **.NET** | **CIL** |\n\n" +
+        "## Comparators in detail\n\n" +
+        "- **Capslock (Go).** Analyzes the call graph from source; capabilities are derived from the standard library " +
+        "packages a function transitively reaches. Mature, Google-maintained.\n" +
+        "- **JCapsLock (Java).** Operates on compiled `.class` bytecode via a Maven plugin — no source required. Closest " +
+        "in spirit to Silvergun, one runtime over.\n" +
+        "- **cargo-capslock (Rust).** Works at the LLVM IR level, so it sees post-monomorphization calls.\n\n" +
+        "## Why CIL is unoccupied\n\n" +
+        "The CLR's verifiable IL keeps enough type and call information to recover a precise call graph without source, " +
+        "yet no shipping tool targets it for capability analysis. Silvergun reads assemblies with `CciAssembly`, walks " +
+        "each method body, and resolves `call`/`callvirt`/`newobj` targets against the ruleset.\n\n" +
+        "## Ruleset sources\n\n" +
+        "1. Reuse OSSGadget's MIT-licensed backdoor rules verbatim.\n" +
+        "2. Application Inspector's 400+ rules via its `RulesEngine` library.\n" +
+        "3. A small hand-authored set for CLR-specific sinks (reflection emit, `Process.Start`, P/Invoke).\n\n" +
         "## Open questions\n\n" +
         "1. Does the AppInspector `RulesEngine` cleanly consume as a library?\n" +
-        "2. Bump vs pin vs accept for the SharpCompress `NU1902` advisory.\n";
+        "2. Bump vs pin vs accept for the SharpCompress `NU1902` advisory.\n" +
+        "3. Should P/Invoke surface as its own capability, or fold into `native`?\n" +
+        "4. How to weight reflection — capability or a separate risk signal?\n\n" +
+        "> Note: confidence tags — `[V]` verified this session, `[K]` well-established — carry through to the final report.\n";
 
     private readonly string _coral;
+    private readonly string _green;
     private readonly string _text;
     private readonly string _muted;
     private readonly string _faint;

@@ -25,6 +25,11 @@ internal sealed class Sidebar
     }
     #endregion
 
+    #region Events
+    /// <summary>Raised when the "Customize" nav row is clicked (or activated by keyboard).</summary>
+    public event Action? CustomizeInvoked;
+    #endregion
+
     #region Properties
     /// <summary>The composed, unframed sidebar content — the caller frames and places it.</summary>
     public ILayout Layout => _layout;
@@ -34,25 +39,19 @@ internal sealed class Sidebar
     #endregion
 
     #region Methods
-    // Nav rows: a tinted glyph + a normal-text label, one Markup per row. Explicit Height so the section docks to its
-    // four rows instead of filling (a bare RenderableControl reports no intrinsic height under a finite parent).
-    private static SpectreControl<Spectre.Console.Rows> BuildNav()
+    // Nav rows: clickable NavItems (hover-highlight + action). Only "Customize" is wired — it raises CustomizeInvoked.
+    // Wrapped in a fixed-height Boundary so the section docks to its four rows instead of filling.
+    private IFocusable BuildNav()
     {
-        var glyph = (Style)Palette.Coral;
-        var label = (Style)Palette.Text;
-        (string Glyph, string Label)[] rows =
+        var g = Palette.Coral;
+        IFocusable[] items =
         [
-            ("⌂", "Home"),
-            ("◳", "Artifacts"),
-            ("◈", "Customize"),
-            ("…", "More"),
+            new NavItem("⌂", "Home", g),
+            new NavItem("◳", "Artifacts", g),
+            new NavItem("◈", "Customize", g, () => CustomizeInvoked?.Invoke()),
+            new NavItem("…", "More", g),
         ];
-
-        var markups = new Spectre.Console.Markup[rows.Length];
-        for (var i = 0; i < rows.Length; i++)
-            markups[i] = new Spectre.Console.Markup($" {Frag(glyph, rows[i].Glyph)}  {Frag(label, rows[i].Label)}");
-
-        return Section(rows.Length, markups);
+        return new Boundary(new VerticalStackPanel(items), height: items.Length);
     }
 
     // A blank spacer row above the muted "Recents" header.

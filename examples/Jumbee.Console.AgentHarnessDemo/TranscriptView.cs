@@ -48,6 +48,10 @@ internal sealed class TranscriptView : Control
     /// <summary>Re-renders after a caller mutated a returned block handle, and re-sticks to the bottom.</summary>
     public void Refresh() => Bump();
 
+    /// <summary>Scrolls to the newest message. Call once the UI is live to open pinned to the bottom (the per-add
+    /// stick is a no-op during seeding, before the scroll frame is attached).</summary>
+    public void ScrollToBottom() => UI.Invoke(() => { StickToBottom(); Invalidate(); });
+
     public void Clear()
     {
         _blocks.Clear();
