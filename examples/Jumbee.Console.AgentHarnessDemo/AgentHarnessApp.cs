@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 using Jumbee.Console;
 
+using NTokenizers.Extensions.Spectre.Console.Styles;
+
 /// <summary>
 /// Composes the whole harness UI from Jumbee.Console controls and wires the scripted <see cref="AgentSimulator"/> to
 /// the chat prompt. Layout: a session rail (left), a chat column with transcript + prompt (centre), and a task
@@ -26,7 +28,10 @@ internal sealed class AgentHarnessApp
         _sidebar = new Sidebar(Sessions());
         _transcript = new TranscriptView();
         _tasks = new TaskListView();
-        _doc = new MarkdownViewer();
+        // NTokenizers ships only a bright Default MarkdownStyles (yellow headings, blue bold, red lists). Build a fresh
+        // instance tuned to the warm palette and set it before UI.Start (a new instance — never mutate the shared
+        // Default). MarkdownViewer.Styles marshals via UI.Invoke, which runs inline before the UI thread exists.
+        _doc = new MarkdownViewer { Styles = DarkMarkdownStyles() };
 
         _prompt = new ChatPrompt("Reply to Claude…  (type / for commands)") { Prompt = "❯" };
         _prompt.WithSuggestions("/help", "/model", "/clear", "/compact", "/review", "/plan", "/cost", "/resume");
@@ -73,8 +78,8 @@ internal sealed class AgentHarnessApp
         // docked edge takes its child's fixed height and the rest fills).
         var promptRow = new Boundary(_prompt.WithFrame(BorderStyle.Rounded, borderFgColor: Palette.Coral), height: 3);
         var selectorsRow = new Boundary(ControlsRow(), height: 1);
-        var header = HeaderBar($" [{_coral}]✳[/] [{_text} bold]Silvergun[/]   [{_faint}]main · claude-opus-4-8[/]",
-                               $"[{_muted}]⧉  ⟳  ⋯[/]", rightCells: 9);
+        var header = HeaderBar($" [{_coral}]✦[/] [{_text} bold]Silvergun[/]   [{_faint}]main · claude-opus-4-8[/]",
+                               $"[{_muted}]↻  ⋯[/]", rightCells: 5);
 
         var centre = new DockPanel(DockedControlPlacement.Bottom, _footer,
             new DockPanel(DockedControlPlacement.Bottom, selectorsRow,
@@ -97,7 +102,7 @@ internal sealed class AgentHarnessApp
 
     // The sidebar with a brand row docked above it.
     private ILayout SidebarPane() => new DockPanel(DockedControlPlacement.Top,
-        HeaderBar($" [{_coral}]✳[/] [{_text} bold]Claude[/]", $"[{_muted}]≡[/]", rightCells: 3),
+        HeaderBar($" [{_coral}]✦[/] [{_text} bold]Claude[/]", $"[{_muted}]≡[/]", rightCells: 3),
         _sidebar.Layout);
 
     // The model / effort / permission selectors laid out left-to-right under the prompt.
@@ -121,8 +126,15 @@ internal sealed class AgentHarnessApp
     private static IFocusable Spacer(int width) =>
         new SpectreControl<Spectre.Console.Markup>(new Spectre.Console.Markup("")) { Focusable = false, Width = width };
 
+    // The selectors sit at the bottom of the screen, so their dropdowns open upward (Above) to stay on-screen.
     private static Select MakeSelect(string[] options) =>
-        new Select(options) { Foreground = Palette.Text, Background = Palette.RaisedBg, SelectedIndex = 0 };
+        new Select(options)
+        {
+            Foreground = Palette.Text,
+            Background = Palette.RaisedBg,
+            SelectedIndex = 0,
+            PopupPosition = SelectPopupPosition.Above,
+        };
 
     // ── Seed content ────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -157,8 +169,8 @@ internal sealed class AgentHarnessApp
             $"lock-free — increments 2 (ObfuscationAnalysis retarget) and eventually the metadata consolidation follow.");
 
         MarkDone(_transcript.AddTool("◇", "Read 6 files", Palette.Blue));
-        MarkDone(_transcript.AddTool("✎", "Edited RESEARCH-JOURNAL.md", Palette.Green, "+29 -0"));
-        MarkDone(_transcript.AddTool("⚙", "Ran a command, ran 2 agents", Palette.Yellow));
+        MarkDone(_transcript.AddTool("◆", "Edited RESEARCH-JOURNAL.md", Palette.Green, "+29 -0"));
+        MarkDone(_transcript.AddTool("▸", "Ran a command, ran 2 agents", Palette.Yellow));
 
         _transcript.AddAssistant(
             $"Two things for your input:\n" +
@@ -175,6 +187,37 @@ internal sealed class AgentHarnessApp
         Active(_tasks.AddStep("Verifying state and moving untracked cci files"));
 
         _doc.Markdown = ResearchDoc;
+    }
+
+    // A MarkdownStyles tuned to the warm dark palette (coral headings/accents, muted prose) — a fresh instance so the
+    // shared MarkdownStyles.Default is never mutated.
+    private static MarkdownStyles DarkMarkdownStyles()
+    {
+        static Spectre.Console.Style S(Color fg, Spectre.Console.Decoration d = Spectre.Console.Decoration.None) =>
+            new(foreground: fg, decoration: d);
+
+        var s = new MarkdownStyles
+        {
+            Heading = S(Palette.Coral, Spectre.Console.Decoration.Bold),
+            Bold = S(Palette.Text, Spectre.Console.Decoration.Bold),
+            Italic = S(Palette.TextMuted, Spectre.Console.Decoration.Italic),
+            CodeInline = S(Palette.Coral),
+            CodeBlock = S(Palette.Green),
+            Link = S(Palette.Blue, Spectre.Console.Decoration.Underline),
+            Blockquote = S(Palette.TextMuted, Spectre.Console.Decoration.Italic),
+            UnorderedListItem = S(Palette.Coral),
+            OrderedListItem = S(Palette.Coral),
+            TableCell = S(Palette.Text),
+            HorizontalRule = S(Palette.Border),
+            Emphasis = S(Palette.Yellow, Spectre.Console.Decoration.Italic),
+            MarkedText = S(Palette.Yellow),
+            InsertedText = S(Palette.Green),
+            DefaultStyle = S(Palette.Text),
+        };
+        s.MarkdownHeadingStyles.Level1 = S(Palette.Coral, Spectre.Console.Decoration.Bold);
+        s.MarkdownHeadingStyles.Level2To4 = S(Palette.Text, Spectre.Console.Decoration.Bold);
+        s.MarkdownHeadingStyles.Level5AndAbove = S(Palette.TextMuted, Spectre.Console.Decoration.Bold);
+        return s;
     }
 
     private static void MarkDone(ToolBlock t) => t.Status = ToolStatus.Done;

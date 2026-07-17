@@ -8,7 +8,7 @@ using Jumbee.Console;
 /// <summary>
 /// Fakes an agent turn. On submit it pushes the user's prompt, spins the prompt's busy indicator, then plays a
 /// scripted sequence — streaming assistant prose, tool-call chips that flip from running to done, and task-list
-/// steps advancing ○ → ● → ✔ — with small delays so it reads like a live session. No real model is involved.
+/// steps advancing ○ → ● → ✓ — with small delays so it reads like a live session. No real model is involved.
 /// </summary>
 internal sealed class AgentSimulator(TranscriptView transcript, TaskListView tasks, MarkdownViewer doc, ChatPrompt prompt)
 {
@@ -46,7 +46,7 @@ internal sealed class AgentSimulator(TranscriptView transcript, TaskListView tas
             await OnUi(() => tasks.Refresh());
 
             await Chip("◇", "Read 4 files", Palette.Blue, null, 700);
-            await Chip("✎", "Edited ObfuscationAnalysis.cs", Palette.Green, "+64 -12", 900);
+            await Chip("◆", "Edited ObfuscationAnalysis.cs", Palette.Green, "+64 -12", 900);
             await OnUi(() =>
             {
                 scanStep.Status = StepStatus.Done;
@@ -54,7 +54,7 @@ internal sealed class AgentSimulator(TranscriptView transcript, TaskListView tas
                 tasks.Refresh();
             });
 
-            await Chip("⚙", "Ran a command — dotnet test", Palette.Yellow, null, 1000);
+            await Chip("▸", "Ran a command — dotnet test", Palette.Yellow, null, 1000);
 
             var summary = await OnUi(() => transcript.AddAssistant());
             await Stream(summary,

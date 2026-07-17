@@ -106,13 +106,13 @@ internal sealed class TaskListView : RenderableControl
         sb.Append('[').Append(style.ToMarkup()).Append(']').Append(Markup.Escape(text)).Append("[/]");
 
     // Glyph + glyph/text styles for a step. Sub-steps (Indent >= 1) are wholly muted regardless of status; top-level
-    // steps colour by status: Done ✔ green/muted, Active spinner coral/bright, Pending ○ faint, Failed ✘ red.
+    // steps colour by status: Done ✓ green/muted, Active spinner coral/bright, Pending ○ faint, Failed ✗ red.
     private (string glyph, Style glyphStyle, Style textStyle) Visual(AgentStep step)
     {
         var glyph = step.Status switch
         {
-            StepStatus.Done => "✔",   // ✔
-            StepStatus.Failed => "✘", // ✘
+            StepStatus.Done => "✓",   // ✓
+            StepStatus.Failed => "✗", // ✗
             StepStatus.Active => _spinnerFrames.Count > 0 ? _spinnerFrames[_frame % _spinnerFrames.Count] : "•",
             _ => "○",                 // ○
         };

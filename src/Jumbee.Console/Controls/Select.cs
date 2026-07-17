@@ -10,10 +10,23 @@ using ConsoleGUI.Space;
 
 using Spectre.Console.Rendering;
 
+/// <summary>Where a <see cref="Select"/>'s dropdown opens relative to the control.</summary>
+public enum SelectPopupPosition
+{
+    /// <summary>Open below when the dropdown fits under the control, otherwise above — so a Select near the bottom of
+    /// the screen still shows all its options.</summary>
+    Auto,
+    /// <summary>Always open below the control.</summary>
+    Below,
+    /// <summary>Always open above the control.</summary>
+    Above,
+}
+
 /// <summary>
 /// A drop-down selector. Closed, it shows the current value with a ▼ marker; clicking it (or Enter/Space while
-/// focused) opens its options in the ambient <see cref="UI.Overlay"/>, anchored just below. Choosing an option
-/// (click or Enter) commits it; Escape or a click outside cancels.
+/// focused) opens its options in the ambient <see cref="UI.Overlay"/>. By default the list opens below the control,
+/// flipping above when there isn't room (see <see cref="PopupPosition"/>). Choosing an option (click or Enter)
+/// commits it; Escape or a click outside cancels.
 /// </summary>
 public class Select : RenderableControl
 {
@@ -38,6 +51,9 @@ public class Select : RenderableControl
 
     public Color Foreground { get; set; } = Color.White;
     public Color Background { get; set; } = new(50, 50, 70);
+
+    /// <summary>Whether the dropdown opens below or above the control. Defaults to <see cref="SelectPopupPosition.Auto"/>.</summary>
+    public SelectPopupPosition PopupPosition { get; set; } = SelectPopupPosition.Auto;
 
     public int SelectedIndex
     {
@@ -64,12 +80,13 @@ public class Select : RenderableControl
     {
         if (UI.Overlay is not { } host || _options.Count == 0) return;
 
+        var rows = Math.Min(_options.Count, MaxDropdownRows);
         var list = new ListBox(_options.ToArray())
         {
             SelectedForegroundColor = Color.White,
             SelectedBackgroundColor = new Color(40, 90, 160),
             Width = PreferredWidth(),
-            Height = Math.Min(_options.Count, MaxDropdownRows),
+            Height = rows,
         };
         list.SelectedIndex = Math.Max(0, _selectedIndex);
         list.WithRoundedBorder(Color.Grey);
@@ -82,8 +99,23 @@ public class Select : RenderableControl
         };
         list.Cancelled += (_, _) => Close();
 
-        if (_anchorX >= 0) host.Show(list, _anchorX, _anchorY);
+        if (_controlLeft >= 0) host.Show(list, _controlLeft, ResolveTop(rows + 2));   // + rounded border rows
         else host.Show(list);
+    }
+
+    // The y at which the dropdown opens, honouring PopupPosition. Auto opens below when the popup fits under the
+    // control, else above when there's room there — so a Select near the bottom edge still shows every option.
+    private int ResolveTop(int popupHeight)
+    {
+        var below = _controlTop + 1;                 // just under the one-row control
+        var above = _controlTop - popupHeight;       // directly above it
+        var screenHeight = ConsoleManager.WindowSize.Height;
+        return PopupPosition switch
+        {
+            SelectPopupPosition.Below => below,
+            SelectPopupPosition.Above => Math.Max(0, above),
+            _ => below + popupHeight <= screenHeight ? below : above >= 0 ? above : below,
+        };
     }
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
@@ -100,12 +132,12 @@ public class Select : RenderableControl
 
     protected override void OnClick(Position position)
     {
-        // Anchor the dropdown just below this control: the click's absolute position minus its position relative
-        // to us gives our top-left; drop down one row.
+        // Record this control's top-left on screen: the click's absolute position minus its position relative to us.
+        // Open() turns that into the dropdown anchor per PopupPosition.
         if (ConsoleManager.MousePosition is { } m)
         {
-            _anchorX = m.X - position.X;
-            _anchorY = m.Y - position.Y + 1;
+            _controlLeft = m.X - position.X;
+            _controlTop = m.Y - position.Y;
         }
         Open();
     }
@@ -137,7 +169,7 @@ public class Select : RenderableControl
     private const int MaxDropdownRows = 8;
     private readonly List<string> _options;
     private int _selectedIndex = -1;
-    private int _anchorX = -1;
-    private int _anchorY = -1;
+    private int _controlLeft = -1;
+    private int _controlTop = -1;
     #endregion
 }

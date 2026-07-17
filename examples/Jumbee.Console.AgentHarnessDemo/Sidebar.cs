@@ -44,7 +44,7 @@ internal sealed class Sidebar
         [
             ("⌂", "Home"),
             ("◳", "Artifacts"),
-            ("✎", "Customize"),
+            ("◈", "Customize"),
             ("…", "More"),
         ];
 
@@ -75,9 +75,9 @@ internal sealed class Sidebar
         var i = 0;
         foreach (var s in sessions)
         {
-            // Warn rows get a yellow "⚠ " prefix; plain rows pad by the same width so titles line up.
+            // Warn rows get a yellow "▲ " prefix; plain rows pad by the same width so titles line up.
             var markup = s.Warn
-                ? $" {Frag(warn, "⚠")} {Frag(text, s.Title)}"
+                ? $" {Frag(warn, "▲")} {Frag(text, s.Title)}"
                 : $"   {Frag(text, s.Title)}";
             list.AddItem(new Spectre.Console.Markup(markup));
             if (s.Active) active = i;
