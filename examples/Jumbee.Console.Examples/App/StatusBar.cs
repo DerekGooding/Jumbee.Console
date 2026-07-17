@@ -7,19 +7,21 @@ using System.Diagnostics;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// The always-on footer: the current example on the left, live process metrics in the middle, and key hints on the
-/// right — so the "lightweight" claim is visible at all times, not just when a HUD is toggled. Refreshes a few times
-/// a second from <see cref="UI.ProcessMetrics"/> using the same throttled <see cref="UI.Paint"/> tick the perf HUD uses.
+/// The always-on footer: the current example on the left, live process metrics in the middle, and key hints on the right.
+/// Refreshes a few times a second from <see cref="UI.ProcessMetrics"/> using the same throttled <see cref="UI.Paint"/> tick the perf HUD uses.
 /// </summary>
 public sealed class StatusBar : RenderableControl
 {
+    #region Constructor
     public StatusBar()
     {
         Focusable = false;
         ApplyTheme();
         UI.Paint += OnUiPaint;
     }
+    #endregion
 
+    #region Methods
     /// <summary>The current example name shown on the left.</summary>
     public string Current { get => _current; set { _current = value; Invalidate(); } }
 
@@ -63,9 +65,12 @@ public sealed class StatusBar : RenderableControl
         UI.Paint -= OnUiPaint;
         base.Dispose();
     }
+    #endregion
 
+    #region Fields
     private const long RefreshMs = 250;
     private string _current = "";
     private Style _style;
     private readonly Stopwatch _refresh = Stopwatch.StartNew();
+    #endregion
 }

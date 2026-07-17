@@ -10,6 +10,7 @@ using System.Collections.Generic;
 /// </summary>
 public sealed class ExampleHost : CompositeControl
 {
+    #region Methods
     /// <summary>Shows <paramref name="content"/> (a control or layout) as the pane's live example under a one-line
     /// <paramref name="description"/>, replacing whatever was there.</summary>
     public void Show(IFocusable content, string description)
@@ -53,7 +54,10 @@ public sealed class ExampleHost : CompositeControl
             _framed[control] = framed = control.WithFrame(borderStyle: BorderStyle.None);
         return framed;
     }
+    #endregion
 
+    #region Fields
     private readonly Dictionary<Control, IFocusable> _framed = new();
     private IFocusable? _active;
+    #endregion
 }

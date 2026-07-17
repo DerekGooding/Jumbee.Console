@@ -5,11 +5,10 @@ using System.Collections.Generic;
 using System.Threading;
 
 /// <summary>
-/// Marks a control (or layout) as a browsable example: it <em>is</em> the live content shown in the middle pane
-/// (<c>IExample : IFocusable</c>), plus the metadata the tree/header use and the source files the viewer shows. So an
-/// example is just a normal control that also carries a little metadata — e.g. <c>class ListBoxExample : ListBox,
+/// Marks a control (or layout) as a browsable example, plus the metadata the tree/header use and the source files the viewer shows. 
+/// So an example is just a normal control that also carries metadata — e.g. <c>class ListBoxExample : ListBox,
 /// IExample</c>. <see cref="SourceFiles"/> defaults to the example's own <c>.cs</c> file, plus — when the example
-/// derives from a real Jumbee control — that control's source, so the viewer shows both.
+/// derives from a real Jumbee.Console control — that control's source, so the viewer shows both.
 /// </summary>
 public interface IExample : IFocusable
 {

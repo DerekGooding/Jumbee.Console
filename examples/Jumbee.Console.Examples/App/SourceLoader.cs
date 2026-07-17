@@ -6,7 +6,7 @@ using System.Reflection;
 
 /// <summary>
 /// Reads example source that was embedded into the assembly (see the <c>EmbeddedResource</c> glob in the csproj), so
-/// the right-pane viewer shows exactly what compiled — and maps a file extension to a syntax-highlighting
+/// the right-pane viewer shows exactly what compiled — and maps a file extension to a syntax-highlighting.
 /// <see cref="Language"/>.
 /// </summary>
 public static class SourceLoader
