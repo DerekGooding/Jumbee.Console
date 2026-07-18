@@ -14,7 +14,7 @@ public sealed class AsciiDocViewerExample : AsciiDocViewer, IExample
     public AsciiDocViewerExample() : base(SourceLoader.Read("sample.adoc")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "AsciiDoc Viewer";
     string IExample.Description =>
         "Renders AsciiDoc — sections, admonitions, source blocks, embedded mermaid diagrams, tables and quotes — as a read-only, scrollable view (via AdocNet).";

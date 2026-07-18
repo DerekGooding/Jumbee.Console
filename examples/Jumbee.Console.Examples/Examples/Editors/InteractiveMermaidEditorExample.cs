@@ -66,7 +66,7 @@ public sealed class InteractiveMermaidEditorExample : CompositeControl, IExample
     #endregion
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Editors";
     string IExample.Title => "Interactive Mermaid";
     string IExample.Description =>
         "Edit a Mermaid diagram live (with syntax highlighting); the Layout dropdown switches the panes between side-by-side and stacked.";

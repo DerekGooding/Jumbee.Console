@@ -13,7 +13,7 @@ public sealed class MermaidErExample : MermaidViewer, IExample
     public MermaidErExample() : base(SourceLoader.Read("sample-er.mmd")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "Mermaid ER Diagram";
     string IExample.Description =>
         "Renders a Mermaid entity-relationship diagram — attribute tables joined by crow's-foot cardinalities — as scrollable box-drawing graphics.";

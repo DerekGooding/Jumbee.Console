@@ -67,7 +67,7 @@ public sealed class InteractiveMarkdownExtendedEditorExample : CompositeControl,
     #endregion
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Editors";
     string IExample.Title => "Interactive Markdown + Mermaid";
     string IExample.Description =>
         "Edit Markdown with embedded mermaid diagrams live — the fence contents are syntax-highlighted and the diagram renders in the preview.";

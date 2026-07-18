@@ -64,7 +64,7 @@ public sealed class InteractiveMarkdownEditorExample : CompositeControl, IExampl
     #endregion
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Editors";
     string IExample.Title => "Interactive Markdown";
     string IExample.Description =>
         "Edit Markdown live; the Layout dropdown switches the panes between side-by-side and stacked.";

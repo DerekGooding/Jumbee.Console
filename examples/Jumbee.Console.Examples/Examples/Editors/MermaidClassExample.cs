@@ -13,7 +13,7 @@ public sealed class MermaidClassExample : MermaidViewer, IExample
     public MermaidClassExample() : base(SourceLoader.Read("sample-class.mmd")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "Mermaid Class Diagram";
     string IExample.Description =>
         "Renders a Mermaid UML class diagram — compartmented classes with typed members and relationship markers — as scrollable box-drawing graphics.";

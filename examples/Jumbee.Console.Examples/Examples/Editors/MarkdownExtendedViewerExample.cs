@@ -14,7 +14,7 @@ public sealed class MarkdownExtendedViewerExample : MarkdownExtendedViewer, IExa
     public MarkdownExtendedViewerExample() : base(SourceLoader.Read("sample-md-mermaid.md")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "Markdown + Mermaid";
     string IExample.Description =>
         "Renders Markdown with embedded mermaid diagrams — fenced ```mermaid blocks are drawn as diagrams inline between the prose, lists and code.";

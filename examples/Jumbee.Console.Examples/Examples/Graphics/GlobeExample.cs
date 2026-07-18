@@ -17,7 +17,7 @@ public sealed class GlobeExample : Globe, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Graphics";
     string IExample.Title => "Rotating Globe";
     string IExample.Description =>
         "A ray-traced ASCII Earth, re-rendered every frame — the day/night terminator sweeps as it spins.";

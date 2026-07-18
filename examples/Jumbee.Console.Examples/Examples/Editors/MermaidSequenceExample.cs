@@ -14,7 +14,7 @@ public sealed class MermaidSequenceExample : MermaidViewer, IExample
     public MermaidSequenceExample() : base(SourceLoader.Read("sample-seq.mmd")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "Mermaid Sequence Diagram";
     string IExample.Description =>
         "Renders a Mermaid sequence diagram — lifelines, message arrows, activations, participant boxes, create/destroy, notes and block frames — as scrollable box-drawing graphics.";

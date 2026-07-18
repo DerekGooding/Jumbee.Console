@@ -11,7 +11,7 @@ public sealed class MarkdownViewerExample : MarkdownViewer, IExample
     public MarkdownViewerExample() : base(SourceLoader.Read("Input.md")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "Markdown Viewer";
     string IExample.Description =>
         "Renders Markdown — headings, lists, syntax-highlighted code and box-drawn tables — as a read-only, scrollable view.";

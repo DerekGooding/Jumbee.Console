@@ -13,7 +13,7 @@ public sealed class MermaidViewerExample : MermaidViewer, IExample
     public MermaidViewerExample() : base(SourceLoader.Read("sample.mmd")) { }
 
     #region IExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Viewers";
     string IExample.Title => "Mermaid Viewer";
     string IExample.Description =>
         "Renders Mermaid flowchart / state diagrams as scrollable box-drawing graphics (parsed and laid out by Mermaider).";

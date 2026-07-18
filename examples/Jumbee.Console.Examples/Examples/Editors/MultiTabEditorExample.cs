@@ -45,7 +45,7 @@ public sealed class MultiTabEditorExample : CompositeControl, IActivatableExampl
     protected override Control? FocusChild => terminal;
 
     #region IActivatableExample
-    string IExample.Category => "Editors and Viewers";
+    string IExample.Category => "Editors";
     string IExample.Title => "Tabbed Code Editor";
     string IExample.Description =>
         "A VS-Code-style editor group over a live terminal: closable tabs, syntax highlighting, and a draggable divider to the shell below.";
