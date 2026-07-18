@@ -40,7 +40,7 @@ internal static class Program
 
         // Layout: tree | (example | source), over the status bar. Nested SplitPanels are resizable (drag/arrow the
         // divider); Ctrl+arrows move focus between the panes.
-        var editorSplit = new SplitPanel(SplitOrientation.Horizontal, host, source, splitPosition: 102);
+        var editorSplit = new SplitPanel(SplitOrientation.Horizontal, host, source, splitPosition: 122);
         var treeSplit = new SplitPanel(SplitOrientation.Horizontal, tree, editorSplit, splitPosition: 40);
         var root = new DockPanel(DockedControlPlacement.Bottom, status, treeSplit);
 
