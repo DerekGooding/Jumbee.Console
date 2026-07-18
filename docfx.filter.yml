@@ -1,0 +1,9 @@
+# docfx API filter: restrict the generated reference to the library's own Jumbee.Console.* namespaces.
+# (The project also declares a small interop shim under the Spectre.Console.Interop namespace — an
+# implementation detail — which this filter keeps out of the public API docs. Remove the exclude rule
+# below if you want those types documented too.)
+apiRules:
+  - include:
+      uidRegex: ^Jumbee\.Console
+  - exclude:
+      uidRegex: .*

@@ -81,3 +81,7 @@ So we must adjust the coding style a bit to make the code more readable in the e
 - Put the `IExample` members in a #region below the fields #region. Use the `atring IExample.Category` definition style for the members to indicate these are the examples host interface
 implementation, not strictly part of the example code.
 - Avoid using aliases for types in example code. Import the namespace with `using` or Use the full type name to avoid ambiguity.
+
+## Project guardrails
+**Do not ** commit any changes automatically, always prompt the user to commit changes manually.
+**Do not ** install any NuGet or other packages automatically, always prompt the user to install packages manually.

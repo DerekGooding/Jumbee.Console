@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "src",
+          "files": [
+            "Jumbee.Console/Jumbee.Console.csproj",
+            "Jumbee.Console.Styles/Jumbee.Console.Styles.csproj",
+            "Jumbee.Console.Documents/Jumbee.Console.Documents.csproj",
+            "Jumbee.Console.Snapshot/Jumbee.Console.Snapshot.csproj"
+          ]
+        }
+      ],
+      "dest": "docs/api",
+      "outputFormat": "markdown",
+      "filter": "docfx.filter.yml",
+      "namespaceLayout": "nested",
+      "memberLayout": "samePage",
+      "enumSortOrder": "declaringOrder",
+      "disableDefaultFilter": false,
+      "noRestore": false
+    }
+  ]
+}

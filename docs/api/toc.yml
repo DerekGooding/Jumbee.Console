@@ -1,0 +1,382 @@
+### YamlMime:TableOfContent
+- name: Jumbee
+  href: Jumbee.md
+  items:
+  - name: Console
+    href: Jumbee.Console.md
+    items:
+    - name: Documents
+      href: Jumbee.Console.Documents.md
+      items:
+      - name: Classes
+      - name: AsciiDocLanguage
+        href: Jumbee.Console.Documents.AsciiDocLanguage.md
+      - name: AsciiDocStyles
+        href: Jumbee.Console.Documents.AsciiDocStyles.md
+      - name: AsciiDocViewer
+        href: Jumbee.Console.Documents.AsciiDocViewer.md
+      - name: InteractiveAsciiDocEditor
+        href: Jumbee.Console.Documents.InteractiveAsciiDocEditor.md
+      - name: InteractiveMarkdownExtendedEditor
+        href: Jumbee.Console.Documents.InteractiveMarkdownExtendedEditor.md
+      - name: InteractiveMermaidEditor
+        href: Jumbee.Console.Documents.InteractiveMermaidEditor.md
+      - name: MarkdownExtendedViewer
+        href: Jumbee.Console.Documents.MarkdownExtendedViewer.md
+      - name: MarkdownWithMermaidLanguage
+        href: Jumbee.Console.Documents.MarkdownWithMermaidLanguage.md
+      - name: MermaidLanguage
+        href: Jumbee.Console.Documents.MermaidLanguage.md
+      - name: MermaidStyles
+        href: Jumbee.Console.Documents.MermaidStyles.md
+      - name: MermaidViewer
+        href: Jumbee.Console.Documents.MermaidViewer.md
+    - name: Drawing
+      href: Jumbee.Console.Drawing.md
+      items:
+      - name: Classes
+      - name: Circle
+        href: Jumbee.Console.Drawing.Circle.md
+      - name: FilledLine
+        href: Jumbee.Console.Drawing.FilledLine.md
+      - name: Line
+        href: Jumbee.Console.Drawing.Line.md
+      - name: Points
+        href: Jumbee.Console.Drawing.Points.md
+      - name: Rectangle
+        href: Jumbee.Console.Drawing.Rectangle.md
+      - name: WorldMap
+        href: Jumbee.Console.Drawing.WorldMap.md
+      - name: Interfaces
+      - name: IShape
+        href: Jumbee.Console.Drawing.IShape.md
+      - name: Enums
+      - name: CanvasMarker
+        href: Jumbee.Console.Drawing.CanvasMarker.md
+      - name: MapResolution
+        href: Jumbee.Console.Drawing.MapResolution.md
+    - name: Snapshot
+      href: Jumbee.Console.Snapshot.md
+      items:
+      - name: Classes
+      - name: AnsiConsoleSession
+        href: Jumbee.Console.Snapshot.AnsiConsoleSession.md
+      - name: AnsiConsoleSnapshot
+        href: Jumbee.Console.Snapshot.AnsiConsoleSnapshot.md
+      - name: AnsiScreen
+        href: Jumbee.Console.Snapshot.AnsiScreen.md
+      - name: ConsoleSnapshot
+        href: Jumbee.Console.Snapshot.ConsoleSnapshot.md
+      - name: SnapshotImageOptions
+        href: Jumbee.Console.Snapshot.SnapshotImageOptions.md
+    - name: Classes
+    - name: AnimatedControl
+      href: Jumbee.Console.AnimatedControl.md
+    - name: AnsiConsoleBuffer
+      href: Jumbee.Console.AnsiConsoleBuffer.md
+    - name: AnsiInputDecoder
+      href: Jumbee.Console.AnsiInputDecoder.md
+    - name: Autocomplete
+      href: Jumbee.Console.Autocomplete.md
+    - name: Badge
+      href: Jumbee.Console.Badge.md
+    - name: BarChart
+      href: Jumbee.Console.BarChart.md
+    - name: BarChart.BarChartItem
+      href: Jumbee.Console.BarChart.BarChartItem.md
+    - name: BarChart.HorizontalBar
+      href: Jumbee.Console.BarChart.HorizontalBar.md
+    - name: BarChart.VerticalBar
+      href: Jumbee.Console.BarChart.VerticalBar.md
+    - name: Boundary
+      href: Jumbee.Console.Boundary.md
+    - name: Button
+      href: Jumbee.Console.Button.md
+    - name: Canvas
+      href: Jumbee.Console.Canvas.md
+    - name: ChatPrompt
+      href: Jumbee.Console.ChatPrompt.md
+    - name: Checkbox
+      href: Jumbee.Console.Checkbox.md
+    - name: CodeEditor
+      href: Jumbee.Console.CodeEditor.md
+    - name: CompositeControl
+      href: Jumbee.Console.CompositeControl.md
+    - name: ConPty
+      href: Jumbee.Console.ConPty.md
+    - name: ConsoleBuffer
+      href: Jumbee.Console.ConsoleBuffer.md
+    - name: ConsoleInputSource
+      href: Jumbee.Console.ConsoleInputSource.md
+    - name: ContextMenu
+      href: Jumbee.Console.ContextMenu.md
+    - name: Control
+      href: Jumbee.Console.Control.md
+    - name: ControlExtensions
+      href: Jumbee.Console.ControlExtensions.md
+    - name: ControlFrame
+      href: Jumbee.Console.ControlFrame.md
+    - name: DataTable
+      href: Jumbee.Console.DataTable.md
+    - name: DefaultGlyphTheme
+      href: Jumbee.Console.DefaultGlyphTheme.md
+    - name: DefaultStyleTheme
+      href: Jumbee.Console.DefaultStyleTheme.md
+    - name: Dialog
+      href: Jumbee.Console.Dialog.md
+    - name: Digits
+      href: Jumbee.Console.Digits.md
+    - name: Dispatcher
+      href: Jumbee.Console.Dispatcher.md
+    - name: DockPanel
+      href: Jumbee.Console.DockPanel.md
+    - name: DocumentClosingEventArgs
+      href: Jumbee.Console.DocumentClosingEventArgs.md
+    - name: FocusInputEvent
+      href: Jumbee.Console.FocusInputEvent.md
+    - name: Footer
+      href: Jumbee.Console.Footer.md
+    - name: Gauge
+      href: Jumbee.Console.Gauge.md
+    - name: GlassBlend
+      href: Jumbee.Console.GlassBlend.md
+    - name: GlassPanel
+      href: Jumbee.Console.GlassPanel.md
+    - name: Globe
+      href: Jumbee.Console.Globe.md
+    - name: Grid
+      href: Jumbee.Console.Grid.md
+    - name: HelpControl
+      href: Jumbee.Console.HelpControl.md
+    - name: HelpInfo
+      href: Jumbee.Console.HelpInfo.md
+    - name: HorizontalStackPanel
+      href: Jumbee.Console.HorizontalStackPanel.md
+    - name: InteractiveMarkdownEditor
+      href: Jumbee.Console.InteractiveMarkdownEditor.md
+    - name: InteractiveSourceEditor
+      href: Jumbee.Console.InteractiveSourceEditor.md
+    - name: KeyHelp
+      href: Jumbee.Console.KeyHelp.md
+    - name: KeyInputEvent
+      href: Jumbee.Console.KeyInputEvent.md
+    - name: Layout<T>
+      href: Jumbee.Console.Layout-1.md
+    - name: LineNumberGutter
+      href: Jumbee.Console.LineNumberGutter.md
+    - name: Link
+      href: Jumbee.Console.Link.md
+    - name: ListBox
+      href: Jumbee.Console.ListBox.md
+    - name: ListBox.ListBoxItem
+      href: Jumbee.Console.ListBox.ListBoxItem.md
+    - name: Log
+      href: Jumbee.Console.Log.md
+    - name: MarkdownViewer
+      href: Jumbee.Console.MarkdownViewer.md
+    - name: MenuBar
+      href: Jumbee.Console.MenuBar.md
+    - name: MenuItem
+      href: Jumbee.Console.MenuItem.md
+    - name: MouseInputEvent
+      href: Jumbee.Console.MouseInputEvent.md
+    - name: MultiTabCodeEditor
+      href: Jumbee.Console.MultiTabCodeEditor.md
+    - name: Overlay
+      href: Jumbee.Console.Overlay.md
+    - name: PasteInputEvent
+      href: Jumbee.Console.PasteInputEvent.md
+    - name: PerfHud
+      href: Jumbee.Console.PerfHud.md
+    - name: Plot
+      href: Jumbee.Console.Plot.md
+    - name: PlotSeries
+      href: Jumbee.Console.PlotSeries.md
+    - name: ProcessMetrics
+      href: Jumbee.Console.ProcessMetrics.md
+    - name: Prompt
+      href: Jumbee.Console.Prompt.md
+    - name: Pty
+      href: Jumbee.Console.Pty.md
+    - name: RadioButton
+      href: Jumbee.Console.RadioButton.md
+    - name: RadioSet
+      href: Jumbee.Console.RadioSet.md
+    - name: RenderableControl
+      href: Jumbee.Console.RenderableControl.md
+    - name: ResizeInputEvent
+      href: Jumbee.Console.ResizeInputEvent.md
+    - name: RunChart
+      href: Jumbee.Console.RunChart.md
+    - name: RunSeries
+      href: Jumbee.Console.RunSeries.md
+    - name: Select
+      href: Jumbee.Console.Select.md
+    - name: SelectionList
+      href: Jumbee.Console.SelectionList.md
+    - name: SelectionStylesExtensions
+      href: Jumbee.Console.SelectionStylesExtensions.md
+    - name: Sparkline
+      href: Jumbee.Console.Sparkline.md
+    - name: SpectreControl<T>
+      href: Jumbee.Console.SpectreControl-1.md
+    - name: SpectreLiveDisplay
+      href: Jumbee.Console.SpectreLiveDisplay.md
+    - name: SpectreTaskProgress
+      href: Jumbee.Console.SpectreTaskProgress.md
+    - name: Spinner
+      href: Jumbee.Console.Spinner.md
+    - name: SplitDivider
+      href: Jumbee.Console.SplitDivider.md
+    - name: SplitPanel
+      href: Jumbee.Console.SplitPanel.md
+    - name: SplitPanelDockPanel
+      href: Jumbee.Console.SplitPanelDockPanel.md
+    - name: Switch
+      href: Jumbee.Console.Switch.md
+    - name: TabCloseEventArgs
+      href: Jumbee.Console.TabCloseEventArgs.md
+    - name: TabHeader
+      href: Jumbee.Console.TabHeader.md
+    - name: TabItem
+      href: Jumbee.Console.TabItem.md
+    - name: TabPanel
+      href: Jumbee.Console.TabPanel.md
+    - name: TabPanelDockPanel
+      href: Jumbee.Console.TabPanelDockPanel.md
+    - name: TerminalEmulator
+      href: Jumbee.Console.TerminalEmulator.md
+    - name: TerminalInputEvent
+      href: Jumbee.Console.TerminalInputEvent.md
+    - name: TextEditor
+      href: Jumbee.Console.TextEditor.md
+    - name: TextInput
+      href: Jumbee.Console.TextInput.md
+    - name: TextLabel
+      href: Jumbee.Console.TextLabel.md
+    - name: TextPanel
+      href: Jumbee.Console.TextPanel.md
+    - name: TextPrompt
+      href: Jumbee.Console.TextPrompt.md
+    - name: ToggleButton
+      href: Jumbee.Console.ToggleButton.md
+    - name: ToggleList
+      href: Jumbee.Console.ToggleList.md
+    - name: Tree
+      href: Jumbee.Console.Tree.md
+    - name: Tree.TreeNode
+      href: Jumbee.Console.Tree.TreeNode.md
+    - name: UI
+      href: Jumbee.Console.UI.md
+    - name: UI.GlobalInputListener
+      href: Jumbee.Console.UI.GlobalInputListener.md
+    - name: UI.HotKeys
+      href: Jumbee.Console.UI.HotKeys.md
+    - name: UI.InputEventArgs
+      href: Jumbee.Console.UI.InputEventArgs.md
+    - name: UI.PaintEventArgs
+      href: Jumbee.Console.UI.PaintEventArgs.md
+    - name: UnixPty
+      href: Jumbee.Console.UnixPty.md
+    - name: VerticalStackPanel
+      href: Jumbee.Console.VerticalStackPanel.md
+    - name: VtInputSource
+      href: Jumbee.Console.VtInputSource.md
+    - name: Structs
+    - name: ButtonStyle
+      href: Jumbee.Console.ButtonStyle.md
+    - name: Color
+      href: Jumbee.Console.Color.md
+    - name: FooterHint
+      href: Jumbee.Console.FooterHint.md
+    - name: GaugeStyle
+      href: Jumbee.Console.GaugeStyle.md
+    - name: HScroll
+      href: Jumbee.Console.HScroll.md
+    - name: ScrollBarGlyphs
+      href: Jumbee.Console.ScrollBarGlyphs.md
+    - name: ScrollBarStyle
+      href: Jumbee.Console.ScrollBarStyle.md
+    - name: Style
+      href: Jumbee.Console.Style.md
+    - name: TitleStyle
+      href: Jumbee.Console.TitleStyle.md
+    - name: Interfaces
+    - name: BarChart.IBarControl
+      href: Jumbee.Console.BarChart.IBarControl.md
+    - name: IFocusable
+      href: Jumbee.Console.IFocusable.md
+    - name: IGlyphTheme
+      href: Jumbee.Console.IGlyphTheme.md
+    - name: IInputSource
+      href: Jumbee.Console.IInputSource.md
+    - name: ILayout
+      href: Jumbee.Console.ILayout.md
+    - name: IPty
+      href: Jumbee.Console.IPty.md
+    - name: IStyleTheme
+      href: Jumbee.Console.IStyleTheme.md
+    - name: ITheme
+      href: Jumbee.Console.ITheme.md
+    - name: Enums
+    - name: BadgeVariant
+      href: Jumbee.Console.BadgeVariant.md
+    - name: BorderPlacement
+      href: Jumbee.Console.BorderPlacement.md
+    - name: BorderStyle
+      href: Jumbee.Console.BorderStyle.md
+    - name: ButtonShape
+      href: Jumbee.Console.ButtonShape.md
+    - name: ChartOrientation
+      href: Jumbee.Console.ChartOrientation.md
+    - name: CursorStyle
+      href: Jumbee.Console.CursorStyle.md
+    - name: DialogButtons
+      href: Jumbee.Console.DialogButtons.md
+    - name: DialogResult
+      href: Jumbee.Console.DialogResult.md
+    - name: DockedControlPlacement
+      href: Jumbee.Console.DockedControlPlacement.md
+    - name: FocusStyle
+      href: Jumbee.Console.FocusStyle.md
+    - name: Justify
+      href: Jumbee.Console.Justify.md
+    - name: Language
+      href: Jumbee.Console.Language.md
+    - name: PlotBrush
+      href: Jumbee.Console.PlotBrush.md
+    - name: PlotColormap
+      href: Jumbee.Console.PlotColormap.md
+    - name: PlotLabelAlign
+      href: Jumbee.Console.PlotLabelAlign.md
+    - name: ScrollBarMode
+      href: Jumbee.Console.ScrollBarMode.md
+    - name: SelectPopupPosition
+      href: Jumbee.Console.SelectPopupPosition.md
+    - name: SelectionStyle
+      href: Jumbee.Console.SelectionStyle.md
+    - name: SplitOrientation
+      href: Jumbee.Console.SplitOrientation.md
+    - name: TabBarDock
+      href: Jumbee.Console.TabBarDock.md
+    - name: TerminalModifiers
+      href: Jumbee.Console.TerminalModifiers.md
+    - name: TerminalMouseButton
+      href: Jumbee.Console.TerminalMouseButton.md
+    - name: TerminalMouseKind
+      href: Jumbee.Console.TerminalMouseKind.md
+    - name: TextLabelOrientation
+      href: Jumbee.Console.TextLabelOrientation.md
+    - name: TitleBorderStyle
+      href: Jumbee.Console.TitleBorderStyle.md
+    - name: TitleColorStyle
+      href: Jumbee.Console.TitleColorStyle.md
+    - name: TitlePos
+      href: Jumbee.Console.TitlePos.md
+    - name: TreeGuide
+      href: Jumbee.Console.TreeGuide.md
+    - name: Delegates
+    - name: Control.InitializationHandler
+      href: Jumbee.Console.Control.InitializationHandler.md
+    - name: FocusableEventHandler
+      href: Jumbee.Console.FocusableEventHandler.md

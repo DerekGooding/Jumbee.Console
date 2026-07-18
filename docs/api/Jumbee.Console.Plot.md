@@ -1,0 +1,955 @@
+# <a id="Jumbee_Console_Plot"></a> Class Plot
+
+Namespace: [Jumbee.Console](Jumbee.Console.md)  
+Assembly: Jumbee.Console.dll  
+
+A line/scatter chart backed by the ConsolePlot library, rendered into the control's buffer. Add data with
+<xref href="Jumbee.Console.Plot.AddSeries(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cConsolePlot.Drawing.Tools.PointPen)" data-throw-if-not-resolved="false"></xref> and tune the axes/grid/ticks with the <code>Configure*</code> methods.
+
+```csharp
+public class Plot : Control, IFocusable
+```
+
+#### Inheritance
+
+object ← 
+Control ← 
+[Control](Jumbee.Console.Control.md) ← 
+[Plot](Jumbee.Console.Plot.md)
+
+#### Implements
+
+[IFocusable](Jumbee.Console.IFocusable.md)
+
+#### Inherited Members
+
+[Control.this\[Position\]](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Item\_ConsoleGUI\_Space\_Position\_), 
+[Control.Width](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Width), 
+[Control.ActualWidth](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ActualWidth), 
+[Control.Height](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Height), 
+[Control.ActualHeight](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ActualHeight), 
+[Control.HasLayout](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_HasLayout), 
+[Control.Frame](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Frame), 
+[Control.HasFrame](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_HasFrame), 
+[Control.Focusable](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Focusable), 
+[Control.IsFocused](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsFocused), 
+[Control.FocusableControl](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_FocusableControl), 
+[Control.FocusedControl](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_FocusedControl), 
+[Control.HandlesInput](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_HandlesInput), 
+[Control.OnInput\(UI.InputEventArgs\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnInput\_Jumbee\_Console\_UI\_InputEventArgs\_), 
+[Control.OnInput\(InputEvent\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnInput\_ConsoleGUI\_Input\_InputEvent\_), 
+[Control.IsMouseOver](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsMouseOver), 
+[Control.IsMousePressed](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsMousePressed), 
+[Control.WantsMouse](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_WantsMouse), 
+[Control.RendersOwnFocus](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_RendersOwnFocus), 
+[Control.OnMouseEnter\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseEnter), 
+[Control.OnMouseLeave\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseLeave), 
+[Control.OnMouseMove\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseMove\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnMousePress\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMousePress\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnMouseRelease\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseRelease\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnClick\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnClick\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnDoubleClick\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnDoubleClick\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnMouseWheel\(Position, int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseWheel\_ConsoleGUI\_Space\_Position\_System\_Int32\_), 
+[Control.CaptureMouse\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_CaptureMouse), 
+[Control.ReleaseMouse\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ReleaseMouse), 
+[Control.OnPaste\(string\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnPaste\_System\_String\_), 
+[Control.Dispose\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Dispose), 
+[Control.ApplyTheme\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ApplyTheme), 
+[Control.IsThemeOverridden\(string\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsThemeOverridden\_System\_String\_), 
+[Control.Focus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Focus), 
+[Control.UnFocus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_UnFocus), 
+[Control.GetHelpInfo\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_GetHelpInfo), 
+[Control.CompileHelp\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_CompileHelp), 
+[Control.Control\_OnInitialization\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Control\_OnInitialization), 
+[Control.Control\_OnLostFocus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Control\_OnLostFocus), 
+[Control.Control\_OnFocus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Control\_OnFocus), 
+[Control.Render\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Render), 
+[Control.Initialize\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Initialize), 
+[Control.Paint\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Paint), 
+[Control.Invalidate\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Invalidate), 
+[Control.InvalidateInteractive\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_InvalidateInteractive), 
+[Control.TracksDamage](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_TracksDamage), 
+[Control.Damage\(in Rect\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Damage\_ConsoleGUI\_Space\_Rect\_\_), 
+[Control.DamageAll\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_DamageAll), 
+[Control.Feed\(Action, TimeSpan\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_System\_Action\_System\_TimeSpan\_), 
+[Control.Feed\(Action, int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_System\_Action\_System\_Int32\_), 
+[Control.Feed<T\>\(Func<T\>, Action<T\>, TimeSpan\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_\_1\_System\_Func\_\_\_0\_\_System\_Action\_\_\_0\_\_System\_TimeSpan\_), 
+[Control.Feed<T\>\(Func<T\>, Action<T\>, int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_\_1\_System\_Func\_\_\_0\_\_System\_Action\_\_\_0\_\_System\_Int32\_), 
+[Control.Feeds](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feeds), 
+[Control.SetAtomicProperty<T\>\(ref T, T, bool, Func<T, T\>?, Action<T, T\>?, bool, string?\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_SetAtomicProperty\_\_1\_\_\_0\_\_\_\_0\_System\_Boolean\_System\_Func\_\_\_0\_\_\_0\_\_System\_Action\_\_\_0\_\_\_0\_\_System\_Boolean\_System\_String\_), 
+[Control.Validate\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Validate), 
+[Control.CalculateSize\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_CalculateSize), 
+[Control.MeasureHeight\(int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MeasureHeight\_System\_Int32\_), 
+[Control.FillsFrameViewport](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_FillsFrameViewport), 
+[Control.IntrinsicWidth\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IntrinsicWidth), 
+[Control.IntrinsicHeight\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IntrinsicHeight), 
+[Control.ClampWidth\(int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ClampWidth\_System\_Int32\_), 
+[Control.ClampHeight\(int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ClampHeight\_System\_Int32\_), 
+[Control.OnInitialization](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnInitialization), 
+[Control.OnFocus](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnFocus), 
+[Control.OnLostFocus](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnLostFocus), 
+[Control.OnHelp](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnHelp), 
+[Control.MouseEntered](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseEntered), 
+[Control.MouseLeft](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseLeft), 
+[Control.MouseMoved](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseMoved), 
+[Control.MousePressed](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MousePressed), 
+[Control.MouseReleased](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseReleased), 
+[Control.Clicked](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Clicked), 
+[Control.DoubleClicked](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_DoubleClicked), 
+[Control.MouseWheeled](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseWheeled), 
+[Control.emptyChar](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_emptyChar), 
+[Control.emptyCell](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_emptyCell), 
+[Control.paintRequests](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_paintRequests), 
+[Control.consoleBuffer](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_consoleBuffer), 
+[Control.ansiConsole](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ansiConsole), 
+[Control.DoubleClickMs](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_DoubleClickMs)
+
+#### Extension Methods
+
+[ControlExtensions.WithAsciiBorder<Plot\>\(Plot, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithAsciiBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithBorder<Plot\>\(Plot, BorderStyle?, Color?, Color?, BorderPlacement?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_), 
+[ControlExtensions.WithDoubleBorder<Plot\>\(Plot, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithDoubleBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithFrame<Plot\>\(Plot, ControlFrame\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_Jumbee\_Console\_ControlFrame\_), 
+[ControlExtensions.WithFrame<Plot\>\(Plot, BorderStyle?, Offset?, Color?, Color?, string?, Color?, Color?, BorderPlacement?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_ConsoleGUI\_Space\_Offset\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_String\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_), 
+[ControlExtensions.WithHeavyBorder<Plot\>\(Plot, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithHeavyBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithHeight<Plot\>\(Plot, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithHeight\_\_1\_\_\_0\_System\_Int32\_), 
+[ControlExtensions.WithMargin<Plot\>\(Plot, int, int, int, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithMargin\_\_1\_\_\_0\_System\_Int32\_System\_Int32\_System\_Int32\_System\_Int32\_), 
+[ControlExtensions.WithMargin<Plot\>\(Plot, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithMargin\_\_1\_\_\_0\_System\_Int32\_), 
+[ControlExtensions.WithNoBorder<Plot\>\(Plot\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithNoBorder\_\_1\_\_\_0\_), 
+[ControlExtensions.WithRoundedBorder<Plot\>\(Plot, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithRoundedBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithScrollBarGlyphs<Plot\>\(Plot, ScrollBarGlyphs\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithScrollBarGlyphs\_\_1\_\_\_0\_Jumbee\_Console\_ScrollBarGlyphs\_), 
+[ControlExtensions.WithScrollBarStyle<Plot\>\(Plot, ScrollBarStyle\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithScrollBarStyle\_\_1\_\_\_0\_Jumbee\_Console\_ScrollBarStyle\_), 
+[ControlExtensions.WithSize<Plot\>\(Plot, int?, int?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithSize\_\_1\_\_\_0\_System\_Nullable\_System\_Int32\_\_System\_Nullable\_System\_Int32\_\_), 
+[ControlExtensions.WithSquareBorder<Plot\>\(Plot, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithSquareBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithTitle<Plot\>\(Plot, string\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithTitle\_\_1\_\_\_0\_System\_String\_), 
+[ControlExtensions.WithTitle<Plot\>\(Plot, string, TitleStyle\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithTitle\_\_1\_\_\_0\_System\_String\_Jumbee\_Console\_TitleStyle\_), 
+[ControlExtensions.WithTitle<Plot\>\(Plot, string, TitlePos, TitleBorderStyle, TitleColorStyle\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithTitle\_\_1\_\_\_0\_System\_String\_Jumbee\_Console\_TitlePos\_Jumbee\_Console\_TitleBorderStyle\_Jumbee\_Console\_TitleColorStyle\_), 
+[ControlExtensions.WithWidth<Plot\>\(Plot, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithWidth\_\_1\_\_\_0\_System\_Int32\_)
+
+## Remarks
+
+The plot fills its container and re-draws to fit whenever the control is resized; all configuration is replayed
+on each rebuild, so settings survive resizing.
+
+## Constructors
+
+### <a id="Jumbee_Console_Plot__ctor"></a> Plot\(\)
+
+Initializes a new display-only <xref href="Jumbee.Console.Plot" data-throw-if-not-resolved="false"></xref> (not focusable).
+
+```csharp
+public Plot()
+```
+
+## Properties
+
+### <a id="Jumbee_Console_Plot_Background"></a> Background
+
+Background colour painted behind the plot, or <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> (the default) for transparent.
+
+```csharp
+public Color? Background { get; set; }
+```
+
+#### Property Value
+
+ [Color](Jumbee.Console.Color.md)?
+
+### <a id="Jumbee_Console_Plot_FillsFrameViewport"></a> FillsFrameViewport
+
+Always <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>: the plot fills its frame's viewport and is never scrolled.
+
+```csharp
+protected override bool FillsFrameViewport { get; }
+```
+
+#### Property Value
+
+ bool
+
+## Methods
+
+### <a id="Jumbee_Console_Plot_AddBars_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__System_Nullable_Jumbee_Console_Color__System_Double_System_Double_"></a> AddBars\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, Color?, double, double\)
+
+Adds a vertical bar series — each point drawn as a filled bar from <code class="paramref">baseline</code> (default 0) to
+its value, with an eighth-block sub-cell top.
+
+```csharp
+public Plot AddBars(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, Color? color = null, double baseline = 0, double width = 0.8)
+```
+
+#### Parameters
+
+`xs` IReadOnlyCollection<double\>
+
+`ys` IReadOnlyCollection<double\>
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`baseline` double
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">width</code> is the bar width as a fraction
+(0..1) of the spacing between bars.
+
+### <a id="Jumbee_Console_Plot_AddBox_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__System_Double_"></a> AddBox\(IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, Color?, Color?, double\)
+
+Adds a box-and-whisker series from the five-number summary of each box — <code class="paramref">mins</code>,
+<code class="paramref">q1s</code>, <code class="paramref">medians</code>, <code class="paramref">q3s</code>, <code class="paramref">maxes</code> (all the
+same length as <code class="paramref">xs</code>).
+
+```csharp
+public Plot AddBox(IReadOnlyList<double> xs, IReadOnlyList<double> mins, IReadOnlyList<double> q1s, IReadOnlyList<double> medians, IReadOnlyList<double> q3s, IReadOnlyList<double> maxes, Color? color = null, Color? medianColor = null, double width = 0.6)
+```
+
+#### Parameters
+
+`xs` IReadOnlyList<double\>
+
+`mins` IReadOnlyList<double\>
+
+`q1s` IReadOnlyList<double\>
+
+`medians` IReadOnlyList<double\>
+
+`q3s` IReadOnlyList<double\>
+
+`maxes` IReadOnlyList<double\>
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`medianColor` [Color](Jumbee.Console.Color.md)?
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">medianColor</code> defaults to
+<code class="paramref">color</code>; <code class="paramref">width</code> is the box width as a fraction (0..1) of the spacing.
+
+### <a id="Jumbee_Console_Plot_AddBoxes_System_Collections_Generic_IReadOnlyList_System_Collections_Generic_IReadOnlyList_System_Double___System_Collections_Generic_IReadOnlyList_System_Double__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__System_Double_"></a> AddBoxes\(IReadOnlyList<IReadOnlyList<double\>\>, IReadOnlyList<double\>?, Color?, Color?, double\)
+
+Adds a box-and-whisker series from raw data <code class="paramref">groups</code> — one box per group, with the quartiles
+(min/Q1/median/Q3/max, linear-interpolation percentiles) computed here.
+
+```csharp
+public Plot AddBoxes(IReadOnlyList<IReadOnlyList<double>> groups, IReadOnlyList<double>? positions = null, Color? color = null, Color? medianColor = null, double width = 0.6)
+```
+
+#### Parameters
+
+`groups` IReadOnlyList<IReadOnlyList<double\>\>
+
+`positions` IReadOnlyList<double\>?
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`medianColor` [Color](Jumbee.Console.Color.md)?
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+Boxes are positioned at <code class="paramref">positions</code> (defaults to 1, 2, 3, …). <code class="paramref">color</code>
+defaults to the palette.
+
+### <a id="Jumbee_Console_Plot_AddCandles_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__"></a> AddCandles\(IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, Color?, Color?\)
+
+Adds an OHLC candlestick series — each point drawn as a candle (high/low wick + open/close body) coloured by
+direction.
+
+```csharp
+public Plot AddCandles(IReadOnlyList<double> xs, IReadOnlyList<double> opens, IReadOnlyList<double> highs, IReadOnlyList<double> lows, IReadOnlyList<double> closes, Color? up = null, Color? down = null)
+```
+
+#### Parameters
+
+`xs` IReadOnlyList<double\>
+
+`opens` IReadOnlyList<double\>
+
+`highs` IReadOnlyList<double\>
+
+`lows` IReadOnlyList<double\>
+
+`closes` IReadOnlyList<double\>
+
+`up` [Color](Jumbee.Console.Color.md)?
+
+`down` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">up</code> defaults to green (close ≥ open), <code class="paramref">down</code> to red.
+
+### <a id="Jumbee_Console_Plot_AddConfusionMatrix_System_Collections_Generic_IReadOnlyList_System_Collections_Generic_IReadOnlyList_System_Double___System_Collections_Generic_IReadOnlyList_System_String__System_Collections_Generic_IReadOnlyList_System_String__Jumbee_Console_PlotColormap_"></a> AddConfusionMatrix\(IReadOnlyList<IReadOnlyList<double\>\>, IReadOnlyList<string\>?, IReadOnlyList<string\>?, PlotColormap\)
+
+Adds a confusion matrix — an annotated heatmap of <code class="paramref">counts</code> (row = actual class top-to-bottom,
+column = predicted class), each cell coloured by <code class="paramref">colormap</code> and labelled with its count.
+
+```csharp
+public Plot AddConfusionMatrix(IReadOnlyList<IReadOnlyList<double>> counts, IReadOnlyList<string>? rowLabels = null, IReadOnlyList<string>? colLabels = null, PlotColormap colormap = PlotColormap.Heat)
+```
+
+#### Parameters
+
+`counts` IReadOnlyList<IReadOnlyList<double\>\>
+
+`rowLabels` IReadOnlyList<string\>?
+
+`colLabels` IReadOnlyList<string\>?
+
+`colormap` [PlotColormap](Jumbee.Console.PlotColormap.md)
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+When <code class="paramref">rowLabels</code>/<code class="paramref">colLabels</code> are given, the class names are placed as
+categorical axis ticks at the cell centres. A wrapper over <xref href="Jumbee.Console.Plot.AddHeatmap(System.Collections.Generic.IReadOnlyList%7bSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%7d%2cJumbee.Console.PlotColormap%2cSystem.Nullable%7bSystem.Double%7d%2cSystem.Nullable%7bSystem.Double%7d%2cSystem.Func%7bSystem.Double%2cSystem.String%7d)" data-throw-if-not-resolved="false"></xref> +
+<xref href="Jumbee.Console.Plot.SetXTicks(System.Collections.Generic.IReadOnlyList%7bSystem.ValueTuple%7bSystem.Double%2cSystem.String%7d%7d)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.Plot.SetYTicks(System.Collections.Generic.IReadOnlyList%7bSystem.ValueTuple%7bSystem.Double%2cSystem.String%7d%7d)" data-throw-if-not-resolved="false"></xref>.
+
+### <a id="Jumbee_Console_Plot_AddErrorBars_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Nullable_Jumbee_Console_Color__System_Int32_"></a> AddErrorBars\(IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, Color?, int\)
+
+Adds vertical error bars with symmetric error — each point (<code class="paramref">xs</code>, <code class="paramref">ys</code>)
+drawn as a whisker of ±<code class="paramref">errors</code> with caps and a centre marker.
+
+```csharp
+public Plot AddErrorBars(IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errors, Color? color = null, int capWidth = 1)
+```
+
+#### Parameters
+
+`xs` IReadOnlyList<double\>
+
+`ys` IReadOnlyList<double\>
+
+`errors` IReadOnlyList<double\>
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`capWidth` int
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">capWidth</code> is the cap half-width in cells.
+
+### <a id="Jumbee_Console_Plot_AddErrorBars_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Nullable_Jumbee_Console_Color__System_Int32_"></a> AddErrorBars\(IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, IReadOnlyList<double\>, Color?, int\)
+
+Adds vertical error bars with asymmetric error — each point (<code class="paramref">xs</code>, <code class="paramref">ys</code>)
+drawn as a whisker from <code>y − errLow</code> to <code>y + errHigh</code> with caps and a centre marker.
+
+```csharp
+public Plot AddErrorBars(IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errLows, IReadOnlyList<double> errHighs, Color? color = null, int capWidth = 1)
+```
+
+#### Parameters
+
+`xs` IReadOnlyList<double\>
+
+`ys` IReadOnlyList<double\>
+
+`errLows` IReadOnlyList<double\>
+
+`errHighs` IReadOnlyList<double\>
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`capWidth` int
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">capWidth</code> is the cap half-width in cells.
+
+### <a id="Jumbee_Console_Plot_AddGroupedBars_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Collections_Generic_IReadOnlyList_System_Double___System_Collections_Generic_IReadOnlyList_Jumbee_Console_Color__System_Double_System_Double_"></a> AddGroupedBars\(IReadOnlyList<double\>, IReadOnlyList<IReadOnlyList<double\>\>, IReadOnlyList<Color\>?, double, double\)
+
+Adds grouped (side-by-side) vertical bars — one sub-bar per series at each x.
+
+```csharp
+public Plot AddGroupedBars(IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series, IReadOnlyList<Color>? colors = null, double baseline = 0, double width = 0.8)
+```
+
+#### Parameters
+
+`xs` IReadOnlyList<double\>
+
+`series` IReadOnlyList<IReadOnlyList<double\>\>
+
+`colors` IReadOnlyList<[Color](Jumbee.Console.Color.md)\>?
+
+`baseline` double
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">series</code> is one value list per series (each the same length as <code class="paramref">xs</code>).
+<code class="paramref">colors</code> defaults to the palette (one per series); <code class="paramref">width</code> is the group width
+as a fraction (0..1) of the spacing.
+
+### <a id="Jumbee_Console_Plot_AddHBars_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__System_Nullable_Jumbee_Console_Color__System_Double_System_Double_"></a> AddHBars\(IReadOnlyList<double\>, IReadOnlyList<double\>, Color?, double, double\)
+
+Adds horizontal bars — each category at a Y <code class="paramref">position</code> with its bar growing along X from
+<code class="paramref">baseline</code> to its value.
+
+```csharp
+public Plot AddHBars(IReadOnlyList<double> positions, IReadOnlyList<double> values, Color? color = null, double baseline = 0, double width = 0.8)
+```
+
+#### Parameters
+
+`positions` IReadOnlyList<double\>
+
+`values` IReadOnlyList<double\>
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`baseline` double
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">width</code> is the bar thickness as a fraction
+(0..1) of the spacing.
+
+### <a id="Jumbee_Console_Plot_AddHeatmap_System_Collections_Generic_IReadOnlyList_System_Collections_Generic_IReadOnlyList_System_Double___Jumbee_Console_PlotColormap_System_Nullable_System_Double__System_Nullable_System_Double__System_Func_System_Double_System_String__"></a> AddHeatmap\(IReadOnlyList<IReadOnlyList<double\>\>, PlotColormap, double?, double?, Func<double, string\>?\)
+
+Adds a heatmap: a grid of <code class="paramref">values</code> (one list per row, row 0 drawn at the top) tiled over
+the plot area, each cell coloured by <code class="paramref">colormap</code>.
+
+```csharp
+public Plot AddHeatmap(IReadOnlyList<IReadOnlyList<double>> values, PlotColormap colormap = PlotColormap.Viridis, double? min = null, double? max = null, Func<double, string>? cellText = null)
+```
+
+#### Parameters
+
+`values` IReadOnlyList<IReadOnlyList<double\>\>
+
+`colormap` [PlotColormap](Jumbee.Console.PlotColormap.md)
+
+`min` double?
+
+`max` double?
+
+`cellText` Func<double, string\>?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+Values are normalised into [<code class="paramref">min</code>, <code class="paramref">max</code>], defaulting to the data's own
+min/max. NaN cells are blank. Pass <code class="paramref">cellText</code> to draw each cell's value as centred text
+(readable-contrast on the cell colour) — e.g. <code>v =&gt; ((int)v).ToString()</code> for a confusion matrix.
+
+### <a id="Jumbee_Console_Plot_AddHistogram_System_Collections_Generic_IReadOnlyList_System_Double__System_Int32_System_Nullable_Jumbee_Console_Color__"></a> AddHistogram\(IReadOnlyList<double\>, int, Color?\)
+
+Adds a histogram of <code class="paramref">values</code> — the values are binned and each bin drawn as a touching bar
+(bar height = bin count).
+
+```csharp
+public Plot AddHistogram(IReadOnlyList<double> values, int bins = 0, Color? color = null)
+```
+
+#### Parameters
+
+`values` IReadOnlyList<double\>
+
+`bins` int
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">bins</code> ≤ 0 picks a bin count automatically (√n, clamped); <code class="paramref">color</code> defaults
+to the palette.
+
+### <a id="Jumbee_Console_Plot_AddLabel_System_Double_System_Double_System_String_System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__Jumbee_Console_PlotLabelAlign_System_Int32_System_Int32_"></a> AddLabel\(double, double, string, Color?, Color?, PlotLabelAlign, int, int\)
+
+Adds a text annotation anchored to the data point (<code class="paramref">x</code>, <code class="paramref">y</code>) — e.g. labelling
+a candle or data point.
+
+```csharp
+public Plot AddLabel(double x, double y, string text, Color? fg = null, Color? bg = null, PlotLabelAlign align = PlotLabelAlign.Center, int dx = 0, int dy = 1)
+```
+
+#### Parameters
+
+`x` double
+
+`y` double
+
+`text` string
+
+`fg` [Color](Jumbee.Console.Color.md)?
+
+`bg` [Color](Jumbee.Console.Color.md)?
+
+`align` [PlotLabelAlign](Jumbee.Console.PlotLabelAlign.md)
+
+`dx` int
+
+`dy` int
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">fg</code> defaults to white; <code class="paramref">bg</code> is optional (transparent when null).
+<code class="paramref">dx</code>/<code class="paramref">dy</code> nudge the label in cells (dy &gt; 0 = above the point);
+<code class="paramref">align</code> anchors it horizontally. Does not rescale the axes.
+
+### <a id="Jumbee_Console_Plot_AddLiveBars_System_Nullable_Jumbee_Console_Color__System_Double_System_Double_"></a> AddLiveBars\(Color?, double, double\)
+
+Adds a live bar series and returns a <xref href="Jumbee.Console.PlotSeries" data-throw-if-not-resolved="false"></xref> handle.
+
+```csharp
+public PlotSeries AddLiveBars(Color? color = null, double baseline = 0, double width = 0.8)
+```
+
+#### Parameters
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`baseline` double
+
+`width` double
+
+#### Returns
+
+ [PlotSeries](Jumbee.Console.PlotSeries.md)
+
+#### Remarks
+
+Feed it with <xref href="Jumbee.Console.PlotSeries.SetValues(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref> (bars at x = 1, 2, 3, …) or <xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>.
+<code class="paramref">color</code> defaults to the palette. Starts empty.
+
+### <a id="Jumbee_Console_Plot_AddLiveSeries_System_Nullable_Jumbee_Console_Color__Jumbee_Console_PlotBrush_"></a> AddLiveSeries\(Color?, PlotBrush\)
+
+Adds a live line/scatter series and returns a <xref href="Jumbee.Console.PlotSeries" data-throw-if-not-resolved="false"></xref> handle to feed it data as it arrives
+(<xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.PlotSeries.Push(System.Double%2cSystem.Double%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>).
+
+```csharp
+public PlotSeries AddLiveSeries(Color? color = null, PlotBrush brush = PlotBrush.Braille)
+```
+
+#### Parameters
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`brush` [PlotBrush](Jumbee.Console.PlotBrush.md)
+
+#### Returns
+
+ [PlotSeries](Jumbee.Console.PlotSeries.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">brush</code> sets the sub-cell marker. Starts empty.
+
+### <a id="Jumbee_Console_Plot_AddScatter_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__Jumbee_Console_PlotBrush_System_Nullable_Jumbee_Console_Color__"></a> AddScatter\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PlotBrush, Color?\)
+
+Adds a scatter series — the points drawn as markers, without connecting lines.
+
+```csharp
+public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush = PlotBrush.Braille, Color? color = null)
+```
+
+#### Parameters
+
+`xs` IReadOnlyCollection<double\>
+
+`ys` IReadOnlyCollection<double\>
+
+`brush` [PlotBrush](Jumbee.Console.PlotBrush.md)
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+The <code class="paramref">brush</code> sets the marker (and its sub-cell resolution); <code class="paramref">color</code> defaults
+to the palette.
+
+### <a id="Jumbee_Console_Plot_AddSeries_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__ConsolePlot_Drawing_Tools_PointPen_"></a> AddSeries\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PointPen\)
+
+Adds a data series. <code class="paramref">xs</code> and <code class="paramref">ys</code> must be the same length.
+
+```csharp
+public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PointPen pen = default)
+```
+
+#### Parameters
+
+`xs` IReadOnlyCollection<double\>
+
+`ys` IReadOnlyCollection<double\>
+
+`pen` PointPen
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+When <code class="paramref">pen</code> is left at its default a colour is taken from the control's palette (cycling by
+series index) and drawn with the Braille brush.
+
+### <a id="Jumbee_Console_Plot_AddSeries_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__Jumbee_Console_PlotBrush_System_Nullable_Jumbee_Console_Color__"></a> AddSeries\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PlotBrush, Color?\)
+
+Adds a data series drawn with the given <code class="paramref">brush</code>.
+
+```csharp
+public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, Color? color = null)
+```
+
+#### Parameters
+
+`xs` IReadOnlyCollection<double\>
+
+`ys` IReadOnlyCollection<double\>
+
+`brush` [PlotBrush](Jumbee.Console.PlotBrush.md)
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+The <code class="paramref">brush</code>'s sub-cell resolution — Braille 2×4, Quadrant 2×2, the rest 1×1 — sets how smooth
+the line looks. When <code class="paramref">color</code> is <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> a colour is taken from the control's
+palette, cycling by series index.
+
+### <a id="Jumbee_Console_Plot_AddStackedBars_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Collections_Generic_IReadOnlyList_System_Double___System_Collections_Generic_IReadOnlyList_Jumbee_Console_Color__System_Double_System_Double_"></a> AddStackedBars\(IReadOnlyList<double\>, IReadOnlyList<IReadOnlyList<double\>\>, IReadOnlyList<Color\>?, double, double\)
+
+Adds stacked vertical bars — the series stacked from <code class="paramref">baseline</code> at each x.
+
+```csharp
+public Plot AddStackedBars(IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series, IReadOnlyList<Color>? colors = null, double baseline = 0, double width = 0.8)
+```
+
+#### Parameters
+
+`xs` IReadOnlyList<double\>
+
+`series` IReadOnlyList<IReadOnlyList<double\>\>
+
+`colors` IReadOnlyList<[Color](Jumbee.Console.Color.md)\>?
+
+`baseline` double
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">series</code> is one value list per series (each the same length as <code class="paramref">xs</code>).
+<code class="paramref">colors</code> defaults to the palette (one per series).
+
+### <a id="Jumbee_Console_Plot_AddStem_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__System_Nullable_Jumbee_Console_Color__System_Double_"></a> AddStem\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, Color?, double\)
+
+Adds a stem series — a vertical line from <code class="paramref">baseline</code> (default 0) to each point, capped with
+a dot marker.
+
+```csharp
+public Plot AddStem(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, Color? color = null, double baseline = 0)
+```
+
+#### Parameters
+
+`xs` IReadOnlyCollection<double\>
+
+`ys` IReadOnlyCollection<double\>
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`baseline` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette.
+
+### <a id="Jumbee_Console_Plot_AutoRangeX"></a> AutoRangeX\(\)
+
+Restores auto-scaling of the horizontal axis (undoes <xref href="Jumbee.Console.Plot.SetXRange(System.Double%2cSystem.Double)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.Plot.SetXWindow(System.Double)" data-throw-if-not-resolved="false"></xref>).
+
+```csharp
+public Plot AutoRangeX()
+```
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_AutoRangeY"></a> AutoRangeY\(\)
+
+Restores auto-scaling of the vertical axis to the data (undoes <xref href="Jumbee.Console.Plot.SetYRange(System.Double%2cSystem.Double)" data-throw-if-not-resolved="false"></xref>).
+
+```csharp
+public Plot AutoRangeY()
+```
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_Clear"></a> Clear\(\)
+
+Removes all series and configuration, leaving an empty plot.
+
+```csharp
+public Plot Clear()
+```
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_Configure_System_Action_ConsolePlot_Plot__"></a> Configure\(Action<Plot\>\)
+
+Records an arbitrary configuration step (applied to the underlying plot on every rebuild).
+
+```csharp
+public Plot Configure(Action<Plot> configure)
+```
+
+#### Parameters
+
+`configure` Action<Plot\>
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_ConfigureAxis_System_Action_ConsolePlot_Plotting_AxisSettings__"></a> ConfigureAxis\(Action<AxisSettings\>\)
+
+Configures the axis (visibility, pen).
+
+```csharp
+public Plot ConfigureAxis(Action<AxisSettings> configure)
+```
+
+#### Parameters
+
+`configure` Action<AxisSettings\>
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_ConfigureGrid_System_Action_ConsolePlot_Plotting_GridSettings__"></a> ConfigureGrid\(Action<GridSettings\>\)
+
+Configures the grid (visibility, pen).
+
+```csharp
+public Plot ConfigureGrid(Action<GridSettings> configure)
+```
+
+#### Parameters
+
+`configure` Action<GridSettings\>
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_ConfigureTicks_System_Action_ConsolePlot_Plotting_TickSettings__"></a> ConfigureTicks\(Action<TickSettings\>\)
+
+Configures the ticks and their labels (spacing, pen, format).
+
+```csharp
+public Plot ConfigureTicks(Action<TickSettings> configure)
+```
+
+#### Parameters
+
+`configure` Action<TickSettings\>
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_Render"></a> Render\(\)
+
+Rebuilds the underlying chart when needed and blits it to the buffer.
+
+```csharp
+protected override void Render()
+```
+
+### <a id="Jumbee_Console_Plot_SetXRange_System_Double_System_Double_"></a> SetXRange\(double, double\)
+
+Pins the horizontal axis to a fixed range; see <xref href="Jumbee.Console.Plot.SetYRange(System.Double%2cSystem.Double)" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Plot SetXRange(double min, double max)
+```
+
+#### Parameters
+
+`min` double
+
+`max` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_SetXTicks_System_Collections_Generic_IReadOnlyList_System_ValueTuple_System_Double_System_String___"></a> SetXTicks\(IReadOnlyList<\(double value, string label\)\>\)
+
+Sets explicit horizontal-axis ticks (value + label) — e.g. categorical class names at cell centres.
+
+```csharp
+public Plot SetXTicks(IReadOnlyList<(double value, string label)> ticks)
+```
+
+#### Parameters
+
+`ticks` IReadOnlyList<\(double value, string label\)\>
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+Replaces the auto numeric ticks and keeps the data bounds unadjusted. For labels in a reserved margin (rather
+than attached inside the grid), pair with <code>ConfigureTicks(t =&gt; t.Labels.AttachToAxis = false)</code> —
+<xref href="Jumbee.Console.Plot.AddConfusionMatrix(System.Collections.Generic.IReadOnlyList%7bSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.String%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.String%7d%2cJumbee.Console.PlotColormap)" data-throw-if-not-resolved="false"></xref> does this for you.
+
+### <a id="Jumbee_Console_Plot_SetXWindow_System_Double_"></a> SetXWindow\(double\)
+
+Makes the horizontal axis a sliding window of <code class="paramref">width</code> units — it shows the most recent
+<code>[max(0, dataMax − width), dataMax]</code> of a monotonic (time-like) series.
+
+```csharp
+public Plot SetXWindow(double width)
+```
+
+#### Parameters
+
+`width` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+The axis only advances rightward and never shows x &lt; 0. Ideal for streaming/financial data.
+<xref href="Jumbee.Console.Plot.AutoRangeX" data-throw-if-not-resolved="false"></xref> restores auto.
+
+### <a id="Jumbee_Console_Plot_SetYRange_System_Double_System_Double_"></a> SetYRange\(double, double\)
+
+Pins the vertical axis to a fixed <code class="paramref">min</code>..<code class="paramref">max</code> range.
+
+```csharp
+public Plot SetYRange(double min, double max)
+```
+
+#### Parameters
+
+`min` double
+
+`max` double
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+Live updates then move only the data (values outside the range are clipped) instead of the axis rescaling to
+the data each frame. Call once before streaming; <xref href="Jumbee.Console.Plot.AutoRangeY" data-throw-if-not-resolved="false"></xref> restores auto-scaling.
+
+### <a id="Jumbee_Console_Plot_SetYTicks_System_Collections_Generic_IReadOnlyList_System_ValueTuple_System_Double_System_String___"></a> SetYTicks\(IReadOnlyList<\(double value, string label\)\>\)
+
+Sets explicit vertical-axis ticks (value + label). See <xref href="Jumbee.Console.Plot.SetXTicks(System.Collections.Generic.IReadOnlyList%7bSystem.ValueTuple%7bSystem.Double%2cSystem.String%7d%7d)" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Plot SetYTicks(IReadOnlyList<(double value, string label)> ticks)
+```
+
+#### Parameters
+
+`ticks` IReadOnlyList<\(double value, string label\)\>
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_WithBackground_System_Nullable_Jumbee_Console_Color__"></a> WithBackground\(Color?\)
+
+Sets the <xref href="Jumbee.Console.Plot.Background" data-throw-if-not-resolved="false"></xref> colour and returns this plot, for fluent chaining.
+
+```csharp
+public Plot WithBackground(Color? background)
+```
+
+#### Parameters
+
+`background` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+

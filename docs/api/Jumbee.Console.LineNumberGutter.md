@@ -1,0 +1,283 @@
+# <a id="Jumbee_Console_LineNumberGutter"></a> Class LineNumberGutter
+
+Namespace: [Jumbee.Console](Jumbee.Console.md)  
+Assembly: Jumbee.Console.dll  
+
+A narrow, non-interactive column of right-aligned line numbers, highlighting the active row. Intended as an
+adornment inside a composite (e.g. <xref href="Jumbee.Console.CodeEditor" data-throw-if-not-resolved="false"></xref>); width auto-grows with the digit count.
+
+```csharp
+public class LineNumberGutter : RenderableControl, IFocusable
+```
+
+#### Inheritance
+
+object ← 
+Control ← 
+[Control](Jumbee.Console.Control.md) ← 
+[RenderableControl](Jumbee.Console.RenderableControl.md) ← 
+[LineNumberGutter](Jumbee.Console.LineNumberGutter.md)
+
+#### Implements
+
+[IFocusable](Jumbee.Console.IFocusable.md)
+
+#### Inherited Members
+
+[RenderableControl.Render\(RenderOptions, int\)](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_Render\_Spectre\_Console\_Rendering\_RenderOptions\_System\_Int32\_), 
+[RenderableControl.Measure\(RenderOptions, int\)](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_Measure\_Spectre\_Console\_Rendering\_RenderOptions\_System\_Int32\_), 
+[RenderableControl.RendersInteractiveState](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_RendersInteractiveState), 
+[RenderableControl.Invalidate\(\)](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_Invalidate), 
+[RenderableControl.InvalidateInteractive\(\)](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_InvalidateInteractive), 
+[RenderableControl.Initialize\(\)](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_Initialize), 
+[RenderableControl.Render\(\)](Jumbee.Console.RenderableControl.md\#Jumbee\_Console\_RenderableControl\_Render), 
+[Control.this\[Position\]](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Item\_ConsoleGUI\_Space\_Position\_), 
+[Control.Width](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Width), 
+[Control.ActualWidth](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ActualWidth), 
+[Control.Height](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Height), 
+[Control.ActualHeight](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ActualHeight), 
+[Control.HasLayout](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_HasLayout), 
+[Control.Frame](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Frame), 
+[Control.HasFrame](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_HasFrame), 
+[Control.Focusable](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Focusable), 
+[Control.IsFocused](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsFocused), 
+[Control.FocusableControl](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_FocusableControl), 
+[Control.FocusedControl](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_FocusedControl), 
+[Control.HandlesInput](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_HandlesInput), 
+[Control.OnInput\(UI.InputEventArgs\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnInput\_Jumbee\_Console\_UI\_InputEventArgs\_), 
+[Control.OnInput\(InputEvent\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnInput\_ConsoleGUI\_Input\_InputEvent\_), 
+[Control.IsMouseOver](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsMouseOver), 
+[Control.IsMousePressed](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsMousePressed), 
+[Control.WantsMouse](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_WantsMouse), 
+[Control.RendersOwnFocus](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_RendersOwnFocus), 
+[Control.OnMouseEnter\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseEnter), 
+[Control.OnMouseLeave\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseLeave), 
+[Control.OnMouseMove\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseMove\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnMousePress\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMousePress\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnMouseRelease\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseRelease\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnClick\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnClick\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnDoubleClick\(Position\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnDoubleClick\_ConsoleGUI\_Space\_Position\_), 
+[Control.OnMouseWheel\(Position, int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnMouseWheel\_ConsoleGUI\_Space\_Position\_System\_Int32\_), 
+[Control.CaptureMouse\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_CaptureMouse), 
+[Control.ReleaseMouse\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ReleaseMouse), 
+[Control.OnPaste\(string\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnPaste\_System\_String\_), 
+[Control.Dispose\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Dispose), 
+[Control.ApplyTheme\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ApplyTheme), 
+[Control.IsThemeOverridden\(string\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IsThemeOverridden\_System\_String\_), 
+[Control.Focus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Focus), 
+[Control.UnFocus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_UnFocus), 
+[Control.GetHelpInfo\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_GetHelpInfo), 
+[Control.CompileHelp\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_CompileHelp), 
+[Control.Control\_OnInitialization\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Control\_OnInitialization), 
+[Control.Control\_OnLostFocus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Control\_OnLostFocus), 
+[Control.Control\_OnFocus\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Control\_OnFocus), 
+[Control.Render\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Render), 
+[Control.Initialize\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Initialize), 
+[Control.Paint\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Paint), 
+[Control.Invalidate\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Invalidate), 
+[Control.InvalidateInteractive\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_InvalidateInteractive), 
+[Control.TracksDamage](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_TracksDamage), 
+[Control.Damage\(in Rect\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Damage\_ConsoleGUI\_Space\_Rect\_\_), 
+[Control.DamageAll\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_DamageAll), 
+[Control.Feed\(Action, TimeSpan\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_System\_Action\_System\_TimeSpan\_), 
+[Control.Feed\(Action, int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_System\_Action\_System\_Int32\_), 
+[Control.Feed<T\>\(Func<T\>, Action<T\>, TimeSpan\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_\_1\_System\_Func\_\_\_0\_\_System\_Action\_\_\_0\_\_System\_TimeSpan\_), 
+[Control.Feed<T\>\(Func<T\>, Action<T\>, int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feed\_\_1\_System\_Func\_\_\_0\_\_System\_Action\_\_\_0\_\_System\_Int32\_), 
+[Control.Feeds](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Feeds), 
+[Control.SetAtomicProperty<T\>\(ref T, T, bool, Func<T, T\>?, Action<T, T\>?, bool, string?\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_SetAtomicProperty\_\_1\_\_\_0\_\_\_\_0\_System\_Boolean\_System\_Func\_\_\_0\_\_\_0\_\_System\_Action\_\_\_0\_\_\_0\_\_System\_Boolean\_System\_String\_), 
+[Control.Validate\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Validate), 
+[Control.CalculateSize\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_CalculateSize), 
+[Control.MeasureHeight\(int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MeasureHeight\_System\_Int32\_), 
+[Control.FillsFrameViewport](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_FillsFrameViewport), 
+[Control.IntrinsicWidth\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IntrinsicWidth), 
+[Control.IntrinsicHeight\(\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_IntrinsicHeight), 
+[Control.ClampWidth\(int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ClampWidth\_System\_Int32\_), 
+[Control.ClampHeight\(int\)](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ClampHeight\_System\_Int32\_), 
+[Control.OnInitialization](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnInitialization), 
+[Control.OnFocus](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnFocus), 
+[Control.OnLostFocus](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnLostFocus), 
+[Control.OnHelp](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_OnHelp), 
+[Control.MouseEntered](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseEntered), 
+[Control.MouseLeft](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseLeft), 
+[Control.MouseMoved](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseMoved), 
+[Control.MousePressed](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MousePressed), 
+[Control.MouseReleased](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseReleased), 
+[Control.Clicked](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_Clicked), 
+[Control.DoubleClicked](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_DoubleClicked), 
+[Control.MouseWheeled](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_MouseWheeled), 
+[Control.emptyChar](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_emptyChar), 
+[Control.emptyCell](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_emptyCell), 
+[Control.paintRequests](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_paintRequests), 
+[Control.consoleBuffer](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_consoleBuffer), 
+[Control.ansiConsole](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_ansiConsole), 
+[Control.DoubleClickMs](Jumbee.Console.Control.md\#Jumbee\_Console\_Control\_DoubleClickMs)
+
+#### Extension Methods
+
+[ControlExtensions.WithAsciiBorder<LineNumberGutter\>\(LineNumberGutter, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithAsciiBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithBorder<LineNumberGutter\>\(LineNumberGutter, BorderStyle?, Color?, Color?, BorderPlacement?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_), 
+[ControlExtensions.WithDoubleBorder<LineNumberGutter\>\(LineNumberGutter, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithDoubleBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithFrame<LineNumberGutter\>\(LineNumberGutter, ControlFrame\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_Jumbee\_Console\_ControlFrame\_), 
+[ControlExtensions.WithFrame<LineNumberGutter\>\(LineNumberGutter, BorderStyle?, Offset?, Color?, Color?, string?, Color?, Color?, BorderPlacement?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_ConsoleGUI\_Space\_Offset\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_String\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_), 
+[ControlExtensions.WithHeavyBorder<LineNumberGutter\>\(LineNumberGutter, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithHeavyBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithHeight<LineNumberGutter\>\(LineNumberGutter, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithHeight\_\_1\_\_\_0\_System\_Int32\_), 
+[ControlExtensions.WithMargin<LineNumberGutter\>\(LineNumberGutter, int, int, int, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithMargin\_\_1\_\_\_0\_System\_Int32\_System\_Int32\_System\_Int32\_System\_Int32\_), 
+[ControlExtensions.WithMargin<LineNumberGutter\>\(LineNumberGutter, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithMargin\_\_1\_\_\_0\_System\_Int32\_), 
+[ControlExtensions.WithNoBorder<LineNumberGutter\>\(LineNumberGutter\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithNoBorder\_\_1\_\_\_0\_), 
+[ControlExtensions.WithRoundedBorder<LineNumberGutter\>\(LineNumberGutter, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithRoundedBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithScrollBarGlyphs<LineNumberGutter\>\(LineNumberGutter, ScrollBarGlyphs\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithScrollBarGlyphs\_\_1\_\_\_0\_Jumbee\_Console\_ScrollBarGlyphs\_), 
+[ControlExtensions.WithScrollBarStyle<LineNumberGutter\>\(LineNumberGutter, ScrollBarStyle\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithScrollBarStyle\_\_1\_\_\_0\_Jumbee\_Console\_ScrollBarStyle\_), 
+[ControlExtensions.WithSize<LineNumberGutter\>\(LineNumberGutter, int?, int?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithSize\_\_1\_\_\_0\_System\_Nullable\_System\_Int32\_\_System\_Nullable\_System\_Int32\_\_), 
+[ControlExtensions.WithSquareBorder<LineNumberGutter\>\(LineNumberGutter, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithSquareBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
+[ControlExtensions.WithTitle<LineNumberGutter\>\(LineNumberGutter, string\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithTitle\_\_1\_\_\_0\_System\_String\_), 
+[ControlExtensions.WithTitle<LineNumberGutter\>\(LineNumberGutter, string, TitleStyle\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithTitle\_\_1\_\_\_0\_System\_String\_Jumbee\_Console\_TitleStyle\_), 
+[ControlExtensions.WithTitle<LineNumberGutter\>\(LineNumberGutter, string, TitlePos, TitleBorderStyle, TitleColorStyle\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithTitle\_\_1\_\_\_0\_System\_String\_Jumbee\_Console\_TitlePos\_Jumbee\_Console\_TitleBorderStyle\_Jumbee\_Console\_TitleColorStyle\_), 
+[ControlExtensions.WithWidth<LineNumberGutter\>\(LineNumberGutter, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithWidth\_\_1\_\_\_0\_System\_Int32\_)
+
+## Remarks
+
+By default it numbers rows sequentially (<code>1, 2, 3 …</code>). To stay aligned with <em>soft-wrapped</em> text,
+set <xref href="Jumbee.Console.LineNumberGutter.RowsProvider" data-throw-if-not-resolved="false"></xref>: it is pulled every render and returns, per visual row, the number to show
+(0 = a wrapped continuation row, drawn blank) plus the active row — so a resize stays correct with no event.
+
+## Constructors
+
+### <a id="Jumbee_Console_LineNumberGutter__ctor"></a> LineNumberGutter\(\)
+
+Initializes a <xref href="Jumbee.Console.LineNumberGutter" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public LineNumberGutter()
+```
+
+## Properties
+
+### <a id="Jumbee_Console_LineNumberGutter_ActiveLine"></a> ActiveLine
+
+The zero-based active row, drawn in <xref href="Jumbee.Console.LineNumberGutter.ActiveStyle" data-throw-if-not-resolved="false"></xref> (used when <xref href="Jumbee.Console.LineNumberGutter.RowsProvider" data-throw-if-not-resolved="false"></xref> is null).
+
+```csharp
+public int ActiveLine { get; set; }
+```
+
+#### Property Value
+
+ int
+
+### <a id="Jumbee_Console_LineNumberGutter_ActiveStyle"></a> ActiveStyle
+
+Style of the active line number. Defaults to <xref href="Jumbee.Console.IStyleTheme.TextAccent" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Style ActiveStyle { get; set; }
+```
+
+#### Property Value
+
+ [Style](Jumbee.Console.Style.md)
+
+### <a id="Jumbee_Console_LineNumberGutter_LineCount"></a> LineCount
+
+The total number of lines to number. The control widens as the digit count grows.
+
+```csharp
+public int LineCount { get; set; }
+```
+
+#### Property Value
+
+ int
+
+### <a id="Jumbee_Console_LineNumberGutter_NumberStyle"></a> NumberStyle
+
+Style of inactive line numbers. Defaults to <xref href="Jumbee.Console.IStyleTheme.TextMuted" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Style NumberStyle { get; set; }
+```
+
+#### Property Value
+
+ [Style](Jumbee.Console.Style.md)
+
+### <a id="Jumbee_Console_LineNumberGutter_RendersInteractiveState"></a> RendersInteractiveState
+
+Whether this control's rendered output depends on interactive state (focus / mouse hover / press) — i.e.
+whether <xref href="Jumbee.Console.RenderableControl.Render(Spectre.Console.Rendering.RenderOptions%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref> reads <xref href="Jumbee.Console.Control.IsFocused" data-throw-if-not-resolved="false"></xref>, <code>IsMouseOver</code>,
+or <code>IsMousePressed</code>.
+
+```csharp
+protected override bool RendersInteractiveState { get; }
+```
+
+#### Property Value
+
+ bool
+
+#### Remarks
+
+When <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>, focus/mouse changes skip the (expensive) Spectre re-render and reuse the cached
+buffer — the retained-mode fast path. Defaults to <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a> (always re-render), so controls that
+highlight on hover/focus keep working without opting in.
+
+### <a id="Jumbee_Console_LineNumberGutter_RowsProvider"></a> RowsProvider
+
+Optional per-render source of wrap-aware labels: returns, for every visual row, the line number to show
+(0 = wrapped continuation, drawn blank) and the active visual row.
+
+```csharp
+public Func<(IReadOnlyList<int> labels, int activeRow)>? RowsProvider { get; set; }
+```
+
+#### Property Value
+
+ Func<\(IReadOnlyList<int\> labels, int activeRow\)\>?
+
+#### Remarks
+
+When set it overrides the sequential numbering. Pulled on every render so it tracks edits and resizes. The
+gutter renders one label per visual row (it is content-tall, like the editor); a surrounding frame scrolls
+them together, so no scroll offset is needed here.
+
+## Methods
+
+### <a id="Jumbee_Console_LineNumberGutter_ApplyTheme"></a> ApplyTheme\(\)
+
+Re-captures this control's themed colours/glyphs from the current <xref href="Jumbee.Console.UI.StyleTheme" data-throw-if-not-resolved="false"></xref>/
+<xref href="Jumbee.Console.UI.GlyphTheme" data-throw-if-not-resolved="false"></xref>. The default is a no-op for controls that don't use the theme.
+
+```csharp
+protected override void ApplyTheme()
+```
+
+#### Remarks
+
+Called by themed controls from their constructor and again on a runtime theme switch (<xref href="Jumbee.Console.UI.SetTheme(Jumbee.Console.IStyleTheme%2cJumbee.Console.IGlyphTheme)" data-throw-if-not-resolved="false"></xref>).
+Must read the themes <em>only here</em> (and in the constructor), never on the render path.
+
+### <a id="Jumbee_Console_LineNumberGutter_Refresh"></a> Refresh\(\)
+
+Requests a repaint (e.g. when the paired editor's line count or caret changes).
+
+```csharp
+public void Refresh()
+```
+
+### <a id="Jumbee_Console_LineNumberGutter_Render_Spectre_Console_Rendering_RenderOptions_System_Int32_"></a> Render\(RenderOptions, int\)
+
+Produces the Spectre.Console <xref href="Spectre.Console.Rendering.Segment" data-throw-if-not-resolved="false"></xref>s for the control's content within <code class="paramref">maxWidth</code>.
+
+```csharp
+protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
+```
+
+#### Parameters
+
+`options` RenderOptions
+
+`maxWidth` int
+
+#### Returns
+
+ IEnumerable<Segment\>
+
