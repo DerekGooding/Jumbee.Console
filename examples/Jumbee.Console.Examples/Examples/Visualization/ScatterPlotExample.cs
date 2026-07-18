@@ -17,7 +17,7 @@ public sealed class ScatterPlotExample : Plot, IExample
     }
 
     #region IExample
-    string IExample.Category => "Controls";
+    string IExample.Category => "Visualization";
     string IExample.Title => "Scatter Plot";
     string IExample.Description =>
         "Data points drawn as markers, no connecting line — two scatter series sharing one coordinate system.";

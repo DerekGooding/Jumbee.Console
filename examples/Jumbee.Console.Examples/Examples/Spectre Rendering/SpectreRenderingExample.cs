@@ -76,9 +76,9 @@ public sealed class SpectreRenderingExample : SpectreControl<S.Rows>, IExample
     }
 
     #region IExample
-    string IExample.Category => "Flexibility";
-    string IExample.Title => "Spectre Rendering";
+    string IExample.Category => "Spectre Rendering";
+    string IExample.Title => "Spectre.Console Controls";
     string IExample.Description =>
-        "Spectre.Console renderables — Figlet banner, table, breakdown chart and calendar, composed with Align, Padder and Rows — hosted in one Jumbee control.";
+        "Spectre.Console controls — Figlet banner, table, breakdown chart and calendar, composed with Align, Padder and Rows — hosted in one Jumbee control.";
     #endregion
 }

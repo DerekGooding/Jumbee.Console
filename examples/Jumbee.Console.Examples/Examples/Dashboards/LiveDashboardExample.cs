@@ -164,8 +164,8 @@ public sealed class LiveDashboardExample : CompositeControl, IActivatableExample
 
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => Feeds;
 
-    string IExample.Category => "Flexibility";
-    string IExample.Title => "Live Dashboard";
+    string IExample.Category => "Dashboards";
+    string IExample.Title => "Live Dashboard 1";
     string IExample.Description =>
         "A grid of live panels — streaming charts, bars, a process table, a log and sparklines — fed a few times a second.";
     #endregion

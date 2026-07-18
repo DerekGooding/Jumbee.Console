@@ -99,7 +99,7 @@ public sealed class SpectreLiveExample : CompositeControl, IActivatableExample
     // The default OnDeactivated cancels these, which ends both callbacks and releases the widgets.
     IReadOnlyList<CancellationTokenSource> IActivatableExample.FeedTasks => cancel is null ? [] : [cancel];
 
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Spectre Rendering";
     string IExample.Title => "Spectre Live";
     string IExample.Description =>
         "Spectre's LiveDisplay and Progress refreshing from their own threads — beside a code editor that stays fully interactive, which plain Spectre.Console cannot do.";

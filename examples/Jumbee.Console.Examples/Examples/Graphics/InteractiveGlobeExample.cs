@@ -16,7 +16,7 @@ public sealed class InteractiveGlobeExample : Globe, IExample
     }
 
     #region IExample
-    string IExample.Category => "Flexibility";
+    string IExample.Category => "Graphics";
     string IExample.Title => "Interactive Globe";
     string IExample.Description =>
         "A mouse- and keyboard-driven ASCII Earth — drag to rotate, scroll to zoom, arrows to spin/tilt, +/- to zoom.";

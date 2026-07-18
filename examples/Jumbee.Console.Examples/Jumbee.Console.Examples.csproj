@@ -44,5 +44,8 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\docs\internal\Input.md" Link="DocSource\Input.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Examples\Viewers\" />
+  </ItemGroup>
 
 </Project>
