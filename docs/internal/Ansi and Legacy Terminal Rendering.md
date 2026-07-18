@@ -195,3 +195,25 @@ render path — the same `IsCursor` cell drives both.
 
 Default is ANSI. Pass `isAnsiTerminal: false` to `UI.Start` for terminals that don't interpret
 escape sequences.
+
+## 7. Known limitations of the legacy path
+
+Validated interactively in a genuine `cmd.exe` (not Windows Terminal): the full control set renders —
+including the embedded `TerminalEmulator` (a live ConPTY child, ANSI-in → cells → legacy-out), coloured
+charts, and the ray-traced `Globe`. Two inherent limitations follow from writing cell-by-cell through
+`System.Console` with no atomic full-frame flush:
+
+- **Cost scales with the number of cells *written* per frame, not with frame rate.** Idle/static content is
+  cheap — the in-memory composite + diff is the same as ANSI and *zero* cells reach `System.Console`
+  (steady state measured ~0.6 ms/frame). The per-cell cost only appears when many cells change at once: the
+  first paint, a resize, or full-screen animation. Heavy animation is much slower than ANSI — the spinning
+  `Globe` runs ~30 ms/frame on legacy vs sub-ms on ANSI, because it repaints most of the screen every frame.
+- **Tearing under heavy churn.** Because a frame is written one cell at a time (no double-buffer swap or
+  single-stream flush), a burst of many changing cells — fast-streaming terminal output, rapid scroll — is
+  painted *incrementally*, so mid-repaint states are briefly visible. The final settled frame is always
+  correct; ANSI avoids this by emitting the whole frame diff as one byte sequence.
+
+**Mitigation (not yet done):** coalesce contiguous same-colour cells on a row into a single
+`System.Console.Write`, and drop the per-cell `SetCursorPosition` calls in favour of one per run. That shrinks
+the per-frame write window, which reduces both the animation cost and the visible tearing. Deferred — the
+current behaviour is acceptable for the mostly-static UIs the legacy path targets.

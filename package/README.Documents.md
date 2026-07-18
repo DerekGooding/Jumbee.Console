@@ -1,5 +1,3 @@
-
-
 # Jumbee.Console Documents
 
 ![](https://ajb.nyc3.cdn.digitaloceanspaces.com/jc/jc_mdmeditor_1.gif)
@@ -12,7 +10,6 @@ This is an add-on library for Jumbee.Console that provides TUI viewers and edito
 * AsciiDoc
 * Mermaid
 * Mermaid embedded in Markdown
-
 
 ## Getting Started
 See [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) on the project site, and the project [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs). 

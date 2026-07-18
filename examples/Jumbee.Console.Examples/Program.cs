@@ -9,6 +9,11 @@ internal static class Program
     static void Main(string[] args)
     {
         if (args.Contains("--verify")) { Environment.Exit(Verify.Run()); return; }
+
+        // --legacy exercises the non-ANSI / Windows-classic path: render through IConsole (SimplifiedConsole,
+        // 16-colour) with keyboard-only input (no VtInputSource, so mouse/hover are off — navigate with the tree
+        // arrows, Enter, Tab and Ctrl+arrows). Handy for eyeballing glyph/colour degradation on a real cmd.exe.
+        bool legacy = args.Contains("--legacy");
         ConsoleGUI.ConsoleManager.EmulateBlinkingCursor = true;
 
         // Show keyboard focus as a border on the focused pane (not the default full-background tint). Set before
@@ -75,7 +80,15 @@ internal static class Program
         }
 
         var hud = new PerfHud();
-        var run = UI.Start(root, width: 150, height: 42, isAnsiTerminal: true, input: new VtInputSource(anyMotion: true));
+        // ANSI: full mouse via VtInputSource. Legacy: keyboard-only, sized to the real console so cell writes fit it.
+        int width = 150, height = 42;
+        if (legacy)
+        {
+            try { width = Math.Max(80, System.Console.WindowWidth); height = Math.Max(24, System.Console.WindowHeight); }
+            catch { /* stdin/stdout redirected — keep the defaults */ }
+        }
+        var run = UI.Start(root, width: width, height: height, isAnsiTerminal: !legacy,
+            input: legacy ? null : new VtInputSource(anyMotion: true));
         hud.RegisterToggle();                                                    // Ctrl+G: the glass perf HUD
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.B), ToggleTree);            // collapse/restore the tree
         UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.E), ToggleEditor);          // collapse/restore the source pane
