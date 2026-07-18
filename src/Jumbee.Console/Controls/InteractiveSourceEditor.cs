@@ -41,6 +41,13 @@ public abstract class InteractiveSourceEditor : CompositeControl
         // caret moves too, so Sync compares against the last-synced text and skips navigation-only events.
         _editor.Editor.Changed += (_, _) => ScheduleSync();
 
+        // Dragging the divider resizes the framed panes but leaves this composite's own size unchanged, so the layout
+        // only ever reports a partial OnUpdate rect — and that rect starts at the divider's *new* position, missing the
+        // growing pane's old border cell just behind it. The result is a smear of stale border glyphs trailing the
+        // divider until the drag ends. Force a full recomposite on each split change so the whole pane area repaints
+        // from the panes' live buffers. SplitChanged fires only on a drag/nudge, so typing keeps the fast partial path.
+        _split.SplitChanged += _ => Invalidate();
+
         SetContent(_split);
     }
     #endregion
