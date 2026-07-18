@@ -1,10 +1,8 @@
 # Getting Started with Jumbee.Console
 
-Jumbee.Console is a .NET library for building fast, good-looking **terminal user interfaces (TUIs)**. It pairs a
-retained-mode control/layout model (place controls in layouts, wrap them in frames, let the library redraw only
-what changed) with [Spectre.Console](https://spectreconsole.net/)'s rich text styling, markup, and widgets. If
-you've built a desktop UI with WinForms or WPF, the model will feel familiar: a tree of controls, a single UI
-thread, and property changes that trigger a repaint.
+Jumbee.Console is a .NET library for building advanced TUIs that focusus on performance and ease-of-use. It pairs a retained-mode control/layout model (place controls in layouts, wrap them in frames, let the library redraw only
+what changed) with [Spectre.Console](https://spectreconsole.net/)'s rich text styling, markup, and rendering. If
+you've built a desktop UI with WinForms or WPF, the model will feel familiar: a tree of controls, a single UI thread, and property changes that trigger a repaint.
 
 > Status: pre-release (v0.1.x). APIs may still change.
 

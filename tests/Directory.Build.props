@@ -5,4 +5,8 @@
     <Nullable>enable</Nullable>
     <NoWarn>NETSDK1233</NoWarn>
   </PropertyGroup>
+
+  <!-- Test/benchmark projects reference Jumbee.Console and use its public API, which surfaces the forked types;
+       give them the same fork/vendored references (PrivateAssets, so no packaging impact). -->
+  <Import Project="$(MSBuildThisFileDirectory)..\src\ExternalReferences.props" />
 </Project>

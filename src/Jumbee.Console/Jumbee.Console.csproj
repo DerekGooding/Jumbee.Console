@@ -1,13 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="..\..\ext\VtNetCore\VtNetCore\VtNetCore.csproj" />
-    <ProjectReference Include="..\Jumbee.Console.Styles\Jumbee.Console.Styles.csproj" />
-    <ProjectReference Include="..\..\ext\C-sharp-console-gui-framework\ConsoleGUI\ConsoleGUI.csproj" />
-    <ProjectReference Include="..\..\ext\ConsolePlot\src\ConsolePlot\ConsolePlot.csproj" />
-    <ProjectReference Include="..\..\ext\NTokenizers.Extensions.Spectre.Console\src\NTokenizers.Extensions.Spectre.Console\NTokenizers.Extensions.Spectre.Console.csproj" />
-    <ProjectReference Include="..\..\ext\RazorConsole.Core.Syntax\RazorConsole.Core.Syntax.csproj" />
-    <ProjectReference Include="..\..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj" />
-  </ItemGroup>
+  <!-- Forked/vendored (ext/) + own Styles references, all PrivateAssets="all" so none become NuGet dependencies;
+       this package BUNDLES their DLLs into lib/ instead (see _AddBundledAssembliesToPackage). The same file is
+       imported by the add-on/example/test projects so they can compile against these types too. -->
+  <Import Project="..\ExternalReferences.props" />
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -19,6 +14,38 @@
     <FileVersion>$(ProjectAssemblyVersion)</FileVersion>
     <Version>$(ProjectAssemblyVersion)</Version>
   </PropertyGroup>
+
+  <!-- NuGet packaging. This is the self-contained core package: it BUNDLES the forked/vendored assemblies under
+       ext/ (Spectre.Console, ConsoleGUI, ConsolePlot, VtNetCore, NTokenizers.Extensions, RazorConsole + ColorCode)
+       and our own Jumbee.Console.Styles into lib/, because none of those are published on NuGet. Only genuine
+       PackageReferences (see NTokenizers below) become NuGet dependencies. -->
+  <PropertyGroup Label="Packaging">
+    <IsPackable>true</IsPackable>
+    <Description>A high-performance .NET library for building advanced terminal user interfaces (TUIs), pairing a retained-mode control/layout model with Spectre.Console text styling and widgets. Self-contained: bundles its forked ConsoleGUI, Spectre.Console, ConsolePlot and other dependencies. Consumers should not also reference the upstream Spectre.Console package.</Description>
+    <!-- Inject the bundled assemblies into the package's lib/ folder. -->
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_AddBundledAssembliesToPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <!-- Genuine NuGet dependency: pulled in transitively by the bundled NTokenizers.Extensions.Spectre.Console. It
+       IS published on nuget.org, so consumers restore it normally rather than us bundling its assemblies. -->
+  <ItemGroup>
+    <PackageReference Include="NTokenizers" Version="6.1.1" />
+  </ItemGroup>
+
+  <!-- Ship the third-party licence notices for the bundled assemblies. -->
+  <ItemGroup>
+    <None Include="..\..\THIRD-PARTY-NOTICES.TXT" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Copy the private (fork/vendored/own) project-reference assemblies + their XML docs into lib/. NuGet-sourced
+       assemblies (NuGetPackageId set, e.g. NTokenizers) are excluded — they stay as restored dependencies. -->
+  <Target Name="_AddBundledAssembliesToPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+        Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and ('%(Extension)' == '.dll' or '%(Extension)' == '.xml')" />
+    </ItemGroup>
+    <Message Importance="normal" Text="Jumbee.Console pack: bundled @(BuildOutputInPackage->Count()) private assemblies into lib/." />
+  </Target>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <IsTrimmable>True</IsTrimmable>

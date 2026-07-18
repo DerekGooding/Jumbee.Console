@@ -5,4 +5,8 @@
   <PropertyGroup Condition="'$(Configuration)' == ''">
     <Configuration>Release</Configuration>
   </PropertyGroup>
+
+  <!-- This project's own Directory.Build.props shadows examples/Directory.Build.props, so import the shared
+       fork/vendored references here too (needed to compile against Jumbee.Console's public API). -->
+  <Import Project="$(MSBuildThisFileDirectory)..\..\src\ExternalReferences.props" />
 </Project>

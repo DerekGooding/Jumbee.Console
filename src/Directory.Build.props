@@ -11,4 +11,33 @@
   <PropertyGroup Label="Versioning">
     <ProjectAssemblyVersion>0.1.0</ProjectAssemblyVersion>
   </PropertyGroup>
+
+  <!-- Shared NuGet package metadata. Projects are NOT packed by default; the shipped libraries
+       (Jumbee.Console core + the Documents/Snapshot add-ons) opt in with <IsPackable>true</IsPackable>. -->
+  <PropertyGroup Label="Packaging">
+    <IsPackable>false</IsPackable>
+    <Authors>Allister Beharry</Authors>
+    <Company>Allister Beharry</Company>
+    <Product>Jumbee.Console</Product>
+    <Copyright>Copyright (c) 2025 Allister Beharry</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/allisterb/Jumbee.Console</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/allisterb/Jumbee.Console</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>tui;terminal;console;spectre.console;ansi;ui;dotnet</PackageTags>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageVersion>$(ProjectAssemblyVersion)</PackageVersion>
+  </PropertyGroup>
+
+  <!-- README shown on nuget.org. Harmless on non-packable projects (only used at pack time). -->
+  <ItemGroup Label="Packaging">
+    <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- Give the other src/ libraries (Documents, Snapshot, TestDemo, ...) the fork/vendored references they need to
+       compile against Jumbee.Console's public API. Excluded: Jumbee.Console (imports this itself) and
+       Jumbee.Console.Styles (owns a subset of these references directly). -->
+  <Import Project="$(MSBuildThisFileDirectory)ExternalReferences.props"
+          Condition="'$(MSBuildProjectName)' != 'Jumbee.Console' and '$(MSBuildProjectName)' != 'Jumbee.Console.Styles'" />
 </Project>

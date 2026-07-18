@@ -1,0 +1,7 @@
+<Project>
+  <!-- Example apps (IdeDemo, AgentHarnessDemo, ...) reference Jumbee.Console and use its public API, which surfaces
+       the forked types; give them the same fork/vendored references (PrivateAssets, so no packaging impact).
+       NOTE: Jumbee.Console.Examples has its own Directory.Build.props (which shadows this one), so it imports
+       ExternalReferences.props there directly. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\src\ExternalReferences.props" />
+</Project>

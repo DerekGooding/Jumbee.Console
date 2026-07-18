@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    The forked/vendored assemblies under ext/ (plus our own Jumbee.Console.Styles) that the Jumbee.Console
+    libraries compile against. They are referenced with PrivateAssets="all" so they NEVER become NuGet
+    <dependency> entries in any package: the core Jumbee.Console package bundles their DLLs into lib/, and
+    every other consumer (the add-on packages, the examples, the tests) gets those DLLs from the core package
+    (or, in-solution, from these same references).
+
+    Why every consumer imports this: Jumbee.Console's public API surfaces types from these forks (Spectre
+    IRenderable/Segment, ConsoleGUI Position, the Styles Color/Style, ...). PrivateAssets="all" stops the core
+    project from flowing them transitively, so any project that references Jumbee.Console AND names those types
+    must reference the forks itself. Importing this file provides exactly that, without adding dependencies.
+
+    Paths are anchored with $(MSBuildThisFileDirectory) (this file lives in src/) so importers at any depth
+    resolve them correctly.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Jumbee.Console.Styles\Jumbee.Console.Styles.csproj" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\ext\VtNetCore\VtNetCore\VtNetCore.csproj" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\ext\C-sharp-console-gui-framework\ConsoleGUI\ConsoleGUI.csproj" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\ext\ConsolePlot\src\ConsolePlot\ConsolePlot.csproj" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\ext\NTokenizers.Extensions.Spectre.Console\src\NTokenizers.Extensions.Spectre.Console\NTokenizers.Extensions.Spectre.Console.csproj" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\ext\RazorConsole.Core.Syntax\RazorConsole.Core.Syntax.csproj" PrivateAssets="all" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\ext\spectre.console\src\Spectre.Console\Spectre.Console.csproj" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -12,6 +12,13 @@
     <Version>$(ProjectAssemblyVersion)</Version>
   </PropertyGroup>
 
+  <!-- Add-on package: headless snapshot testing (render controls to text/PNG without a terminal). Depends on the
+       core Jumbee.Console package plus its own NuGet dependencies (SixLabors ImageSharp/Fonts). -->
+  <PropertyGroup Label="Packaging">
+    <IsPackable>true</IsPackable>
+    <Description>Headless snapshot testing for Jumbee.Console UIs: render controls to text or PNG without a real terminal, for unit tests and visual verification. Add-on to the Jumbee.Console package.</Description>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Jumbee.Console\Jumbee.Console.csproj" />
   </ItemGroup>

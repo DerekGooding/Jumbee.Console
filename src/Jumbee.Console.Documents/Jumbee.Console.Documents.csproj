@@ -10,6 +10,13 @@
     <Version>$(ProjectAssemblyVersion)</Version>
   </PropertyGroup>
 
+  <!-- Add-on package: document viewers/editors (Markdown, AsciiDoc, Mermaid). Depends on the core Jumbee.Console
+       package plus its own NuGet dependencies (AdocNet, Mermaider). -->
+  <PropertyGroup Label="Packaging">
+    <IsPackable>true</IsPackable>
+    <Description>Document viewers and editors for Jumbee.Console: Markdown, AsciiDoc, and Mermaid diagram rendering controls for terminal UIs. Add-on to the Jumbee.Console package.</Description>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <IsTrimmable>True</IsTrimmable>
     <IsAotCompatible>True</IsAotCompatible>
