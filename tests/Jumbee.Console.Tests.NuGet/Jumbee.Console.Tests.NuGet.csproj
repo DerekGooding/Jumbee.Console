@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Jumbee.Console.Tests.NuGet</RootNamespace>
+    <AssemblyName>Jumbee.Console.Tests.NuGet</AssemblyName>
+    <!-- The published package version to smoke-test. Bump this in lockstep with
+         <ProjectAssemblyVersion> in src/Directory.Build.props whenever a new package is uploaded.
+         Override on the command line to test any release: dotnet run -p:JumbeeVersion=0.1.2 -->
+    <JumbeeVersion Condition="'$(JumbeeVersion)' == ''">0.1.1</JumbeeVersion>
+    <!-- Restore purely from nuget.org (ignore any local package sources / caches that might shadow it). -->
+    <RestoreSources>https://api.nuget.org/v3/index.json</RestoreSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The one and only reference: the shipped package. Its bundled fork DLLs (ConsoleGUI, the
+         Spectre.Console fork, ConsolePlot, ...) and its single real dependency (NTokenizers) all
+         arrive transitively from the feed. -->
+    <PackageReference Include="Jumbee.Console" Version="$(JumbeeVersion)" />
+  </ItemGroup>
+
+</Project>

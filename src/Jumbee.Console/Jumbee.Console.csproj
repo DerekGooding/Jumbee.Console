@@ -21,6 +21,7 @@
        PackageReferences (see NTokenizers below) become NuGet dependencies. -->
   <PropertyGroup Label="Packaging">
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>A .NET library for retained-mode terminal user interfaces (TUIs) that focuses on performance and ease-of-use.</Description>
     <!-- Inject the bundled assemblies into the package's lib/ folder. -->
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_AddBundledAssembliesToPackage</TargetsForTfmSpecificBuildOutput>
@@ -32,8 +33,9 @@
     <PackageReference Include="NTokenizers" Version="6.1.1" />
   </ItemGroup>
 
-  <!-- Ship the third-party licence notices for the bundled assemblies. -->
+  <!-- Ship this package's README (shown on nuget.org) and the third-party licence notices for the bundled assemblies. -->
   <ItemGroup>
+    <None Include="..\..\package\README.md" Pack="true" PackagePath="\" Visible="false" />
     <None Include="..\..\THIRD-PARTY-NOTICES.TXT" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 

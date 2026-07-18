@@ -1,0 +1,15 @@
+<Project>
+  <!-- Deliberately self-contained: this project does NOT chain to tests/Directory.Build.props.
+       That parent imports src/ExternalReferences.props, which adds ProjectReferences to the LOCAL
+       ext/ forks (ConsoleGUI, the Spectre.Console fork, ConsolePlot, ...). Those same assemblies are
+       bundled inside the published Jumbee.Console NuGet package (lib/net10.0), so pulling in the local
+       forks as well would double-reference them and defeat the whole point of this smoke test — which
+       is to validate the *package as shipped to nuget.org*, restoring every dependency from the feed.
+       Keeping our own Directory.Build.props here stops MSBuild's upward walk at this file. -->
+  <PropertyGroup Label="Settings">
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

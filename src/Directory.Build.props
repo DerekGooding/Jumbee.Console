@@ -19,20 +19,21 @@
     <Authors>Allister Beharry</Authors>
     <Company>Allister Beharry</Company>
     <Product>Jumbee.Console</Product>
-    <Copyright>Copyright (c) 2025,2026 Allister Beharry</Copyright>
+    <Copyright>Copyright (c) 2026 Allister Beharry</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/allisterb/Jumbee.Console</PackageProjectUrl>
     <RepositoryUrl>https://github.com/allisterb/Jumbee.Console</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>tui;terminal;console;spectre.console;ansi;ui;dotnet</PackageTags>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageTags>tui;terminal;console;ansi;ui</PackageTags>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageVersion>$(ProjectAssemblyVersion)</PackageVersion>
   </PropertyGroup>
 
-  <!-- README shown on nuget.org. Harmless on non-packable projects (only used at pack time). -->
+  <!-- Shared package icon (the same logo for all three packages). Harmless on non-packable projects (only used
+       at pack time). The per-package README is packed by each shipped project (README.md source differs). -->
   <ItemGroup Label="Packaging">
-    <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)..\package\logo.png" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
   <!-- Give the other src/ libraries (Documents, Snapshot, TestDemo, ...) the fork/vendored references they need to

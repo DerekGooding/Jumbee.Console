@@ -16,8 +16,13 @@
        core Jumbee.Console package plus its own NuGet dependencies (SixLabors ImageSharp/Fonts). -->
   <PropertyGroup Label="Packaging">
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.Snapshot.md</PackageReadmeFile>
     <Description>Headless snapshot testing for Jumbee.Console TUIs: render controls to text or PNG without a real terminal, for unit tests and visual verification.</Description>
   </PropertyGroup>
+
+  <ItemGroup Label="Packaging">
+    <None Include="..\..\package\README.Snapshot.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Jumbee.Console\Jumbee.Console.csproj" />

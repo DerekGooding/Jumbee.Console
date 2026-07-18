@@ -14,8 +14,13 @@
        package plus its own NuGet dependencies (AdocNet, Mermaider). -->
   <PropertyGroup Label="Packaging">
     <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.Documents.md</PackageReadmeFile>
     <Description>Document viewers and editors for Jumbee.Console: Markdown, AsciiDoc, and Mermaid diagram rendering and interactive editing controls for TUIs.</Description>
   </PropertyGroup>
+
+  <ItemGroup Label="Packaging">
+    <None Include="..\..\package\README.Documents.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <IsTrimmable>True</IsTrimmable>
