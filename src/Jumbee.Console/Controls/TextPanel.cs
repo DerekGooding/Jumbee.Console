@@ -8,10 +8,13 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// Displays a block of multi-line Spectre <see cref="Markup"/> text — the counterpart to the single-line
-/// <see cref="TextLabel"/> and the append-only <see cref="Log"/>. For static readouts, ASCII art, and small
-/// formatted panels (a weather box, a key/value summary). Content is <see cref="Markup"/>, so colours and styles
-/// work; literal <c>[</c>/<c>]</c> must be escaped as <c>[[</c>/<c>]]</c> (or via <see cref="Escape"/>).
+/// <see cref="TextLabel"/> and the append-only <see cref="Log"/>.
 /// </summary>
+/// <remarks>
+/// For static readouts, ASCII art, and small formatted panels (a weather box, a key/value summary). Content is
+/// <see cref="Markup"/>, so colours and styles work; literal <c>[</c>/<c>]</c> must be escaped as <c>[[</c>/<c>]]</c>
+/// (or via <see cref="Escape"/>).
+/// </remarks>
 public class TextPanel : RenderableControl
 {
     #region Constructors

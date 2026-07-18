@@ -9,12 +9,14 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// The "+" new-tab button appended to a <see cref="TabPanel"/>'s bar when <see cref="TabPanel.ShowAddButton"/> is
-/// set. Reachable by mouse (click) and by keyboard — the panel's tab-strip arrows step onto it past the last tab,
-/// and Enter/Space activates it. Activating raises <see cref="Clicked"/>, which the panel turns into
+/// The "+" new-tab button appended to a <see cref="TabPanel"/>'s bar when <see cref="TabPanel.ShowAddButton"/> is set.
+/// </summary>
+/// <remarks>
+/// Reachable by mouse (click) and by keyboard — the panel's tab-strip arrows step onto it past the last tab, and
+/// Enter/Space activates it. Activating raises <see cref="Clicked"/>, which the panel turns into
 /// <see cref="TabPanel.NewTabRequested"/>. It is still excluded from the panel's logical rows, so global (Ctrl+arrow)
 /// region nav treats the strip as one unit.
-/// </summary>
+/// </remarks>
 internal sealed class TabAddButton : RenderableControl
 {
     #region Constructors

@@ -8,10 +8,12 @@ using Spectre.Console;
 
 /// <summary>
 /// The global help dialog: a fixed-size modal composite showing one tab per <see cref="HelpInfo"/> (built by
-/// <see cref="UI.ShowHelp"/> from every control's <see cref="Control.GetHelpInfo"/>), with a Close button. Each
-/// tab's panel renders the entry's markup <see cref="HelpInfo.Text"/> in a scrolling frame, with its key bindings
-/// listed below (unless <see cref="HelpInfo.KeysInline"/>). Shown via <c>Overlay.ShowModal</c>; Esc closes it.
+/// <see cref="UI.ShowHelp"/> from every control's <see cref="Control.GetHelpInfo"/>), with a Close button.
 /// </summary>
+/// <remarks>
+/// Each tab's panel renders the entry's markup <see cref="HelpInfo.Text"/> in a scrolling frame, with its key bindings
+/// listed below (unless <see cref="HelpInfo.KeysInline"/>). Shown via <c>Overlay.ShowModal</c>; Esc closes it.
+/// </remarks>
 public sealed class HelpControl : CompositeControl
 {
     #region Constructors

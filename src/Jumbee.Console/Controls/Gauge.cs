@@ -11,9 +11,12 @@ using SStyle = Spectre.Console.Style;
 /// <summary>
 /// A single-row horizontal progress bar: the track is filled proportional to <see cref="Value"/> / <see cref="Max"/>,
 /// optionally followed by the percentage and the raw value — e.g. <c>████████░░░░  34.5% (126)</c>. For dashboards
-/// (year/day progress, a deployment %, a capacity meter). The bar is drawn as a solid colour band (a background-filled
-/// space, seam-free on any font) with an eighth-block sub-cell edge so it animates smoothly.
+/// (year/day progress, a deployment %, a capacity meter).
 /// </summary>
+/// <remarks>
+/// The bar is drawn as a solid colour band (a background-filled space, seam-free on any font) with an eighth-block
+/// sub-cell edge so it animates smoothly.
+/// </remarks>
 public class Gauge : RenderableControl
 {
     #region Constructors

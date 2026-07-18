@@ -136,8 +136,9 @@ public void Show(Control popup, int x, int y) => Show(popup, AnchorAt(popup, x, 
 - **Transparency / hide**: closing sets `control.TopContent = null`; a null `DrawingContext` child is treated as
   transparent (its `Contains` returns false), so the bottom shows through. No special erase is needed at the layout
   level.
-- **Focus registration**: `Rows`/`Columns`/the indexer `Flatten()` the bottom layer's focusables plus the popup,
-  which is how `UI` registers and routes focus across both layers.
+- **Focus registration**: with no popup shown, `Rows`/`Columns`/the indexer **delegate to the bottom layer's 2-D
+  grid** (so focus navigation and routing see the bottom's real structure); while a popup is shown they present
+  **only the popup** (a single cell), so focus and input are exclusive to it until it closes.
 
 ## 5. Step 4 — Modal input routing
 
@@ -185,17 +186,19 @@ stays open until `CloseKey` or an explicit `Hide()`. `IsModal` reports the curre
 
 `Select` ([Controls/Select.cs](../../src/Jumbee.Console/Controls/Select.cs)) is the first widget to use the whole
 stack. Closed, it renders ` value …▼` and is focusable. Clicking it (or Enter/Space) calls `Open()`, which floats a
-framed `ListBox` into its `Overlay` host, anchored just below — the anchor is computed from the click:
+framed `ListBox` into its `Overlay` host, anchored just below it (or above when there's no room below) — the
+position is computed from the click:
 
 ```csharp
 protected override void OnClick(Position position)
 {
+    // Record this control's top-left on screen: the click's absolute position minus its position relative to us.
     if (ConsoleManager.MousePosition is { } m)
     {
-        _anchorX = m.X - position.X;        // our screen top-left = absolute click - position relative to us
-        _anchorY = m.Y - position.Y + 1;    // drop down one row
+        _controlLeft = m.X - position.X;
+        _controlTop = m.Y - position.Y;
     }
-    Open();
+    Open();   // Open()/ResolveTop turn that into the dropdown anchor, honouring PopupPosition
 }
 ```
 

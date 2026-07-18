@@ -7,13 +7,13 @@ using System;
 /// the other, wired so the preview re-renders as the source is edited. A draggable <see cref="SplitPanel"/> divider
 /// sits between them (drag it, or focus it and press the arrows). Subclasses supply the editor's language, the preview
 /// control, and how to push text into it (<see cref="ApplyPreviewText"/>).
-/// <para>
+/// </summary>
+/// <remarks>
 /// The preview render is comparatively slow, so it never runs on the UI thread: edits are coalesced to at most one
 /// update per frame and the preview is expected to render on a background thread (as <see cref="MarkdownViewer"/> and
 /// the Mermaid viewer do), discarding any render superseded by a newer edit. A half-typed document therefore reflows
 /// harmlessly on the next completed render rather than blocking input.
-/// </para>
-/// </summary>
+/// </remarks>
 public abstract class InteractiveSourceEditor : CompositeControl
 {
     #region Constructors

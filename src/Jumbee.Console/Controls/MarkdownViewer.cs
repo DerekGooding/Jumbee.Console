@@ -14,12 +14,12 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 /// unordered lists, links, syntax-highlighted fenced code blocks, and box-drawn tables — via NTokenizers'
 /// Spectre.Console markdown writer. Wrap it in a <see cref="ControlFrame"/> (e.g. <c>viewer.WithFrame()</c>) to get a
 /// border, title and scrollbar; ↑/↓, PgUp/PgDn, Home/End and the mouse wheel scroll it.
-/// <para>
+/// </summary>
+/// <remarks>
 /// The markdown parse/render is comparatively slow, so it runs on a background thread: setting <see cref="Markdown"/>
 /// or resizing never blocks the UI thread, and the view fills in when the render completes. Content is re-rendered
 /// only when the text/styles change or the width changes (it reflows to the control width).
-/// </para>
-/// </summary>
+/// </remarks>
 public class MarkdownViewer : Control
 {
     #region Constructors

@@ -18,8 +18,10 @@ using CColor = ConsoleGUI.Data.Color;
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,
 /// <see cref="Circle"/>, <see cref="Points"/>, <see cref="FilledLine"/>) in an arbitrary coordinate system, rendered
-/// with sub-cell markers (braille by default). Ported from Ratatui's canvas widget.
-///
+/// with sub-cell markers (braille by default).
+/// </summary>
+/// <remarks>
+/// Ported from Ratatui's canvas widget.
 /// <para>Shapes accumulate in a retained list: <see cref="Add"/> appends to the current layer, <see cref="Layer()"/>
 /// starts a new one (composited top-down per property, so a higher layer's glyph/colour wins each cell while lower
 /// layers show through where it doesn't paint), and <see cref="Clear"/> empties the surface. Layers may use different
@@ -27,7 +29,7 @@ using CColor = ConsoleGUI.Data.Color;
 /// <see cref="CanvasMarker.Braille"/> overlay; <see cref="Marker"/> sets the starting marker. Set the visible window
 /// with <see cref="XBounds"/>/<see cref="YBounds"/> — the canvas origin is the bottom-left corner. Display-only; it
 /// fills its container and re-fits on resize.</para>
-/// </summary>
+/// </remarks>
 public class Canvas : Control
 {
     #region Constructors
@@ -72,12 +74,14 @@ public class Canvas : Control
 
     /// <summary>
     /// When <see langword="true"/> (the default), the canvas reports only the cells that actually changed since the
-    /// last render, so the compositor skips the unchanged remainder instead of re-scanning the whole panel. This is
-    /// what makes a mostly-static canvas cheap to update — a world map whose coastline never moves but whose few
-    /// markers and labels do costs about what the markers cost, not what the map costs. It is pure win when little
+    /// last render, so the compositor skips the unchanged remainder instead of re-scanning the whole panel.
+    /// </summary>
+    /// <remarks>
+    /// This is what makes a mostly-static canvas cheap to update — a world map whose coastline never moves but whose
+    /// few markers and labels do costs about what the markers cost, not what the map costs. It is pure win when little
     /// changes and roughly free otherwise (a canvas that changes everywhere just reports everything), so it is on by
     /// default; set <see langword="false"/> to fall back to reporting the whole area.
-    /// </summary>
+    /// </remarks>
     public bool DamageTracking
     {
         get => _damageTracking;
@@ -86,11 +90,13 @@ public class Canvas : Control
 
     /// <summary>
     /// When <see langword="true"/>, the canvas responds to user input by panning and zooming its
-    /// <see cref="XBounds"/>/<see cref="YBounds"/> window: <b>drag</b> to pan (the content follows the cursor), the
-    /// <b>mouse wheel</b> to zoom about the pointer, and (while focused) the <b>arrow keys</b> to pan with <b>+/-</b>
-    /// to zoom about the centre (Shift = larger step). Enabling it makes the canvas focusable; the default
-    /// (<see langword="false"/>) leaves it display-only.
+    /// <see cref="XBounds"/>/<see cref="YBounds"/> window. The default (<see langword="false"/>) leaves it display-only.
     /// </summary>
+    /// <remarks>
+    /// <b>Drag</b> to pan (the content follows the cursor), the <b>mouse wheel</b> to zoom about the pointer, and
+    /// (while focused) the <b>arrow keys</b> to pan with <b>+/-</b> to zoom about the centre (Shift = larger step).
+    /// Enabling it makes the canvas focusable.
+    /// </remarks>
     public bool Interactive
     {
         get => _interactive;
@@ -172,10 +178,13 @@ public class Canvas : Control
 
     /// <summary>
     /// Prints <paramref name="text"/> at canvas coordinate (<paramref name="x"/>, <paramref name="y"/>), with its
-    /// first character at that point and running right. Labels are always drawn on top of every layer (they are not
-    /// part of a layer and are unaffected by the marker), and clipped at the right edge. <paramref name="fg"/> defaults
-    /// to white; <paramref name="bg"/> is transparent when null. Fluent.
+    /// first character at that point and running right. Fluent.
     /// </summary>
+    /// <remarks>
+    /// Labels are always drawn on top of every layer (they are not part of a layer and are unaffected by the marker),
+    /// and clipped at the right edge. <paramref name="fg"/> defaults to white; <paramref name="bg"/> is transparent
+    /// when null.
+    /// </remarks>
     public Canvas Print(double x, double y, string text, Color? fg = null, Color? bg = null)
     {
         CColor f = fg ?? Color.White;
@@ -192,11 +201,13 @@ public class Canvas : Control
 
     /// <summary>
     /// Prints a <b>Spectre markup</b> label at canvas coordinate (<paramref name="x"/>, <paramref name="y"/>) — e.g.
-    /// <c>"[red]⚠ Outage[/] [grey]Tokyo[/]"</c> — so a single label can mix colours and decorations. Like
-    /// <see cref="Print(double, double, string, Color?, Color?)"/> it is drawn on top of every layer and clipped at
-    /// the right edge. Use BMP symbols for icons (a single terminal cell can't hold surrogate-pair emoji). Invalid
-    /// markup falls back to literal text. Fluent.
+    /// <c>"[red]⚠ Outage[/] [grey]Tokyo[/]"</c> — so a single label can mix colours and decorations. Fluent.
     /// </summary>
+    /// <remarks>
+    /// Like <see cref="Print(double, double, string, Color?, Color?)"/> it is drawn on top of every layer and clipped
+    /// at the right edge. Use BMP symbols for icons (a single terminal cell can't hold surrogate-pair emoji). Invalid
+    /// markup falls back to literal text.
+    /// </remarks>
     public Canvas PrintMarkup(double x, double y, string markup)
     {
         var chars = ParseMarkup(markup ?? "");
@@ -253,13 +264,13 @@ public class Canvas : Control
 
     /// <summary>
     /// Removes every label, leaving the shapes and layers intact. Fluent.
-    /// <para>
+    /// </summary>
+    /// <remarks>
     /// Prefer this to <see cref="Clear"/> when only the annotations change: shapes are rasterized into layers and
     /// cached, and clearing them all forces that raster to be rebuilt from scratch on the next render. For a canvas
     /// whose shapes are an unchanging backdrop — a world map, a floor plan, a chart's axes — with labels moving over
     /// it, re-adding the backdrop each update is most of the frame's cost and buys nothing.
-    /// </para>
-    /// </summary>
+    /// </remarks>
     public Canvas ClearLabels()
     {
         UI.Invoke(() =>

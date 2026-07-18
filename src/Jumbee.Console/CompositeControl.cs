@@ -105,9 +105,12 @@ public abstract class CompositeControl : Control, IDrawingContextListener
 
     #region Methods
     /// <summary>
-    /// Sets the internal layout that arranges the children. Call once from the subclass constructor after building
-    /// the child controls and the layout, and after wiring any inter-child event handlers.
+    /// Sets the internal layout that arranges the children.
     /// </summary>
+    /// <remarks>
+    /// Call once from the subclass constructor after building the child controls and the layout, and after wiring
+    /// any inter-child event handlers.
+    /// </remarks>
     protected void SetContent(ILayout content)
     {
         _content = content;
@@ -134,9 +137,12 @@ public abstract class CompositeControl : Control, IDrawingContextListener
 
     /// <summary>
     /// A first look at each key on its way to the focused child, mirroring a layout's <c>InterceptInput</c> tunnel —
-    /// so a composite can define its own navigation keys. Return <see langword="true"/> to consume the key. The base
-    /// handles Tab / Shift+Tab when <see cref="TabNavigatesChildren"/> is set.
+    /// so a composite can define its own navigation keys.
     /// </summary>
+    /// <remarks>
+    /// Return <see langword="true"/> to consume the key. The base handles Tab / Shift+Tab when
+    /// <see cref="TabNavigatesChildren"/> is set.
+    /// </remarks>
     protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs)
     {
         if (!TabNavigatesChildren || inputEventArgs.InputEvent is not { Key: var key } || key.Key != ConsoleKey.Tab)

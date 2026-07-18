@@ -14,12 +14,15 @@ using Spectre.Console.Rendering;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
-/// An interactive data grid. Columns and rows are supplied as text; the visible row window is laid out by
-/// Spectre.Console's <see cref="Table"/> (column sizing, borders, wrapping), and this control adds the
-/// interactivity Spectre lacks: a highlighted selected row, keyboard navigation, a scroll viewport over many rows
-/// with its own scrollbar, click-to-select, and <see cref="SelectionChanged"/>/<see cref="RowActivated"/> events.
-/// The header stays fixed while the rows scroll. (Inline cell editing is not supported yet.)
+/// An interactive data grid.
 /// </summary>
+/// <remarks>
+/// Columns and rows are supplied as text; the visible row window is laid out by Spectre.Console's
+/// <see cref="Table"/> (column sizing, borders, wrapping), and this control adds the interactivity Spectre lacks: a
+/// highlighted selected row, keyboard navigation, a scroll viewport over many rows with its own scrollbar,
+/// click-to-select, and <see cref="SelectionChanged"/>/<see cref="RowActivated"/> events. The header stays fixed
+/// while the rows scroll. (Inline cell editing is not supported yet.)
+/// </remarks>
 public class DataTable : Control
 {
     #region Constructors

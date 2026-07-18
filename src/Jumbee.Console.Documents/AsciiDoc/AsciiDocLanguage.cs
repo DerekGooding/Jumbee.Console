@@ -7,7 +7,10 @@ using ColorCode.Common;
 
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> grammar for AsciiDoc source, for syntax-highlighting an AsciiDoc document in a
-/// <see cref="CodeEditor"/> (<c>new CodeEditor(AsciiDocLanguage.Instance)</c>). AsciiDoc's parser (AdocNet) is
+/// <see cref="CodeEditor"/> (<c>new CodeEditor(AsciiDocLanguage.Instance)</c>).
+/// </summary>
+/// <remarks>
+/// AsciiDoc's parser (AdocNet) is
 /// structure-based rather than regex-based, so — as with the Ace editor's AsciiDoc mode — the highlighter uses its own
 /// token regexes (adapted from espadrine's Ace-mode gist), mapping AsciiDoc constructs onto the Markdown-family scopes
 /// that the default syntax theme colours.
@@ -16,7 +19,7 @@ using ColorCode.Common;
 /// headings, block titles/attributes, admonitions, attribute entries, list markers) come before the inline formatting
 /// (links, monospace, bold, italic) — a heading line claims its whole row before an inline rule can recolour part of it.
 /// </para>
-/// </summary>
+/// </remarks>
 public sealed class AsciiDocLanguage : ILanguage
 {
     #region Singleton

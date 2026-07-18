@@ -1,18 +1,23 @@
 namespace Jumbee.Console;
 
 /// <summary>
-/// The general appearance theme. Its core is a set of semantic <see cref="Style"/> tokens (foreground +
-/// background + decoration) that controls compose when resolving their default appearance, but it also covers
-/// the rest of a control's non-glyph styling — e.g. a frame's border shape (<see cref="FrameBorder"/>) and its
-/// title's position/border/colour. (Only the literal glyphs rendered in controls live in <see cref="IGlyphTheme"/>.)
-/// A theme defines <em>appearance only</em>; it never changes a control's behaviour. Members are
-/// default-implemented, so a custom theme overrides only what it wants to change. Because the members are default
-/// interface implementations, hold and read a theme through this interface type (e.g. <see cref="UI.StyleTheme"/>),
-/// not through a concrete class.
+/// The general appearance theme: a set of semantic <see cref="Style"/> tokens (foreground + background +
+/// decoration) that controls compose when resolving their default appearance, plus the rest of a control's
+/// non-glyph styling — e.g. a frame's border shape (<see cref="FrameBorder"/>) and its title's
+/// position/border/colour.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Only the literal glyphs rendered in controls live in <see cref="IGlyphTheme"/>. A theme defines
+/// <em>appearance only</em>; it never changes a control's behaviour. Members are default-implemented, so a
+/// custom theme overrides only what it wants to change. Because the members are default interface
+/// implementations, hold and read a theme through this interface type (e.g. <see cref="UI.StyleTheme"/>), not
+/// through a concrete class.
+/// </para>
+/// <para>
 /// Controls must read these tokens <em>once</em> (in their constructor) into plain fields — never on the
 /// render path — so theming costs nothing per frame. See <see cref="DefaultStyleTheme"/> for the built-in values.
+/// </para>
 /// </remarks>
 public interface IStyleTheme
 {
@@ -34,15 +39,16 @@ public interface IStyleTheme
     /// <summary>A panel/container fill.</summary>
     Style Surface => Style.Bg(new Color(30, 30, 38));
 
-    /// <summary>The text/character style of a frame border at rest (its colour). Distinct from <see cref="FrameBorder"/>,
-    /// which selects the border <em>shape</em>.</summary>
+    /// <summary>The text/character style of a frame border at rest (its colour).</summary>
+    /// <remarks>Distinct from <see cref="FrameBorder"/>, which selects the border <em>shape</em>.</remarks>
     Style BorderText => Style.Grey50;
 
     /// <summary>The text/character style of a frame border when its control is focused.</summary>
     Style BorderFocusedText => Style.Cyan1;
 
-    /// <summary>The text/character style of a frame title (its colour). Distinct from <see cref="TitleStyle"/>,
-    /// which controls the title's placement, border, and Normal/Reverse colouring.</summary>
+    /// <summary>The text/character style of a frame title (its colour).</summary>
+    /// <remarks>Distinct from <see cref="TitleStyle"/>, which controls the title's placement, border, and
+    /// Normal/Reverse colouring.</remarks>
     Style TitleText => Style.Grey85;
     #endregion
 
@@ -54,17 +60,18 @@ public interface IStyleTheme
     /// highlight, an underline, or a caret prefix. Defaults to <see cref="SelectionStyle.Highlight"/>.</summary>
     SelectionStyle SelectionStyle => SelectionStyle.Highlight;
 
-    /// <summary>The colour of a <see cref="Jumbee.Console.Tree"/>'s leaf glyph (the marker before a childless node);
-    /// only its foreground is used. Defaults to <see cref="TextAccent"/>.</summary>
+    /// <summary>The colour of a <see cref="Jumbee.Console.Tree"/>'s leaf glyph (the marker before a childless node).
+    /// Defaults to <see cref="TextAccent"/>.</summary>
+    /// <remarks>Only its foreground is used.</remarks>
     Style TreeLeaf => TextAccent;
 
     /// <summary>A row/control under the pointer (background tint).</summary>
     Style Hover => Style.Bg(new Color(45, 45, 60));
 
     /// <summary>The default focus cue applied to a focused control that isn't framed with a visible border and
-    /// doesn't indicate focus in its own way — so keyboard focus is always visible. Controls that show focus
-    /// themselves (buttons, tabs, editors with a cursor) opt out via <c>Control.RendersOwnFocus</c>. The colour is
-    /// used per <see cref="FocusStyle"/>.</summary>
+    /// doesn't indicate focus in its own way — so keyboard focus is always visible.</summary>
+    /// <remarks>Controls that show focus themselves (buttons, tabs, editors with a cursor) opt out via
+    /// <c>Control.RendersOwnFocus</c>. The colour is used per <see cref="FocusStyle"/>.</remarks>
     Style Focus => Style.Bg(new Color(48, 56, 82));
 
     /// <summary>How the default focus cue (see <see cref="Focus"/>) is drawn — a full tint, an edge ring, or an
@@ -91,12 +98,14 @@ public interface IStyleTheme
     #endregion
 
     #region Buttons
-    /// <summary>The default style for a primary <c>Button</c> (its per-state fills, border mode, and width).
-    /// Composed from the <see cref="Primary"/> family so a theme that recolours those gets a matching button for free.
-    /// Flat by default; a button can opt into <see cref="ButtonShape.Modern"/> for the raised look.</summary>
+    /// <summary>The default style for a primary <c>Button</c> (its per-state fills, border mode, and width).</summary>
+    /// <remarks>Composed from the <see cref="Primary"/> family so a theme that recolours those gets a matching
+    /// button for free. Flat by default; a button can opt into <see cref="ButtonShape.Modern"/> for the raised
+    /// look.</remarks>
     ButtonStyle PrimaryButton => new(Primary, PrimaryHover, PrimaryActive, minWidth: 16);
 
-    /// <summary>The default style for a secondary <c>Button</c>. Composed from the <see cref="Secondary"/> family.</summary>
+    /// <summary>The default style for a secondary <c>Button</c>.</summary>
+    /// <remarks>Composed from the <see cref="Secondary"/> family.</remarks>
     ButtonStyle SecondaryButton => new(Secondary, SecondaryHover, SecondaryActive, minWidth: 16);
     #endregion
 
@@ -125,9 +134,10 @@ public interface IStyleTheme
 
     /// <summary>The border shape a control frame uses while its control is focused, or <see langword="null"/> to keep
     /// <see cref="FrameBorder"/> unchanged (showing focus through the <see cref="BorderFocusedText"/> colour only).
-    /// Defaults to <see langword="null"/>. Switching shape on focus never changes the frame's geometry — the border
-    /// offset comes from <c>BorderPlacement</c>, not the shape — so a focused frame restyles in place without
-    /// reflowing its siblings.</summary>
+    /// Defaults to <see langword="null"/>.</summary>
+    /// <remarks>Switching shape on focus never changes the frame's geometry — the border offset comes from
+    /// <c>BorderPlacement</c>, not the shape — so a focused frame restyles in place without reflowing its
+    /// siblings.</remarks>
     BorderStyle? FocusedFrameBorder => null;
 
     /// <summary>The default title style for a control frame — its position, border placement, and Normal/Reverse
@@ -136,8 +146,8 @@ public interface IStyleTheme
     #endregion
 
     #region Overlay
-    /// <summary>The tint a modal overlay scrim blends the layer beneath it toward (only its background colour is
-    /// used). Paired with <see cref="ScrimDim"/>. Defaults to a near-black.</summary>
+    /// <summary>The tint a modal overlay scrim blends the layer beneath it toward. Defaults to a near-black.</summary>
+    /// <remarks>Only its background colour is used. Paired with <see cref="ScrimDim"/>.</remarks>
     Style Scrim => Style.Bg(new Color(10, 10, 15));
 
     /// <summary>How strongly a modal scrim dims the layer beneath it: 0 = fully see-through, 1 = a solid

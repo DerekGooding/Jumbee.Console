@@ -7,9 +7,11 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// Renders text using large three-row "seven-segment" glyphs, for clocks, counters and headline figures.
+/// </summary>
+/// <remarks>
 /// Supports the digits <c>0-9</c> and the symbols <c>. , : - + space</c>; unsupported characters render blank.
 /// Three rows tall and three cells wide per character.
-/// </summary>
+/// </remarks>
 public class Digits : RenderableControl
 {
     #region Constructors

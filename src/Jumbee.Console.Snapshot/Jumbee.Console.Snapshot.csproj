@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
     <NoWarn>NU1902</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyVersion>$(ProjectAssemblyVersion)</AssemblyVersion>
     <FileVersion>$(ProjectAssemblyVersion)</FileVersion>
     <Version>$(ProjectAssemblyVersion)</Version>

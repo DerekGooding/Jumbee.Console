@@ -11,16 +11,20 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// Shared base for the vertical, navigable toggle lists (<see cref="RadioSet"/>, <see cref="SelectionList"/>).
+/// </summary>
+/// <remarks>
+/// <para>
 /// Each option is one row rendered as a state indicator followed by the option text. Up/Down move the highlight
 /// cursor (auto-scrolling the surrounding <see cref="Control.Frame"/>); Space/Enter activate the highlighted row
 /// and a click activates the clicked row. Subclasses define the per-row checked state, the indicator glyph pair,
 /// and what "activate" does (single- vs multi-select).
+/// </para>
 /// <para>
 /// Appearance is theme-driven: style tokens are captured once from <see cref="UI.StyleTheme"/> in the constructor
 /// and glyphs from <see cref="UI.GlyphTheme"/> via <see cref="SetGlyphs"/>; the indicator width (and the control's
 /// width) is measured from the themed glyph. Captured values are read as plain fields on the render path.
 /// </para>
-/// </summary>
+/// </remarks>
 public abstract class ToggleList : RenderableControl
 {
     #region Constructors

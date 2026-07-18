@@ -4,10 +4,13 @@ using System;
 
 /// <summary>
 /// An opt-in horizontal-scroll offset for controls that render a fixed-width buffer wider than their viewport and
-/// window it in <c>Blit</c> (the <see cref="ControlFrame"/> only scrolls vertically). Hold one as a mutable field;
-/// call <see cref="Clamp"/> when blitting and <see cref="Pan"/> from left/right key handling. The content and
-/// viewport widths are passed per call rather than stored, since they change with layout/resize.
+/// window it in <c>Blit</c> (the <see cref="ControlFrame"/> only scrolls vertically).
 /// </summary>
+/// <remarks>
+/// Hold one as a mutable field; call <see cref="Clamp"/> when blitting and <see cref="Pan"/> from left/right key
+/// handling. The content and viewport widths are passed per call rather than stored, since they change with
+/// layout/resize.
+/// </remarks>
 /// <example>
 /// <code>
 /// private HScroll _hscroll;

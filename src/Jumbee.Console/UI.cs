@@ -118,8 +118,9 @@ public static class UI
     }
 
     /// <summary><see langword="true"/> when both console input and output are real terminals (not redirected/piped),
-    /// so it is safe to put the terminal into raw VT input mode. This is what <see cref="Start"/> uses to decide
-    /// whether to default to a mouse-capable <see cref="VtInputSource"/> when no <c>input</c> is supplied.</summary>
+    /// so it is safe to put the terminal into raw VT input mode.</summary>
+    /// <remarks>This is what <see cref="Start"/> uses to decide whether to default to a mouse-capable
+    /// <see cref="VtInputSource"/> when no <c>input</c> is supplied.</remarks>
     public static bool IsInteractiveTerminal()
     {
         try { return !Console.IsInputRedirected && !Console.IsOutputRedirected; }
@@ -273,7 +274,8 @@ public static class UI
     }
 
     /// <summary>Moves keyboard focus to <paramref name="target"/>, clearing focus on all other registered
-    /// controls (single-focus). Used by click-to-focus; runs on the UI thread.</summary>
+    /// controls (single-focus).</summary>
+    /// <remarks>Used by click-to-focus; runs on the UI thread.</remarks>
     public static void SetFocus(IFocusable target)
     {
         Invoke(() =>
@@ -307,9 +309,12 @@ public static class UI
     /// <summary>
     /// Opens the global help dialog — a modal with one tab per control (compiled from every control's
     /// <see cref="Control.GetHelpInfo"/>, deduplicated by <see cref="HelpInfo.Name"/>), the focused control's tab
-    /// shown first. Bound to <see cref="HotKeys.F1"/> by default; pressing it again closes the dialog. A no-op when
-    /// no control supplies help. The dialog is shown on the UI-owned system overlay (see <see cref="Start"/>).
+    /// shown first.
     /// </summary>
+    /// <remarks>
+    /// Bound to <see cref="HotKeys.F1"/> by default; pressing it again closes the dialog. A no-op when
+    /// no control supplies help. The dialog is shown on the UI-owned system overlay (see <see cref="Start"/>).
+    /// </remarks>
     public static void ShowHelp() => Invoke(() =>
     {
         if (systemOverlay is null) return;
@@ -332,8 +337,9 @@ public static class UI
     /// <summary>
     /// Compiles the help shown by <see cref="ShowHelp"/>: a built-in "General" entry (global keys) followed by each
     /// registered control's <see cref="Control.GetHelpInfo"/> (modified by its <see cref="Control.OnHelp"/>
-    /// handlers), deduplicated by <see cref="HelpInfo.Name"/>. Exposed so an app can present its own help UI.
+    /// handlers), deduplicated by <see cref="HelpInfo.Name"/>.
     /// </summary>
+    /// <remarks>Exposed so an app can present its own help UI.</remarks>
     public static IReadOnlyList<HelpInfo> CompileHelp()
     {
         var infos = new List<HelpInfo>();
@@ -363,7 +369,8 @@ public static class UI
     //     a single-control or composite cell is a no-op (enter/leave those with the arrows).
 
     /// <summary>Moves focus to the next focusable control within the current root-layout region, wrapping. Bound to
-    /// <c>Ctrl+N</c> by default. A no-op unless the focused region is a multi-focusable nested layout.</summary>
+    /// <c>Ctrl+N</c> by default.</summary>
+    /// <remarks>A no-op unless the focused region is a multi-focusable nested layout.</remarks>
     public static void FocusNext() => CycleFocusWithinRegion(+1);
 
     /// <summary>Moves focus to the previous focusable control within the current region. Bound to <c>Ctrl+P</c>.</summary>
@@ -388,19 +395,22 @@ public static class UI
 
     /// <summary>
     /// Registers an application-wide hotkey handled <em>before</em> any control (so it works regardless of focus),
-    /// overwriting any existing action for the same key. <see cref="HotKeys.CtrlQ"/> → <see cref="Stop"/> is
-    /// registered by default. Typically called before <see cref="Start"/>; the key must match what the input
-    /// decoder produces (use the <see cref="HotKeys"/> constants/helpers).
+    /// overwriting any existing action for the same key.
     /// </summary>
+    /// <remarks>
+    /// <see cref="HotKeys.CtrlQ"/> → <see cref="Stop"/> is registered by default. Typically called before
+    /// <see cref="Start"/>; the key must match what the input decoder produces (use the <see cref="HotKeys"/>
+    /// constants/helpers).
+    /// </remarks>
     public static void RegisterHotKey(ConsoleKeyInfo key, Action action) => Invoke(() => GlobalHotKeys[key] = action);
 
     /// <summary>Removes a global hotkey registered via <see cref="RegisterHotKey"/>.</summary>
     public static void UnregisterHotKey(ConsoleKeyInfo key) => Invoke(() => GlobalHotKeys.Remove(key));
 
     /// <summary>
-    /// Marks the UI as needing a redraw on the next frame. Called whenever control content or
-    /// layout changes; idle frames skip the redraw until this is set.
+    /// Marks the UI as needing a redraw on the next frame.
     /// </summary>
+    /// <remarks>Called whenever control content or layout changes; idle frames skip the redraw until this is set.</remarks>
     public static void MarkDirty() => needsDraw = true;
 
     /// <summary>The UI thread dispatcher.</summary>
@@ -414,16 +424,17 @@ public static class UI
 
     /// <summary>
     /// Queues <paramref name="action"/> to run on the UI thread on a later turn of the frame loop, and returns
-    /// immediately (never blocks, never runs inline). Unlike <see cref="Invoke"/>, it <em>always</em> defers — even
-    /// when the caller is already on the UI thread — so the action runs after the current work/layout/paint settles
-    /// (work posted while the queue is draining waits for the next frame; see <see cref="Dispatcher"/>).
+    /// immediately (never blocks, never runs inline).
     /// </summary>
     /// <remarks>
-    /// Use this — rather than <see cref="Invoke"/> — when you specifically want to defer: to break re-entrancy (e.g.
+    /// <para>Unlike <see cref="Invoke"/>, it <em>always</em> defers — even when the caller is already on the UI
+    /// thread — so the action runs after the current work/layout/paint settles (work posted while the queue is
+    /// draining waits for the next frame; see <see cref="Dispatcher"/>).</para>
+    /// <para>Use this — rather than <see cref="Invoke"/> — when you specifically want to defer: to break re-entrancy (e.g.
     /// run something <em>after</em> the current input/layout pass), or for a self-feeding pump that must not starve
     /// rendering. It is the low-level primitive: it does NOT request a redraw, so if the action changes visual state
     /// it must invalidate itself (or call <see cref="MarkDirty"/>). For "run on the UI thread, now if I already am,"
-    /// use <see cref="Invoke"/> instead.
+    /// use <see cref="Invoke"/> instead.</para>
     /// </remarks>
     public static void Post(Action action) => dispatcher.Post(action);
 
@@ -540,17 +551,18 @@ public static class UI
     /// <summary>
     /// Runs <paramref name="action"/> on the UI thread, marshaling automatically: <em>inline and immediately</em>
     /// when the caller is already on the UI thread (or no UI thread is running, e.g. headless/initialization),
-    /// otherwise posted to the dispatcher queue. Then requests a redraw. This is the primary, default way to mutate
-    /// control/layout state from anywhere — the change always ends up serialized on the UI thread with rendering, so
-    /// no lock is needed.
+    /// otherwise posted to the dispatcher queue. Then requests a redraw.
     /// </summary>
     /// <remarks>
-    /// Does NOT block: off-thread it is fire-and-forget (the action runs later on the UI thread) — it does not wait
+    /// <para>This is the primary, default way to mutate
+    /// control/layout state from anywhere — the change always ends up serialized on the UI thread with rendering, so
+    /// no lock is needed.</para>
+    /// <para>Does NOT block: off-thread it is fire-and-forget (the action runs later on the UI thread) — it does not wait
     /// for completion or surface the action's exception to the caller. That is unlike the blocking, WPF-style
     /// <see cref="Dispatcher.Invoke(Action)"/>; if you need to wait for the result use <see cref="InvokeAsync(Action)"/>.
     /// Differs from <see cref="Post"/> in two ways: (1) it runs inline when already on the UI thread instead of
     /// always deferring to a later frame, and (2) it requests a redraw afterwards. Prefer this for state changes;
-    /// reach for <see cref="Post"/> only when you deliberately want to defer to a later frame.
+    /// reach for <see cref="Post"/> only when you deliberately want to defer to a later frame.</para>
     /// </remarks>
     /// <param name="action">The action to execute on the UI thread.</param>
     public static void Invoke(Action action)
@@ -575,31 +587,35 @@ public static class UI
     public static ILayout Layout => layout!;
 
     /// <summary>
-    /// The root overlay host, available once <see cref="Start"/> has run. <see cref="Start"/> wraps the app's root
-    /// in this overlay (reusing it if the root already is an <see cref="Overlay"/>), so there is always a layer for
-    /// pop-ups (dropdowns, menus, autocomplete, modals). Controls that show pop-ups — <see cref="Select"/>,
-    /// <see cref="MenuBar"/>, <see cref="ContextMenu"/>, <see cref="Autocomplete"/> — show into this automatically,
-    /// so there is no per-control overlay to wire up. <see langword="null"/> before <see cref="Start"/>.
+    /// The root overlay host, available once <see cref="Start"/> has run; <see langword="null"/> before <see cref="Start"/>.
     /// </summary>
-    /// <remarks>Normally you never set this — <see cref="Start"/> does. The setter exists for advanced hosting (and
+    /// <remarks>
+    /// <para><see cref="Start"/> wraps the app's root in this overlay (reusing it if the root already is an
+    /// <see cref="Overlay"/>), so there is always a layer for pop-ups (dropdowns, menus, autocomplete, modals).
+    /// Controls that show pop-ups — <see cref="Select"/>, <see cref="MenuBar"/>, <see cref="ContextMenu"/>,
+    /// <see cref="Autocomplete"/> — show into this automatically, so there is no per-control overlay to wire up.</para>
+    /// <para>Normally you never set this — <see cref="Start"/> does. The setter exists for advanced hosting (and
     /// tests) that need to designate the overlay pop-ups show into without going through <see cref="Start"/>; the
-    /// value must be the overlay that is actually being rendered as the root, or pop-ups won't be visible.</remarks>
+    /// value must be the overlay that is actually being rendered as the root, or pop-ups won't be visible.</para>
+    /// </remarks>
     public static Overlay? Overlay
     {
         get => systemOverlay;
         set => systemOverlay = value;
     }
 
-    /// <summary>The mouse button of the most recent press, latched until the next press. A control's
-    /// <c>OnClick</c>/<c>OnDoubleClick</c> reads this to distinguish a right-click (e.g. to open a context menu)
-    /// from a left-click — the dispatch itself carries only a position, not a button.</summary>
+    /// <summary>The mouse button of the most recent press, latched until the next press.</summary>
+    /// <remarks>A control's <c>OnClick</c>/<c>OnDoubleClick</c> reads this to distinguish a right-click (e.g. to open
+    /// a context menu) from a left-click — the dispatch itself carries only a position, not a button.</remarks>
     public static TerminalMouseButton MouseButton { get; private set; }
 
     /// <summary>
-    /// The active style theme. Controls capture their default colours/decorations from it. Assigning raises
-    /// <see cref="ThemeChanged"/> (on the UI thread), so every live control re-captures — i.e. assigning it is a
-    /// runtime theme switch. Defaults to <see cref="DefaultStyleTheme"/>.
+    /// The active style theme. Defaults to <see cref="DefaultStyleTheme"/>.
     /// </summary>
+    /// <remarks>
+    /// Controls capture their default colours/decorations from it. Assigning raises <see cref="ThemeChanged"/>
+    /// (on the UI thread), so every live control re-captures — i.e. assigning it is a runtime theme switch.
+    /// </remarks>
     public static IStyleTheme StyleTheme
     {
         get => _styleTheme;
@@ -607,10 +623,12 @@ public static class UI
     }
 
     /// <summary>
-    /// The active glyph theme. Controls capture their indicator glyphs from it. Assigning raises
-    /// <see cref="ThemeChanged"/> (on the UI thread), so every live control re-captures — i.e. assigning it is a
-    /// runtime theme switch. Defaults to <see cref="DefaultGlyphTheme"/>.
+    /// The active glyph theme. Defaults to <see cref="DefaultGlyphTheme"/>.
     /// </summary>
+    /// <remarks>
+    /// Controls capture their indicator glyphs from it. Assigning raises <see cref="ThemeChanged"/>
+    /// (on the UI thread), so every live control re-captures — i.e. assigning it is a runtime theme switch.
+    /// </remarks>
     public static IGlyphTheme GlyphTheme
     {
         get => _glyphTheme;
@@ -618,13 +636,14 @@ public static class UI
     }
 
     /// <summary>
-    /// Convenience to set both themes at once. The work (and the <see cref="ThemeChanged"/> notification that
-    /// makes live controls re-capture) is done by the <see cref="StyleTheme"/>/<see cref="GlyphTheme"/> setters.
+    /// Convenience to set both themes at once.
     /// </summary>
     /// <remarks>
-    /// Re-capture happens only on assignment, never on the render path, so frame-to-frame cost is unchanged.
+    /// <para>The work (and the <see cref="ThemeChanged"/> notification that makes live controls re-capture) is done
+    /// by the <see cref="StyleTheme"/>/<see cref="GlyphTheme"/> setters.</para>
+    /// <para>Re-capture happens only on assignment, never on the render path, so frame-to-frame cost is unchanged.
     /// Each control re-applies the theme only to properties it has not explicitly overridden (see
-    /// <c>ThemeOverrides</c>), so explicit per-control styling — including a frame's border — survives the switch.
+    /// <c>ThemeOverrides</c>), so explicit per-control styling — including a frame's border — survives the switch.</para>
     /// </remarks>
     public static void SetTheme(IStyleTheme styleTheme, IGlyphTheme glyphTheme)
     {
@@ -635,16 +654,17 @@ public static class UI
     /// <summary>Applies both halves of a bundled <see cref="ITheme"/> (see <see cref="SetTheme(IStyleTheme, IGlyphTheme)"/>).</summary>
     public static void SetTheme(ITheme theme) => SetTheme(theme.Styles, theme.Glyphs);
 
-    /// <summary>True while the UI loop is running. Background work (e.g. a Spectre progress/live loop) can poll
-    /// this to exit when the UI stops.</summary>
+    /// <summary>True while the UI loop is running.</summary>
+    /// <remarks>Background work (e.g. a Spectre progress/live loop) can poll this to exit when the UI stops.</remarks>
     public static bool IsRunning => isRunning;
 
-    /// <summary>Whether the terminal window currently has focus (DEC mode 1004). Defaults to <see langword="true"/>;
-    /// updated from <see cref="FocusInputEvent"/>s once focus reporting is enabled by the raw input source.</summary>
+    /// <summary>Whether the terminal window currently has focus (DEC mode 1004). Defaults to <see langword="true"/>.</summary>
+    /// <remarks>Updated from <see cref="FocusInputEvent"/>s once focus reporting is enabled by the raw input source.</remarks>
     public static bool HasFocus { get; private set; } = true;
 
-    /// <summary>A token that is cancelled when the UI stops. Background work started alongside the UI (e.g. a
-    /// Spectre progress/live loop) should observe this so it terminates on shutdown instead of running on.</summary>
+    /// <summary>A token that is cancelled when the UI stops.</summary>
+    /// <remarks>Background work started alongside the UI (e.g. a Spectre progress/live loop) should observe this so
+    /// it terminates on shutdown instead of running on.</remarks>
     public static CancellationToken CancellationToken => cancellationToken;
     
     public static double AveragePaintTime
@@ -696,8 +716,8 @@ public static class UI
     #endregion
 
     #region Events
-    /// <summary>Raised by <see cref="SetTheme"/> after the active themes change, so live controls re-apply them.
-    /// Controls subscribe in their constructor and unsubscribe on <see cref="IDisposable.Dispose"/>.</summary>
+    /// <summary>Raised by <see cref="SetTheme"/> after the active themes change, so live controls re-apply them.</summary>
+    /// <remarks>Controls subscribe in their constructor and unsubscribe on <see cref="IDisposable.Dispose"/>.</remarks>
     public static event EventHandler? ThemeChanged;
 
     /// <summary>Raised whenever any control's focus changes, so a framed <see cref="CompositeControl"/> can update its

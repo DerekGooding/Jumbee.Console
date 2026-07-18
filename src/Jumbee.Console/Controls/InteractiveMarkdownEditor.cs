@@ -7,11 +7,11 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 /// is a <see cref="CodeEditor"/> with Markdown syntax highlighting; the right pane is a <see cref="MarkdownViewer"/>
 /// that re-renders the document — headings, tables and syntax-highlighted code — as you type (see
 /// <see cref="InteractiveSourceEditor"/> for the sync model).
-/// <para>
+/// </summary>
+/// <remarks>
 /// To extend the preview (e.g. rendering embedded diagrams), subclass and pass a richer <see cref="MarkdownViewer"/>
 /// to the <see cref="InteractiveMarkdownEditor(MarkdownViewer, string, SplitOrientation, int)">protected constructor</see>.
-/// </para>
-/// </summary>
+/// </remarks>
 public class InteractiveMarkdownEditor : InteractiveSourceEditor
 {
     #region Constructors

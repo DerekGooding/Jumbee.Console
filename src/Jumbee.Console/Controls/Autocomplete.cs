@@ -10,11 +10,14 @@ using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// Attaches type-ahead suggestions to a <see cref="TextInput"/>. As the user types, matching candidates are shown
-/// in a <em>passive</em> popup just below the caret (via <see cref="Overlay.ShowPassive"/>) — the field keeps focus
-/// and keeps editing. Up/Down move the highlight, Enter/Tab accept it into the field, Escape dismisses, and the
-/// popup also closes when the field loses focus or there are no matches. A suggestion can also be chosen by clicking.
+/// Attaches type-ahead suggestions to a <see cref="TextInput"/>.
 /// </summary>
+/// <remarks>
+/// As the user types, matching candidates are shown in a <em>passive</em> popup just below the caret (via
+/// <see cref="Overlay.ShowPassive"/>) — the field keeps focus and keeps editing. Up/Down move the highlight,
+/// Enter/Tab accept it into the field, Escape dismisses, and the popup also closes when the field loses focus or
+/// there are no matches. A suggestion can also be chosen by clicking.
+/// </remarks>
 public sealed class Autocomplete
 {
     #region Constructors

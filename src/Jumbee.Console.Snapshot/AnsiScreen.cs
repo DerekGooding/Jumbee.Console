@@ -8,15 +8,20 @@ using ConsoleGUI.Space;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
-/// A small VT/ANSI screen model that parses the subset of escape sequences <c>ConsoleManager</c> emits — CUP
-/// cursor moves, 24-bit SGR foreground/background (and default 39/49), the SGR decorations, cursor visibility
-/// (DECTCEM <c>?25</c>), and OSC strings — and maintains a cell grid, exactly as a terminal would. Feed it the
-/// bytes captured from <c>ConsoleManager.AnsiOutput</c> and read the resulting <see cref="Buffer"/>.
+/// A small VT/ANSI screen model that parses the subset of escape sequences <c>ConsoleManager</c> emits and
+/// maintains a cell grid, exactly as a terminal would.
 /// </summary>
 /// <remarks>
+/// <para>
+/// The parsed subset covers CUP cursor moves, 24-bit SGR foreground/background (and default 39/49), the SGR
+/// decorations, cursor visibility (DECTCEM <c>?25</c>), and OSC strings. Feed it the bytes captured from
+/// <c>ConsoleManager.AnsiOutput</c> and read the resulting <see cref="Buffer"/>.
+/// </para>
+/// <para>
 /// It is deliberately a <em>faithful</em> emulator of the emitted subset (SGR attributes accumulate; <c>ESC[m</c>
 /// / <c>ESC[0m</c> resets foreground, background, and decorations), so an encoding bug in the render path — a
 /// colour that should have been re-emitted but wasn't, a cell that wasn't erased — shows up as a wrong cell here.
+/// </para>
 /// </remarks>
 public sealed class AnsiScreen
 {

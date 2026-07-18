@@ -10,12 +10,14 @@ using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// A horizontal bar of top-level menu titles (e.g. <c>File  Edit  View</c>). Clicking a title — or focusing the
-/// bar and pressing Enter / Down — opens that title's items as a non-modal <see cref="ContextMenu"/> anchored just
-/// below it (so the rest of the app stays live; clicking elsewhere dismisses the menu). Left/Right move between
-/// titles. The drop-downs float in the ambient <see cref="UI.Overlay"/>. Choosing an item runs its
-/// <see cref="MenuItem.Action"/> and raises <see cref="ItemActivated"/>.
+/// A horizontal bar of top-level menu titles (e.g. <c>File  Edit  View</c>).
 /// </summary>
+/// <remarks>
+/// Clicking a title — or focusing the bar and pressing Enter / Down — opens that title's items as a non-modal
+/// <see cref="ContextMenu"/> anchored just below it (so the rest of the app stays live; clicking elsewhere dismisses
+/// the menu). Left/Right move between titles. The drop-downs float in the ambient <see cref="UI.Overlay"/>. Choosing
+/// an item runs its <see cref="MenuItem.Action"/> and raises <see cref="ItemActivated"/>.
+/// </remarks>
 public class MenuBar : RenderableControl
 {
     #region Constructors

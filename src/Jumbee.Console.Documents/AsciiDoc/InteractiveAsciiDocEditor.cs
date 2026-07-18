@@ -3,10 +3,13 @@ namespace Jumbee.Console.Documents;
 /// <summary>
 /// A live, split-pane AsciiDoc editor for the terminal: the left pane is a <see cref="CodeEditor"/> with AsciiDoc
 /// syntax highlighting (see <see cref="AsciiDocLanguage"/>); the right pane is an <see cref="AsciiDocViewer"/> that
-/// re-renders the document — headings, formatting, lists, admonitions, tables and blocks — as you type. A draggable
+/// re-renders the document — headings, formatting, lists, admonitions, tables and blocks — as you type.
+/// </summary>
+/// <remarks>
+/// A draggable
 /// <see cref="SplitPanel"/> divider sits between them. See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread,
 /// coalesced) sync model.
-/// </summary>
+/// </remarks>
 public class InteractiveAsciiDocEditor : InteractiveSourceEditor
 {
     #region Constructors

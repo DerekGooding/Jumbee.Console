@@ -5,11 +5,14 @@ using System;
 using ConsoleGUI;
 
 /// <summary>
-/// A single-child layout that pins its child's size. Wrap a control or layout that would otherwise fill its slot to
-/// give it a fixed (or bounded) extent — e.g. cap a toolbar's height to one row so it can be docked at the top of a
-/// <see cref="DockPanel"/> without collapsing the fill region (a <see cref="HorizontalStackPanel"/> on its own expands
-/// to the full height). Leave a dimension unset to let the child size freely within the slot.
+/// A single-child layout that pins its child's size.
 /// </summary>
+/// <remarks>
+/// Wrap a control or layout that would otherwise fill its slot to give it a fixed (or bounded) extent — e.g. cap a
+/// toolbar's height to one row so it can be docked at the top of a <see cref="DockPanel"/> without collapsing the fill
+/// region (a <see cref="HorizontalStackPanel"/> on its own expands to the full height). Leave a dimension unset to let
+/// the child size freely within the slot.
+/// </remarks>
 public class Boundary : Layout<ConsoleGUI.Controls.Boundary>
 {
     #region Constructors

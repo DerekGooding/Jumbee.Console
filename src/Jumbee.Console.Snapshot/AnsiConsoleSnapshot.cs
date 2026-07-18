@@ -13,14 +13,18 @@ using JControl = Jumbee.Console.Control;
 /// <summary>
 /// Drives the <em>real</em> <see cref="ConsoleManager"/> ANSI render path headlessly, captures the emitted escape
 /// sequences via <see cref="ConsoleManager.AnsiOutput"/>, and parses them back into an <see cref="AnsiScreen"/>.
+/// </summary>
+/// <remarks>
+/// <para>
 /// Where <see cref="ConsoleSnapshot"/> composes the logical cell grid through a DrawingContext, this exercises
 /// ConsoleManager's actual ANSI encoding, diff, cursor handling, and serialized async output — the path that
 /// previously could only be checked against a real terminal.
-/// </summary>
-/// <remarks>
+/// </para>
+/// <para>
 /// It mutates <see cref="ConsoleManager"/> global state, so a caller must ensure no UI loop is concurrently driving
 /// it (the test suite disables parallelization and stops the UI first). The capture sink writes on a thread-pool
 /// thread like production; <see cref="ConsoleManager.OutputIdle"/> is awaited so the result is deterministic.
+/// </para>
 /// </remarks>
 public static class AnsiConsoleSnapshot
 {

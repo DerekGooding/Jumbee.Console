@@ -39,9 +39,9 @@ public enum TitleColorStyle
 }
 
 /// <summary>
-/// Describes how a control frame title is aligned, bordered, and colored. A frame's default title style comes
-/// from <see cref="IStyleTheme.TitleStyle"/>.
+/// Describes how a control frame title is aligned, bordered, and colored.
 /// </summary>
+/// <remarks>A frame's default title style comes from <see cref="IStyleTheme.TitleStyle"/>.</remarks>
 public readonly struct TitleStyle : System.IEquatable<TitleStyle>
 {
     public TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)

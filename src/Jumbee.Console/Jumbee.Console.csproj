@@ -14,6 +14,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyVersion>$(ProjectAssemblyVersion)</AssemblyVersion>
     <FileVersion>$(ProjectAssemblyVersion)</FileVersion>
     <Version>$(ProjectAssemblyVersion)</Version>

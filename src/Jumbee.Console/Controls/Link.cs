@@ -11,9 +11,12 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// A focusable, clickable text link. Activating it (a mouse click, or Enter/Space while focused) opens
-/// <see cref="Url"/> with the system default handler and raises <see cref="Activated"/>. Leave <see cref="Url"/>
-/// <see langword="null"/> to use it purely as an action link and handle <see cref="Activated"/> yourself.
+/// <see cref="Url"/> with the system default handler and raises <see cref="Activated"/>.
 /// </summary>
+/// <remarks>
+/// Leave <see cref="Url"/> <see langword="null"/> to use it purely as an action link and handle
+/// <see cref="Activated"/> yourself.
+/// </remarks>
 public class Link : RenderableControl
 {
     #region Constructors

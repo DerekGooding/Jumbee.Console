@@ -1,10 +1,12 @@
 namespace Jumbee.Console;
 
 /// <summary>
-/// A labelled checkbox that toggles an independent on/off state. Uses the glyph theme's
-/// <see cref="IGlyphTheme.CheckboxChecked"/>/<see cref="IGlyphTheme.CheckboxUnchecked"/> markers (by default
-/// <c>[X]</c>/<c>[ ]</c>), followed by its label.
+/// A labelled checkbox that toggles an independent on/off state.
 /// </summary>
+/// <remarks>
+/// Uses the glyph theme's <see cref="IGlyphTheme.CheckboxChecked"/>/<see cref="IGlyphTheme.CheckboxUnchecked"/>
+/// markers (by default <c>[X]</c>/<c>[ ]</c>), followed by its label.
+/// </remarks>
 public class Checkbox : ToggleButton
 {
     #region Constructors

@@ -5,11 +5,14 @@ using ConsoleGUI.Controls;
 
 /// <summary>
 /// The visual scaffold behind <see cref="SplitPanel"/>: two nested ConsoleGUI <see cref="DockPanel"/>s laying out
-/// <c>[first | divider | second]</c> along the split axis. The first pane is docked with a fixed extent (a
-/// <see cref="Boundary"/>), the 1-cell divider is docked next, and the second pane fills the rest — so on container
-/// resize the first pane keeps its size and the second pane absorbs the change (the sidebar-stays-put behaviour).
-/// <see cref="SplitPanel"/> owns the model and drives this through <see cref="SetFirstExtent"/>.
+/// <c>[first | divider | second]</c> along the split axis.
 /// </summary>
+/// <remarks>
+/// The first pane is docked with a fixed extent (a <see cref="Boundary"/>), the 1-cell divider is docked next, and the
+/// second pane fills the rest — so on container resize the first pane keeps its size and the second pane absorbs the
+/// change (the sidebar-stays-put behaviour). <see cref="SplitPanel"/> owns the model and drives this through
+/// <see cref="SetFirstExtent"/>.
+/// </remarks>
 public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
 {
     #region Constructors

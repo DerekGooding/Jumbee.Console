@@ -41,7 +41,8 @@ public enum TerminalMouseKind
 /// </summary>
 public abstract record TerminalInputEvent;
 
-/// <summary>A key press. Bridges to/from the existing <see cref="ConsoleGUI.Input.InputEvent"/> path via <see cref="ConsoleKeyInfo"/>.</summary>
+/// <summary>A key press.</summary>
+/// <remarks>Bridges to/from the existing <see cref="ConsoleGUI.Input.InputEvent"/> path via <see cref="ConsoleKeyInfo"/>.</remarks>
 public sealed record KeyInputEvent(ConsoleKey Key, char KeyChar, TerminalModifiers Modifiers) : TerminalInputEvent
 {
     public ConsoleKeyInfo ToConsoleKeyInfo() => new(

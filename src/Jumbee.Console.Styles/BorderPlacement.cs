@@ -3,10 +3,10 @@ namespace Jumbee.Console;
 using System;
 
 /// <summary>
-/// Which edges of a control frame's border are drawn. A <see cref="FlagsAttribute"/> set — combine sides with
-/// <c>|</c> (e.g. <c>Top | Bottom</c> for horizontal rules only). Defaults to <see cref="All"/>. Set via
-/// <c>ControlFrame.BorderPlacement</c>.
+/// Which edges of a control frame's border are drawn.
 /// </summary>
+/// <remarks>A <see cref="FlagsAttribute"/> set — combine sides with <c>|</c> (e.g. <c>Top | Bottom</c> for
+/// horizontal rules only). Defaults to <see cref="All"/>. Set via <c>ControlFrame.BorderPlacement</c>.</remarks>
 [Flags]
 public enum BorderPlacement
 {

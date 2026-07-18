@@ -111,7 +111,8 @@ public partial class Tree : RenderableControl
     }
 
     /// <summary>The glyph shown before a node that has no children (a leaf), including trailing spacing. Defaults to
-    /// the theme's <see cref="IGlyphTheme.TreeLeaf"/>. Keep its width equal to the disclosure glyphs so labels align.</summary>
+    /// the theme's <see cref="IGlyphTheme.TreeLeaf"/>.</summary>
+    /// <remarks>Keep its width equal to the disclosure glyphs so labels align.</remarks>
     public string LeafGlyph
     {
         get => _leafGlyph;
@@ -119,8 +120,9 @@ public partial class Tree : RenderableControl
     }
 
     /// <summary>Foreground colour of the <see cref="LeafGlyph"/>, or <see langword="null"/> for the default text
-    /// colour. Defaults to the theme's <see cref="IStyleTheme.TreeLeaf"/> colour. When a (text) leaf is selected the
-    /// glyph is highlighted together with the text instead of using this colour.</summary>
+    /// colour. Defaults to the theme's <see cref="IStyleTheme.TreeLeaf"/> colour.</summary>
+    /// <remarks>When a (text) leaf is selected the glyph is highlighted together with the text instead of using this
+    /// colour.</remarks>
     public Color? LeafGlyphColor
     {
         get => _leafGlyphColor;
@@ -143,17 +145,18 @@ public partial class Tree : RenderableControl
     }
 
     /// <summary>The style applied to the node under the mouse pointer when <see cref="HoverHighlighting"/> is on
-    /// (typically a background tint). Defaults to the theme's <see cref="IStyleTheme.Hover"/>. Like selection, it
-    /// tints the glyph + label of text nodes only.</summary>
+    /// (typically a background tint). Defaults to the theme's <see cref="IStyleTheme.Hover"/>.</summary>
+    /// <remarks>Like selection, it tints the glyph + label of text nodes only.</remarks>
     public Style HoverStyle
     {
         get => _hoverStyle;
         set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true);
     }
 
-    /// <summary>An optional menu shown when a node is right-clicked. The right-click first selects that node and
-    /// raises <see cref="ContextMenuOpening"/> (with the node), then the menu floats at the pointer. Item handlers
-    /// can read <see cref="SelectedNode"/> to act on the right-clicked node. Left <see langword="null"/> = no menu.</summary>
+    /// <summary>An optional menu shown when a node is right-clicked. Left <see langword="null"/> = no menu.</summary>
+    /// <remarks>The right-click first selects that node and raises <see cref="ContextMenuOpening"/> (with the node),
+    /// then the menu floats at the pointer. Item handlers can read <see cref="SelectedNode"/> to act on the
+    /// right-clicked node.</remarks>
     public ContextMenu? ContextMenu { get; set; }
 
     public override bool HandlesInput => true;
@@ -168,8 +171,9 @@ public partial class Tree : RenderableControl
     public event EventHandler<TreeNode>? NodeActivated;
 
     /// <summary>Raised just before <see cref="ContextMenu"/> is shown for a right-clicked node, with that node (now
-    /// the selected one). Use it to tailor the menu to the node, or read <see cref="SelectedNode"/> from the menu's
-    /// own item handlers. Only fires when <see cref="ContextMenu"/> is set.</summary>
+    /// the selected one). Only fires when <see cref="ContextMenu"/> is set.</summary>
+    /// <remarks>Use it to tailor the menu to the node, or read <see cref="SelectedNode"/> from the menu's own item
+    /// handlers.</remarks>
     public event EventHandler<TreeNode>? ContextMenuOpening;
     #endregion
 

@@ -10,10 +10,13 @@ using Jumbee.Console.Documents.Mermaid;
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> that highlights Markdown <em>and</em> the contents of embedded
 /// <c>```mermaid</c> fenced blocks (using the <see cref="MermaidLanguage"/> grammar) — for editing Markdown that
-/// contains mermaid diagrams in a <see cref="CodeEditor"/>. It reuses the built-in ColorCode Markdown rules and
+/// contains mermaid diagrams in a <see cref="CodeEditor"/>.
+/// </summary>
+/// <remarks>
+/// It reuses the built-in ColorCode Markdown rules and
 /// prepends a <c>```mermaid</c>-fence rule whose inner content is delegated to the nested "mermaid" grammar via
 /// ColorCode's language-embedding mechanism (a capture scope prefixed with <see cref="ScopeName.LanguagePrefix"/>).
-/// </summary>
+/// </remarks>
 public sealed class MarkdownWithMermaidLanguage : ILanguage
 {
     #region Singleton

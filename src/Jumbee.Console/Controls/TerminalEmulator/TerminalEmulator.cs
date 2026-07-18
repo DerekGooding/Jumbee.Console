@@ -29,12 +29,14 @@ public class TerminalEmulator : Control
     #region Constructors
     /// <summary>
     /// Creates a terminal. With a <paramref name="commandLine"/> the control launches that process in a pseudo
-    /// console once it is sized. Pass <see langword="null"/> (or whitespace) to skip spawning and drive the
-    /// emulator manually by pushing bytes through <see cref="Feed"/> — useful for embedding an existing stream
-    /// (e.g. an SSH channel) or for headless tests.
+    /// console once it is sized.
+    /// </summary>
+    /// <remarks>
+    /// Pass <see langword="null"/> (or whitespace) to skip spawning and drive the emulator manually by pushing bytes
+    /// through <see cref="Feed"/> — useful for embedding an existing stream (e.g. an SSH channel) or for headless tests.
     /// <para><paramref name="workingDirectory"/> sets the child process's initial directory (e.g. a project folder
     /// so <c>dotnet build</c> resolves there); <see langword="null"/> inherits the host process's directory.</para>
-    /// </summary>
+    /// </remarks>
     public TerminalEmulator(string? commandLine = "cmd.exe", string? workingDirectory = null)
     {
         _commandLine = commandLine;
@@ -59,11 +61,14 @@ public class TerminalEmulator : Control
 
     /// <summary>
     /// Background colour for cells the running program leaves at the terminal default (it didn't set an explicit
-    /// background). Lets the emulator blend with the control/theme instead of painting default cells solid black.
+    /// background).
+    /// </summary>
+    /// <remarks>
+    /// Lets the emulator blend with the control/theme instead of painting default cells solid black.
     /// <see langword="null"/> (the default) paints them with no background, so the control's own background shows
     /// through; set a colour to force a specific default background across the whole terminal area. Cells that carry
     /// their own (non-default) background are unaffected.
-    /// </summary>
+    /// </remarks>
     public Color? DefaultBackground
     {
         get => _defaultBackground;
@@ -107,10 +112,13 @@ public class TerminalEmulator : Control
 
     /// <summary>
     /// Requests that the child process run: starts it now if the terminal is sized and idle, otherwise it starts as
-    /// soon as the control is first laid out. Use to restart a shell previously ended with <see cref="StopProcess"/>
-    /// (e.g. a host that stops the shell while the terminal is hidden). No-op for a manually-driven terminal (null
-    /// command line) or when a process is already running.
+    /// soon as the control is first laid out.
     /// </summary>
+    /// <remarks>
+    /// Use to restart a shell previously ended with <see cref="StopProcess"/> (e.g. a host that stops the shell while
+    /// the terminal is hidden). No-op for a manually-driven terminal (null command line) or when a process is already
+    /// running.
+    /// </remarks>
     public void StartProcess() => UI.Invoke(() =>
     {
         _wantRunning = true;
@@ -118,10 +126,12 @@ public class TerminalEmulator : Control
     });
 
     /// <summary>
-    /// Stops the child process and its output reader, leaving the emulator screen as drawn. Restart with
-    /// <see cref="StartProcess"/>. Does not raise <see cref="Exited"/> (a deliberate stop is not a process exit the
-    /// host should hear about). No-op if not running.
+    /// Stops the child process and its output reader, leaving the emulator screen as drawn.
     /// </summary>
+    /// <remarks>
+    /// Restart with <see cref="StartProcess"/>. Does not raise <see cref="Exited"/> (a deliberate stop is not a
+    /// process exit the host should hear about). No-op if not running.
+    /// </remarks>
     public void StopProcess() => UI.Invoke(() =>
     {
         _wantRunning = false;
@@ -162,10 +172,13 @@ public class TerminalEmulator : Control
     }
 
     /// <summary>
-    /// Pushes raw terminal output bytes into the emulator and repaints. Available for manually-driven terminals
-    /// (see the <see langword="null"/>-command-line constructor). Safe to call from any thread — the work is
-    /// marshaled onto the UI thread. (The PTY read loop uses the flow-controlled path, not this.)
+    /// Pushes raw terminal output bytes into the emulator and repaints.
     /// </summary>
+    /// <remarks>
+    /// Available for manually-driven terminals (see the <see langword="null"/>-command-line constructor). Safe to
+    /// call from any thread — the work is marshaled onto the UI thread. (The PTY read loop uses the flow-controlled
+    /// path, not this.)
+    /// </remarks>
     public void Feed(byte[] data)
     {
         if (data is null || data.Length == 0) return;
@@ -350,8 +363,8 @@ public class TerminalEmulator : Control
         WriteToProcess(_terminal.BracketedPasteMode ? [.. Esc("[200~"), .. body, .. Esc("[201~")] : body);
     }
 
-    /// <summary>Sends text to the process as if typed (UTF-8, no bracketed-paste wrapping). Include a trailing
-    /// <c>"\r"</c> to submit a line. Snaps the view back to the live bottom.</summary>
+    /// <summary>Sends text to the process as if typed (UTF-8, no bracketed-paste wrapping).</summary>
+    /// <remarks>Include a trailing <c>"\r"</c> to submit a line. Snaps the view back to the live bottom.</remarks>
     public void SendText(string text)
     {
         if (string.IsNullOrEmpty(text)) return;
@@ -361,10 +374,12 @@ public class TerminalEmulator : Control
 
     /// <summary>
     /// Translates a key event into the bytes to send the process, honoring the emulator's current modes
-    /// (application-cursor mode, keypad, …). Navigation/function keys are mapped by VtNetCore so the sequences
-    /// track those modes; Enter/Escape/printables are handled here. Returns <see langword="null"/> for a key that
-    /// produces no input.
+    /// (application-cursor mode, keypad, …).
     /// </summary>
+    /// <remarks>
+    /// Navigation/function keys are mapped by VtNetCore so the sequences track those modes; Enter/Escape/printables
+    /// are handled here. Returns <see langword="null"/> for a key that produces no input.
+    /// </remarks>
     public byte[]? TranslateKey(ConsoleKeyInfo key)
     {
         // Keys VtNetCore's table gets wrong: it emits LF for Enter (a shell wants CR) and a doubled ESC for Escape.

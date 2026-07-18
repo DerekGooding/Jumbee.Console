@@ -2,9 +2,10 @@ namespace Jumbee.Console;
 
 /// <summary>
 /// The per-part <see cref="Style"/> (foreground/background/decoration, no glyph) a control frame applies to its
-/// vertical scrollbar. The glyphs come separately from <see cref="ScrollBarGlyphs"/> (via
-/// <see cref="IGlyphTheme.ScrollBar"/>); a control frame composes the two into its scrollbar cells.
+/// vertical scrollbar.
 /// </summary>
+/// <remarks>The glyphs come separately from <see cref="ScrollBarGlyphs"/> (via
+/// <see cref="IGlyphTheme.ScrollBar"/>); a control frame composes the two into its scrollbar cells.</remarks>
 public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 {
     #region Constructors

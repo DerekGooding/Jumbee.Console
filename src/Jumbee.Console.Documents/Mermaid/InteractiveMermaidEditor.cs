@@ -5,9 +5,12 @@ using Jumbee.Console.Documents.Mermaid;
 /// <summary>
 /// A live, split-pane Mermaid editor for the terminal: the left pane is a <see cref="CodeEditor"/> with Mermaid syntax
 /// highlighting (see <see cref="MermaidLanguage"/>); the right pane is a <see cref="MermaidViewer"/> that re-renders
-/// the diagram as you type. A draggable <see cref="SplitPanel"/> divider sits between them (drag it, or focus it and
-/// press the arrows). See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread, coalesced) sync model.
+/// the diagram as you type.
 /// </summary>
+/// <remarks>
+/// A draggable <see cref="SplitPanel"/> divider sits between them (drag it, or focus it and
+/// press the arrows). See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread, coalesced) sync model.
+/// </remarks>
 public class InteractiveMermaidEditor : InteractiveSourceEditor
 {
     #region Constructors

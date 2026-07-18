@@ -11,14 +11,14 @@ using Spectre.Console;
 /// <summary>
 /// The input area of an agent/chat CLI (Claude Code, Gemini CLI): a prompt glyph on the left that turns into an
 /// animated <em>busy</em> spinner while an operation runs, and a single-line <see cref="TextInput"/> filling the
-/// rest. Optional type-ahead is attached with <see cref="WithSuggestions(string[])"/>. Submitting (Enter) raises
-/// <see cref="Submitted"/>; any edit raises <see cref="Changed"/>.
-/// <para>
-/// Built as a <see cref="CompositeControl"/> — a <see cref="PromptGutter"/> docked left of the input — so it drops
-/// into any layout cell and is framed like any control (<c>chat.WithRoundedBorder()</c>). Focus delegates to the
-/// input, which keeps the caret; the gutter is a non-focusable adornment.
-/// </para>
+/// rest. Submitting (Enter) raises <see cref="Submitted"/>; any edit raises <see cref="Changed"/>.
 /// </summary>
+/// <remarks>
+/// Optional type-ahead is attached with <see cref="WithSuggestions(string[])"/>. Built as a
+/// <see cref="CompositeControl"/> — a <see cref="PromptGutter"/> docked left of the input — so it drops into any
+/// layout cell and is framed like any control (<c>chat.WithRoundedBorder()</c>). Focus delegates to the input,
+/// which keeps the caret; the gutter is a non-focusable adornment.
+/// </remarks>
 public class ChatPrompt : CompositeControl
 {
     #region Constructors

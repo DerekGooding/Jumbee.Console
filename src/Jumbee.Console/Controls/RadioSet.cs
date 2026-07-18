@@ -3,10 +3,12 @@ namespace Jumbee.Console;
 using System;
 
 /// <summary>
-/// A vertical group of mutually-exclusive radio options. Exactly one option is selected at a time; navigating
-/// with Up/Down and pressing Space/Enter (or clicking a row) selects it. Each row renders as <c>(●)</c> for the
-/// selected option and <c>( )</c> otherwise.
+/// A vertical group of mutually-exclusive radio options, exactly one selected at a time.
 /// </summary>
+/// <remarks>
+/// Navigating with Up/Down and pressing Space/Enter (or clicking a row) selects it. Each row renders as
+/// <c>(●)</c> for the selected option and <c>( )</c> otherwise.
+/// </remarks>
 public class RadioSet : ToggleList
 {
     #region Constructors

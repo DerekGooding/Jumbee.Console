@@ -51,8 +51,9 @@ public partial class ListBox : RenderableControl
     }
 
     /// <summary>When <see langword="true"/>, the selection style fills the entire row width, not just the item's own
-    /// width — so a selected row reads as a full-width bar. Most visible in <see cref="SelectionStyle.Highlight"/>
-    /// mode (the selection background spans the row). Defaults to <see langword="false"/>.</summary>
+    /// width — so a selected row reads as a full-width bar. Defaults to <see langword="false"/>.</summary>
+    /// <remarks>Most visible in <see cref="SelectionStyle.Highlight"/> mode (the selection background spans the
+    /// row).</remarks>
     public bool HighlightFullWidth
     {
         get => _highlightFullWidth;
@@ -85,9 +86,10 @@ public partial class ListBox : RenderableControl
         }
     }
 
-    /// <summary>An optional menu shown when a row is right-clicked. The right-click first selects that row and
-    /// raises <see cref="ContextMenuOpening"/> (with the item), then the menu floats at the pointer. Item handlers
-    /// can read <see cref="SelectedItem"/> to act on the right-clicked row. Left <see langword="null"/> = no menu.</summary>
+    /// <summary>An optional menu shown when a row is right-clicked. Left <see langword="null"/> = no menu.</summary>
+    /// <remarks>The right-click first selects that row and raises <see cref="ContextMenuOpening"/> (with the item),
+    /// then the menu floats at the pointer. Item handlers can read <see cref="SelectedItem"/> to act on the
+    /// right-clicked row.</remarks>
     public ContextMenu? ContextMenu { get; set; }
 
     public override bool HandlesInput => true;
@@ -101,8 +103,9 @@ public partial class ListBox : RenderableControl
     /// <summary>Raised when the list is cancelled (Escape).</summary>
     public event EventHandler? Cancelled;
     /// <summary>Raised just before <see cref="ContextMenu"/> is shown for a right-clicked row, with that item (now
-    /// the selected one). Use it to tailor the menu, or read <see cref="SelectedItem"/> from the menu's own item
-    /// handlers. Only fires when <see cref="ContextMenu"/> is set.</summary>
+    /// the selected one).</summary>
+    /// <remarks>Use it to tailor the menu, or read <see cref="SelectedItem"/> from the menu's own item handlers.
+    /// Only fires when <see cref="ContextMenu"/> is set.</remarks>
     public event EventHandler<ListBoxItem>? ContextMenuOpening;
     #endregion
 
@@ -162,10 +165,11 @@ public partial class ListBox : RenderableControl
         return item;
     }
 
-    /// <summary>
-    /// Removes an item. The result is reliable only when called on the UI thread; off-thread callers should
-    /// not rely on it (the removal is marshaled and applied on the next pump).
-    /// </summary>
+    /// <summary>Removes an item.</summary>
+    /// <remarks>
+    /// The result is reliable only when called on the UI thread; off-thread callers should not rely on it (the
+    /// removal is marshaled and applied on the next pump).
+    /// </remarks>
     public bool RemoveItem(ListBoxItem item)
     {
         var removed = false;

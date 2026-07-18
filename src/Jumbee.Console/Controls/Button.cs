@@ -13,12 +13,14 @@ using Spectre.Console.Rendering;
 using TextStyle = Jumbee.Console.Style;
 
 /// <summary>
-/// A focusable, clickable button that renders a fixed-width text label. Activates on a mouse click or on
-/// Enter/Space while focused, raising <see cref="Activated"/>. Its appearance — per-state fills, border mode, and
-/// width — comes from a themeable <see cref="ButtonStyle"/> (<see cref="Style"/>): a flat single row by default,
-/// or a modern raised <see cref="ButtonShape.Modern"/> tile. Use <see cref="Primary"/>/<see cref="Secondary"/> to
-/// build one styled from the theme.
+/// A focusable, clickable button that renders a fixed-width text label.
 /// </summary>
+/// <remarks>
+/// Activates on a mouse click or on Enter/Space while focused, raising <see cref="Activated"/>. Its appearance —
+/// per-state fills, border mode, and width — comes from a themeable <see cref="ButtonStyle"/> (<see cref="Style"/>):
+/// a flat single row by default, or a modern raised <see cref="ButtonShape.Modern"/> tile. Use
+/// <see cref="Primary"/>/<see cref="Secondary"/> to build one styled from the theme.
+/// </remarks>
 public class Button : RenderableControl
 {
     #region Constructors
@@ -51,9 +53,10 @@ public class Button : RenderableControl
         set => SetAtomicProperty(ref _text, value, updatesLayout: true);
     }
 
-    /// <summary>The button's whole appearance. Defaults to the theme's <see cref="IStyleTheme.PrimaryButton"/> (or
+    /// <summary>The button's whole appearance.</summary>
+    /// <remarks>Defaults to the theme's <see cref="IStyleTheme.PrimaryButton"/> (or
     /// <see cref="IStyleTheme.SecondaryButton"/> for a <see cref="Secondary"/> button); setting it departs from the
-    /// theme. Changing the border or width re-lays the button out.</summary>
+    /// theme. Changing the border or width re-lays the button out.</remarks>
     public ButtonStyle Style
     {
         get => _style;

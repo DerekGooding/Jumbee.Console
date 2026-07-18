@@ -10,14 +10,17 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 
 /// <summary>
 /// A <see cref="MarkdownViewer"/> that renders fenced <c>```mermaid</c> code blocks as diagrams (flowchart, sequence,
-/// class, ER, state) instead of showing their source. Markdown between diagrams is rendered by the base viewer
+/// class, ER, state) instead of showing their source.
+/// </summary>
+/// <remarks>
+/// Markdown between diagrams is rendered by the base viewer
 /// unchanged; each diagram is rasterized to box-drawing cells and stacked inline. A document with no mermaid blocks
 /// renders identically to the base — the extra work happens only when a diagram is present.
 /// <para>
 /// A diagram that fails to parse falls back to a normal fenced code block, so a bad diagram never blanks the document.
 /// Diagrams wider than the control clip on the right (this viewer, like the base, scrolls only vertically).
 /// </para>
-/// </summary>
+/// </remarks>
 public class MarkdownExtendedViewer : MarkdownViewer
 {
     #region Constructors

@@ -10,12 +10,14 @@ using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A live multi-series time chart with a legend — a streaming line <see cref="Plot"/> on the left and a per-series
-/// stat readout (name + current / delta / max / min) on the right, in the style of a monitoring "run chart". Add a
-/// series with <see cref="AddSeries"/> and feed it through the returned <see cref="RunSeries"/> handle
+/// stat readout (name + current / delta / max / min) on the right, in the style of a monitoring "run chart".
+/// </summary>
+/// <remarks>
+/// Add a series with <see cref="AddSeries"/> and feed it through the returned <see cref="RunSeries"/> handle
 /// (<see cref="RunSeries.Push"/>); the data flows through a stationary strip axis (fixed X window) so the frame stays
 /// put and the values scroll through it. Pure composition over <see cref="Plot"/> — it adds a legend, not a new
 /// rendering path.
-/// </summary>
+/// </remarks>
 public class RunChart : CompositeControl
 {
     #region Constructors
@@ -129,9 +131,9 @@ public class RunChart : CompositeControl
 
 /// <summary>
 /// A handle to one <see cref="RunChart"/> series: push values with <see cref="Push"/>. Tracks the current value, the
-/// delta from the previous value, and the running max/min shown in the chart's legend. Thread-safe (each push is
-/// marshaled onto the UI thread).
+/// delta from the previous value, and the running max/min shown in the chart's legend.
 /// </summary>
+/// <remarks>Thread-safe (each push is marshaled onto the UI thread).</remarks>
 public sealed class RunSeries
 {
     #region Constructors

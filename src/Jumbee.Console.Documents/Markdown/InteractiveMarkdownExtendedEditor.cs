@@ -6,11 +6,14 @@ using Jumbee.Console.Documents.Mermaid;
 
 /// <summary>
 /// A live, split-pane Markdown editor whose preview renders embedded <c>```mermaid</c> code blocks as diagrams — the
-/// interactive complement to <see cref="MarkdownExtendedViewer"/>. The left pane is a <see cref="CodeEditor"/> editing
+/// interactive complement to <see cref="MarkdownExtendedViewer"/>.
+/// </summary>
+/// <remarks>
+/// The left pane is a <see cref="CodeEditor"/> editing
 /// Markdown (with the Mermaid grammar highlighting the contents of <c>```mermaid</c> fences); the right pane is a
 /// <see cref="MarkdownExtendedViewer"/> that re-renders the document — prose, tables, code and box-drawn mermaid
 /// diagrams — as you type. See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread, coalesced) sync model.
-/// </summary>
+/// </remarks>
 public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
 {
     #region Constructors

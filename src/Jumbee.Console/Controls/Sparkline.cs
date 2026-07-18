@@ -8,9 +8,10 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// A compact, single-row chart that draws a series of numeric values as block bars (one cell per value),
-/// scaling each value's height against the series maximum. Self-rendering; one row tall, as wide as the
-/// number of values (unless an explicit <see cref="Control.Width"/> is set).
+/// scaling each value's height against the series maximum.
 /// </summary>
+/// <remarks>Self-rendering; one row tall, as wide as the number of values (unless an explicit
+/// <see cref="Control.Width"/> is set).</remarks>
 public class Sparkline : RenderableControl
 {
     #region Constructors
@@ -53,9 +54,10 @@ public class Sparkline : RenderableControl
 
     /// <summary>
     /// The glyph ramp used for bar heights, ordered shortest → tallest. Defaults to <see cref="BlockBars"/>
-    /// (the eighth-block elements <c>▁▂▃▄▅▆▇█</c>). Those need a font with block-element coverage (e.g. Windows
-    /// Terminal / Cascadia Mono); on a legacy console (cmd.exe with a raster font) set this to <see cref="AsciiBars"/>.
+    /// (the eighth-block elements <c>▁▂▃▄▅▆▇█</c>).
     /// </summary>
+    /// <remarks>Those need a font with block-element coverage (e.g. Windows Terminal / Cascadia Mono); on a legacy
+    /// console (cmd.exe with a raster font) set this to <see cref="AsciiBars"/>.</remarks>
     public string Bars
     {
         get => _bars;

@@ -18,9 +18,12 @@ public enum BadgeVariant
 
 /// <summary>
 /// A small inline status pill — short text on a filled background with a little horizontal padding (e.g.
-/// <c>200 OK</c>, <c>read-only</c>, a method tag). Non-interactive and fixed-width (sizes to its text + padding).
-/// Use a <see cref="BadgeVariant"/> for a themed scheme, or pass an explicit <see cref="Style"/>.
+/// <c>200 OK</c>, <c>read-only</c>, a method tag).
 /// </summary>
+/// <remarks>
+/// Non-interactive and fixed-width (sizes to its text + padding). Use a <see cref="BadgeVariant"/> for a themed
+/// scheme, or pass an explicit <see cref="Style"/>.
+/// </remarks>
 public class Badge : RenderableControl
 {
     #region Constructors

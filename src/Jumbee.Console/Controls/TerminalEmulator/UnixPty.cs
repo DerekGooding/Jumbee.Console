@@ -11,13 +11,13 @@ using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
 /// <summary>
-/// A Unix pseudo terminal (Linux/macOS) session. Opens a pty (<c>posix_openpt</c>) and launches the child with
-/// <c>posix_spawn</c> — which fork+execs atomically in native code, so NO managed code runs in a forked child
-/// (a raw <c>fork()</c>/<c>forkpty()</c> segfaults the .NET runtime). Pure managed P/Invoke against libc — no
-/// shipped native binaries, mirroring <see cref="ConPty"/> on Windows.
+/// A Unix pseudo terminal (Linux/macOS) session.
 /// </summary>
 /// <remarks>
-/// Compiles on any OS (P/Invoke declarations are metadata) but only runs on Linux/macOS.
+/// Opens a pty (<c>posix_openpt</c>) and launches the child with <c>posix_spawn</c> — which fork+execs atomically in
+/// native code, so NO managed code runs in a forked child (a raw <c>fork()</c>/<c>forkpty()</c> segfaults the .NET
+/// runtime). Pure managed P/Invoke against libc — no shipped native binaries, mirroring <see cref="ConPty"/> on Windows.
+/// <para>Compiles on any OS (P/Invoke declarations are metadata) but only runs on Linux/macOS.</para>
 /// </remarks>
 public sealed class UnixPty : IPty
 {

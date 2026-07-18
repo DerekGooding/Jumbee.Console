@@ -10,8 +10,9 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// A bar chart. Based on Spectre.Console.BarChart
+/// A bar chart.
 /// </summary>
+/// <remarks>Based on Spectre.Console.BarChart.</remarks>
 public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
 {
     #region Constructors
@@ -196,8 +197,9 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     }
 
     /// <summary>
-    /// Removes an item by index. The result is reliable only when called on the UI thread.
+    /// Removes an item by index.
     /// </summary>
+    /// <remarks>The result is reliable only when called on the UI thread.</remarks>
     public bool RemoveItem(int index)
     {
         var removed = false;

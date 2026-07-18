@@ -65,8 +65,8 @@ public static class ConsoleSnapshot
     /// <summary>
     /// Renders <paramref name="control"/> once to establish layout, sends the given keys to it (routed via
     /// <see cref="UI.SendInput(IFocusable, ConsoleKey, bool, bool, bool)"/>), then renders and returns the result.
-    /// Handy for snapshotting a control after navigation/editing.
     /// </summary>
+    /// <remarks>Handy for snapshotting a control after navigation/editing.</remarks>
     public static ConsoleBuffer RenderAfter(JControl control, int width, int height, params ConsoleKey[] keys)
         => RenderAfterCore(control, width, height, keys.Select(k => Key(k)));
 

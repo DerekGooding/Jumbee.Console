@@ -9,10 +9,12 @@ using Spectre.Console.Rendering;
 public readonly record struct FooterHint(string Key, string Label);
 
 /// <summary>
-/// A one-row key-hints bar (e.g. <c>^j Send  ^t Method  ^c Quit  f1 Help</c>), filling the available width. The
-/// key chord is drawn in an accent style and the label in the normal text style. Non-interactive; hints are set by
-/// the app (typically mirroring its global hotkeys).
+/// A one-row key-hints bar (e.g. <c>^j Send  ^t Method  ^c Quit  f1 Help</c>), filling the available width.
 /// </summary>
+/// <remarks>
+/// The key chord is drawn in an accent style and the label in the normal text style. Non-interactive; hints are set
+/// by the app (typically mirroring its global hotkeys).
+/// </remarks>
 public class Footer : RenderableControl
 {
     #region Constructors

@@ -2,9 +2,10 @@ namespace Jumbee.Console;
 
 /// <summary>
 /// The per-part <see cref="Style"/> a <see cref="Jumbee.Console.Gauge"/> composes: the filled portion of the bar,
-/// the empty track behind it, and the percent/value readout (and any inline label). Only the foreground colour of
-/// <see cref="Fill"/>/<see cref="Track"/> is used — the bar is drawn as a solid colour band.
+/// the empty track behind it, and the percent/value readout (and any inline label).
 /// </summary>
+/// <remarks>Only the foreground colour of <see cref="Fill"/>/<see cref="Track"/> is used — the bar is drawn as a
+/// solid colour band.</remarks>
 public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
 {
     #region Constructors

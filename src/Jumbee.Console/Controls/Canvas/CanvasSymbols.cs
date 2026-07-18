@@ -4,13 +4,15 @@ using System;
 
 /// <summary>
 /// Selects the glyph set (and thus the sub-cell resolution) a <see cref="Jumbee.Console.Canvas"/> draws its shapes
-/// with. Higher resolution packs more plotted points into each character cell for a smoother result. The default is
-/// <see cref="Braille"/>.
+/// with. The default is <see cref="Braille"/>.
 /// </summary>
 /// <remarks>
+/// Higher resolution packs more plotted points into each character cell for a smoother result.
+/// <para>
 /// Ratatui's <c>Sextant</c> and <c>Octant</c> markers are intentionally absent: their glyphs are supra-BMP characters
 /// (U+1FBxx / U+1CCxx) that a single-<c>char</c> terminal cell cannot store. <see cref="Braille"/> already gives the
 /// finest resolution and <see cref="HalfBlock"/> the only per-half colour.
+/// </para>
 /// </remarks>
 public enum CanvasMarker
 {

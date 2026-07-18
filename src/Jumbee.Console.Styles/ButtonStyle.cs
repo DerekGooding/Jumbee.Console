@@ -13,10 +13,13 @@ public enum ButtonShape
 /// <summary>
 /// The appearance of a <c>Button</c>: its fill <see cref="Style"/> in each interaction state (text colour +
 /// background), how it is bordered (<see cref="Border"/>), an optional fixed/minimum width, and whether the label
-/// is bold. A button's default style comes from <see cref="IStyleTheme.PrimaryButton"/> /
+/// is bold.
+/// </summary>
+/// <remarks>
+/// A button's default style comes from <see cref="IStyleTheme.PrimaryButton"/> /
 /// <see cref="IStyleTheme.SecondaryButton"/>; <see cref="Primary"/>/<see cref="Secondary"/> here are the
 /// theme-independent fallbacks those tokens default to.
-/// </summary>
+/// </remarks>
 public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
 {
     #region Constructors

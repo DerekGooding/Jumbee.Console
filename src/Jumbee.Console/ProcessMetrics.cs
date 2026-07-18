@@ -52,8 +52,9 @@ public sealed class ProcessMetrics : IDisposable
     public double RenderTimeMsPeak => Max(_frameRenderMs);
 
     /// <summary>Peak UI-thread utilisation over the retained frames (0..100): the busiest frame's render time as a
-    /// fraction of that frame's period. ~0 when idle (short render, long wait), rising toward 100 when frames run
-    /// back-to-back under load. High-resolution, so unlike process CPU% it reflects brief bursts.</summary>
+    /// fraction of that frame's period.</summary>
+    /// <remarks>~0 when idle (short render, long wait), rising toward 100 when frames run back-to-back under load.
+    /// High-resolution, so unlike process CPU% it reflects brief bursts.</remarks>
     public double BusyPercentPeak
     {
         get
@@ -88,8 +89,8 @@ public sealed class ProcessMetrics : IDisposable
         }
     }
 
-    /// <summary>Mean bytes allocated on the managed heap per draw/paint cycle. The headline retained-mode number:
-    /// an idle UI allocates ~nothing per frame.</summary>
+    /// <summary>Mean bytes allocated on the managed heap per draw/paint cycle.</summary>
+    /// <remarks>The headline retained-mode number: an idle UI allocates ~nothing per frame.</remarks>
     public double AllocatedBytesPerFrame => Avg(_frameAlloc);
 
     /// <summary>Peak bytes allocated in a single draw/paint cycle over the retained frames — surfaces an allocation
@@ -100,16 +101,18 @@ public sealed class ProcessMetrics : IDisposable
     }
 
     /// <summary>Percentage of retained frames that actually redrew the screen (took the full draw path) versus those
-    /// that idled (cheap resize-check only). The retained-mode headline: a mostly-static UI redraws only the few
-    /// frames where content changed, so this sits low and climbs toward 100 only under interaction/animation.</summary>
+    /// that idled (cheap resize-check only).</summary>
+    /// <remarks>The retained-mode headline: a mostly-static UI redraws only the few frames where content changed, so
+    /// this sits low and climbs toward 100 only under interaction/animation.</remarks>
     public double RedrawPercent
     {
         get { if (_fCount == 0) return 0; int n = 0; for (int i = 0; i < _fCount; i++) if (_frameRedrawn[i]) n++; return n * 100.0 / _fCount; }
     }
 
-    /// <summary>Mean fraction of the screen (0..100) re-composited on the frames that <em>did</em> redraw. With
-    /// dirty-rectangle rendering a small change (a status-bar tick) touches only its own rows, so this reads a few
-    /// percent even while <see cref="RedrawPercent"/> is high; only a resize/theme-switch pushes a frame to 100.</summary>
+    /// <summary>Mean fraction of the screen (0..100) re-composited on the frames that <em>did</em> redraw.</summary>
+    /// <remarks>With dirty-rectangle rendering a small change (a status-bar tick) touches only its own rows, so this
+    /// reads a few percent even while <see cref="RedrawPercent"/> is high; only a resize/theme-switch pushes a frame
+    /// to 100.</remarks>
     public double DirtyAreaPercentAvg
     {
         get
@@ -134,9 +137,9 @@ public sealed class ProcessMetrics : IDisposable
 
     /// <summary>Whole-process CPU usage over the rolling window, as a percentage of total machine capacity (user +
     /// kernel, divided by <see cref="Environment.ProcessorCount"/>) — the same figure Task Manager shows for the
-    /// process. <em>Coarse</em>: process CPU time advances in ~15&#160;ms OS ticks, so it reflects sustained load but
-    /// not brief per-frame bursts (use <see cref="BusyPercentPeak"/> / <see cref="RenderTimeMsPeak"/> for those).
-    /// 0 when unavailable.</summary>
+    /// process. 0 when unavailable.</summary>
+    /// <remarks><em>Coarse</em>: process CPU time advances in ~15&#160;ms OS ticks, so it reflects sustained load but
+    /// not brief per-frame bursts (use <see cref="BusyPercentPeak"/> / <see cref="RenderTimeMsPeak"/> for those).</remarks>
     public double CpuUsagePercent
     {
         get
@@ -147,13 +150,14 @@ public sealed class ProcessMetrics : IDisposable
     }
 
     /// <summary>Physical memory mapped to the process (<see cref="Environment.WorkingSet"/>) right now, in bytes —
-    /// an instantaneous gauge, not a rate. Use <see cref="WorkingSetBytesAvg"/>/<see cref="WorkingSetBytesPeak"/>
-    /// for the windowed figures.</summary>
+    /// an instantaneous gauge, not a rate.</summary>
+    /// <remarks>Use <see cref="WorkingSetBytesAvg"/>/<see cref="WorkingSetBytesPeak"/> for the windowed figures.</remarks>
     public long WorkingSetBytes => Environment.WorkingSet;
 
-    /// <summary>Mean working set over the retained snapshots (sampled once per frame), in bytes. Since the working
-    /// set is sticky, this tracks close to the current value — a resize that grows it lifts the average and it stays
-    /// up (unlike the alloc average, which falls back once the burst frame ages out).</summary>
+    /// <summary>Mean working set over the retained snapshots (sampled once per frame), in bytes.</summary>
+    /// <remarks>Since the working set is sticky, this tracks close to the current value — a resize that grows it
+    /// lifts the average and it stays up (unlike the alloc average, which falls back once the burst frame ages
+    /// out).</remarks>
     public double WorkingSetBytesAvg
     {
         get { if (_count == 0) return WorkingSetBytes; long t = 0; for (int i = 0; i < _count; i++) t += At(i).WorkingSet; return (double)t / _count; }
@@ -215,8 +219,8 @@ public sealed class ProcessMetrics : IDisposable
     }
 
     /// <summary>Records the directly-measured cost of one draw/paint cycle (from the UI loop, which brackets the
-    /// render), and takes a cumulative sample for the windowed process rates. Call once per frame on the UI thread.
-    /// </summary>
+    /// render), and takes a cumulative sample for the windowed process rates.</summary>
+    /// <remarks>Call once per frame on the UI thread.</remarks>
     /// <param name="renderMs">Wall time the draw/paint cycle took (high-resolution).</param>
     /// <param name="periodMs">Wall time since the previous frame started (for utilisation).</param>
     /// <param name="renderAllocBytes">Bytes allocated on the managed heap during the cycle.</param>
@@ -238,8 +242,8 @@ public sealed class ProcessMetrics : IDisposable
         Sample();
     }
 
-    /// <summary>Snapshots the cumulative process counters (for the windowed rates). Called by <see cref="RecordFrame"/>
-    /// once per frame; exposed for callers/tests without a frame loop.</summary>
+    /// <summary>Snapshots the cumulative process counters (for the windowed rates).</summary>
+    /// <remarks>Called by <see cref="RecordFrame"/> once per frame; exposed for callers/tests without a frame loop.</remarks>
     public void Sample()
     {
         long timestamp = Stopwatch.GetTimestamp();

@@ -11,9 +11,12 @@ using Microsoft.Win32.SafeHandles;
 
 /// <summary>
 /// A pseudo-console (ConPTY) session: launches a process attached to a Windows pseudo console and exposes its
-/// stdin/stdout as streams. Pure managed P/Invoke against the OS conhost (Windows 10 1809+) — no shipped native
-/// binaries, so it is trim/single-file/AOT clean (unlike winpty-based wrappers).
+/// stdin/stdout as streams.
 /// </summary>
+/// <remarks>
+/// Pure managed P/Invoke against the OS conhost (Windows 10 1809+) — no shipped native binaries, so it is
+/// trim/single-file/AOT clean (unlike winpty-based wrappers).
+/// </remarks>
 public sealed class ConPty : IPty
 {
     #region Constructors

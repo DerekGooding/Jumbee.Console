@@ -7,7 +7,10 @@ using ColorCode.Common;
 
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> grammar for Mermaid diagram source, for syntax-highlighting a Mermaid document
-/// in a <see cref="CodeEditor"/> (<c>new CodeEditor(MermaidLanguage.Instance)</c>). The token patterns are lifted from
+/// in a <see cref="CodeEditor"/> (<c>new CodeEditor(MermaidLanguage.Instance)</c>).
+/// </summary>
+/// <remarks>
+/// The token patterns are lifted from
 /// the vendored Mermaider parsers (<c>ext/Mermaider/Parsing/*.cs</c>): the diagram-type and structural keyword lists,
 /// the direction set, and the flowchart/sequence/class/ER arrow and relationship alternations. It classifies tokens
 /// (it does not validate structure), so it highlights every diagram type uniformly.
@@ -16,7 +19,7 @@ using ColorCode.Common;
 /// strings and bracket labels (which must claim their text before keyword rules can colour a keyword sitting inside a
 /// label), then arrows, then keywords, directions and numbers.
 /// </para>
-/// </summary>
+/// </remarks>
 public sealed class MermaidLanguage : ILanguage
 {
     #region Singleton

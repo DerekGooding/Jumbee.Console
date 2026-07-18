@@ -5,8 +5,10 @@ using System;
 using ColorCode;
 
 /// <summary>
-/// A composite control pairing a <see cref="TextEditor"/> with a <see cref="LineNumberGutter"/> docked to its
-/// left. The gutter is kept in sync with the editor (line count + active line) by listening to the editor's
+/// A composite control pairing a <see cref="TextEditor"/> with a <see cref="LineNumberGutter"/> docked to its left.
+/// </summary>
+/// <remarks>
+/// The gutter is kept in sync with the editor (line count + active line) by listening to the editor's
 /// <see cref="TextEditor.Changed"/> event — the canonical "child controls react to each other" pattern that
 /// <see cref="CompositeControl"/> exists to support.
 /// <para>
@@ -14,7 +16,7 @@ using ColorCode;
 /// (e.g. <c>codeEditor.WithFrame()</c>) scrolls the gutter and text together with an accurate scrollbar; the
 /// editor's caret is kept in view by <see cref="AutoScroll"/> driving that frame.
 /// </para>
-/// </summary>
+/// </remarks>
 public class CodeEditor : CompositeControl
 {
     #region Constructors

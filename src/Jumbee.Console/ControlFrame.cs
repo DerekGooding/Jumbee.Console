@@ -383,9 +383,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     }
 
     /// <summary>
-    /// Gets or sets the scrollbar glyphs (thumb, track, up/down arrows). Setting it recomposes the part cells
-    /// with the current <see cref="ScrollBarStyle"/> colours.
+    /// Gets or sets the scrollbar glyphs (thumb, track, up/down arrows).
     /// </summary>
+    /// <remarks>Setting it recomposes the part cells with the current <see cref="ScrollBarStyle"/> colours.</remarks>
     public ScrollBarGlyphs ScrollBarGlyphs
     {
         get => _scrollBarGlyphs;
@@ -393,9 +393,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     }
 
     /// <summary>
-    /// Gets or sets the scrollbar part colours/decoration. Setting it recomposes the part cells with the current
-    /// <see cref="ScrollBarGlyphs"/> glyphs.
+    /// Gets or sets the scrollbar part colours/decoration.
     /// </summary>
+    /// <remarks>Setting it recomposes the part cells with the current <see cref="ScrollBarGlyphs"/> glyphs.</remarks>
     public ScrollBarStyle ScrollBarStyle
     {
         get => _scrollBarStyle;
@@ -449,10 +449,13 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     /// <summary>
     /// When something inside the frame is focused, the frame stays the routing node (so it can still intercept
-    /// scroll keys) but reports that focus is present. This delegates to the wrapped control's
-    /// <see cref="Control.FocusedControl"/> rather than the frame's own <see cref="IsFocused"/>, so focus nested
-    /// deeper than one level — e.g. a child inside a <see cref="CompositeControl"/> — still routes correctly.
+    /// scroll keys) but reports that focus is present.
     /// </summary>
+    /// <remarks>
+    /// This delegates to the wrapped control's <see cref="Control.FocusedControl"/> rather than the frame's own
+    /// <see cref="IsFocused"/>, so focus nested deeper than one level — e.g. a child inside a
+    /// <see cref="CompositeControl"/> — still routes correctly.
+    /// </remarks>
     public IFocusable? FocusedControl => _control.FocusedControl is not null ? this : null;
 
     public bool HandlesInput => true;
@@ -542,10 +545,13 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     /// <summary>
     /// Re-runs the frame's child layout — re-reads the wrapped control's <see cref="Control.FillsFrameViewport"/> and
-    /// re-establishes its size limits. Needed after a change that alters how the child should be sized but does not
-    /// itself change the child's size (so no redraw bubbles up to trigger a relayout): e.g. swapping a composite's
-    /// content between a scrollable control and a fill-to-viewport one.
+    /// re-establishes its size limits.
     /// </summary>
+    /// <remarks>
+    /// Needed after a change that alters how the child should be sized but does not itself change the child's size
+    /// (so no redraw bubbles up to trigger a relayout): e.g. swapping a composite's content between a scrollable
+    /// control and a fill-to-viewport one.
+    /// </remarks>
     public void Relayout() => Initialize();
 
     protected override void Initialize()
@@ -721,9 +727,12 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     /// <summary>
     /// Re-applies theme defaults to every themeable property the caller has <em>not</em> explicitly overridden
-    /// (tracked via <see cref="ThemeOverrides"/>), then re-lays-out. Invoked on a runtime theme switch through
-    /// <see cref="UI.ThemeChanged"/> (wired by the owning control's <see cref="Control.Frame"/> setter).
+    /// (tracked via <see cref="ThemeOverrides"/>), then re-lays-out.
     /// </summary>
+    /// <remarks>
+    /// Invoked on a runtime theme switch through <see cref="UI.ThemeChanged"/> (wired by the owning control's
+    /// <see cref="Control.Frame"/> setter).
+    /// </remarks>
     public void ApplyTheme() => UI.Invoke(() =>
     {
         if (!_themeOverrides.IsOverridden(nameof(BorderStyle)))

@@ -5,9 +5,10 @@ using SCDecoration = Spectre.Console.Decoration;
 
 /// <summary>
 /// How a navigable control (e.g. <see cref="IStyleTheme"/> consumers like ListBox, Tree, TabPanel) renders its
-/// selected/active item. The default comes from <see cref="IStyleTheme.SelectionStyle"/>; the caret glyph used by
-/// <see cref="Caret"/> comes from <see cref="IGlyphTheme.SelectionCaret"/>.
+/// selected/active item.
 /// </summary>
+/// <remarks>The default comes from <see cref="IStyleTheme.SelectionStyle"/>; the caret glyph used by
+/// <see cref="Caret"/> comes from <see cref="IGlyphTheme.SelectionCaret"/>.</remarks>
 public enum SelectionStyle
 {
     /// <summary>Paint the selected item with the selection foreground <em>and</em> background.</summary>

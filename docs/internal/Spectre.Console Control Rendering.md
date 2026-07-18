@@ -35,7 +35,7 @@ Returned by `Measure`, this struct tells the layout engine how flexible a contro
 ### 1.4 `RenderOptions`
 Context passed down the rendering tree. Contains:
 *   **Capabilities**: (Unicode support, Color system, etc.)
-*   **Size**: The size of the console.
+*   **ConsoleSize**: The size of the console.
 *   **Height**: An optional height constraint override.
 
 ## 2. The Rendering Pipeline

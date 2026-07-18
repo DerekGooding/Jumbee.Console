@@ -7,9 +7,11 @@ using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A shape that can be drawn on a <see cref="Jumbee.Console.Canvas"/> via <see cref="Jumbee.Console.Canvas.Add"/>.
+/// </summary>
+/// <remarks>
 /// The built-in shapes (<see cref="Line"/>, <see cref="FilledLine"/>, <see cref="Rectangle"/>, <see cref="Points"/>,
 /// <see cref="Circle"/>) implement it; drawing goes through an internal painter, so this is a closed set.
-/// </summary>
+/// </remarks>
 public interface IShape
 {
     /// <summary>Draws this shape using the given painter (internal drawing surface).</summary>
@@ -42,9 +44,9 @@ public sealed class Line : IShape
 }
 
 /// <summary>
-/// A line whose area between the line and <see cref="FillToY"/> is filled — useful for area charts. The fill runs
-/// vertically from each line point to the row of <see cref="FillToY"/>.
+/// A line whose area between the line and <see cref="FillToY"/> is filled — useful for area charts.
 /// </summary>
+/// <remarks>The fill runs vertically from each line point to the row of <see cref="FillToY"/>.</remarks>
 public sealed class FilledLine : IShape
 {
     public FilledLine(double x1, double y1, double x2, double y2, double fillToY, Color color)

@@ -13,13 +13,18 @@ using Microsoft.Win32.SafeHandles;
 /// <summary>
 /// An <see cref="IInputSource"/> that puts the terminal into VT input mode and enables mouse, bracketed-paste, and
 /// focus reporting, then reads the raw stdin byte stream, decodes it (UTF-8) and runs it through
-/// <see cref="AnsiInputDecoder"/> to produce <see cref="TerminalInputEvent"/>s. Restores all terminal state on
-/// <see cref="Dispose"/> — pass one to <see cref="UI.Start"/> and it is disposed by <see cref="UI.Stop"/>.
+/// <see cref="AnsiInputDecoder"/> to produce <see cref="TerminalInputEvent"/>s.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Restores all terminal state on <see cref="Dispose"/> — pass one to <see cref="UI.Start"/> and it is disposed by
+/// <see cref="UI.Stop"/>.
+/// </para>
+/// <para>
 /// Reading runs on a dedicated background thread holding a single outstanding read; an idle timeout flushes the
 /// decoder so a lone ESC keypress resolves to <see cref="ConsoleKey.Escape"/> instead of waiting for the next byte.
 /// Requires a real interactive terminal; not used by the headless/test paths (which inject their own source).
+/// </para>
 /// </remarks>
 public sealed class VtInputSource : IInputSource, IDisposable
 {
@@ -130,15 +135,19 @@ public sealed class VtInputSource : IInputSource, IDisposable
 
 /// <summary>
 /// Enables VT input mode + mouse/bracketed-paste/focus reporting and restores the prior state on dispose.
+/// </summary>
+/// <remarks>
+/// <para>
 /// On Windows this adjusts the console input mode via the Win32 API; on Unix it puts the tty into raw mode via
 /// libc <c>cfmakeraw</c> (so reads are byte-at-a-time, unbuffered, and not echoed). The DEC private-mode toggles
 /// are emitted as ANSI on all platforms.
-/// </summary>
-/// <remarks>
+/// </para>
+/// <para>
 /// Ctrl+C is delivered as the byte <c>0x03</c> (a key event) rather than raising SIGINT — on Unix because raw mode
 /// disables <c>ISIG</c>, on Windows because <c>ENABLE_PROCESSED_INPUT</c> is cleared. So it reaches the app/shell
 /// uniformly (a terminal forwards it to interrupt the foreground program); the app owns its own quit affordance
 /// (e.g. Ctrl+Q). Ctrl+Break still raises a console event on Windows, so a hard escape remains.
+/// </para>
 /// </remarks>
 internal sealed class TerminalInputMode : IDisposable
 {

@@ -8,12 +8,12 @@ using Spectre.Console.Rendering;
 /// <summary>
 /// A narrow, non-interactive column of right-aligned line numbers, highlighting the active row. Intended as an
 /// adornment inside a composite (e.g. <see cref="CodeEditor"/>); width auto-grows with the digit count.
-/// <para>
+/// </summary>
+/// <remarks>
 /// By default it numbers rows sequentially (<c>1, 2, 3 …</c>). To stay aligned with <em>soft-wrapped</em> text,
 /// set <see cref="RowsProvider"/>: it is pulled every render and returns, per visual row, the number to show
 /// (0 = a wrapped continuation row, drawn blank) plus the active row — so a resize stays correct with no event.
-/// </para>
-/// </summary>
+/// </remarks>
 public class LineNumberGutter : RenderableControl
 {
     #region Constructors
@@ -38,11 +38,13 @@ public class LineNumberGutter : RenderableControl
 
     /// <summary>
     /// Optional per-render source of wrap-aware labels: returns, for every visual row, the line number to show
-    /// (0 = wrapped continuation, drawn blank) and the active visual row. When set it overrides the sequential
-    /// numbering. Pulled on every render so it tracks edits and resizes. The gutter renders one label per visual
-    /// row (it is content-tall, like the editor); a surrounding frame scrolls them together, so no scroll offset
-    /// is needed here.
+    /// (0 = wrapped continuation, drawn blank) and the active visual row.
     /// </summary>
+    /// <remarks>
+    /// When set it overrides the sequential numbering. Pulled on every render so it tracks edits and resizes. The
+    /// gutter renders one label per visual row (it is content-tall, like the editor); a surrounding frame scrolls
+    /// them together, so no scroll offset is needed here.
+    /// </remarks>
     public Func<(IReadOnlyList<int> labels, int activeRow)>? RowsProvider
     {
         get => _rowsProvider;

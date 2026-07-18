@@ -1,10 +1,13 @@
 namespace Jumbee.Console.Documents;
 
 /// <summary>
-/// Colours and scale for <see cref="MermaidViewer"/>. Colours are <see cref="Jumbee.Console.Color"/>; the two scale
+/// Colours and scale for <see cref="MermaidViewer"/>.
+/// </summary>
+/// <remarks>
+/// Colours are <see cref="Jumbee.Console.Color"/>; the two scale
 /// divisors map Mermaider's SVG pixel layout to console cells (a node's pixel width — itself derived from its label
 /// text — divided by <see cref="ScaleX"/> yields a cell width that fits the label).
-/// </summary>
+/// </remarks>
 public sealed class MermaidStyles
 {
     /// <summary>A shared default style set.</summary>

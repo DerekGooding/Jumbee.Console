@@ -3,12 +3,15 @@ namespace Jumbee.Console;
 using Spectre.Console;
 
 /// <summary>
-/// The glyphs controls use for state indicators. Like <see cref="IStyleTheme"/>, a glyph theme affects
-/// <em>appearance only</em>: swapping glyphs never changes behaviour, though glyphs of a different cell width
-/// do change a control's measured size (controls derive their layout from the themed glyph's width rather than
-/// assuming a constant). Members are default-implemented; override only the glyphs you want to change, and read
-/// the theme through this interface type (e.g. <see cref="UI.GlyphTheme"/>).
+/// The glyphs controls use for state indicators.
 /// </summary>
+/// <remarks>
+/// Like <see cref="IStyleTheme"/>, a glyph theme affects <em>appearance only</em>: swapping glyphs never changes
+/// behaviour, though glyphs of a different cell width do change a control's measured size (controls derive their
+/// layout from the themed glyph's width rather than assuming a constant). Members are default-implemented;
+/// override only the glyphs you want to change, and read the theme through this interface type (e.g.
+/// <see cref="UI.GlyphTheme"/>).
+/// </remarks>
 public interface IGlyphTheme
 {
     #region Checkbox
@@ -39,8 +42,9 @@ public interface IGlyphTheme
     #endregion
 
     #region Tabs
-    /// <summary>The close glyph shown on a closable tab. Drawn only on the active/hovered tab; other tabs reserve
-    /// a same-width blank. Defaults to <c>"✕"</c> (override with <c>"x"</c> for an ASCII terminal).</summary>
+    /// <summary>The close glyph shown on a closable tab. Defaults to <c>"✕"</c> (override with <c>"x"</c> for an
+    /// ASCII terminal).</summary>
+    /// <remarks>Drawn only on the active/hovered tab; other tabs reserve a same-width blank.</remarks>
     string TabClose => "✕";
 
     /// <summary>The glyph on a tab panel's "+" new-tab button. Defaults to <c>"+"</c>.</summary>
@@ -49,15 +53,18 @@ public interface IGlyphTheme
 
     #region Tree
     /// <summary>Disclosure glyph shown before an <em>expanded</em> node that has children (includes trailing
-    /// spacing). Defaults to <c>"▼ "</c>. Both tree glyphs should share a cell width so labels stay aligned.</summary>
+    /// spacing). Defaults to <c>"▼ "</c>.</summary>
+    /// <remarks>Both tree glyphs should share a cell width so labels stay aligned.</remarks>
     string TreeExpanded => "▼ ";
     /// <summary>Disclosure glyph shown before a <em>collapsed</em> node that has children (includes trailing
-    /// spacing). Defaults to <c>"► "</c> (U+25BA — the text-presentation counterpart of <c>▼</c>; the emoji-variant
-    /// <c>▶</c> U+25B6 tofus in some fonts).</summary>
+    /// spacing). Defaults to <c>"► "</c>.</summary>
+    /// <remarks>U+25BA — the text-presentation counterpart of <c>▼</c>; the emoji-variant <c>▶</c> U+25B6 tofus in
+    /// some fonts.</remarks>
     string TreeCollapsed => "► ";
 
-    /// <summary>Glyph shown before a node that has <em>no</em> children (a leaf), including trailing spacing. Should
-    /// share a cell width with the disclosure glyphs so labels stay aligned. Defaults to <c>"• "</c>.</summary>
+    /// <summary>Glyph shown before a node that has <em>no</em> children (a leaf), including trailing spacing.
+    /// Defaults to <c>"• "</c>.</summary>
+    /// <remarks>Should share a cell width with the disclosure glyphs so labels stay aligned.</remarks>
     string TreeLeaf => "• ";
     #endregion
 

@@ -38,9 +38,9 @@ public class SpectreControl<T> : RenderableControl where T : IRenderable
     #region Methods
     /// <summary>
     /// Applies a mutation to the wrapped content on the UI thread (inline when already there, otherwise
-    /// marshaled), so a non-atomic change never races with rendering. Replaces the former copy-on-write
-    /// approach now that all mutation is serialized onto the UI thread.
+    /// marshaled), so a non-atomic change never races with rendering.
     /// </summary>
+    /// <remarks>Replaces the former copy-on-write approach now that all mutation is serialized onto the UI thread.</remarks>
     /// <param name="update">The update operation.</param>
     protected void UpdateContent(Action<T> update)
     {

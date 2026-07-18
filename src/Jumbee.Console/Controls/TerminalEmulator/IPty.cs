@@ -4,10 +4,13 @@ using System;
 using System.IO;
 
 /// <summary>
-/// A pseudo-terminal session: a child process attached to a PTY, exposing its stdin/stdout as streams. Implemented
-/// per OS — <see cref="ConPty"/> (Windows ConPTY) and <see cref="UnixPty"/> (Linux/macOS) — and created through the
-/// <see cref="Pty.Start"/> factory. All implementations are pure managed P/Invoke (no shipped native binaries).
+/// A pseudo-terminal session: a child process attached to a PTY, exposing its stdin/stdout as streams.
 /// </summary>
+/// <remarks>
+/// Implemented per OS — <see cref="ConPty"/> (Windows ConPTY) and <see cref="UnixPty"/> (Linux/macOS) — and created
+/// through the <see cref="Pty.Start"/> factory. All implementations are pure managed P/Invoke (no shipped native
+/// binaries).
+/// </remarks>
 public interface IPty : IDisposable
 {
     /// <summary>Write here to send input (keystrokes/bytes) to the child process.</summary>

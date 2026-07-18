@@ -6,6 +6,7 @@
     <LangVersion>preview</LangVersion>
     <IsTrimmable>True</IsTrimmable>
     <IsAotCompatible>True</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyVersion>$(ProjectAssemblyVersion)</AssemblyVersion>
     <FileVersion>$(ProjectAssemblyVersion)</FileVersion>
     <Version>$(ProjectAssemblyVersion)</Version>

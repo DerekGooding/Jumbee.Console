@@ -13,12 +13,14 @@ public enum SplitOrientation
 }
 
 /// <summary>
-/// A container that splits its area between two panes with a draggable divider between them. The first pane has a
-/// fixed extent (<see cref="SplitPosition"/>, in cells) and the second fills the rest, so resizing the container
-/// keeps the first pane put and grows/shrinks the second. Resize by dragging the divider, or by focusing it and
-/// pressing the arrow keys (Shift = larger step). Nest split panels for richer layouts (e.g. a sidebar beside a
-/// vertically-split editor/terminal). Composes with the same focus-routing model as <see cref="TabPanel"/>.
+/// A container that splits its area between two panes with a draggable divider between them.
 /// </summary>
+/// <remarks>
+/// The first pane has a fixed extent (<see cref="SplitPosition"/>, in cells) and the second fills the rest, so
+/// resizing the container keeps the first pane put and grows/shrinks the second. Resize by dragging the divider, or by
+/// focusing it and pressing the arrow keys (Shift = larger step). Nest split panels for richer layouts (e.g. a sidebar
+/// beside a vertically-split editor/terminal). Composes with the same focus-routing model as <see cref="TabPanel"/>.
+/// </remarks>
 public class SplitPanel : Layout<SplitPanelDockPanel>
 {
     #region Constructors
@@ -54,9 +56,9 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     /// <summary>The second pane (right/bottom).</summary>
     public IFocusable Second => _second;
 
-    /// <summary>The first pane's extent in cells (width for a horizontal split, height for a vertical one). Clamped
-    /// to <see cref="MinFirst"/> and to leaving the divider plus <see cref="MinSecond"/> for the second pane; raises
-    /// <see cref="SplitChanged"/> when it actually changes.</summary>
+    /// <summary>The first pane's extent in cells (width for a horizontal split, height for a vertical one).</summary>
+    /// <remarks>Clamped to <see cref="MinFirst"/> and to leaving the divider plus <see cref="MinSecond"/> for the
+    /// second pane; raises <see cref="SplitChanged"/> when it actually changes.</remarks>
     public int SplitPosition
     {
         get => _splitPosition;

@@ -48,8 +48,8 @@ Key members:
 
 `UI` (`src/Jumbee.Console/UI.cs`) wires the dispatcher into the application and exposes the public surface:
 `UI.Dispatcher`, `UI.CheckAccess()`, `UI.VerifyAccess()`, `UI.Post(...)`, and the `UI.InvokeAsync(...)`
-overloads. `UI.Invoke(...)` is **internal** — it is the marshaling primitive used by the library's own
-controls; application code uses `UI.Post`/`UI.InvokeAsync`.
+overloads. `UI.Invoke(...)` is **public** — it is the marshaling primitive used by the library's own
+controls; application code typically uses `UI.Post`/`UI.InvokeAsync`.
 
 ## The frame loop
 
@@ -92,7 +92,7 @@ interaction can also be a partial redraw is a future task — see the note in `C
 Because input runs on the UI thread, input handlers can read and mutate control state directly with no
 locking.
 
-`IInputSource` (`src/Jumbee.Console/IInputSource.cs`) abstracts the key source:
+`IInputSource` (`src/Jumbee.Console/Input/InputSource.cs`) abstracts the key source:
 
 - `ConsoleInputSource` (default) reads `System.Console` (and tolerates redirected/unavailable input).
 - Tests/headless/scripted scenarios supply their own (e.g. a queue-backed fake) via the `input` parameter of

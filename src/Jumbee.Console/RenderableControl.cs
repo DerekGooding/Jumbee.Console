@@ -26,10 +26,13 @@ public abstract class RenderableControl : Control, IRenderable
     /// <summary>
     /// Whether this control's rendered output depends on interactive state (focus / mouse hover / press) — i.e.
     /// whether <see cref="Render(RenderOptions, int)"/> reads <see cref="Control.IsFocused"/>, <c>IsMouseOver</c>,
-    /// or <c>IsMousePressed</c>. When <see langword="false"/>, focus/mouse changes skip the (expensive) Spectre
-    /// re-render and reuse the cached buffer — the retained-mode fast path. Defaults to <see langword="true"/>
-    /// (always re-render), so controls that highlight on hover/focus keep working without opting in.
+    /// or <c>IsMousePressed</c>.
     /// </summary>
+    /// <remarks>
+    /// When <see langword="false"/>, focus/mouse changes skip the (expensive) Spectre re-render and reuse the cached
+    /// buffer — the retained-mode fast path. Defaults to <see langword="true"/> (always re-render), so controls that
+    /// highlight on hover/focus keep working without opting in.
+    /// </remarks>
     protected virtual bool RendersInteractiveState => true;
 
     // Content changes go through Invalidate(), which marks the buffer stale so the next paint re-runs the Spectre
@@ -83,8 +86,7 @@ public abstract class RenderableControl : Control, IRenderable
         });
     }
 
-    /// Renders the control's content to the console buffer.
-    /// </summary>
+    /// <summary>Renders the control's content to the console buffer.</summary>
     protected sealed override void Render()
     {
         // Retained-mode fast path: re-run the Spectre pipeline only when the content (or size/theme) actually

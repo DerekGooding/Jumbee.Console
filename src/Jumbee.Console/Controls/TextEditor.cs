@@ -57,8 +57,8 @@ public class TextEditor : Control
     }
 
     /// <summary>Creates an editor highlighted by a custom ColorCode grammar — for languages outside the built-in
-    /// <see cref="Language"/> enum (e.g. a Mermaid grammar defined by another project). The grammar is applied by the
-    /// same segment formatter/cache as the built-in languages.</summary>
+    /// <see cref="Language"/> enum (e.g. a Mermaid grammar defined by another project).</summary>
+    /// <remarks>The grammar is applied by the same segment formatter/cache as the built-in languages.</remarks>
     public TextEditor(ILanguage customLanguage, bool showCursor = true, bool blinkCursor = false)
         : this(Language.None, showCursor, blinkCursor)
         => _ccLang = customLanguage ?? throw new ArgumentNullException(nameof(customLanguage));
@@ -124,8 +124,8 @@ public class TextEditor : Control
     }
 
     /// <summary>When <see langword="true"/>, edit keys (typing, Backspace/Delete/Enter/Tab) and paste are ignored;
-    /// navigation (arrows/Home/End/PgUp/PgDn) and the caret still work. Use for read-only viewers (e.g. a response
-    /// body). Does not change appearance.</summary>
+    /// navigation (arrows/Home/End/PgUp/PgDn) and the caret still work.</summary>
+    /// <remarks>Use for read-only viewers (e.g. a response body). Does not change appearance.</remarks>
     public bool ReadOnly { get; set; }
 
     /// <summary>The number of lines (newline count + 1).</summary>
@@ -185,8 +185,9 @@ public class TextEditor : Control
 
     /// <summary>
     /// For each visual (wrapped) row, the 1-based logical line number when the row starts a logical line, or 0
-    /// for a wrapped continuation row. A line-number gutter uses this to stay aligned with soft-wrapped text.
+    /// for a wrapped continuation row.
     /// </summary>
+    /// <remarks>A line-number gutter uses this to stay aligned with soft-wrapped text.</remarks>
     public IReadOnlyList<int> VisualLineNumbers()
     {
         var rows = BuildVisualRows();
@@ -205,7 +206,8 @@ public class TextEditor : Control
 
     #region Events
     /// <summary>Raised after the text or caret position changes (typing, paste, delete, navigation, or setting
-    /// <see cref="Text"/>). Composites use it to keep adornments — e.g. a line-number gutter — in sync.</summary>
+    /// <see cref="Text"/>).</summary>
+    /// <remarks>Composites use it to keep adornments — e.g. a line-number gutter — in sync.</remarks>
     public event EventHandler? Changed;
     #endregion
 
@@ -466,7 +468,8 @@ public class TextEditor : Control
         .WithKey("Enter", "New line");
 
     /// <summary>The number of visual (wrapped) rows the text occupies at the given width — the editor's content
-    /// height. A composite (e.g. <see cref="CodeEditor"/>) uses it to size/scroll itself around the editor.</summary>
+    /// height.</summary>
+    /// <remarks>A composite (e.g. <see cref="CodeEditor"/>) uses it to size/scroll itself around the editor.</remarks>
     public int VisualRowCount(int width) => BuildVisualRows(Math.Max(1, width)).Count;
 
     // Splits the document into visual rows (as the renderer does) using the same character wrap. Each row is a

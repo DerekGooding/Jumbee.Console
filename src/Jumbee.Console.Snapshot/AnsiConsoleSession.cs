@@ -10,12 +10,14 @@ using ConsoleGUI.Space;
 using Vezel.Cathode.Text.Control;
 
 /// <summary>
-/// A stateful counterpart to <see cref="AnsiConsoleSnapshot"/> for testing the <em>live</em> render: it keeps
-/// <see cref="ConsoleManager"/> set up across multiple frames so each <see cref="FrameAsync"/> emits an
-/// incremental diff against the persistent buffer (not a fresh full frame), and folds those bytes into a
-/// persistent <see cref="Screen"/> — exactly as a real terminal accumulates them. Use it to reproduce diff/cursor
-/// or async-ordering bugs that only appear across frames (e.g. press → release). Dispose to restore the sink.
+/// A stateful counterpart to <see cref="AnsiConsoleSnapshot"/> for testing the <em>live</em> render — used to
+/// reproduce diff/cursor or async-ordering bugs that only appear across frames (e.g. press → release).
 /// </summary>
+/// <remarks>
+/// It keeps <see cref="ConsoleManager"/> set up across multiple frames so each <see cref="FrameAsync"/> emits an
+/// incremental diff against the persistent buffer (not a fresh full frame), and folds those bytes into a
+/// persistent <see cref="Screen"/> — exactly as a real terminal accumulates them. Dispose to restore the sink.
+/// </remarks>
 public sealed class AnsiConsoleSession : IDisposable
 {
     #region Constructors

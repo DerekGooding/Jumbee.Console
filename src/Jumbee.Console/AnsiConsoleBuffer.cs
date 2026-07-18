@@ -108,9 +108,12 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
 
     /// <summary>
     /// Applies pre-rendered segments to the buffer, bypassing markup parsing and <see cref="IRenderable"/>
-    /// rendering. Used by syntax highlighters (see <c>SpectreSegmentFormatter</c>) that emit styled
-    /// <see cref="Segment"/>s directly. Honours <see cref="marshal"/> and <see cref="wrap"/> like <see cref="Write(IRenderable)"/>.
+    /// rendering.
     /// </summary>
+    /// <remarks>
+    /// Used by syntax highlighters (see <c>SpectreSegmentFormatter</c>) that emit styled <see cref="Segment"/>s
+    /// directly. Honours <see cref="marshal"/> and <see cref="wrap"/> like <see cref="Write(IRenderable)"/>.
+    /// </remarks>
     public void Write(IReadOnlyList<Segment> segments)
     {
         if (marshal)
@@ -317,11 +320,13 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     #region Fields
     /// <summary>
     /// When <see langword="true"/>, <see cref="Write"/> and <see cref="Clear"/> are marshaled onto the UI thread
-    /// via <see cref="UI.Invoke"/> so their buffer mutations are serialized with rendering and resizing. Set this
-    /// for controls whose wrapped Spectre widget refreshes from its own thread (e.g. <see cref="SpectreLiveDisplay"/>,
-    /// <see cref="SpectreTaskProgress"/>). Defaults to <see langword="false"/> to preserve the original
-    /// synchronous IAnsiConsole behavior for existing Spectre.Console controls.
+    /// via <see cref="UI.Invoke"/> so their buffer mutations are serialized with rendering and resizing.
     /// </summary>
+    /// <remarks>
+    /// Set this for controls whose wrapped Spectre widget refreshes from its own thread (e.g.
+    /// <see cref="SpectreLiveDisplay"/>, <see cref="SpectreTaskProgress"/>). Defaults to <see langword="false"/> to
+    /// preserve the original synchronous IAnsiConsole behavior for existing Spectre.Console controls.
+    /// </remarks>
     public bool marshal;
     /// <summary>When <see langword="true"/>, <see cref="Write"/> wraps glyphs to the next row at the buffer's
     /// right edge instead of clipping them. See the wrap note in <see cref="_Write"/>.</summary>

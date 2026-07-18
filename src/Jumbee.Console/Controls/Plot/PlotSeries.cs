@@ -10,9 +10,12 @@ using CPlot = ConsolePlot.Plot;
 /// <summary>
 /// A live, updatable series in a <see cref="Plot"/>. Returned by <see cref="Plot.AddLiveSeries"/> /
 /// <see cref="Plot.AddLiveBars"/>; hold onto it and feed data as it arrives with <see cref="SetData"/>,
-/// <see cref="SetValues"/>, <see cref="Push"/> or <see cref="Clear"/>. Every update is marshalled onto the UI
-/// thread and re-draws the plot, so the methods are safe to call from any data-source thread.
+/// <see cref="SetValues"/>, <see cref="Push"/> or <see cref="Clear"/>.
 /// </summary>
+/// <remarks>
+/// Every update is marshalled onto the UI thread and re-draws the plot, so the methods are safe to call from any
+/// data-source thread.
+/// </remarks>
 public sealed class PlotSeries
 {
     #region Constructors
@@ -67,8 +70,10 @@ public sealed class PlotSeries
     /// <summary>
     /// Scrolls a new value into a fixed-width strip chart: the series keeps the last <paramref name="window"/> values
     /// at fixed x positions 0..window−1, so the data flows through a <b>stationary</b> x axis (a real-time monitor).
-    /// Unlike <see cref="Push"/> there is no ever-growing x — pair with <c>SetXRange(0, window − 1)</c> to pin the axis.
     /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="Push"/> there is no ever-growing x — pair with <c>SetXRange(0, window − 1)</c> to pin the axis.
+    /// </remarks>
     public void Scroll(double value, int window)
     {
         _plot.UpdateSeries(() =>

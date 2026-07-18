@@ -2,9 +2,11 @@ namespace Jumbee.Console;
 
 /// <summary>
 /// A handle to a tab in a <see cref="TabPanel"/> — stable across add/remove/reorder (unlike a positional index).
+/// </summary>
+/// <remarks>
 /// Use it to relabel, hide/show, disable/enable, or query whether the tab is selected; pass it to
 /// <see cref="TabPanel.RemoveTab(TabItem)"/> to remove it.
-/// </summary>
+/// </remarks>
 public sealed class TabItem
 {
     #region Constructors
@@ -31,15 +33,16 @@ public sealed class TabItem
     }
 
     /// <summary>When <see langword="true"/> the tab is removed from the bar but kept in the model (can be shown
-    /// again). Hiding the selected tab moves selection to the nearest visible, enabled tab.</summary>
+    /// again).</summary>
+    /// <remarks>Hiding the selected tab moves selection to the nearest visible, enabled tab.</remarks>
     public bool IsHidden
     {
         get => _hidden;
         set { if (_hidden == value) return; _hidden = value; _owner.OnTabVisibilityChanged(this); }
     }
 
-    /// <summary>When <see langword="true"/> the tab is shown greyed-out and can't be selected or focused. Disabling
-    /// the selected tab moves selection to the nearest selectable tab.</summary>
+    /// <summary>When <see langword="true"/> the tab is shown greyed-out and can't be selected or focused.</summary>
+    /// <remarks>Disabling the selected tab moves selection to the nearest selectable tab.</remarks>
     public bool IsDisabled
     {
         get => _disabled;
@@ -49,9 +52,9 @@ public sealed class TabItem
     /// <summary>Whether this is the currently selected tab.</summary>
     public bool IsSelected => ReferenceEquals(_owner.ActiveTab, this);
 
-    /// <summary>Per-tab override of whether this tab shows a close (✕) glyph. Independent of the panel-wide
-    /// <see cref="TabPanel.ClosableTabs"/> default (though setting that re-applies to every tab). Use to keep a
-    /// specific tab non-closable (e.g. a pinned document).</summary>
+    /// <summary>Per-tab override of whether this tab shows a close (✕) glyph.</summary>
+    /// <remarks>Independent of the panel-wide <see cref="TabPanel.ClosableTabs"/> default (though setting that
+    /// re-applies to every tab). Use to keep a specific tab non-closable (e.g. a pinned document).</remarks>
     public bool Closable
     {
         get => Header.Closable;

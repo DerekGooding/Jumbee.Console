@@ -9,11 +9,13 @@ using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// The draggable divider between a <see cref="SplitPanel"/>'s two panes. Focusable: drag it with the mouse (it
-/// captures so the drag stays live off-control) or, when focused, resize with the arrow keys (Shift = larger step).
-/// Raises <see cref="Dragged"/> / <see cref="Nudged"/> with a signed cell delta along the split axis; the owning
-/// <see cref="SplitPanel"/> applies them to <see cref="SplitPanel.SplitPosition"/>.
+/// The draggable divider between a <see cref="SplitPanel"/>'s two panes.
 /// </summary>
+/// <remarks>
+/// Focusable: drag it with the mouse (it captures so the drag stays live off-control) or, when focused, resize with
+/// the arrow keys (Shift = larger step). Raises <see cref="Dragged"/> / <see cref="Nudged"/> with a signed cell delta
+/// along the split axis; the owning <see cref="SplitPanel"/> applies them to <see cref="SplitPanel.SplitPosition"/>.
+/// </remarks>
 public class SplitDivider : RenderableControl
 {
     #region Constructors

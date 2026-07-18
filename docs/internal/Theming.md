@@ -98,13 +98,13 @@ public Button(string text)
 
 protected override void ApplyTheme()
 {
-    if (!IsThemeOverridden(nameof(NormalStyle))) _normalStyle = UI.StyleTheme.Primary;
-    if (!IsThemeOverridden(nameof(HoverStyle)))  _hoverStyle  = UI.StyleTheme.PrimaryHover;
-    if (!IsThemeOverridden(nameof(PressStyle)))  _pressStyle  = UI.StyleTheme.PrimaryActive;
+    if (!IsThemeOverridden(nameof(Style)))
+        _style = _role == ButtonRole.Secondary ? UI.StyleTheme.SecondaryButton : UI.StyleTheme.PrimaryButton;
 }
 ```
 
-`Render` then only reads `_normalStyle`/`_hoverStyle`/`_pressStyle` — never the theme. (`IsThemeOverridden` is
+`Style` is a single composite `ButtonStyle` token (its per-state fills — `Normal`/`Hover`/`Press`), so one theme
+read captures the whole appearance. `Render` then only reads `_style` — never the theme. (`IsThemeOverridden` is
 explained in §5; ignore it for now.)
 
 ### Glyph width drives layout

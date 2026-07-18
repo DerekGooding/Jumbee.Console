@@ -12,10 +12,12 @@ using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A line/scatter chart backed by the ConsolePlot library, rendered into the control's buffer. Add data with
-/// <see cref="AddSeries"/> and tune the axes/grid/ticks with the <c>Configure*</c> methods. The plot fills its
-/// container and re-draws to fit whenever the control is resized; all configuration is replayed on each rebuild,
-/// so settings survive resizing.
+/// <see cref="AddSeries"/> and tune the axes/grid/ticks with the <c>Configure*</c> methods.
 /// </summary>
+/// <remarks>
+/// The plot fills its container and re-draws to fit whenever the control is resized; all configuration is replayed
+/// on each rebuild, so settings survive resizing.
+/// </remarks>
 public class Plot : Control
 {
     #region Constructors
@@ -40,10 +42,12 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a data series. <paramref name="xs"/> and <paramref name="ys"/> must be the same length. When
-    /// <paramref name="pen"/> is left at its default a colour is taken from the control's palette (cycling by series
-    /// index) and drawn with the Braille brush.
+    /// Adds a data series. <paramref name="xs"/> and <paramref name="ys"/> must be the same length.
     /// </summary>
+    /// <remarks>
+    /// When <paramref name="pen"/> is left at its default a colour is taken from the control's palette (cycling by
+    /// series index) and drawn with the Braille brush.
+    /// </remarks>
     public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PointPen pen = default)
     {
         UI.Invoke(() =>
@@ -57,10 +61,13 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a data series drawn with the given <paramref name="brush"/> (its sub-cell resolution — Braille 2×4,
-    /// Quadrant 2×2, the rest 1×1 — sets how smooth the line looks). When <paramref name="color"/> is
-    /// <see langword="null"/> a colour is taken from the control's palette, cycling by series index.
+    /// Adds a data series drawn with the given <paramref name="brush"/>.
     /// </summary>
+    /// <remarks>
+    /// The <paramref name="brush"/>'s sub-cell resolution — Braille 2×4, Quadrant 2×2, the rest 1×1 — sets how smooth
+    /// the line looks. When <paramref name="color"/> is <see langword="null"/> a colour is taken from the control's
+    /// palette, cycling by series index.
+    /// </remarks>
     public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, Color? color = null)
     {
         UI.Invoke(() =>
@@ -72,9 +79,12 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a scatter series — the points drawn as markers, without connecting lines. The <paramref name="brush"/>
-    /// sets the marker (and its sub-cell resolution); <paramref name="color"/> defaults to the palette.
+    /// Adds a scatter series — the points drawn as markers, without connecting lines.
     /// </summary>
+    /// <remarks>
+    /// The <paramref name="brush"/> sets the marker (and its sub-cell resolution); <paramref name="color"/> defaults
+    /// to the palette.
+    /// </remarks>
     public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush = PlotBrush.Braille, Color? color = null)
     {
         UI.Invoke(() =>
@@ -87,8 +97,9 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a stem series — a vertical line from <paramref name="baseline"/> (default 0) to each point, capped with
-    /// a dot marker. <paramref name="color"/> defaults to the palette.
+    /// a dot marker.
     /// </summary>
+    /// <remarks><paramref name="color"/> defaults to the palette.</remarks>
     public Plot AddStem(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, Color? color = null, double baseline = 0)
     {
         UI.Invoke(() =>
@@ -101,9 +112,12 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a vertical bar series — each point drawn as a filled bar from <paramref name="baseline"/> (default 0) to
-    /// its value, with an eighth-block sub-cell top. <paramref name="color"/> defaults to the palette;
-    /// <paramref name="width"/> is the bar width as a fraction (0..1) of the spacing between bars.
+    /// its value, with an eighth-block sub-cell top.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="width"/> is the bar width as a fraction
+    /// (0..1) of the spacing between bars.
+    /// </remarks>
     public Plot AddBars(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, Color? color = null, double baseline = 0, double width = 0.8)
     {
         UI.Invoke(() =>
@@ -116,9 +130,12 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a histogram of <paramref name="values"/> — the values are binned and each bin drawn as a touching bar
-    /// (bar height = bin count). <paramref name="bins"/> ≤ 0 picks a bin count automatically (√n, clamped);
-    /// <paramref name="color"/> defaults to the palette.
+    /// (bar height = bin count).
     /// </summary>
+    /// <remarks>
+    /// <paramref name="bins"/> ≤ 0 picks a bin count automatically (√n, clamped); <paramref name="color"/> defaults
+    /// to the palette.
+    /// </remarks>
     public Plot AddHistogram(IReadOnlyList<double> values, int bins = 0, Color? color = null)
     {
         UI.Invoke(() =>
@@ -156,8 +173,9 @@ public class Plot : Control
 
     /// <summary>
     /// Adds an OHLC candlestick series — each point drawn as a candle (high/low wick + open/close body) coloured by
-    /// direction. <paramref name="up"/> defaults to green (close ≥ open), <paramref name="down"/> to red.
+    /// direction.
     /// </summary>
+    /// <remarks><paramref name="up"/> defaults to green (close ≥ open), <paramref name="down"/> to red.</remarks>
     public Plot AddCandles(
         IReadOnlyList<double> xs, IReadOnlyList<double> opens, IReadOnlyList<double> highs,
         IReadOnlyList<double> lows, IReadOnlyList<double> closes, Color? up = null, Color? down = null)
@@ -174,9 +192,12 @@ public class Plot : Control
     /// <summary>
     /// Adds a box-and-whisker series from the five-number summary of each box — <paramref name="mins"/>,
     /// <paramref name="q1s"/>, <paramref name="medians"/>, <paramref name="q3s"/>, <paramref name="maxes"/> (all the
-    /// same length as <paramref name="xs"/>). <paramref name="color"/> defaults to the palette; <paramref name="medianColor"/>
-    /// defaults to <paramref name="color"/>; <paramref name="width"/> is the box width as a fraction (0..1) of the spacing.
+    /// same length as <paramref name="xs"/>).
     /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="medianColor"/> defaults to
+    /// <paramref name="color"/>; <paramref name="width"/> is the box width as a fraction (0..1) of the spacing.
+    /// </remarks>
     public Plot AddBox(
         IReadOnlyList<double> xs, IReadOnlyList<double> mins, IReadOnlyList<double> q1s,
         IReadOnlyList<double> medians, IReadOnlyList<double> q3s, IReadOnlyList<double> maxes,
@@ -193,9 +214,12 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a box-and-whisker series from raw data <paramref name="groups"/> — one box per group, with the quartiles
-    /// (min/Q1/median/Q3/max, linear-interpolation percentiles) computed here. Boxes are positioned at
-    /// <paramref name="positions"/> (defaults to 1, 2, 3, …). <paramref name="color"/> defaults to the palette.
+    /// (min/Q1/median/Q3/max, linear-interpolation percentiles) computed here.
     /// </summary>
+    /// <remarks>
+    /// Boxes are positioned at <paramref name="positions"/> (defaults to 1, 2, 3, …). <paramref name="color"/>
+    /// defaults to the palette.
+    /// </remarks>
     public Plot AddBoxes(
         IReadOnlyList<IReadOnlyList<double>> groups, IReadOnlyList<double>? positions = null,
         Color? color = null, Color? medianColor = null, double width = 0.6)
@@ -252,17 +276,21 @@ public class Plot : Control
 
     /// <summary>
     /// Adds vertical error bars with symmetric error — each point (<paramref name="xs"/>, <paramref name="ys"/>)
-    /// drawn as a whisker of ±<paramref name="errors"/> with caps and a centre marker. <paramref name="color"/>
-    /// defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
+    /// drawn as a whisker of ±<paramref name="errors"/> with caps and a centre marker.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
+    /// </remarks>
     public Plot AddErrorBars(IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errors, Color? color = null, int capWidth = 1) =>
         AddErrorBars(xs, ys, errors, errors, color, capWidth);
 
     /// <summary>
     /// Adds vertical error bars with asymmetric error — each point (<paramref name="xs"/>, <paramref name="ys"/>)
     /// drawn as a whisker from <c>y − errLow</c> to <c>y + errHigh</c> with caps and a centre marker.
-    /// <paramref name="color"/> defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="capWidth"/> is the cap half-width in cells.
+    /// </remarks>
     public Plot AddErrorBars(
         IReadOnlyList<double> xs, IReadOnlyList<double> ys, IReadOnlyList<double> errLows, IReadOnlyList<double> errHighs,
         Color? color = null, int capWidth = 1)
@@ -276,10 +304,13 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds grouped (side-by-side) vertical bars — one sub-bar per series at each x. <paramref name="series"/> is
-    /// one value list per series (each the same length as <paramref name="xs"/>). <paramref name="colors"/> defaults
-    /// to the palette (one per series); <paramref name="width"/> is the group width as a fraction (0..1) of the spacing.
+    /// Adds grouped (side-by-side) vertical bars — one sub-bar per series at each x.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="series"/> is one value list per series (each the same length as <paramref name="xs"/>).
+    /// <paramref name="colors"/> defaults to the palette (one per series); <paramref name="width"/> is the group width
+    /// as a fraction (0..1) of the spacing.
+    /// </remarks>
     public Plot AddGroupedBars(
         IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series,
         IReadOnlyList<Color>? colors = null, double baseline = 0, double width = 0.8)
@@ -294,9 +325,11 @@ public class Plot : Control
 
     /// <summary>
     /// Adds stacked vertical bars — the series stacked from <paramref name="baseline"/> at each x.
+    /// </summary>
+    /// <remarks>
     /// <paramref name="series"/> is one value list per series (each the same length as <paramref name="xs"/>).
     /// <paramref name="colors"/> defaults to the palette (one per series).
-    /// </summary>
+    /// </remarks>
     public Plot AddStackedBars(
         IReadOnlyList<double> xs, IReadOnlyList<IReadOnlyList<double>> series,
         IReadOnlyList<Color>? colors = null, double baseline = 0, double width = 0.8)
@@ -311,9 +344,12 @@ public class Plot : Control
 
     /// <summary>
     /// Adds horizontal bars — each category at a Y <paramref name="position"/> with its bar growing along X from
-    /// <paramref name="baseline"/> to its value. <paramref name="color"/> defaults to the palette; <paramref name="width"/>
-    /// is the bar thickness as a fraction (0..1) of the spacing.
+    /// <paramref name="baseline"/> to its value.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="width"/> is the bar thickness as a fraction
+    /// (0..1) of the spacing.
+    /// </remarks>
     public Plot AddHBars(IReadOnlyList<double> positions, IReadOnlyList<double> values, Color? color = null, double baseline = 0, double width = 0.8)
     {
         UI.Invoke(() =>
@@ -326,11 +362,13 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a heatmap: a grid of <paramref name="values"/> (one list per row, row 0 drawn at the top) tiled over
-    /// the plot area, each cell coloured by <paramref name="colormap"/>. Values are normalised into
-    /// [<paramref name="min"/>, <paramref name="max"/>], defaulting to the data's own min/max. NaN cells are blank.
-    /// Pass <paramref name="cellText"/> to draw each cell's value as centred text (readable-contrast on the cell
-    /// colour) — e.g. <c>v =&gt; ((int)v).ToString()</c> for a confusion matrix.
+    /// the plot area, each cell coloured by <paramref name="colormap"/>.
     /// </summary>
+    /// <remarks>
+    /// Values are normalised into [<paramref name="min"/>, <paramref name="max"/>], defaulting to the data's own
+    /// min/max. NaN cells are blank. Pass <paramref name="cellText"/> to draw each cell's value as centred text
+    /// (readable-contrast on the cell colour) — e.g. <c>v =&gt; ((int)v).ToString()</c> for a confusion matrix.
+    /// </remarks>
     public Plot AddHeatmap(
         IReadOnlyList<IReadOnlyList<double>> values, PlotColormap colormap = PlotColormap.Viridis,
         double? min = null, double? max = null, Func<double, string>? cellText = null)
@@ -362,10 +400,13 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a confusion matrix — an annotated heatmap of <paramref name="counts"/> (row = actual class top-to-bottom,
-    /// column = predicted class), each cell coloured by <paramref name="colormap"/> and labelled with its count. When
-    /// <paramref name="rowLabels"/>/<paramref name="colLabels"/> are given, the class names are placed as categorical
-    /// axis ticks at the cell centres. A wrapper over <see cref="AddHeatmap"/> + <see cref="SetXTicks"/>/<see cref="SetYTicks"/>.
+    /// column = predicted class), each cell coloured by <paramref name="colormap"/> and labelled with its count.
     /// </summary>
+    /// <remarks>
+    /// When <paramref name="rowLabels"/>/<paramref name="colLabels"/> are given, the class names are placed as
+    /// categorical axis ticks at the cell centres. A wrapper over <see cref="AddHeatmap"/> +
+    /// <see cref="SetXTicks"/>/<see cref="SetYTicks"/>.
+    /// </remarks>
     public Plot AddConfusionMatrix(
         IReadOnlyList<IReadOnlyList<double>> counts, IReadOnlyList<string>? rowLabels = null,
         IReadOnlyList<string>? colLabels = null, PlotColormap colormap = PlotColormap.Heat)
@@ -388,10 +429,12 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Pins the vertical axis to a fixed <paramref name="min"/>..<paramref name="max"/> range, so live updates move
-    /// only the data (values outside the range are clipped) instead of the axis rescaling to the data each frame.
-    /// Call once before streaming; <see cref="AutoRangeY"/> restores auto-scaling.
+    /// Pins the vertical axis to a fixed <paramref name="min"/>..<paramref name="max"/> range.
     /// </summary>
+    /// <remarks>
+    /// Live updates then move only the data (values outside the range are clipped) instead of the axis rescaling to
+    /// the data each frame. Call once before streaming; <see cref="AutoRangeY"/> restores auto-scaling.
+    /// </remarks>
     public Plot SetYRange(double min, double max) => Configure(p => p.FixedYRange = (min, max));
 
     /// <summary>Pins the horizontal axis to a fixed range; see <see cref="SetYRange"/>.</summary>
@@ -399,9 +442,12 @@ public class Plot : Control
 
     /// <summary>
     /// Makes the horizontal axis a sliding window of <paramref name="width"/> units — it shows the most recent
-    /// <c>[max(0, dataMax − width), dataMax]</c> of a monotonic (time-like) series, so the axis only advances
-    /// rightward and never shows x &lt; 0. Ideal for streaming/financial data. <see cref="AutoRangeX"/> restores auto.
+    /// <c>[max(0, dataMax − width), dataMax]</c> of a monotonic (time-like) series.
     /// </summary>
+    /// <remarks>
+    /// The axis only advances rightward and never shows x &lt; 0. Ideal for streaming/financial data.
+    /// <see cref="AutoRangeX"/> restores auto.
+    /// </remarks>
     public Plot SetXWindow(double width) => Configure(p => p.XWindow = width);
 
     /// <summary>Restores auto-scaling of the vertical axis to the data (undoes <see cref="SetYRange"/>).</summary>
@@ -410,10 +456,12 @@ public class Plot : Control
     /// <summary>Restores auto-scaling of the horizontal axis (undoes <see cref="SetXRange"/>/<see cref="SetXWindow"/>).</summary>
     public Plot AutoRangeX() => Configure(p => { p.FixedXRange = null; p.XWindow = null; });
 
-    /// <summary>Sets explicit horizontal-axis ticks (value + label) — e.g. categorical class names at cell centres.
+    /// <summary>Sets explicit horizontal-axis ticks (value + label) — e.g. categorical class names at cell centres.</summary>
+    /// <remarks>
     /// Replaces the auto numeric ticks and keeps the data bounds unadjusted. For labels in a reserved margin (rather
     /// than attached inside the grid), pair with <c>ConfigureTicks(t =&gt; t.Labels.AttachToAxis = false)</c> —
-    /// <see cref="AddConfusionMatrix"/> does this for you.</summary>
+    /// <see cref="AddConfusionMatrix"/> does this for you.
+    /// </remarks>
     public Plot SetXTicks(IReadOnlyList<(double value, string label)> ticks) =>
         Configure(p => p.Ticks.CustomXTicks = ticks);
 
@@ -468,10 +516,13 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a text annotation anchored to the data point (<paramref name="x"/>, <paramref name="y"/>) — e.g. labelling
-    /// a candle or data point. <paramref name="fg"/> defaults to white; <paramref name="bg"/> is optional (transparent
-    /// when null). <paramref name="dx"/>/<paramref name="dy"/> nudge the label in cells (dy &gt; 0 = above the point);
-    /// <paramref name="align"/> anchors it horizontally. Does not rescale the axes.
+    /// a candle or data point.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="fg"/> defaults to white; <paramref name="bg"/> is optional (transparent when null).
+    /// <paramref name="dx"/>/<paramref name="dy"/> nudge the label in cells (dy &gt; 0 = above the point);
+    /// <paramref name="align"/> anchors it horizontally. Does not rescale the axes.
+    /// </remarks>
     public Plot AddLabel(double x, double y, string text, Color? fg = null, Color? bg = null, PlotLabelAlign align = PlotLabelAlign.Center, int dx = 0, int dy = 1)
     {
         UI.Invoke(() =>
@@ -493,9 +544,11 @@ public class Plot : Control
 
     /// <summary>
     /// Adds a live line/scatter series and returns a <see cref="PlotSeries"/> handle to feed it data as it arrives
-    /// (<see cref="PlotSeries.SetData"/>/<see cref="PlotSeries.Push"/>). <paramref name="color"/> defaults to the
-    /// palette; <paramref name="brush"/> sets the sub-cell marker. Starts empty.
+    /// (<see cref="PlotSeries.SetData"/>/<see cref="PlotSeries.Push"/>).
     /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="brush"/> sets the sub-cell marker. Starts empty.
+    /// </remarks>
     public PlotSeries AddLiveSeries(Color? color = null, PlotBrush brush = PlotBrush.Braille)
     {
         var pen = new PointPen(BrushFor(brush), (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
@@ -505,10 +558,12 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a live bar series and returns a <see cref="PlotSeries"/> handle. Feed it with
-    /// <see cref="PlotSeries.SetValues"/> (bars at x = 1, 2, 3, …) or <see cref="PlotSeries.SetData"/>.
-    /// <paramref name="color"/> defaults to the palette. Starts empty.
+    /// Adds a live bar series and returns a <see cref="PlotSeries"/> handle.
     /// </summary>
+    /// <remarks>
+    /// Feed it with <see cref="PlotSeries.SetValues"/> (bars at x = 1, 2, 3, …) or <see cref="PlotSeries.SetData"/>.
+    /// <paramref name="color"/> defaults to the palette. Starts empty.
+    /// </remarks>
     public PlotSeries AddLiveBars(Color? color = null, double baseline = 0, double width = 0.8)
     {
         var c = (CColor?)color ?? Palette[_seriesCount % Palette.Length];
@@ -642,9 +697,9 @@ public class Plot : Control
 }
 
 /// <summary>
-/// Selects the glyph set (and thus the sub-cell resolution) a <see cref="Plot"/> series is drawn with. Higher
-/// resolution packs more plotted points into each character cell for a smoother line.
+/// Selects the glyph set (and thus the sub-cell resolution) a <see cref="Plot"/> series is drawn with.
 /// </summary>
+/// <remarks>Higher resolution packs more plotted points into each character cell for a smoother line.</remarks>
 public enum PlotBrush
 {
     /// <summary>Braille dots — 2×4 sub-cells per character (8 points/cell), the smoothest. The default.</summary>

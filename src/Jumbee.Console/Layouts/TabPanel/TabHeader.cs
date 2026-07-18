@@ -10,11 +10,13 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// A single clickable tab label in a <see cref="TabPanel"/>'s tab bar. Focusable and listener-tagging (so a click
-/// selects it and keyboard focus can land on it); renders its name styled by active / hover / inactive state.
-/// Selecting raises <see cref="Activated"/>; an arrow key along the bar raises <see cref="Navigated"/> with a step
-/// of -1/+1. The owning <see cref="TabPanel"/> wires both.
+/// A single clickable tab label in a <see cref="TabPanel"/>'s tab bar.
 /// </summary>
+/// <remarks>
+/// Focusable and listener-tagging (so a click selects it and keyboard focus can land on it); renders its name styled
+/// by active / hover / inactive state. Selecting raises <see cref="Activated"/>; an arrow key along the bar raises
+/// <see cref="Navigated"/> with a step of -1/+1. The owning <see cref="TabPanel"/> wires both.
+/// </remarks>
 public class TabHeader : RenderableControl
 {
     #region Constructors
@@ -33,8 +35,9 @@ public class TabHeader : RenderableControl
     public event EventHandler? Activated;
 
     /// <summary>Raised when the tab's close (✕) glyph is clicked (only fires when <see cref="Closable"/> and the
-    /// glyph is shown — i.e. the tab is active or hovered). The owning <see cref="TabPanel"/> turns this into a
-    /// cancelable <see cref="TabPanel.TabCloseRequested"/>.</summary>
+    /// glyph is shown — i.e. the tab is active or hovered).</summary>
+    /// <remarks>The owning <see cref="TabPanel"/> turns this into a cancelable
+    /// <see cref="TabPanel.TabCloseRequested"/>.</remarks>
     public event EventHandler? CloseRequested;
     #endregion
 

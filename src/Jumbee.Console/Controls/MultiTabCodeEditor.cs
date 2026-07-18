@@ -6,10 +6,12 @@ using System.Linq;
 
 /// <summary>
 /// A tabbed group of <see cref="CodeEditor"/>s — a VS-Code-style editor area. Each open document is a closable tab
-/// (click the ✕ on the active/hovered tab), and a "+" button at the end of the bar opens a new document. Built on a
-/// top-docked <see cref="TabPanel"/>; each editor is wrapped in its own frame so it scrolls independently. Switch
-/// tabs with Alt+←/→ or by clicking a tab.
+/// (click the ✕ on the active/hovered tab), and a "+" button at the end of the bar opens a new document.
 /// </summary>
+/// <remarks>
+/// Built on a top-docked <see cref="TabPanel"/>; each editor is wrapped in its own frame so it scrolls independently.
+/// Switch tabs with Alt+←/→ or by clicking a tab.
+/// </remarks>
 public class MultiTabCodeEditor : CompositeControl
 {
     #region Constructors
@@ -57,9 +59,10 @@ public class MultiTabCodeEditor : CompositeControl
     public int DocumentCount => _panel.TabCount;
 
     /// <summary>When <see langword="true"/>, closing a document with unsaved changes (see <see cref="IsDirty"/>)
-    /// first shows a modal "Discard changes?" confirmation and only closes on confirm. Requires an ambient
-    /// <see cref="UI.Overlay"/> (present after <see cref="UI.Start"/>); without one, the close proceeds. Default
+    /// first shows a modal "Discard changes?" confirmation and only closes on confirm. Default
     /// <see langword="false"/>.</summary>
+    /// <remarks>Requires an ambient <see cref="UI.Overlay"/> (present after <see cref="UI.Start"/>); without one, the
+    /// close proceeds.</remarks>
     public bool ConfirmOnClose { get; set; }
 
     /// <summary>Overlay to host the confirm-on-close dialog on. Defaults to the ambient <see cref="UI.Overlay"/>;
@@ -101,8 +104,8 @@ public class MultiTabCodeEditor : CompositeControl
     public void CloseActiveDocument() { if (ActiveEditor is { } e) CloseDocument(e); }
 
     /// <summary>Closes every document immediately, without the <see cref="DocumentClosing"/> veto or confirm prompt
-    /// (each still raises <see cref="DocumentClosed"/>). For resetting the group — e.g. reloading a different set
-    /// of files.</summary>
+    /// (each still raises <see cref="DocumentClosed"/>).</summary>
+    /// <remarks>For resetting the group — e.g. reloading a different set of files.</remarks>
     public void Clear() => UI.Invoke(() =>
     {
         foreach (var tab in _panel.Tabs.ToList()) _panel.RemoveTab(tab);

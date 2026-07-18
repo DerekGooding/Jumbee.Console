@@ -10,10 +10,12 @@ using Spectre.Console;
 
 /// <summary>
 /// A single-line text entry control: caret, selection (Shift+navigation), horizontal scrolling when the text
-/// exceeds the width, an optional muted placeholder shown while empty, and optional password masking. Submitting
-/// with Enter raises <see cref="Submitted"/>; any edit raises <see cref="Changed"/>. The native terminal cursor is
-/// owned while focused (only the focused control draws it), mirroring <see cref="TextEditor"/>.
+/// exceeds the width, an optional muted placeholder shown while empty, and optional password masking.
 /// </summary>
+/// <remarks>
+/// Submitting with Enter raises <see cref="Submitted"/>; any edit raises <see cref="Changed"/>. The native terminal
+/// cursor is owned while focused (only the focused control draws it), mirroring <see cref="TextEditor"/>.
+/// </remarks>
 public class TextInput : Control
 {
     #region Constructors
@@ -168,9 +170,10 @@ public class TextInput : Control
 
     /// <summary>
     /// Optional first look at each key, before the field's own handling. Return <see langword="true"/> to consume
-    /// the key (the field ignores it). An attached <see cref="Autocomplete"/> uses this to grab Up/Down/Enter/Esc
-    /// for its suggestion popup while the field keeps focus and continues to edit on other keys.
+    /// the key (the field ignores it).
     /// </summary>
+    /// <remarks>An attached <see cref="Autocomplete"/> uses this to grab Up/Down/Enter/Esc for its suggestion popup
+    /// while the field keeps focus and continues to edit on other keys.</remarks>
     public Func<InputEvent, bool>? KeyInterceptor { get; set; }
 
     protected override void OnInput(InputEvent inputEvent)

@@ -23,11 +23,14 @@ public enum SelectPopupPosition
 }
 
 /// <summary>
-/// A drop-down selector. Closed, it shows the current value with a ▼ marker; clicking it (or Enter/Space while
+/// A drop-down selector.
+/// </summary>
+/// <remarks>
+/// Closed, it shows the current value with a ▼ marker; clicking it (or Enter/Space while
 /// focused) opens its options in the ambient <see cref="UI.Overlay"/>. By default the list opens below the control,
 /// flipping above when there isn't room (see <see cref="PopupPosition"/>). Choosing an option (click or Enter)
 /// commits it; Escape or a click outside cancels.
-/// </summary>
+/// </remarks>
 public class Select : RenderableControl
 {
     #region Constructors

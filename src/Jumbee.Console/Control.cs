@@ -173,9 +173,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>
     /// The focused control within this one — itself (<em>not</em> its <see cref="FocusableControl"/>/frame, so a
     /// frame forwarding input inward doesn't loop back to itself) when focused, otherwise <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
     /// A composite (<see cref="CompositeControl"/>) overrides this to return its focused descendant, letting
     /// keyboard input route through the composite to the right child.
-    /// </summary>
+    /// </remarks>
     public virtual IFocusable? FocusedControl => Focusable && IsFocused ? this : null;
 
     public virtual bool HandlesInput { get; } = false;
@@ -206,9 +208,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>
     /// When <see langword="true"/>, this control indicates keyboard focus in its own way (e.g. a button's fill
     /// change, a tab's underline, an editor's cursor), so the base class does <em>not</em> paint the themed default
-    /// focus tint over it. Override and return <see langword="true"/> on controls with their own focus styling; the
-    /// default (<see langword="false"/>) gives unstyled focusable controls an automatic, always-visible focus cue.
+    /// focus tint over it.
     /// </summary>
+    /// <remarks>
+    /// Override and return <see langword="true"/> on controls with their own focus styling; the
+    /// default (<see langword="false"/>) gives unstyled focusable controls an automatic, always-visible focus cue.
+    /// </remarks>
     protected virtual bool RendersOwnFocus => false;
 
     #region Mouse hooks (override to react; defaults are no-ops)
@@ -307,9 +312,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #endregion
 
     /// <summary>
-    /// Handles a bracketed-paste payload. Default replays it as character key events so existing text controls
-    /// receive it; controls that can insert text in bulk (e.g. <see cref="TextEditor"/>) should override this.
+    /// Handles a bracketed-paste payload.
     /// </summary>
+    /// <remarks>
+    /// Default replays it as character key events so existing text controls receive it; controls that can insert
+    /// text in bulk (e.g. <see cref="TextEditor"/>) should override this.
+    /// </remarks>
     public virtual void OnPaste(string text)
     {
         if (!HandlesInput) return;
@@ -329,17 +337,22 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// Re-captures this control's themed colours/glyphs from the current <see cref="UI.StyleTheme"/>/
-    /// <see cref="UI.GlyphTheme"/>. Called by themed controls from their constructor and again on a runtime theme
-    /// switch (<see cref="UI.SetTheme"/>). Must read the themes <em>only here</em> (and in the constructor), never
-    /// on the render path. The default is a no-op for controls that don't use the theme.
+    /// <see cref="UI.GlyphTheme"/>. The default is a no-op for controls that don't use the theme.
     /// </summary>
+    /// <remarks>
+    /// Called by themed controls from their constructor and again on a runtime theme switch (<see cref="UI.SetTheme"/>).
+    /// Must read the themes <em>only here</em> (and in the constructor), never on the render path.
+    /// </remarks>
     protected virtual void ApplyTheme() {}
 
     /// <summary>
     /// <see langword="true"/> if <paramref name="property"/> was explicitly set by the caller (a themeable token
-    /// setter passed it to <see cref="SetAtomicProperty"/>). A control's <see cref="ApplyTheme"/> guards each
-    /// themed field with this so a runtime theme switch re-themes only the properties the caller left at default.
+    /// setter passed it to <see cref="SetAtomicProperty"/>).
     /// </summary>
+    /// <remarks>
+    /// A control's <see cref="ApplyTheme"/> guards each themed field with this so a runtime theme switch re-themes
+    /// only the properties the caller left at default.
+    /// </remarks>
     protected bool IsThemeOverridden(string property) => _themeOverrides.IsOverridden(property);
 
     // Runtime theme switch: re-capture themed fields (clobbering any explicit overrides) and repaint. Glyph-width
@@ -368,10 +381,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// The help shown for this control in the global help dialog (F1), or <see langword="null"/> for no help.
+    /// </summary>
+    /// <remarks>
     /// Override to describe the control and its keys. The result is deduplicated across the UI by
     /// <see cref="HelpInfo.Name"/>, so give controls of the same kind the same name. <see cref="OnHelp"/> handlers
     /// can further modify (or create) it.
-    /// </summary>
+    /// </remarks>
     protected internal virtual HelpInfo? GetHelpInfo() => null;
 
     /// <summary>The effective help for this control: <see cref="GetHelpInfo"/> with any <see cref="OnHelp"/>
@@ -390,8 +405,9 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     }
 
     /// <summary>
-    /// Fired when a control's Initialize method is called. This method is always called inside UI.Invoke.
+    /// Fired when a control's Initialize method is called.
     /// </summary>
+    /// <remarks>This method is always called inside UI.Invoke.</remarks>
     protected virtual void Control_OnInitialization() {}
 
     protected virtual void Control_OnLostFocus() {}
@@ -434,10 +450,13 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// Requests a repaint in response to an <em>interactive-state</em> change (focus gained/lost, mouse
-    /// enter/leave/press/release) rather than a content change. Defaults to <see cref="Invalidate"/>, so controls
-    /// behave exactly as before. <see cref="RenderableControl"/> overrides this to skip the (expensive) re-render
-    /// of its wrapped renderable when that renderable's output does not depend on interactive state.
+    /// enter/leave/press/release) rather than a content change.
     /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="Invalidate"/>, so controls behave exactly as before. <see cref="RenderableControl"/>
+    /// overrides this to skip the (expensive) re-render of its wrapped renderable when that renderable's output
+    /// does not depend on interactive state.
+    /// </remarks>
     protected virtual void InvalidateInteractive() => Invalidate();
 
     #region Damage tracking
@@ -459,15 +478,19 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// When <see langword="true"/>, this control reports only the sub-rect(s) it changed each paint — accumulated via
     /// <see cref="Damage(in Rect)"/> during <see cref="Render"/> — instead of its whole area, so the compositor skips
     /// the unchanged remainder. Default <see langword="false"/> (report the full rect every paint, as before).
-    /// A control that opts in MUST report every changed cell; over-reporting is safe, under-reporting drops updates.
     /// </summary>
+    /// <remarks>
+    /// A control that opts in MUST report every changed cell; over-reporting is safe, under-reporting drops updates.
+    /// </remarks>
     protected virtual bool TracksDamage => false;
 
     /// <summary>
-    /// Records a screen region (in this control's local coordinates) changed by the current paint. Clipped to the
-    /// control; empty rects are ignored. Call from <see cref="Render"/>. No effect unless <see cref="TracksDamage"/>
-    /// is <see langword="true"/>.
+    /// Records a screen region (in this control's local coordinates) changed by the current paint.
     /// </summary>
+    /// <remarks>
+    /// Clipped to the control; empty rects are ignored. Call from <see cref="Render"/>. No effect unless
+    /// <see cref="TracksDamage"/> is <see langword="true"/>.
+    /// </remarks>
     protected void Damage(in Rect rect)
     {
         if (!TracksDamage) return;
@@ -483,12 +506,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #region Feeds
     /// <summary>
     /// Starts a repeating feed that runs <paramref name="tick"/> <b>on the UI thread</b> every <paramref name="interval"/>
-    /// — for animations and periodic UI updates, without hand-rolling a timer loop. The returned
-    /// <see cref="CancellationTokenSource"/> stops the feed when cancelled; the control also cancels every live feed
-    /// when it is <see cref="Dispose">disposed</see>. The first tick fires after one interval.
+    /// — for animations and periodic UI updates, without hand-rolling a timer loop.
     /// </summary>
     /// <remarks>
-    /// <paramref name="tick"/> <b>always</b> runs on the UI thread — it may read and mutate control state directly (no
+    /// The returned <see cref="CancellationTokenSource"/> stops the feed when cancelled; the control also cancels
+    /// every live feed when it is <see cref="Dispose">disposed</see>. The first tick fires after one interval.
+    /// <para/><paramref name="tick"/> <b>always</b> runs on the UI thread — it may read and mutate control state directly (no
     /// marshaling), but it also means heavy work in it runs at frame start and delays the frame. For a tick that needs
     /// expensive <em>off-thread</em> work, use the <see cref="Feed{T}(Func{T}, Action{T}, TimeSpan)"/> overload
     /// instead, which runs the work on a background thread and only applies the result on the UI thread.
@@ -503,11 +526,13 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// A producer/consumer feed: every <paramref name="interval"/>, <paramref name="produce"/> runs on the feed's
-    /// <b>background thread</b> and its result is posted to <paramref name="apply"/> on the <b>UI thread</b>. Use this
-    /// when each tick needs expensive off-thread work (querying the OS, hitting the network, heavy computation) whose
-    /// result should update the control — only the cheap <paramref name="apply"/> touches the UI thread, so the frame
-    /// isn't blocked. Cancellation and disposal behave as in <see cref="Feed(Action, TimeSpan)"/>.
+    /// <b>background thread</b> and its result is posted to <paramref name="apply"/> on the <b>UI thread</b>.
     /// </summary>
+    /// <remarks>
+    /// Use this when each tick needs expensive off-thread work (querying the OS, hitting the network, heavy
+    /// computation) whose result should update the control — only the cheap <paramref name="apply"/> touches the UI
+    /// thread, so the frame isn't blocked. Cancellation and disposal behave as in <see cref="Feed(Action, TimeSpan)"/>.
+    /// </remarks>
     protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval) =>
         StartFeed(interval, () => { var result = produce(); UI.Post(() => apply(result)); });
 
@@ -557,10 +582,13 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// A thread-safe snapshot of this control's currently live feed handles (each <see cref="Feed(Action, int)"/> call
-    /// registers one; it self-unregisters when cancelled or completed). Cancelling these stops the feeds without
-    /// disposing the control — handy for pausing background work while the control is hidden. Feeds are also cancelled
-    /// automatically on <see cref="Dispose"/>. Returns a copy, so iterating it never races the background feed threads.
+    /// registers one; it self-unregisters when cancelled or completed).
     /// </summary>
+    /// <remarks>
+    /// Cancelling these stops the feeds without disposing the control — handy for pausing background work while the
+    /// control is hidden. Feeds are also cancelled automatically on <see cref="Dispose"/>. Returns a copy, so
+    /// iterating it never races the background feed threads.
+    /// </remarks>
     protected IReadOnlyList<CancellationTokenSource> Feeds
     {
         get { lock (_feeds) return [.. _feeds]; }
@@ -569,11 +597,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// Assigns a backing field and requests a redraw, but only when the value actually changes.
-    /// Centralizes the (optional coerce) + equality-check + assign + (optional notify) + invalidate pattern
-    /// required of visual property setters.
     /// </summary>
     /// <remarks>
-    /// Only valid for atomically-assignable fields (a single value or reference store). State that cannot be
+    /// Centralizes the (optional coerce) + equality-check + assign + (optional notify) + invalidate pattern
+    /// required of visual property setters.
+    /// <para/>Only valid for atomically-assignable fields (a single value or reference store). State that cannot be
     /// written atomically (e.g. collections inside a wrapped control) must use a copy-on-write update instead.
     /// When supplied, <paramref name="validate"/> runs first, so the equality check and stored value use the
     /// coerced value; <paramref name="watch"/> then runs after assignment and before the invalidate/initialize.
@@ -665,31 +693,38 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
 
     /// <summary>
     /// The control's intrinsic content height in rows at the given <paramref name="width"/>, or 0 when it has no
-    /// intrinsic height and should fill the space its parent gives it (the default). Consulted by
-    /// <see cref="CalculateSize"/> only when a parent leaves the height unbounded — i.e. inside a scrolling
-    /// <see cref="ControlFrame"/> — so the frame can size the control to its content and show an accurate
+    /// intrinsic height and should fill the space its parent gives it (the default).
+    /// </summary>
+    /// <remarks>
+    /// Consulted by <see cref="CalculateSize"/> only when a parent leaves the height unbounded — i.e. inside a
+    /// scrolling <see cref="ControlFrame"/> — so the frame can size the control to its content and show an accurate
     /// scrollbar instead of a tiny thumb over ~1000 empty rows. Override on content controls (lists, editors,
     /// logs). A content change that alters the height must re-lay-out (<see cref="Initialize"/>, not merely
     /// <see cref="Invalidate"/>) so the frame re-measures.
-    /// </summary>
+    /// </remarks>
     protected virtual int MeasureHeight(int width) => 0;
 
     /// <summary>
     /// When <see langword="true"/>, a wrapping <see cref="ControlFrame"/> sizes this control to its visible
     /// viewport (a bounded height) instead of the frame's usual unbounded scroll height — so the control fills the
-    /// frame and the frame never scrolls it. For controls that manage their own scrolling internally (e.g. a
-    /// terminal emulator, which owns its scrollback); ballooning them to the scroll height would oversize them and
-    /// push live content out of view. Default <see langword="false"/> (normal frame-scrolling behavior).
+    /// frame and the frame never scrolls it. Default <see langword="false"/> (normal frame-scrolling behavior).
     /// </summary>
+    /// <remarks>
+    /// For controls that manage their own scrolling internally (e.g. a terminal emulator, which owns its
+    /// scrollback); ballooning them to the scroll height would oversize them and push live content out of view.
+    /// </remarks>
     protected internal virtual bool FillsFrameViewport => false;
 
     /// <summary>
     /// An intrinsic, fixed width in cells this control always wants regardless of the space its parent offers, or
-    /// 0 (the default) to fill the parent's width. Unlike <see cref="MeasureHeight"/> — a content height honored
-    /// only when the parent is unbounded — an intrinsic size is authoritative even under a finite parent. Override
-    /// on adornment controls with a genuine fixed extent (e.g. a vertical <see cref="TextLabel"/>, one column
-    /// wide) so a docking/layout parent can't stretch them to fill the region.
+    /// 0 (the default) to fill the parent's width.
     /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="MeasureHeight"/> — a content height honored only when the parent is unbounded — an
+    /// intrinsic size is authoritative even under a finite parent. Override on adornment controls with a genuine
+    /// fixed extent (e.g. a vertical <see cref="TextLabel"/>, one column wide) so a docking/layout parent can't
+    /// stretch them to fill the region.
+    /// </remarks>
     protected virtual int IntrinsicWidth() => 0;
 
     /// <summary>The intrinsic, fixed height counterpart of <see cref="IntrinsicWidth"/> (e.g. a horizontal

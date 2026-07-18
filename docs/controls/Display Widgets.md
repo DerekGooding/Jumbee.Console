@@ -1,7 +1,8 @@
 # Display Widgets
 
-Read-only widgets for presenting information. None of them take focus or handle input — you place them in a
-layout and update them from your code. All live in the `Jumbee.Console` namespace.
+Widgets for presenting information — you place them in a layout and update them from your code. `Sparkline` and
+`Digits` take no focus or input; `Log` is the exception — it scrolls (mouse wheel, or the arrow/Page/Home/End
+keys when focused). All live in the `Jumbee.Console` namespace.
 
 | Control | Shows | Size |
 |---------|-------|------|
@@ -67,7 +68,10 @@ log.Write(new Spectre.Console.Rule("section"));    // … or any Spectre IRender
 ```
 
 Place it in a fixed-size layout cell (e.g. a `Grid` row) so the visible window matches the cell height; the
-newest lines stay pinned to the bottom. Scroll-back through older history is not yet supported.
+newest lines stay pinned to the bottom. The log is viewport-virtualized and owns its own scrolling — the mouse
+wheel scrolls it, and when focused so do Up/Down/PageUp/PageDown/Home/End; it draws its own scrollbar. Writing
+while scrolled up leaves the view put (new lines accumulate below); scrolling back to the bottom (or `End`)
+re-engages tailing.
 
 ## Putting it together
 

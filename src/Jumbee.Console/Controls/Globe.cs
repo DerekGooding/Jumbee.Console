@@ -19,18 +19,22 @@ using SixLabors.ImageSharp.Processing;
 #endif
 
 /// <summary>
-/// A ray-traced globe rendered into the control's buffer — a shaded, colour-mapped sphere of the Earth. Two rays are
-/// shot through every character cell (upper/lower half, drawn with the ▀/▄ half-block glyphs for double vertical
-/// resolution); where a ray hits the sphere the surface point is mapped to a lat/long and coloured from an
+/// A ray-traced globe of the Earth — a shaded, colour-mapped sphere drawn into the control's buffer. Display-only
+/// by default; spin, tilt, and zoom it from a frame or timer feed.
+/// </summary>
+/// <remarks>
+/// Two rays are shot through every character cell (upper/lower half, drawn with the ▀/▄ half-block glyphs for double
+/// vertical resolution); where a ray hits the sphere the surface point is mapped to a lat/long and coloured from an
 /// ocean-depth → land-elevation → polar-ice ramp, and (with <see cref="DisplayNight"/>) shaded by a fixed light so the
 /// day/night terminator sweeps across as it turns. Spin it by advancing <see cref="RotationAngle"/> (or the
 /// <see cref="Spin"/> helper) from a frame/timer feed; tilt and zoom the camera with <see cref="CameraAlpha"/>,
-/// <see cref="CameraBeta"/> and <see cref="Zoom"/>. Display-only.
-///
+/// <see cref="CameraBeta"/> and <see cref="Zoom"/>.
+/// <para>
 /// The land/ocean map is generated at runtime from public-domain Natural Earth land polygons
 /// (<c>Geo/land_110m.txt</c>). The ray-traced-sphere idea is a common one (cf. the ASCII globes by DinoZ1729 /
 /// adamsky) but this is an independent implementation — no code or data derives from a copyleft source.
-/// </summary>
+/// </para>
+/// </remarks>
 public class Globe : Control
 {
     #region Constructors
@@ -60,8 +64,8 @@ public class Globe : Control
     }
 
     /// <summary>Your terminal's cell height-to-width ratio, used to keep the disc circular (a monospace cell is
-    /// taller than it is wide). Default 2.0 suits most terminals; raise it if the globe looks vertically stretched,
-    /// lower it if squashed. Clamped to ≥ 0.5.</summary>
+    /// taller than it is wide). Default 2.0 suits most terminals; clamped to ≥ 0.5.</summary>
+    /// <remarks>Raise it if the globe looks vertically stretched, lower it if it looks squashed.</remarks>
     public double CellAspect
     {
         get => _cellAspect;
@@ -110,9 +114,9 @@ public class Globe : Control
     /// <summary>
     /// When <see langword="true"/>, the globe responds to user input: <b>drag</b> to rotate/tilt, the <b>mouse wheel</b>
     /// to zoom, and (while focused) the <b>arrow keys</b> to spin/tilt and <b>+/-</b> to zoom (Shift = larger step).
-    /// Enabling it makes the globe focusable (it joins keyboard navigation); the default (<see langword="false"/>)
-    /// leaves it display-only.
+    /// The default (<see langword="false"/>) leaves it display-only.
     /// </summary>
+    /// <remarks>Enabling it makes the globe focusable, so it joins keyboard navigation.</remarks>
     public bool Interactive
     {
         get => _interactive;

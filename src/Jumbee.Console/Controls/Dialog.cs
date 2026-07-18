@@ -19,15 +19,17 @@ public enum DialogResult { None, Ok, Cancel, Yes, No, Close }
 
 /// <summary>
 /// A modal dialog window shown over the ambient <see cref="UI.Overlay"/>: a titled, bordered box that takes
-/// exclusive focus (the layer beneath is dimmed and click-blocked) until dismissed. It hosts either a wrapped text
-/// message or <em>any</em> control as its content, plus an optional row of predefined buttons (OK/Cancel, Yes/No, …).
-/// Buttons are keyboard-navigable (←/→ or Tab, Enter/Space to activate); Escape cancels. Dismissal raises
-/// <see cref="Completed"/> with the chosen <see cref="DialogResult"/>.
+/// exclusive focus (the layer beneath is dimmed and click-blocked) until dismissed.
 /// </summary>
 /// <remarks>
+/// It hosts either a wrapped text message or <em>any</em> control as its content, plus an optional row of predefined
+/// buttons (OK/Cancel, Yes/No, …). Buttons are keyboard-navigable (←/→ or Tab, Enter/Space to activate); Escape
+/// cancels. Dismissal raises <see cref="Completed"/> with the chosen <see cref="DialogResult"/>.
+/// <para>
 /// Use the static helpers for the common cases — <see cref="Confirm"/> (Yes/No), <see cref="Message"/> (OK) — or
 /// construct one with a custom content control and call <see cref="Show()"/>. The dialog uses <see cref="UI.Overlay"/>
 /// (set automatically by <see cref="UI.Start"/>), so no overlay wiring is needed.
+/// </para>
 /// </remarks>
 public class Dialog : CompositeControl
 {

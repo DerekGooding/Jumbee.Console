@@ -31,21 +31,24 @@ There is no dedicated key-hint/footer widget — a one-row hints bar is just for
 (or any renderable) for that. What matters is wiring the actual keys, which is done with `UI.RegisterHotKey`.
 
 App-wide keys are registered with `UI.RegisterHotKey(key, action)`; they are handled before the focused control
-sees them, regardless of focus. `Ctrl+Q` → quit is registered by default. Use the `UI.HotKeys` constants/helpers
-so the key matches exactly what the input decoder produces.
+sees them, regardless of focus. Use the `UI.HotKeys` constants/helpers so the key matches exactly what the input
+decoder produces.
 
 ```csharp
 UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);              // Esc quits
 UI.RegisterHotKey(UI.HotKeys.Ctrl(ConsoleKey.S), Save);     // ^S saves
 ```
 
-There is **no built-in Tab focus-traversal** — focus moves by **clicking** a control (click-to-focus). If you
-want `Tab` to cycle focus, wire it yourself over the focusables you care about:
+Some keys are registered by default: `Ctrl+Q` quits, `F1` toggles the help dialog, and a built-in **focus
+navigation** tier moves focus without clicking — `Ctrl+N` / `Ctrl+P` cycle focus within the current layout
+region, and `Ctrl+←/→/↑/↓` move spatially between regions. Clicking a control also focuses it (click-to-focus).
+
+`Tab` is intentionally **not** bound by default (apps often want it for their own use). To get the conventional
+`Tab` / `Shift+Tab` focus cycling, bind them to the built-in traversal:
 
 ```csharp
-var focusables = new[] { link1, link2 };
-var i = 0;
-UI.RegisterHotKey(UI.HotKeys.Tab, () => { i = (i + 1) % focusables.Length; UI.SetFocus(focusables[i]); });
+UI.RegisterHotKey(UI.HotKeys.Tab, UI.FocusNext);
+UI.RegisterHotKey(UI.HotKeys.ShiftTab, UI.FocusPrevious);
 ```
 
 ## Putting it together

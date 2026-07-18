@@ -13,12 +13,14 @@ public enum TabBarDock
 
 /// <summary>
 /// A tabbed container: a bar of selectable <see cref="TabHeader"/> labels docked on one edge, with the selected
-/// tab's content filling the rest. Select a tab by clicking its label, by the arrow keys while the bar is focused
-/// (Left/Right for a top/bottom bar, Up/Down for a left/right bar), or programmatically via <see cref="SelectedIndex"/>.
-/// Tabs can be added, removed, hidden, disabled, and relabelled at runtime — via <see cref="AddTab"/> /
-/// <see cref="RemoveTab(TabItem)"/> and the returned <see cref="TabItem"/> handle (whose identity is stable across
-/// structural changes, unlike an index).
+/// tab's content filling the rest.
 /// </summary>
+/// <remarks>
+/// Select a tab by clicking its label, by the arrow keys while the bar is focused (Left/Right for a top/bottom bar,
+/// Up/Down for a left/right bar), or programmatically via <see cref="SelectedIndex"/>. Tabs can be added, removed,
+/// hidden, disabled, and relabelled at runtime — via <see cref="AddTab"/> / <see cref="RemoveTab(TabItem)"/> and the
+/// returned <see cref="TabItem"/> handle (whose identity is stable across structural changes, unlike an index).
+/// </remarks>
 public class TabPanel : Layout<TabPanelDockPanel>
 {
     #region Constructors
@@ -45,9 +47,9 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// <summary>Raised after the selected tab changes, with the new index (-1 when no tab is selectable).</summary>
     public event Action<int>? SelectionChanged;
 
-    /// <summary>Raised when a closable tab's ✕ is clicked (see <see cref="ClosableTabs"/>). Set
-    /// <see cref="TabCloseEventArgs.Cancel"/> to keep the tab (e.g. after prompting about unsaved changes);
-    /// otherwise the panel removes it.</summary>
+    /// <summary>Raised when a closable tab's ✕ is clicked (see <see cref="ClosableTabs"/>).</summary>
+    /// <remarks>Set <see cref="TabCloseEventArgs.Cancel"/> to keep the tab (e.g. after prompting about unsaved
+    /// changes); otherwise the panel removes it.</remarks>
     public event EventHandler<TabCloseEventArgs>? TabCloseRequested;
 
     /// <summary>Raised when the "+" new-tab button is clicked (see <see cref="ShowAddButton"/>). The handler
@@ -71,8 +73,9 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// <summary>The selected tab handle, or <see langword="null"/> when no tab is selectable.</summary>
     public TabItem? ActiveTab => _selected;
 
-    /// <summary>How the active tab is indicated — highlight / underline / caret. Defaults to the theme's
-    /// <see cref="IStyleTheme.SelectionStyle"/>; setting it applies to every tab header (and future ones).</summary>
+    /// <summary>How the active tab is indicated — highlight / underline / caret.</summary>
+    /// <remarks>Defaults to the theme's <see cref="IStyleTheme.SelectionStyle"/>; setting it applies to every tab
+    /// header (and future ones).</remarks>
     public SelectionStyle SelectionStyle
     {
         get => _selectionStyle;
@@ -80,8 +83,8 @@ public class TabPanel : Layout<TabPanelDockPanel>
     }
 
     /// <summary>When <see langword="true"/>, every tab shows a clickable close (✕) glyph (on the active/hovered
-    /// tab) and clicking it raises the cancelable <see cref="TabCloseRequested"/>. Applies to existing and future
-    /// tabs. Default <see langword="false"/>.</summary>
+    /// tab) and clicking it raises the cancelable <see cref="TabCloseRequested"/>. Default <see langword="false"/>.</summary>
+    /// <remarks>Applies to existing and future tabs.</remarks>
     public bool ClosableTabs
     {
         get => _closableTabs;
@@ -89,8 +92,8 @@ public class TabPanel : Layout<TabPanelDockPanel>
     }
 
     /// <summary>When <see langword="true"/>, a "+" button is shown at the end of the bar; clicking it raises
-    /// <see cref="NewTabRequested"/>. The button is mouse-only (not part of keyboard tab traversal). Default
-    /// <see langword="false"/>.</summary>
+    /// <see cref="NewTabRequested"/>. Default <see langword="false"/>.</summary>
+    /// <remarks>The button is mouse-only (not part of keyboard tab traversal).</remarks>
     public bool ShowAddButton
     {
         get => _showAddButton;
@@ -101,9 +104,9 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// Exposed for testing (click it to exercise <see cref="NewTabRequested"/>).</summary>
     internal TabAddButton? AddButton => _addButton;
 
-    /// <summary>The zero-based selected tab. Setting it activates that tab (clamped to range) if it is selectable
-    /// (not hidden or disabled); raises <see cref="SelectionChanged"/> when it actually changes. -1 when no tab is
-    /// selected.</summary>
+    /// <summary>The zero-based selected tab, or -1 when no tab is selected.</summary>
+    /// <remarks>Setting it activates that tab (clamped to range) if it is selectable (not hidden or disabled); raises
+    /// <see cref="SelectionChanged"/> when it actually changes.</remarks>
     public int SelectedIndex
     {
         get => _selected is null ? -1 : _tabs.IndexOf(_selected);
@@ -183,8 +186,8 @@ public class TabPanel : Layout<TabPanelDockPanel>
         if (_tabs.Contains(tab) && IsSelectable(tab)) SelectItemCore(tab, followFocus: FocusedControl is not null);
     }
 
-    /// <summary>Adds a tab, optionally at <paramref name="index"/> (default appends). Returns its handle. If nothing
-    /// is selected yet and the new tab is selectable, it becomes selected.</summary>
+    /// <summary>Adds a tab, optionally at <paramref name="index"/> (default appends). Returns its handle.</summary>
+    /// <remarks>If nothing is selected yet and the new tab is selectable, it becomes selected.</remarks>
     public TabItem AddTab(string name, IFocusable content, int index = -1)
     {
         TabItem item = null!;
@@ -462,8 +465,9 @@ public class TabPanel : Layout<TabPanelDockPanel>
     #endregion
 }
 
-/// <summary>Arguments for <see cref="TabPanel.TabCloseRequested"/>. Set <see cref="Cancel"/> to keep the tab open
-/// (e.g. after confirming unsaved changes); otherwise the panel removes it.</summary>
+/// <summary>Arguments for <see cref="TabPanel.TabCloseRequested"/>.</summary>
+/// <remarks>Set <see cref="Cancel"/> to keep the tab open (e.g. after confirming unsaved changes); otherwise the
+/// panel removes it.</remarks>
 public sealed class TabCloseEventArgs : EventArgs
 {
     internal TabCloseEventArgs(TabItem tab) => Tab = tab;

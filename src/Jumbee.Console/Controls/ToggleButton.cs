@@ -10,8 +10,13 @@ using Spectre.Console.Rendering;
 
 /// <summary>
 /// Shared base for the single-state toggle widgets (<see cref="Checkbox"/>, <see cref="RadioButton"/>,
-/// <see cref="Switch"/>). Renders a state indicator followed by an optional text label, toggles on a mouse
-/// click or Enter/Space while focused, and raises <see cref="Changed"/> when the state flips.
+/// <see cref="Switch"/>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// Renders a state indicator followed by an optional text label, toggles on a mouse click or Enter/Space while
+/// focused, and raises <see cref="Changed"/> when the state flips.
+/// </para>
 /// <para>
 /// Appearance is theme-driven: the style tokens are captured once from <see cref="UI.StyleTheme"/> in the
 /// constructor, and each subclass calls <see cref="SetGlyphs"/> with its <see cref="UI.GlyphTheme"/> glyphs.
@@ -20,7 +25,7 @@ using Spectre.Console.Rendering;
 /// the render path as plain fields, so theming costs nothing per frame; callers may still override any token
 /// via its setter.
 /// </para>
-/// </summary>
+/// </remarks>
 public abstract class ToggleButton : RenderableControl
 {
     #region Constructors

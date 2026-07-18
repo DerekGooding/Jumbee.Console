@@ -8,12 +8,17 @@ using System.Text;
 /// <summary>
 /// A streaming state machine that turns a raw terminal input char stream into <see cref="TerminalInputEvent"/>s:
 /// printable text, control/navigation keys (CSI/SS3), SGR (1006) mouse reports, bracketed paste (DEC 2004), and
-/// focus in/out (DEC 1004). Incomplete escape sequences split across reads are buffered until the next
-/// <see cref="Feed"/>; <see cref="Flush"/> resolves a dangling <c>ESC</c> as the Escape key (the idle-timeout case).
+/// focus in/out (DEC 1004).
 /// </summary>
 /// <remarks>
+/// <para>
+/// Incomplete escape sequences split across reads are buffered until the next <see cref="Feed"/>;
+/// <see cref="Flush"/> resolves a dangling <c>ESC</c> as the Escape key (the idle-timeout case).
+/// </para>
+/// <para>
 /// Pure and platform-independent: a raw input source feeds it chars and forwards the events. The classic
 /// "ESC alone vs start of a sequence" ambiguity is resolved by the caller flushing after an idle timeout.
+/// </para>
 /// </remarks>
 public sealed class AnsiInputDecoder
 {

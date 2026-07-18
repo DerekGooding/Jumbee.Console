@@ -19,8 +19,9 @@ public enum MapResolution
 /// <summary>
 /// A world map: the Earth's coastlines as a cloud of longitude/latitude points (EPSG:4326), for drawing on a
 /// <see cref="Jumbee.Console.Canvas"/> whose bounds are set to <c>X [-180, 180]</c> and <c>Y [-90, 90]</c> (a
-/// sub-region zooms in). Ported from Ratatui's <c>Map</c>; the point data is Natural Earth coastline data.
+/// sub-region zooms in).
 /// </summary>
+/// <remarks>Ported from Ratatui's <c>Map</c>; the point data is Natural Earth coastline data.</remarks>
 public sealed class WorldMap : IShape
 {
     /// <param name="color">Colour of the map points.</param>

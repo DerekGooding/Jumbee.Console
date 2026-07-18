@@ -21,8 +21,9 @@ public sealed class MenuItem
     public bool Enabled { get; init; } = true;
     public bool IsSeparator { get; init; }
 
-    /// <summary>Child items shown as a submenu to the right when this item is highlighted or chosen. When set, the
-    /// item opens the submenu instead of running its <see cref="Action"/>. Nest to any depth.</summary>
+    /// <summary>Child items shown as a submenu to the right when this item is highlighted or chosen.</summary>
+    /// <remarks>When set, the item opens the submenu instead of running its <see cref="Action"/>. Nest to any
+    /// depth.</remarks>
     public IReadOnlyList<MenuItem>? Submenu { get; init; }
 
     public MenuItem() { }
@@ -40,16 +41,21 @@ public sealed class MenuItem
 
 /// <summary>
 /// A floating, keyboard-navigable menu of <see cref="MenuItem"/>s, shown anchored in the ambient <see cref="UI.Overlay"/>.
+/// The shared primitive behind drop-downs / context menus / a <see cref="MenuBar"/>'s menus.
+/// </summary>
+/// <remarks>
+/// <para>
 /// Up/Down move the highlight (skipping separators and disabled items), Enter/Space choose, Escape or a click outside
 /// dismiss. An item with a <see cref="MenuItem.Submenu"/> opens a child menu to its right (Right/Enter or hover to
 /// open, Left to go back); the whole open chain is drawn as this one popup, so submenus nest to any depth. Choosing a
 /// leaf item runs its <see cref="MenuItem.Action"/> and raises <see cref="ItemActivated"/>; <see cref="Closed"/> fires
-/// whenever the menu closes. The shared primitive behind drop-downs / context menus / a <see cref="MenuBar"/>'s menus.
-/// </summary>
-/// <remarks>
+/// whenever the menu closes.
+/// </para>
+/// <para>
 /// Because the <see cref="Overlay"/> hosts a single popup, the menu draws the entire open submenu chain itself: it is
 /// a plain <see cref="Control"/> that writes each level's bordered box directly into its buffer (leaving the gaps
 /// between boxes transparent) and routes input to the deepest open level.
+/// </para>
 /// </remarks>
 public class ContextMenu : Control
 {

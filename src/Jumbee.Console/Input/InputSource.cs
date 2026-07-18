@@ -3,9 +3,12 @@ namespace Jumbee.Console;
 using System;
 
 /// <summary>
-/// Supplies <see cref="TerminalInputEvent"/>s (keys, mouse, paste, focus) to the UI input loop. The default reads
-/// the real console; tests (or scripted/headless scenarios) can supply their own to inject events deterministically.
+/// Supplies <see cref="TerminalInputEvent"/>s (keys, mouse, paste, focus) to the UI input loop.
 /// </summary>
+/// <remarks>
+/// The default reads the real console; tests (or scripted/headless scenarios) can supply their own to inject events
+/// deterministically.
+/// </remarks>
 public interface IInputSource
 {
     /// <summary>
@@ -16,9 +19,12 @@ public interface IInputSource
 
 /// <summary>
 /// The default <see cref="IInputSource"/>, reading keys from <see cref="Console"/> and wrapping them as
-/// <see cref="KeyInputEvent"/>s. Returns no event when console input is redirected or unavailable. (Mouse/paste/
-/// focus require the raw VT input source — a later step; this keyboard-only source keeps existing behavior.)
+/// <see cref="KeyInputEvent"/>s.
 /// </summary>
+/// <remarks>
+/// Returns no event when console input is redirected or unavailable. (Mouse/paste/focus require the raw VT input
+/// source — a later step; this keyboard-only source keeps existing behavior.)
+/// </remarks>
 public sealed class ConsoleInputSource : IInputSource
 {
     /// <inheritdoc/>

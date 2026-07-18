@@ -5,9 +5,12 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// A vertical list of independently-checkable options (multi-select). Navigate with Up/Down and press Space/Enter
-/// (or click a row) to toggle that option. Each row renders as <c>[X]</c> when checked and <c>[ ]</c> otherwise.
+/// A vertical list of independently-checkable options (multi-select).
 /// </summary>
+/// <remarks>
+/// Navigate with Up/Down and press Space/Enter (or click a row) to toggle that option. Each row renders as
+/// <c>[X]</c> when checked and <c>[ ]</c> otherwise.
+/// </remarks>
 public class SelectionList : ToggleList
 {
     #region Constructors

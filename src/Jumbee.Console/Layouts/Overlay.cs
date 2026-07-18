@@ -13,11 +13,14 @@ using COverlay = ConsoleGUI.Controls.Overlay;
 
 /// <summary>
 /// A layered layout: a persistent <see cref="Bottom"/> layer with an optional floating popup composited on top
-/// (wraps ConsoleGUI's <see cref="COverlay"/>). Where the popup has no content the bottom shows through, so a
-/// small centered/anchored popup floats over the main UI. Use <see cref="Show(Control)"/> / <see cref="Hide"/>
-/// for dropdowns, dialogs, tooltips, etc. While shown, keyboard input goes to the focused popup; clicking the
-/// popup works as normal, and (by default) clicking outside it closes it.
+/// (wraps ConsoleGUI's <see cref="COverlay"/>).
 /// </summary>
+/// <remarks>
+/// Where the popup has no content the bottom shows through, so a small centered/anchored popup floats over the main
+/// UI. Use <see cref="Show(Control)"/> / <see cref="Hide"/> for dropdowns, dialogs, tooltips, etc. While shown,
+/// keyboard input goes to the focused popup; clicking the popup works as normal, and (by default) clicking outside it
+/// closes it.
+/// </remarks>
 public class Overlay : Layout<COverlay>
 {
     #region Constructors
@@ -46,9 +49,9 @@ public class Overlay : Layout<COverlay>
     /// <summary>Key that closes any open popup, intercepted before the popup sees it. <see langword="null"/> disables it.</summary>
     public ConsoleKey? CloseKey { get; set; } = ConsoleKey.Escape;
 
-    /// <summary>The tint a modal scrim blends the layer beneath toward (see <see cref="ModalDim"/>). Defaults to
-    /// the theme's <see cref="IStyleTheme.Scrim"/> colour (picked up live on a theme switch); set it to override
-    /// per overlay.</summary>
+    /// <summary>The tint a modal scrim blends the layer beneath toward (see <see cref="ModalDim"/>).</summary>
+    /// <remarks>Defaults to the theme's <see cref="IStyleTheme.Scrim"/> colour (picked up live on a theme switch);
+    /// set it to override per overlay.</remarks>
     public Color ModalScrim
     {
         get => _modalScrim ?? UI.StyleTheme.Scrim.BackgroundColor ?? DefaultScrim;
@@ -56,9 +59,10 @@ public class Overlay : Layout<COverlay>
     }
 
     /// <summary>How strongly a modal scrim dims the layer beneath it: 0 = fully see-through, 1 = a solid
-    /// <see cref="ModalScrim"/> fill (the classic opaque modal). Defaults to the theme's
-    /// <see cref="IStyleTheme.ScrimDim"/> (0.6), so the controls behind show through, dimmed, while the popup stands
-    /// out; set it to override per overlay. The scrim blocks clicks regardless of this value.</summary>
+    /// <see cref="ModalScrim"/> fill (the classic opaque modal).</summary>
+    /// <remarks>Defaults to the theme's <see cref="IStyleTheme.ScrimDim"/> (0.6), so the controls behind show through,
+    /// dimmed, while the popup stands out; set it to override per overlay. The scrim blocks clicks regardless of this
+    /// value.</remarks>
     public float ModalDim
     {
         get => _modalDim ?? UI.StyleTheme.ScrimDim;
@@ -83,8 +87,9 @@ public class Overlay : Layout<COverlay>
     public void Hide() => Close(restoreFocus: true);
 
     /// <summary>Re-anchors the current (non-passive) popup at (<paramref name="x"/>, <paramref name="y"/>) without
-    /// touching focus. A popup that changes its own size while open (e.g. a <see cref="ContextMenu"/> opening a
-    /// submenu) calls this so the overlay re-measures and re-lays-out the popup at its new size.</summary>
+    /// touching focus.</summary>
+    /// <remarks>A popup that changes its own size while open (e.g. a <see cref="ContextMenu"/> opening a submenu)
+    /// calls this so the overlay re-measures and re-lays-out the popup at its new size.</remarks>
     public void Reanchor(int x, int y) => UI.Invoke(() =>
     {
         if (_top is { } t && !_passive) control.TopContent = AnchorAt(t, x, y);
@@ -93,10 +98,12 @@ public class Overlay : Layout<COverlay>
     /// <summary>
     /// Shows <paramref name="popup"/> anchored at (<paramref name="x"/>, <paramref name="y"/>) as a <em>passive</em>
     /// layer: it is drawn over (and is mouse-clickable), but does NOT take focus and does NOT capture keyboard
-    /// routing/navigation — the layer beneath keeps focus and keeps receiving keys. The caller owns dismissal (e.g.
-    /// an <see cref="Autocomplete"/> popup that floats under a still-focused text field). Use <see cref="Hide"/> to
-    /// close it.
+    /// routing/navigation — the layer beneath keeps focus and keeps receiving keys.
     /// </summary>
+    /// <remarks>
+    /// The caller owns dismissal (e.g. an <see cref="Autocomplete"/> popup that floats under a still-focused text
+    /// field). Use <see cref="Hide"/> to close it.
+    /// </remarks>
     public void ShowPassive(Control popup, int x, int y) => UI.Invoke(() =>
     {
         if (_top is not null) Detach(_top);

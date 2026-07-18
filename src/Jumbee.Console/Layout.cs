@@ -52,11 +52,14 @@ public interface ILayout : IFocusable, IDrawingContextListener
 
     /// <summary>
     /// The directional move, made recursive so arrows cross cells nested several layouts deep (e.g. panes inside
-    /// nested split panels). It first descends into the focused nested layout and lets it move within itself; that
-    /// nested move never wraps, so at the nested edge it returns <see langword="null"/> and we step at this level
-    /// instead — the arrow "exits" the nested layout to the parent's sibling cell. The top-level call wraps per axis
-    /// (the region-to-region behavior); nested calls do not.
+    /// nested split panels).
     /// </summary>
+    /// <remarks>
+    /// It first descends into the focused nested layout and lets it move within itself; that nested move never
+    /// wraps, so at the nested edge it returns <see langword="null"/> and we step at this level instead — the arrow
+    /// "exits" the nested layout to the parent's sibling cell. The top-level call wraps per axis (the
+    /// region-to-region behavior); nested calls do not.
+    /// </remarks>
     IFocusable? SpatialTarget(int dRow, int dCol, bool wrap)
     {
         if (FocusedCell() is { } focused && CellAt(focused.Row, focused.Column) is ILayout nested
@@ -84,9 +87,9 @@ public interface ILayout : IFocusable, IDrawingContextListener
     }
 
     /// <summary>Computes the next (<paramref name="direction"/> &gt; 0) or previous focusable within the currently
-    /// focused region, relative to <paramref name="current"/>, wrapping — or <see langword="null"/>. A no-op (null)
-    /// unless the focused cell is a multi-focusable nested layout (enter/leave a single control or composite via the
-    /// spatial arrows instead).</summary>
+    /// focused region, relative to <paramref name="current"/>, wrapping — or <see langword="null"/>.</summary>
+    /// <remarks>A no-op (null) unless the focused cell is a multi-focusable nested layout (enter/leave a single
+    /// control or composite via the spatial arrows instead).</remarks>
     IFocusable? RegionCycleTarget(int direction, IFocusable? current)
     {
         if (FocusedCell() is not { } cell) return null;
@@ -195,10 +198,13 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
 
     /// <summary>
     /// The focused descendant within this layout (or <see langword="null"/>), so a parent can tell that this layout
-    /// is on the focus path and route input into it. Walks <see cref="Controls"/> for the focused leaf; this is what
-    /// lets keyboard input — and each ancestor layout's tunnel (<see cref="InterceptInput"/>) — reach a control even
-    /// when the layout is nested several levels deep.
+    /// is on the focus path and route input into it.
     /// </summary>
+    /// <remarks>
+    /// Walks <see cref="Controls"/> for the focused leaf; this is what lets keyboard input — and each ancestor
+    /// layout's tunnel (<see cref="InterceptInput"/>) — reach a control even when the layout is nested several
+    /// levels deep.
+    /// </remarks>
     public virtual IFocusable? FocusedControl
     {
         get

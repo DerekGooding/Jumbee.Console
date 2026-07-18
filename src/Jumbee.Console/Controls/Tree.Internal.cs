@@ -54,9 +54,9 @@ public partial class Tree
         }
 
         /// <summary>A glyph shown before THIS node when it is a leaf (has no children), overriding the tree-wide
-        /// <see cref="Tree.LeafGlyph"/>. Include any trailing spacing, and keep its cell width equal to the tree's
-        /// other glyphs so labels stay aligned. <see langword="null"/> (the default) uses the tree-wide glyph.
-        /// Has no effect while the node has children (it then shows the disclosure glyph).</summary>
+        /// <see cref="Tree.LeafGlyph"/>. <see langword="null"/> (the default) uses the tree-wide glyph.</summary>
+        /// <remarks>Include any trailing spacing, and keep its cell width equal to the tree's other glyphs so labels
+        /// stay aligned. Has no effect while the node has children (it then shows the disclosure glyph).</remarks>
         public string? LeafGlyph
         {
             get => field;
@@ -64,8 +64,8 @@ public partial class Tree
         }
 
         /// <summary>Foreground colour for this node's <see cref="LeafGlyph"/>, overriding the tree-wide
-        /// <see cref="Tree.LeafGlyphColor"/>. <see langword="null"/> (the default) uses the tree-wide colour. Ignored
-        /// while the node is selected (the glyph highlights together with the label).</summary>
+        /// <see cref="Tree.LeafGlyphColor"/>. <see langword="null"/> (the default) uses the tree-wide colour.</summary>
+        /// <remarks>Ignored while the node is selected (the glyph highlights together with the label).</remarks>
         public Color? LeafGlyphColor
         {
             get => field;
@@ -73,9 +73,10 @@ public partial class Tree
         }
 
         /// <summary>Disclosure glyph shown before THIS node while it has children and is expanded, overriding the
-        /// tree-wide <see cref="IGlyphTheme.TreeExpanded"/> glyph. Include any trailing spacing and keep its cell
-        /// width equal to the tree's other glyphs so labels stay aligned. <see langword="null"/> (the default) uses
-        /// the tree-wide glyph. Dormant while the node is a leaf (it then shows the leaf glyph).</summary>
+        /// tree-wide <see cref="IGlyphTheme.TreeExpanded"/> glyph. <see langword="null"/> (the default) uses
+        /// the tree-wide glyph.</summary>
+        /// <remarks>Include any trailing spacing and keep its cell width equal to the tree's other glyphs so labels
+        /// stay aligned. Dormant while the node is a leaf (it then shows the leaf glyph).</remarks>
         public string? ExpandedGlyph
         {
             get => field;
@@ -92,7 +93,8 @@ public partial class Tree
         }
 
         /// <summary>Foreground colour for THIS node's disclosure glyph (expanded/collapsed). <see langword="null"/>
-        /// (the default) draws it in the tree's guide style, as before. Ignored while the node is selected.</summary>
+        /// (the default) draws it in the tree's guide style, as before.</summary>
+        /// <remarks>Ignored while the node is selected.</remarks>
         public Color? DisclosureGlyphColor
         {
             get => field;
@@ -105,10 +107,10 @@ public partial class Tree
         public ICollection<TreeNode> Children => _children.Values;
 
         /// <summary>
-        /// Gets or sets a value indicating whether or not the tree node is expanded. Collapsing hides this node's
-        /// children (they no longer render and are skipped by navigation); expanding shows them again. Toggling
-        /// redraws the tree.
+        /// Gets or sets a value indicating whether or not the tree node is expanded.
         /// </summary>
+        /// <remarks>Collapsing hides this node's children (they no longer render and are skipped by navigation);
+        /// expanding shows them again. Toggling redraws the tree.</remarks>
         public bool Expanded
         {
             get => _expanded;

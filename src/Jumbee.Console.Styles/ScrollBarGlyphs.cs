@@ -5,9 +5,10 @@ public enum ScrollBarMode
 {
     /// <summary>Modern-style bar: a solid thumb over a solid track whose ends render at <em>sub-cell</em>
     /// resolution using eighth-block glyphs (<c>▁▂▃▄▅▆▇█</c>) so the thumb glides smoothly rather than snapping to
-    /// whole rows. No end arrows; the thumb spans the whole column. Assumes a terminal with block-glyph support
+    /// whole rows.</summary>
+    /// <remarks>No end arrows; the thumb spans the whole column. Assumes a terminal with block-glyph support
     /// (Windows Terminal and most modern emulators). The thumb/track <em>glyphs</em> in this struct are ignored in
-    /// this mode (the bar computes its own); only the <see cref="ScrollBarStyle"/> colours are used.</summary>
+    /// this mode (the bar computes its own); only the <see cref="ScrollBarStyle"/> colours are used.</remarks>
     Smooth,
 
     /// <summary>The classic three-part bar: the fixed <see cref="ScrollBarGlyphs.Thumb"/>/<see cref="ScrollBarGlyphs.Track"/>
@@ -18,12 +19,17 @@ public enum ScrollBarMode
 
 /// <summary>
 /// The glyphs (no colours) a control frame's vertical scrollbar draws for each part: the moving thumb, the track
-/// behind it, and the two end arrows. Colours/decorations come separately from <see cref="ScrollBarStyle"/> (via
-/// <see cref="IStyleTheme.ScrollBar"/>); a control frame composes the two into its scrollbar cells. The static
-/// presets are convenience helpers for restyling a single control's glyphs (e.g. via WithScrollBarGlyphs).
+/// behind it, and the two end arrows.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Colours/decorations come separately from <see cref="ScrollBarStyle"/> (via <see cref="IStyleTheme.ScrollBar"/>);
+/// a control frame composes the two into its scrollbar cells. The static presets are convenience helpers for
+/// restyling a single control's glyphs (e.g. via WithScrollBarGlyphs).
+/// </para>
 /// <para><see cref="Mode"/> selects the rendering: <see cref="ScrollBarMode.Smooth"/> (the default) ignores the
 /// glyph strings and draws a sub-cell block bar; <see cref="ScrollBarMode.Classic"/> uses the four glyphs below.</para>
-/// </summary>
+/// </remarks>
 public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
 {
     #region Constructors

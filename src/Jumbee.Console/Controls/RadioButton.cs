@@ -1,11 +1,14 @@
 namespace Jumbee.Console;
 
 /// <summary>
-/// A labelled radio button. Uses the glyph theme's <see cref="IGlyphTheme.RadioSelected"/>/
+/// A labelled radio button.
+/// </summary>
+/// <remarks>
+/// Uses the glyph theme's <see cref="IGlyphTheme.RadioSelected"/>/
 /// <see cref="IGlyphTheme.RadioUnselected"/> markers (by default <c>(●)</c>/<c>( )</c>). Unlike a
 /// <see cref="Checkbox"/>, activating a radio button latches it on rather than toggling; mutual exclusion
 /// between several radio buttons is provided by a <see cref="RadioSet"/>.
-/// </summary>
+/// </remarks>
 public class RadioButton : ToggleButton
 {
     #region Constructors

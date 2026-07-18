@@ -9,10 +9,13 @@ public sealed record KeyHelp(string Keys, string Description);
 
 /// <summary>
 /// A control's entry in the global help dialog (one tab). Mutable so an <see cref="Control.OnHelp"/> handler can
-/// tweak it in place. Help is compiled by calling each control's <see cref="Control.GetHelpInfo"/> and
-/// deduplicated by <see cref="Name"/> — one tab per distinct name (e.g. all buttons share a "Button" tab), and the
-/// focused control's tab is shown first.
+/// tweak it in place.
 /// </summary>
+/// <remarks>
+/// Help is compiled by calling each control's <see cref="Control.GetHelpInfo"/> and deduplicated by
+/// <see cref="Name"/> — one tab per distinct name (e.g. all buttons share a "Button" tab), and the focused
+/// control's tab is shown first.
+/// </remarks>
 public sealed class HelpInfo
 {
     #region Constructors

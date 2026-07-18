@@ -11,7 +11,10 @@ using AdocNet.Parser;
 using Spectre.Console.Rendering;
 
 /// <summary>
-/// A read-only, scrollable AsciiDoc viewer. Parses AsciiDoc with AdocNet and renders it — the document title and
+/// A read-only, scrollable AsciiDoc viewer.
+/// </summary>
+/// <remarks>
+/// Parses AsciiDoc with AdocNet and renders it — the document title and
 /// section headings, bold/italic/monospace, lists and checklists, admonitions (NOTE/TIP/…), quotes, description
 /// lists, box-drawn tables and bordered source/example blocks — as Spectre.Console renderables. Wrap it in a
 /// <see cref="ControlFrame"/> (e.g. <c>viewer.WithFrame()</c>) for a border, title and scrollbar; ↑/↓, PgUp/PgDn,
@@ -21,7 +24,7 @@ using Spectre.Console.Rendering;
 /// resizing never blocks the UI thread, and the view fills in when the render completes. Content is re-rendered only
 /// when the text/styles change or the width changes (it reflows to the control width).
 /// </para>
-/// </summary>
+/// </remarks>
 public class AsciiDocViewer : Control
 {
     #region Constructors

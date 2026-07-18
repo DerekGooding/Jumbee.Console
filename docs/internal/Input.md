@@ -157,7 +157,7 @@ adornments, and frames/composite *wrappers* are skipped or descended-through. Re
 `HotKeys.CtrlLeft/Right/Up/Down`/`CtrlN`/`CtrlP`. Caveat: a couple of layouts (`TabPanel`, `Overlay`) **flatten**
 their indexer for routing, so as a *root* their `Ctrl+arrows` follow that flattened order rather than a spatial grid
 (uncommon — the root is normally a `Grid`/stack/dock, whose indexer is spatial). Sparse `Grid` cells are tolerated
-(`SafeCell` swallows the empty-slot indexer throw).
+(`CellAt` swallows the empty-slot indexer throw).
 
 ```
 key ─▶ UI.OnInput ─▶ Ctrl hotkeys ─▶ ROOT layout.OnInput
@@ -255,14 +255,15 @@ composite.
 those are its direct children. Two patterns let routing reach deeper:
 
 - **Flattening.** A layout can override `Rows`/the indexer to surface *leaf* focusables rather than sub-containers,
-  so the root's `Controls.ForEach` reaches them. `Overlay` does this (bottom-layer focusables + the popup); `TabPanel`
-  does it for its headers + active content.
+  so the root's `Controls.ForEach` reaches them. `TabPanel` does this for its headers + active content. (`Overlay`
+  instead *delegates* its grid to the bottom layer when no popup is shown, and presents only the popup while one is —
+  it does not flatten.)
 - **`FocusedControl` override.** When the layout is itself *nested* (a child of another layout), the parent only
   sees the one `IFocusable`, and routes through `parent → thisLayout.FocusedControl`. The default returns null unless
   the layout is itself focused — which is exactly why a nested interactive layout would dead-end. Overriding
   `FocusedControl` to return the focused descendant fixes it.
 
-`TabPanel` ([TabPanel.cs](../../src/Jumbee.Console/Layouts/TabPanel.cs)) needs **both**, so it works as root *and*
+`TabPanel` ([TabPanel.cs](../../src/Jumbee.Console/Layouts/TabPanel/TabPanel.cs)) needs **both**, so it works as root *and*
 nested:
 
 ```csharp

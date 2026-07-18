@@ -6,16 +6,20 @@ using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 /// <summary>
-/// A modal scrim that shows the layer beneath it, dimmed. For each cell the popup does not cover, it reads the cell
-/// from the layer below and blends its colours toward <see cref="_tint"/> by <see cref="_factor"/> (0 = fully
-/// see-through, 1 = a solid tint fill — the classic opaque modal), emitting it with <em>no</em> mouse listener so
-/// outside clicks are still swallowed (modality preserved). The popup is composited on top with its own listeners,
-/// so it stays interactive.
+/// A modal scrim that shows the layer beneath it, dimmed.
 /// </summary>
 /// <remarks>
+/// <para>
+/// For each cell the popup does not cover, it reads the cell from the layer below and blends its colours toward
+/// <see cref="_tint"/> by <see cref="_factor"/> (0 = fully see-through, 1 = a solid tint fill — the classic opaque
+/// modal), emitting it with <em>no</em> mouse listener so outside clicks are still swallowed (modality preserved). The
+/// popup is composited on top with its own listeners, so it stays interactive.
+/// </para>
+/// <para>
 /// This is how a terminal fakes alpha: there is no transparent colour to emit (ANSI SGR has no alpha channel), so
-/// overlapping layers are flattened to opaque colours here. 
+/// overlapping layers are flattened to opaque colours here.
 /// <see cref="ConsoleGUI.Data.Color.Mix"/> is the per-channel linear blend.
+/// </para>
 /// </remarks>
 internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListener
 {

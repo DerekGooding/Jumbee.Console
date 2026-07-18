@@ -1,9 +1,12 @@
 namespace Jumbee.Console.Documents;
 
 /// <summary>
-/// Visual styling for <see cref="AsciiDocViewer"/>. Each value is a Spectre.Console markup style string
-/// (e.g. <c>"bold blue"</c>) applied to the console renderables emitted while traversing the AsciiDoc AST.
+/// Visual styling for <see cref="AsciiDocViewer"/>.
 /// </summary>
+/// <remarks>
+/// Each value is a Spectre.Console markup style string
+/// (e.g. <c>"bold blue"</c>) applied to the console renderables emitted while traversing the AsciiDoc AST.
+/// </remarks>
 public sealed class AsciiDocStyles
 {
     /// <summary>A shared default style set.</summary>
