@@ -11,6 +11,13 @@ using ConsoleGUI.Space;
 
 using CColor = ConsoleGUI.Data.Color;
 
+#if GLOBE_TEXTURE_TOOL
+// Only needed to compile the EarthTextureBaker below (opt-in — the runtime library takes no image-decoder dependency).
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+#endif
+
 /// <summary>
 /// A ray-traced globe rendered into the control's buffer — a shaded, colour-mapped sphere of the Earth. Two rays are
 /// shot through every character cell (upper/lower half, drawn with the ▀/▄ half-block glyphs for double vertical
@@ -221,7 +228,9 @@ public class Globe : Control
         if (w < 2 || h < 2) return;
 
         int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
-        var mask = EarthMask.Instance;
+        // Prefer the natural-colour texture; only bake the procedural mask when it (or colour) is unavailable.
+        var tex = _colored ? EarthTexture.Instance : null;
+        var mask = (_colored && tex is null) ? EarthMask.Instance : null;
 
         // Orthographic camera: a unit sphere viewed from azimuth `alpha` / elevation `beta`. `forward` looks at the
         // origin; `right`/`up` are the screen axes in world space. Zoom scales the image extent (smaller = bigger disc).
@@ -255,7 +264,6 @@ public class Globe : Control
 
             double lat = Math.Asin(Math.Clamp(py, -1.0, 1.0)) * (180.0 / Math.PI);
             double lon = (Math.Atan2(px, pz) - _angle) * (180.0 / Math.PI);
-            mask.Sample(lat, lon, out bool land, out int elev, out int depth);
 
             double bright = 1.0;
             if (_displayNight)
@@ -263,7 +271,12 @@ public class Globe : Control
                 double lum = _softness * (px * _lx + py * _ly + pz * _lz) + 0.5;
                 bright = 0.15 + 0.85 * (lum < 0 ? 0 : lum > 1 ? 1 : lum);
             }
-            var baseC = _colored ? Surface(lat, land, elev, depth) : _foreground;
+
+            // Natural-colour texture (from-space look) when available; else the procedural distance-to-coast ramp.
+            CColor baseC;
+            if (!_colored) baseC = _foreground;
+            else if (tex is not null) baseC = tex.Sample(lat, lon);
+            else { mask!.Sample(lat, lon, out bool land, out int elev, out int depth); baseC = Surface(lat, land, elev, depth); }
             return (true, Shade(baseC, bright));
         }
 
@@ -363,9 +376,127 @@ public class Globe : Control
 }
 
 /// <summary>
+/// The globe's natural-colour surface texture: a public-domain NASA Blue Marble image baked to a compact 512×256 raw
+/// RGB grid (<c>Geo/earth_512x256.bin</c>; see THIRD-PARTY-NOTICES.TXT). Sampled by lat/long, it gives the
+/// from-space look — arid land brown, forest green, ice white, real ocean tone — instead of the procedural
+/// distance-to-coast ramp. <see cref="Instance"/> is <see langword="null"/> when the resource is absent, so the globe
+/// falls back to <see cref="EarthMask"/>'s procedural colouring (and never bakes the polygon mask on the textured path).
+/// </summary>
+internal sealed class EarthTexture
+{
+    #region Properties
+    public static EarthTexture? Instance
+    {
+        get { if (!_loaded) { _instance = Load(); _loaded = true; } return _instance; }
+    }
+    #endregion
+
+    #region Methods
+    public CColor Sample(double latDeg, double lonDeg)
+    {
+        double u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);   // wrap longitude into [0,1)
+        double v = Math.Clamp((90.0 - latDeg) / 180.0, 0, 0.999999);
+        int x = Math.Clamp((int)(u * _w), 0, _w - 1), y = Math.Clamp((int)(v * _h), 0, _h - 1);
+        int i = (y * _w + x) * 3;
+        return new CColor(_rgb[i], _rgb[i + 1], _rgb[i + 2]);
+    }
+
+    // Reads the embedded texture once. Format: an 8-byte header [int32 width][int32 height] (little-endian), then
+    // width*height*3 raw RGB bytes (row-major, top-left = 90N/180W). The header makes the file self-describing, so a
+    // regenerated texture at any resolution (see EarthTextureBaker) drops in with no code change. Returns null (→
+    // procedural EarthMask fallback) if the resource is missing or malformed.
+    private static EarthTexture? Load()
+    {
+        try
+        {
+            using var stream = typeof(EarthTexture).Assembly.GetManifestResourceStream("Jumbee.Console.Geo.earth_256x128.bin");
+            if (stream is null) return null;
+            var header = new byte[8];
+            if (!ReadExactly(stream, header)) return null;
+            int w = BitConverter.ToInt32(header, 0), h = BitConverter.ToInt32(header, 4);
+            if (w <= 0 || h <= 0 || (long)w * h > MaxPixels) return null;
+            var rgb = new byte[w * h * 3];
+            return ReadExactly(stream, rgb) ? new EarthTexture(rgb, w, h) : null;
+        }
+        catch { return null; }
+    }
+
+    private static bool ReadExactly(System.IO.Stream stream, byte[] buffer)
+    {
+        int off = 0, n;
+        while (off < buffer.Length && (n = stream.Read(buffer, off, buffer.Length - off)) > 0) off += n;
+        return off == buffer.Length;
+    }
+    #endregion
+
+    #region Fields
+    private const long MaxPixels = 8_000_000;   // sanity cap on a malformed header (~24MB of RGB)
+    private readonly byte[] _rgb;
+    private readonly int _w, _h;
+    private EarthTexture(byte[] rgb, int w, int h) { _rgb = rgb; _w = w; _h = h; }
+    private static EarthTexture? _instance;
+    private static bool _loaded;
+    #endregion
+}
+
+#if GLOBE_TEXTURE_TOOL
+/// <summary>
+/// One-off tool that bakes the globe's <see cref="EarthTexture"/> from a source image, at any resolution. The runtime
+/// library takes NO image-decoder dependency, so this is compiled only when you opt in. To regenerate the texture:
+/// <list type="number">
+/// <item>Add the decoder package to Jumbee.Console.csproj:
+///   <c>&lt;PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" /&gt;</c></item>
+/// <item>Define the symbol for the same csproj:
+///   <c>&lt;DefineConstants&gt;$(DefineConstants);GLOBE_TEXTURE_TOOL&lt;/DefineConstants&gt;</c></item>
+/// <item>Fetch the public-domain NASA Blue Marble source (2048×1024 equirectangular, cloud-free):
+///   <c>curl -L https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png -o bluemarble-2048.png</c></item>
+/// <item>Call <see cref="Bake"/>, then point the <c>EmbeddedResource</c> + <see cref="EarthTexture.Load"/> resource
+///   name at the new file (the header makes it self-describing, so no other code changes):
+///   <c>EarthTextureBaker.Bake("bluemarble-2048.png", "Geo/earth_256x128.bin", 256, 128);</c></item>
+/// </list>
+/// Smaller = softer but a smaller embedded asset. Payload = 8-byte header + width·height·3 bytes:
+/// 256×128 ≈ 96&#160;KB, 512×256 ≈ 384&#160;KB, 800×400 ≈ 940&#160;KB.
+/// </summary>
+internal static class EarthTextureBaker
+{
+    public static void Bake(string imagePath, string outputPath, int width, int height)
+    {
+        using var image = Image.Load<Rgb24>(imagePath);
+        // Box (area-average) resampling gives a clean downsample without the ringing bicubic adds.
+        image.Mutate(ctx => ctx.Resize(new ResizeOptions
+        {
+            Size = new SixLabors.ImageSharp.Size(width, height),
+            Sampler = KnownResamplers.Box,
+        }));
+
+        // Header: [int32 width][int32 height] little-endian, then row-major RGB (top-left = 90N/180W).
+        var bytes = new byte[8 + width * height * 3];
+        BitConverter.TryWriteBytes(bytes.AsSpan(0), width);
+        BitConverter.TryWriteBytes(bytes.AsSpan(4), height);
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    int i = 8 + (y * width + x) * 3;
+                    bytes[i] = row[x].R;
+                    bytes[i + 1] = row[x].G;
+                    bytes[i + 2] = row[x].B;
+                }
+            }
+        });
+        System.IO.File.WriteAllBytes(outputPath, bytes);
+    }
+}
+#endif
+
+/// <summary>
 /// A land/ocean + elevation grid baked once from public-domain Natural Earth 1:110m land polygons: each grid row is
 /// scanline-filled by the even-odd rule against the polygon rings, then a distance transform gives land elevation
-/// (distance inland) and ocean depth (distance from shore) for colouring. Sampled by lat/long.
+/// (distance inland) and ocean depth (distance from shore) for colouring. Sampled by lat/long. Used for the globe's
+/// colouring only when <see cref="EarthTexture"/> is unavailable (and for the geography tests).
 /// </summary>
 internal sealed class EarthMask
 {

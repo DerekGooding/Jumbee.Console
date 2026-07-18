@@ -285,6 +285,24 @@ Short text: Made with Natural Earth.
 Long text: Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.
 
 
+License notice for NASA Blue Marble imagery
+--------------------------------------------
+https://svs.gsfc.nasa.gov/2915 / https://visibleearth.nasa.gov/
+
+Geo/earth_256x128.bin — the Globe control's natural-colour surface texture, an
+  8-byte header ([int32 width][int32 height], little-endian) followed by a 256x128
+  raw-RGB grid. Baked from NASA's "Blue Marble: Next Generation" cloud-free
+  equirectangular true-colour image (bluemarble-2048.png, 2048x1024), obtained from
+  https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png, by
+  decoding it and box-downsampling, then writing the pixels as raw RGB bytes
+  (row-major, top-left = 90N/180W). Regenerate at any resolution with the
+  GLOBE_TEXTURE_TOOL baker in src/Jumbee.Console/Controls/Globe.cs.
+
+NASA imagery is generally in the public domain and may be freely used. When
+republishing Blue Marble: Next Generation, NASA requests the credit
+"NASA Earth Observatory".
+
+
 License notice for Ratatui
 --------------------------
 https://github.com/ratatui/ratatui

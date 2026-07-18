@@ -106,7 +106,7 @@ internal sealed class AgentHarnessApp
 
     // The sidebar with a brand row docked above it.
     private ILayout SidebarPane() => new DockPanel(DockedControlPlacement.Top,
-        HeaderBar($" [{_coral}]✦[/] [{_text} bold]Claude[/]", $"[{_muted}]≡[/]", rightCells: 3),
+        HeaderBar($" [{_coral}]✦[/] [{_text} bold]Jumbee.Console[/]", $"[{_muted}]≡[/]", rightCells: 3),
         _sidebar.Layout);
 
     // The model / effort / permission selectors laid out left-to-right under the prompt.

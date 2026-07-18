@@ -39,6 +39,10 @@
     <EmbeddedResource Include="Geo\world_high.txt" />
     <!-- Land POLYGONS (closed rings), filled by the Globe's EarthMask. -->
     <EmbeddedResource Include="Geo\land_110m.txt" />
+    <!-- Public-domain NASA Blue Marble natural-colour texture (256x128, 8-byte header + raw RGB), sampled by the
+         Globe's EarthTexture for the from-space land/ocean colouring. Regenerate at any resolution with the
+         GLOBE_TEXTURE_TOOL baker in Globe.cs. See THIRD-PARTY-NOTICES.TXT. -->
+    <EmbeddedResource Include="Geo\earth_256x128.bin" />
   </ItemGroup>
 
 </Project>
