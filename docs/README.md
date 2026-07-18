@@ -1,6 +1,9 @@
 # Jumbee.Console — Documentation
 
 
+## Start here
+- [Getting Started](../GETTING-STARTED.md) — install, your first app, and the essential concepts.
+
 ## Reference
 - [API](./api)
 
