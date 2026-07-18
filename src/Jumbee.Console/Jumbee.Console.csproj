@@ -21,7 +21,7 @@
        PackageReferences (see NTokenizers below) become NuGet dependencies. -->
   <PropertyGroup Label="Packaging">
     <IsPackable>true</IsPackable>
-    <Description>A high-performance .NET library for building advanced terminal user interfaces (TUIs), pairing a retained-mode control/layout model with Spectre.Console text styling and widgets. Self-contained: bundles its forked ConsoleGUI, Spectre.Console, ConsolePlot and other dependencies. Consumers should not also reference the upstream Spectre.Console package.</Description>
+    <Description>A .NET library for retained-mode terminal user interfaces (TUIs) that focuses on performance and ease-of-use.</Description>
     <!-- Inject the bundled assemblies into the package's lib/ folder. -->
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_AddBundledAssembliesToPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>

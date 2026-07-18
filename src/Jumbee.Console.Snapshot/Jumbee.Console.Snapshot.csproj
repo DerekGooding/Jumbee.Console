@@ -16,7 +16,7 @@
        core Jumbee.Console package plus its own NuGet dependencies (SixLabors ImageSharp/Fonts). -->
   <PropertyGroup Label="Packaging">
     <IsPackable>true</IsPackable>
-    <Description>Headless snapshot testing for Jumbee.Console UIs: render controls to text or PNG without a real terminal, for unit tests and visual verification. Add-on to the Jumbee.Console package.</Description>
+    <Description>Headless snapshot testing for Jumbee.Console TUIs: render controls to text or PNG without a real terminal, for unit tests and visual verification.</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -14,7 +14,7 @@
        package plus its own NuGet dependencies (AdocNet, Mermaider). -->
   <PropertyGroup Label="Packaging">
     <IsPackable>true</IsPackable>
-    <Description>Document viewers and editors for Jumbee.Console: Markdown, AsciiDoc, and Mermaid diagram rendering controls for terminal UIs. Add-on to the Jumbee.Console package.</Description>
+    <Description>Document viewers and editors for Jumbee.Console: Markdown, AsciiDoc, and Mermaid diagram rendering and interactive editing controls for TUIs.</Description>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

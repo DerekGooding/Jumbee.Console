@@ -1,7 +1,6 @@
 # Getting Started with Jumbee.Console
 
-Jumbee.Console is a .NET library for building advanced TUIs that focusus on performance and ease-of-use. It pairs a retained-mode control/layout model (place controls in layouts, wrap them in frames, let the library redraw only
-what changed) with [Spectre.Console](https://spectreconsole.net/)'s rich text styling, markup, and rendering. If
+Jumbee.Console is a .NET library for building TUIs that are fast and take advantage of modern terminal capabilities. It uses a retained-mode control/layout model: place controls in layouts, let the library redraw only what changed. If
 you've built a desktop UI with WinForms or WPF, the model will feel familiar: a tree of controls, a single UI thread, and property changes that trigger a repaint.
 
 > Status: pre-release (v0.1.x). APIs may still change.
@@ -80,8 +79,10 @@ var root = new Grid(
 UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 UI.SetFocus(button);
 
-// Start the UI. This blocks until the UI stops. Mouse/hover need a VtInputSource; keyboard works without one.
-UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).Wait();
+// Start the UI. Mouse/hover need a VtInputSource; keyboard works without one.
+var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).
+// Wait till the UI tops.
+t.Wait();
 ```
 
 Run it in a real terminal (`dotnet run`). Click **Increment** or focus it and press **Enter/Space**; press
