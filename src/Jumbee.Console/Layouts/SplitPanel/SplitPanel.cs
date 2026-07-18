@@ -24,6 +24,7 @@ public enum SplitOrientation
 public class SplitPanel : Layout<SplitPanelDockPanel>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="SplitPanel"/> splitting <paramref name="first"/> and <paramref name="second"/> along <paramref name="orientation"/>, with the first pane given <paramref name="splitPosition"/> cells.</summary>
     public SplitPanel(SplitOrientation orientation, IFocusable first, IFocusable second, int splitPosition = 20)
         : base(new SplitPanelDockPanel(orientation, first.RenderNode(), second.RenderNode(),
             Math.Max(DefaultMin, splitPosition)))
@@ -109,10 +110,13 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     // navigation moves between the panes with the matching arrow keys (Ctrl+←/→ vs Ctrl+↑/↓).
     private bool IsHorizontal => _orientation == SplitOrientation.Horizontal;
 
+    /// <summary>Number of rows in the layout grid (3 for a vertical split's stacked panes+divider, otherwise 1).</summary>
     public override int Rows => IsHorizontal ? 1 : 3;
 
+    /// <summary>Number of columns in the layout grid (3 for a horizontal split's side-by-side panes+divider, otherwise 1).</summary>
     public override int Columns => IsHorizontal ? 3 : 1;
 
+    /// <summary>Gets the logical child at the given <paramref name="row"/> and <paramref name="column"/>: first pane, divider, or second pane.</summary>
     public override IFocusable this[int row, int column]
     {
         get
@@ -130,6 +134,7 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     }
 
     // Surface the focused descendant so a parent layout routing through this single IFocusable reaches it.
+    /// <inheritdoc/>
     public override IFocusable? FocusedControl => _first.FocusedControl ?? _divider.FocusedControl ?? _second.FocusedControl;
     #endregion
 

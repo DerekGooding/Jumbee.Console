@@ -14,6 +14,7 @@ using System.Linq;
 public class SelectionList : ToggleList
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="SelectionList"/> with the given <paramref name="options"/>.</summary>
     public SelectionList(params string[] options) : base(options) => ApplyTheme();
     #endregion
 
@@ -42,12 +43,16 @@ public class SelectionList : ToggleList
         SelectionChanged?.Invoke(this, index);
     }
 
+    /// <summary>Whether the option at <paramref name="index"/> is checked.</summary>
     public bool IsCheckedAt(int index) => _checked.Contains(index);
 
+    /// <inheritdoc/>
     protected override bool IsChecked(int index) => _checked.Contains(index);
 
+    /// <inheritdoc/>
     protected override void Activate(int index) => SetChecked(index, !_checked.Contains(index));
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         base.ApplyTheme();

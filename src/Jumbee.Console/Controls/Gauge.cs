@@ -20,6 +20,7 @@ using SStyle = Spectre.Console.Style;
 public class Gauge : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Gauge"/> with the given <paramref name="value"/> and full-bar <paramref name="max"/>.</summary>
     public Gauge(double value = 0, double max = 100)
     {
         Focusable = false;   // a passive display control: never a focus/tab target
@@ -54,17 +55,21 @@ public class Gauge : RenderableControl
     /// <summary>Recolours the fill (a fluent shorthand for <c>Style = Style.WithFill(color)</c>); marks it an override.</summary>
     public Gauge WithFill(Color color) { Style = _style.WithFill(color); return this; }
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(Style))) _style = UI.StyleTheme.Gauge;
     }
 
+    /// <summary>Content-only render (never reads focus/hover), so the cached buffer is reused on interactive-state changes.</summary>
     // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
     protected override bool RendersInteractiveState => false;
 
+    /// <summary>The gauge's fixed height of one row.</summary>
     // Fixed one row tall; fills the width its parent offers.
     protected override int IntrinsicHeight() => 1;
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         int width = Math.Max(1, maxWidth);

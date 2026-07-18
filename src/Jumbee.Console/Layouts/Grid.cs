@@ -45,15 +45,19 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
     #endregion
 
     #region Methods
+    /// <summary>Places <paramref name="child"/> in the cell at the given <paramref name="row"/> and <paramref name="column"/>.</summary>
     public void SetChild(int row, int column, IFocusable child)
     {
-        control.AddChild(column, row, child.FocusableControl);        
+        control.AddChild(column, row, child.FocusableControl);
     }
-        
+
+    /// <summary>Number of rows in the grid.</summary>
     public override int Rows => control.Rows.Length;
 
+    /// <summary>Number of columns in the grid.</summary>
     public override int Columns => control.Columns.Length;
 
+    /// <summary>Gets the control at the given <paramref name="row"/> and <paramref name="column"/>.</summary>
     public override IFocusable this[int row, int column] => (IFocusable) control.GetChild(column, row);
     #endregion   
 }

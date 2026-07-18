@@ -18,6 +18,7 @@ public readonly record struct FooterHint(string Key, string Label);
 public class Footer : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Footer"/> with the given key-binding hints.</summary>
     public Footer(params FooterHint[] hints)
     {
         Focusable = false;
@@ -57,17 +58,22 @@ public class Footer : RenderableControl
         Invalidate();
     });
 
+    /// <inheritdoc/>
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(KeyStyle))) _keyStyle = UI.StyleTheme.TextAccent;
         if (!IsThemeOverridden(nameof(LabelStyle))) _labelStyle = UI.StyleTheme.Text;
     }
 
+    /// <inheritdoc/>
     protected override int IntrinsicHeight() => 1;
+    /// <inheritdoc/>
     protected override int IntrinsicWidth() => 0;   // fill the width
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (maxWidth <= 0) yield break;

@@ -17,6 +17,8 @@ using Spectre.Console;
 public sealed class HelpControl : CompositeControl
 {
     #region Constructors
+    /// <summary>Initializes the help dialog with one tab per <paramref name="infos"/> entry, invoking
+    /// <paramref name="onClose"/> when closed and starting on tab <paramref name="initialTab"/>.</summary>
     public HelpControl(IReadOnlyList<HelpInfo> infos, Action onClose, int initialTab = 0)
     {
         var tabs = new (string, IFocusable)[infos.Count];
@@ -38,6 +40,7 @@ public sealed class HelpControl : CompositeControl
     #region Properties
     // Focus the active tab's header so the Left/Right arrows switch tabs straight away (and it matches the shown
     // tab); Esc closes, Ctrl-nav reaches the Close button.
+    /// <inheritdoc/>
     protected override Control? FocusChild =>
         _tabs.TabCount > 0 ? _tabs.Headers[Math.Max(0, _tabs.SelectedIndex)] : _close;
     #endregion

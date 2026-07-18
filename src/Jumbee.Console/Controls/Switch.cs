@@ -11,6 +11,7 @@ namespace Jumbee.Console;
 public class Switch : ToggleButton
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Switch"/> with the given label <paramref name="text"/> and initial <paramref name="isOn"/> state.</summary>
     public Switch(string text = "", bool isOn = false) : base(text)
     {
         ApplyTheme();
@@ -19,6 +20,7 @@ public class Switch : ToggleButton
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         base.ApplyTheme();

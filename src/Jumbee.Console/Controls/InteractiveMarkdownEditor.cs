@@ -45,8 +45,10 @@ public class InteractiveMarkdownEditor : InteractiveSourceEditor
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyPreviewText(string text) => Preview.Markdown = text;
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Markdown Editor", "Interactive Markdown Editor",
         "Edit Markdown on the left; a live preview (tables and code) renders on the right.")
         .WithKey("Type", "Edit the Markdown source")

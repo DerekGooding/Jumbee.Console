@@ -11,7 +11,7 @@ namespace Jumbee.Console;
 /// Only the literal glyphs rendered in controls live in <see cref="IGlyphTheme"/>. A theme defines
 /// <em>appearance only</em>; it never changes a control's behaviour. Members are default-implemented, so a
 /// custom theme overrides only what it wants to change. Because the members are default interface
-/// implementations, hold and read a theme through this interface type (e.g. <see cref="UI.StyleTheme"/>), not
+/// implementations, hold and read a theme through this interface type (e.g. <c>UI.StyleTheme</c>), not
 /// through a concrete class.
 /// </para>
 /// <para>
@@ -60,7 +60,7 @@ public interface IStyleTheme
     /// highlight, an underline, or a caret prefix. Defaults to <see cref="SelectionStyle.Highlight"/>.</summary>
     SelectionStyle SelectionStyle => SelectionStyle.Highlight;
 
-    /// <summary>The colour of a <see cref="Jumbee.Console.Tree"/>'s leaf glyph (the marker before a childless node).
+    /// <summary>The colour of a <c>Tree</c>'s leaf glyph (the marker before a childless node).
     /// Defaults to <see cref="TextAccent"/>.</summary>
     /// <remarks>Only its foreground is used.</remarks>
     Style TreeLeaf => TextAccent;
@@ -110,9 +110,13 @@ public interface IStyleTheme
     #endregion
 
     #region Status
+    /// <summary>The style for success messages and indicators.</summary>
     Style Success => Style.Green1;
+    /// <summary>The style for warning messages and indicators.</summary>
     Style Warning => Style.Yellow1;
+    /// <summary>The style for error messages and indicators.</summary>
     Style Error => Style.Red1;
+    /// <summary>The style for informational messages and indicators.</summary>
     Style Info => Style.SkyBlue1;
     #endregion
 
@@ -123,7 +127,7 @@ public interface IStyleTheme
     #endregion
 
     #region Gauge
-    /// <summary>The fill/track/text colours a <see cref="Jumbee.Console.Gauge"/> uses. Defaults to
+    /// <summary>The fill/track/text colours a <c>Gauge</c> uses. Defaults to
     /// <see cref="GaugeStyle.Default"/>.</summary>
     GaugeStyle Gauge => GaugeStyle.Default;
     #endregion

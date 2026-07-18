@@ -30,10 +30,10 @@ public abstract class InteractiveSourceEditor : CompositeControl
         _lastSynced = initialText ?? "";
 
         _editor = editor;
-        _editor.WithFrame(title: editorTitle);
+        _editor.WithFrame(title: editorTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.None);
 
         _previewControl = preview;
-        preview.WithFrame(title: previewTitle);
+        preview.WithFrame(title: previewTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.None);
 
         _split = new SplitPanel(orientation, _editor, preview, splitPosition);
 
@@ -103,12 +103,15 @@ public abstract class InteractiveSourceEditor : CompositeControl
 
     // Keyboard focus lands in the editor pane by default (SetContent skips nested composites, so it can't be picked
     // up as the automatic first-focusable).
+    /// <inheritdoc/>
     protected override Control? FocusChild => _editor;
 
     // Both panes scroll inside their own frames, so this editor fills a surrounding frame's viewport rather than
     // ballooning to content height (which would make that outer frame a second, conflicting scroller).
+    /// <inheritdoc/>
     protected internal override bool FillsFrameViewport => true;
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editor", "Interactive Editor",
         "Edit the source on the left; a live preview renders on the right.")
         .WithKey("Type", "Edit the source")

@@ -8,11 +8,17 @@ using Spectre.Console.Rendering;
 /// <summary>Preset colour schemes for a <see cref="Badge"/>, resolved from the active theme.</summary>
 public enum BadgeVariant
 {
+    /// <summary>The neutral default scheme.</summary>
     Default,
+    /// <summary>The theme's primary accent scheme.</summary>
     Primary,
+    /// <summary>The theme's secondary accent scheme.</summary>
     Secondary,
+    /// <summary>A green "success" scheme.</summary>
     Success,
+    /// <summary>A yellow "warning" scheme.</summary>
     Warning,
+    /// <summary>A red "error" scheme.</summary>
     Error,
 }
 
@@ -27,6 +33,7 @@ public enum BadgeVariant
 public class Badge : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Badge"/> with the given text and themed <see cref="BadgeVariant"/>.</summary>
     public Badge(string text, BadgeVariant variant = BadgeVariant.Default)
     {
         Focusable = false;
@@ -44,6 +51,7 @@ public class Badge : RenderableControl
     #endregion
 
     #region Properties
+    /// <summary>The badge's label text.</summary>
     public string Text
     {
         get => _text;
@@ -73,18 +81,23 @@ public class Badge : RenderableControl
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(Style))) _style = Resolve(_variant);
     }
 
+    /// <inheritdoc/>
     protected override int IntrinsicHeight() => 1;
+    /// <inheritdoc/>
     protected override int IntrinsicWidth() => DisplayWidth();
 
     private int DisplayWidth() => _text.Length + (2 * _padding);
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (maxWidth <= 0) yield break;

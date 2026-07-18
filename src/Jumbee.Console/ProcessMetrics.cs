@@ -189,11 +189,16 @@ public sealed class ProcessMetrics : IDisposable
     /// <summary>Total monitor lock contentions since process start — the no-lock dagger; 0 for the single-threaded UI.</summary>
     public long LockContentions => Monitor.LockContentionCount;
 
+    /// <summary>Cumulative number of generation-0 garbage collections since process start.</summary>
     public int Gen0Collections => GC.CollectionCount(0);
+    /// <summary>Cumulative number of generation-1 garbage collections since process start.</summary>
     public int Gen1Collections => GC.CollectionCount(1);
+    /// <summary>Cumulative number of generation-2 garbage collections since process start.</summary>
     public int Gen2Collections => GC.CollectionCount(2);
 
+    /// <summary>Current number of thread-pool worker threads.</summary>
     public int ThreadPoolThreadCount => ThreadPool.ThreadCount;
+    /// <summary>Number of work items currently queued to the thread pool.</summary>
     public long ThreadPoolQueueLength => ThreadPool.PendingWorkItemCount;
     #endregion
 
@@ -255,6 +260,7 @@ public sealed class ProcessMetrics : IDisposable
         Push(new Snapshot(timestamp, cpuMs, allocated, gcPauseMs, exceptions, workingSet));
     }
 
+    /// <summary>Stops collection and releases resources.</summary>
     public void Dispose()
     {
         Stop();

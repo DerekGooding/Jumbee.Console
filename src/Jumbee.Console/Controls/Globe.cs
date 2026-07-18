@@ -38,6 +38,7 @@ using SixLabors.ImageSharp.Processing;
 public class Globe : Control
 {
     #region Constructors
+    /// <summary>Initializes a new display-only <see cref="Globe"/> (not focusable).</summary>
     public Globe() => Focusable = false;   // display-only
     #endregion
 
@@ -157,10 +158,13 @@ public class Globe : Control
     }
 
     #region Input (active only when Interactive)
+    /// <summary>Receives mouse events only while <see cref="Interactive"/> (drag-rotate / wheel-zoom).</summary>
     protected override bool WantsMouse => _interactive;
 
+    /// <summary>Receives keyboard input only while <see cref="Interactive"/>; otherwise keys pass through for navigation.</summary>
     public override bool HandlesInput => _interactive;
 
+    /// <summary>Begins a drag and captures the mouse when interactive.</summary>
     protected override void OnMousePress(Position position)
     {
         if (!_interactive) return;
@@ -169,6 +173,7 @@ public class Globe : Control
         CaptureMouse();   // keep receiving move/up even when the pointer leaves the disc
     }
 
+    /// <summary>Spins the globe (horizontal drag) and tilts the camera (vertical drag) while dragging.</summary>
     protected override void OnMouseMove(Position position)
     {
         if (!_dragging) return;
@@ -180,6 +185,7 @@ public class Globe : Control
         CameraBeta += dy * DragTiltPerCell;
     }
 
+    /// <summary>Ends the drag and releases the mouse capture.</summary>
     protected override void OnMouseRelease(Position position)
     {
         if (!_dragging) return;
@@ -187,6 +193,7 @@ public class Globe : Control
         ReleaseMouse();
     }
 
+    /// <summary>Zooms the camera when interactive; otherwise defers to the base scroll behavior.</summary>
     protected override void OnMouseWheel(Position position, int delta)
     {
         if (!_interactive) { base.OnMouseWheel(position, delta); return; }
@@ -194,6 +201,7 @@ public class Globe : Control
         Zoom += delta * ZoomPerNotch;
     }
 
+    /// <summary>Handles arrow-key spin/tilt and <c>+</c>/<c>-</c> zoom when interactive.</summary>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (!_interactive) return;
@@ -217,12 +225,15 @@ public class Globe : Control
 
     // A globe fills its container and re-fits on resize; it must never be scrolled (inside a ControlFrame this hands
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
+    /// <summary>Always <see langword="true"/>: the globe fills its frame's viewport and is never scrolled.</summary>
     protected internal override bool FillsFrameViewport => true;
 
     // Opt into partial redraw: the disc is inscribed in (and usually narrower than) the pane, so reporting just the
     // drawn disc lets the compositor skip the blank margins.
+    /// <summary>Whether partial-redraw damage tracking is enabled (see <see cref="DamageTracking"/>).</summary>
     protected override bool TracksDamage => _damageTracking;
 
+    /// <summary>Ray-traces the sphere and writes the shaded half-block cells to the buffer.</summary>
     protected override void Render()
     {
         int w = Size.Width, h = Size.Height;

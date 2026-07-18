@@ -9,8 +9,10 @@ using System.Text;
 
 public partial class BarChart
 {
+    /// <summary>A single labelled, coloured item in a <see cref="BarChart"/>.</summary>
     public class BarChartItem
     {
+        /// <summary>Initializes a new <see cref="BarChartItem"/> owned by <paramref name="chart"/> with the given index, label, value and colour.</summary>
         public BarChartItem(BarChart chart, int index, string label, double value, Color color)
         {
             this.Index = index;
@@ -20,10 +22,12 @@ public partial class BarChart
             this.chart = chart;
         }
 
+        /// <summary>The item's stable index within its chart.</summary>
         public readonly int Index;
 
         private BarChart? chart;
 
+        /// <summary>The chart that owns this item, or <see langword="null"/> once detached.</summary>
         public BarChart? Chart => chart;
 
         /// <summary>
@@ -64,36 +68,52 @@ public partial class BarChart
             }
         }
 
+        /// <summary>Detaches this item from its chart so further changes no longer update it.</summary>
         public void Detach() => chart = null;
 
+        /// <summary>Whether this item has been detached from its chart.</summary>
         public bool IsDetached => chart is null;
 
+        /// <summary>Requests a redraw of the owning chart.</summary>
         public void UpdateChart() => chart?.Update();
 
 
     }
 
+    /// <summary>A single bar renderable within a <see cref="BarChart"/>.</summary>
     protected interface IBarControl : IRenderable
     {
+        /// <summary>The bar's value.</summary>
         double Value { get; set; }
+        /// <summary>The value corresponding to a full bar.</summary>
         double MaxValue { get; set; }
+        /// <summary>The bar's colour.</summary>
         Color Color { get; set; }
     }
 
+    /// <summary>A vertically-drawn bar in a <see cref="BarChart"/>.</summary>
     protected class VerticalBar : Renderable, IBarControl
     {
+        /// <summary>The bar's value.</summary>
         public double Value { get; set; }
+        /// <summary>The value corresponding to a full-height bar.</summary>
         public double MaxValue { get; set; }
+        /// <summary>The bar's height in rows.</summary>
         public int Height { get; set; }
+        /// <summary>The bar's colour.</summary>
         public Color Color { get; set; }
+        /// <summary>The glyph used to draw the bar in Unicode mode.</summary>
         public char UnicodeBar { get; set; } = '█';
+        /// <summary>The glyph used to draw the bar in ASCII mode.</summary>
         public char AsciiBar { get; set; } = '|';
 
+        /// <inheritdoc/>
         protected override Measurement Measure(RenderOptions options, int maxWidth)
         {
             return new Measurement(1, maxWidth);
         }
 
+        /// <inheritdoc/>
         protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
         {
             var barChar = !options.Unicode ? AsciiBar : UnicodeBar;
@@ -154,31 +174,47 @@ public partial class BarChart
         }
     }
 
+    /// <summary>A horizontally-drawn bar in a <see cref="BarChart"/>, optionally showing its value and remaining track.</summary>
     protected sealed class HorizontalBar : Renderable, IBarControl
     {
+        /// <summary>The bar's value.</summary>
         public double Value { get; set; }
+        /// <summary>The value corresponding to a full-width bar. Defaults to 100.</summary>
         public double MaxValue { get; set; } = 100;
 
+        /// <summary>The bar's width in cells, or <see langword="null"/> to fill the available width.</summary>
         public int? Width { get; set; }
+        /// <summary>Whether the remaining (unfilled) portion of the track is drawn. Defaults to <see langword="true"/>.</summary>
         public bool ShowRemaining { get; set; } = true;
+        /// <summary>The glyph used to draw the bar in Unicode mode.</summary>
         public char UnicodeBar { get; set; } = '━';
+        /// <summary>The glyph used to draw the bar in ASCII mode.</summary>
         public char AsciiBar { get; set; } = '-';
+        /// <summary>Whether the formatted value is shown after the bar.</summary>
         public bool ShowValue { get; set; }
+        /// <summary>The culture used to format the value, or <see langword="null"/> for the invariant culture.</summary>
         public CultureInfo? Culture { get; set; }
+        /// <summary>An optional custom formatter for the value.</summary>
         public Func<double, CultureInfo, string>? ValueFormatter { get; set; }
 
+        /// <summary>The bar's colour (sets both the completed and finished styles).</summary>
         public Color Color { get => CompletedStyle; set { CompletedStyle = value; FinishedStyle = value; } }
 
+        /// <summary>The style of the filled portion while the bar is incomplete. Defaults to yellow.</summary>
         public Style CompletedStyle { get; set; } = Color.Yellow;
+        /// <summary>The style of the filled portion once the bar is complete. Defaults to green.</summary>
         public Style FinishedStyle { get; set; } = Color.Green;
+        /// <summary>The style of the remaining (unfilled) portion. Defaults to grey.</summary>
         public Style RemainingStyle { get; set; } = Color.Grey;
 
+        /// <inheritdoc/>
         protected override Measurement Measure(RenderOptions options, int maxWidth)
         {
             var width = Math.Min(Width ?? maxWidth, maxWidth);
             return new Measurement(4, width);
         }
 
+        /// <inheritdoc/>
         protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
         {
             var width = Math.Min(Width ?? maxWidth, maxWidth);

@@ -36,8 +36,10 @@ public class InteractiveAsciiDocEditor : InteractiveSourceEditor
     #endregion
 
     #region Methods
+    /// <summary>Pushes the edited <paramref name="text"/> into the preview pane's <see cref="AsciiDocViewer.AsciiDoc"/>.</summary>
     protected override void ApplyPreviewText(string text) => Preview.AsciiDoc = text;
 
+    /// <inheritdoc/>
     // GetHelpInfo overrides Control's protected internal member from another assembly, so it must be plain protected.
     protected override HelpInfo? GetHelpInfo() => new HelpInfo("AsciiDoc Editor", "Interactive AsciiDoc Editor",
         "Edit AsciiDoc on the left; a live preview renders on the right.")

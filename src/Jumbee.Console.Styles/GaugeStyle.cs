@@ -1,7 +1,7 @@
 namespace Jumbee.Console;
 
 /// <summary>
-/// The per-part <see cref="Style"/> a <see cref="Jumbee.Console.Gauge"/> composes: the filled portion of the bar,
+/// The per-part <see cref="Style"/> a <c>Gauge</c> composes: the filled portion of the bar,
 /// the empty track behind it, and the percent/value readout (and any inline label).
 /// </summary>
 /// <remarks>Only the foreground colour of <see cref="Fill"/>/<see cref="Track"/> is used — the bar is drawn as a
@@ -9,6 +9,7 @@ namespace Jumbee.Console;
 public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="GaugeStyle"/> from the fill, track, and text styles.</summary>
     public GaugeStyle(Style fill, Style track, Style text)
     {
         Fill = fill;
@@ -44,14 +45,19 @@ public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
     #region Equality
     // Hand-written: Style holds a reference, so the runtime's default ValueType.Equals falls back to a reflective,
     // boxing field-by-field compare — which is what SetAtomicProperty would run on every assignment. See Color.
+    /// <summary>Determines whether this <see cref="GaugeStyle"/> equals <paramref name="other"/>.</summary>
     public bool Equals(GaugeStyle other) => Fill == other.Fill && Track == other.Track && Text == other.Text;
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is GaugeStyle other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode() => System.HashCode.Combine(Fill, Track, Text);
 
+    /// <summary>Equality operator.</summary>
     public static bool operator ==(GaugeStyle a, GaugeStyle b) => a.Equals(b);
 
+    /// <summary>Inequality operator.</summary>
     public static bool operator !=(GaugeStyle a, GaugeStyle b) => !a.Equals(b);
     #endregion
 }

@@ -33,6 +33,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class Canvas : Control
 {
     #region Constructors
+    /// <summary>Initializes a new display-only <see cref="Canvas"/> (not focusable).</summary>
     public Canvas() => Focusable = false;   // display-only
     #endregion
 
@@ -288,11 +289,14 @@ public class Canvas : Control
     }
 
     #region Input (pan/zoom, active only when Interactive)
+    /// <summary>Receives mouse events only while <see cref="Interactive"/> (drag-pan / wheel-zoom).</summary>
     protected override bool WantsMouse => _interactive;
 
     // Receive keyboard input (arrows / +-) only when interactive; otherwise keys pass through for navigation.
+    /// <summary>Receives keyboard input only while <see cref="Interactive"/>; otherwise keys pass through for navigation.</summary>
     public override bool HandlesInput => _interactive;
 
+    /// <summary>Begins a drag-pan and captures the mouse when interactive.</summary>
     protected override void OnMousePress(Position position)
     {
         if (!_interactive) return;
@@ -301,6 +305,7 @@ public class Canvas : Control
         CaptureMouse();
     }
 
+    /// <summary>Pans the viewport to follow the cursor while dragging.</summary>
     protected override void OnMouseMove(Position position)
     {
         if (!_dragging) return;
@@ -308,6 +313,7 @@ public class Canvas : Control
         _lastDrag = position;
     }
 
+    /// <summary>Ends the drag-pan and releases the mouse capture.</summary>
     protected override void OnMouseRelease(Position position)
     {
         if (!_dragging) return;
@@ -315,6 +321,7 @@ public class Canvas : Control
         ReleaseMouse();
     }
 
+    /// <summary>Zooms the viewport about the cursor when interactive; otherwise defers to the base scroll behavior.</summary>
     protected override void OnMouseWheel(Position position, int delta)
     {
         if (!_interactive) { base.OnMouseWheel(position, delta); return; }
@@ -322,6 +329,7 @@ public class Canvas : Control
         ZoomAround(position.X, position.Y, Math.Pow(ZoomFactorPerNotch, delta));
     }
 
+    /// <summary>Handles arrow-key pan and <c>+</c>/<c>-</c> zoom when interactive.</summary>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (!_interactive) return;
@@ -401,8 +409,10 @@ public class Canvas : Control
 
     // A canvas fills its container and re-fits on resize; it must never be scrolled (inside a ControlFrame this hands
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
+    /// <summary>Always <see langword="true"/>: the canvas fills its frame's viewport and is never scrolled.</summary>
     protected internal override bool FillsFrameViewport => true;
 
+    /// <summary>Rebuilds the composited layers when needed and blits them (with labels) to the buffer.</summary>
     protected override void Render()
     {
         int w = Size.Width, h = Size.Height;
@@ -423,6 +433,7 @@ public class Canvas : Control
         FinishDamage(w, h);
     }
 
+    /// <summary>Whether partial-redraw damage tracking is enabled (see <see cref="DamageTracking"/>).</summary>
     protected override bool TracksDamage => _damageTracking;
 
     // Damage is reported from the two places that write cells — Blit (layers) and DrawLabels — rather than by

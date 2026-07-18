@@ -26,6 +26,7 @@ using CColor = ConsoleGUI.Data.Color;
 public sealed class AnsiScreen
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="AnsiScreen"/> with a blank <paramref name="width"/>×<paramref name="height"/> cell grid.</summary>
     public AnsiScreen(int width, int height)
     {
         _width = width;

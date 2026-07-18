@@ -32,7 +32,9 @@ public sealed class WorldMap : IShape
         Resolution = resolution;
     }
 
+    /// <summary>Colour of the map points.</summary>
     public Color Color { get; }
+    /// <summary>Point density of the coastline sampling.</summary>
     public MapResolution Resolution { get; }
 
     void IShape.Draw(Painter painter)

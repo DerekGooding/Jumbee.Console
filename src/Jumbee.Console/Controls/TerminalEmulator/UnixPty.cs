@@ -32,11 +32,14 @@ public sealed class UnixPty : IPty
     #endregion
 
     #region Properties
+    /// <inheritdoc/>
     public Stream Input { get; }
+    /// <inheritdoc/>
     public Stream Output { get; }
     #endregion
 
     #region Events
+    /// <inheritdoc/>
     public event Action? Exited;
     #endregion
 
@@ -126,6 +129,7 @@ public sealed class UnixPty : IPty
         return pty;
     }
 
+    /// <inheritdoc/>
     public void Resize(short columns, short rows)
     {
         if (_controller < 0) return;
@@ -133,6 +137,7 @@ public sealed class UnixPty : IPty
         ioctl(_controller, TIOCSWINSZ, ref winSize);
     }
 
+    /// <summary>Sends SIGHUP to the child process and disposes the pty streams.</summary>
     public void Dispose()
     {
         if (_pid > 0) kill(_pid, SIGHUP);

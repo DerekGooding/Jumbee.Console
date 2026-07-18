@@ -30,13 +30,20 @@ public sealed class AsciiDocLanguage : ILanguage
     #endregion
 
     #region ILanguage
+    /// <summary>The ColorCode language id (<c>"asciidoc"</c>).</summary>
     public string Id => "asciidoc";
+    /// <summary>The display name.</summary>
     public string Name => "AsciiDoc";
+    /// <summary>The CSS class name used for HTML output.</summary>
     public string CssClassName => "asciidoc";
+    /// <summary>First-line detection pattern (unused; <see langword="null"/>).</summary>
     public string FirstLinePattern => null!;
+    /// <summary>Returns <see langword="true"/> when <paramref name="lang"/> is a known alias (<c>asciidoc</c>/<c>adoc</c>/<c>asc</c>).</summary>
     public bool HasAlias(string lang) => lang is "asciidoc" or "adoc" or "asc";
+    /// <inheritdoc/>
     public override string ToString() => Name;
 
+    /// <summary>The ordered highlighting rules (the first to match a position wins).</summary>
     public IList<LanguageRule> Rules => new List<LanguageRule>
     {
         // // line comment (also colours a //// comment-block fence line; content between fences is not tracked).

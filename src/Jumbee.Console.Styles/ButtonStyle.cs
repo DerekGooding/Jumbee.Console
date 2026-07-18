@@ -12,7 +12,7 @@ public enum ButtonShape
 
 /// <summary>
 /// The appearance of a <c>Button</c>: its fill <see cref="Style"/> in each interaction state (text colour +
-/// background), how it is bordered (<see cref="Border"/>), an optional fixed/minimum width, and whether the label
+/// background), its <see cref="Shape"/>, an optional fixed/minimum width, and whether the label
 /// is bold.
 /// </summary>
 /// <remarks>
@@ -23,6 +23,7 @@ public enum ButtonShape
 public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="ButtonStyle"/> from the per-state fills, shape, bevel colours, bold flag, and width constraints.</summary>
     public ButtonStyle(Style normal, Style hover, Style press,
         ButtonShape shape = ButtonShape.Flat,
         Color? bevelLight = null,
@@ -96,13 +97,16 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
     // EqualityComparer<T>.Default. Measured on EQUAL values (the usual answer to "did it change?", and the worst
     // case since nothing can early-out): 368ns and 672 bytes per comparison, versus 8.8ns and nothing with this.
     // See Color for the same fix.
+    /// <summary>Determines whether this <see cref="ButtonStyle"/> equals <paramref name="other"/>.</summary>
     public bool Equals(ButtonStyle other) =>
         Normal == other.Normal && Hover == other.Hover && Press == other.Press && Shape == other.Shape
         && System.Nullable.Equals(BevelLight, other.BevelLight) && System.Nullable.Equals(BevelDark, other.BevelDark)
         && Bold == other.Bold && Width == other.Width && MinWidth == other.MinWidth;
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is ButtonStyle other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         var hash = new System.HashCode();
@@ -118,8 +122,10 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
         return hash.ToHashCode();
     }
 
+    /// <summary>Equality operator.</summary>
     public static bool operator ==(ButtonStyle a, ButtonStyle b) => a.Equals(b);
 
+    /// <summary>Inequality operator.</summary>
     public static bool operator !=(ButtonStyle a, ButtonStyle b) => !a.Equals(b);
     #endregion
 

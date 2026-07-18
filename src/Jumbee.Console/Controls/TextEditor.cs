@@ -19,24 +19,43 @@ using ColorCode;
 /// </summary>
 public enum Language
 {
+    /// <summary>No highlighting; plain text.</summary>
     None,
+    /// <summary>Markdown.</summary>
     Markdown,
+    /// <summary>JSON.</summary>
     Json,
+    /// <summary>HTML.</summary>
     Html,
+    /// <summary>CSS.</summary>
     Css,
+    /// <summary>C#.</summary>
     CSharp,
+    /// <summary>SQL.</summary>
     Sql,
+    /// <summary>TypeScript.</summary>
     TypeScript,
+    /// <summary>XML.</summary>
     Xml,
+    /// <summary>YAML.</summary>
     Yaml,
+    /// <summary>TOML.</summary>
     Toml,
+    /// <summary>C.</summary>
     C,
+    /// <summary>C++.</summary>
     Cpp,
+    /// <summary>Go.</summary>
     Go,
+    /// <summary>Java.</summary>
     Java,
+    /// <summary>Kotlin.</summary>
     Kotlin,
+    /// <summary>Python.</summary>
     Python,
+    /// <summary>Rust.</summary>
     Rust,
+    /// <summary>Swift.</summary>
     Swift
 }
 
@@ -46,6 +65,7 @@ public enum Language
 public class TextEditor : Control
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="TextEditor"/> highlighted for the given <paramref name="language"/>, with optional caret display and blink.</summary>
     public TextEditor(Language language = Language.None, bool showCursor = true, bool blinkCursor = false) : base()
     {
         this._language = language;
@@ -65,23 +85,28 @@ public class TextEditor : Control
     #endregion
 
     #region Properties
+    /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
+    /// <summary>Reports <see langword="true"/>: the caret indicates focus, so no default focus tint is drawn.</summary>
     protected override bool RendersOwnFocus => true;   // the caret/cursor shows focus
 
     /// <summary>The number of spaces inserted when the Tab key is pressed. Defaults to 4.</summary>
     public int TabWidth { get; set; } = 4;
 
+    /// <summary>Whether the caret is drawn.</summary>
     public bool ShowCursor
     {
         get => _showCursor;
         set => SetAtomicProperty(ref _showCursor, value);
     }
+    /// <summary>Whether the caret blinks.</summary>
     public bool BlinkCursor
     {
         get => _blinkCursor;
         set => SetAtomicProperty(ref _blinkCursor, value);
     }
-    
+
+    /// <summary>The caret's column within the viewport.</summary>
     public int CursorX
     {
         get => ansiConsole.CursorX;
@@ -94,6 +119,7 @@ public class TextEditor : Control
         }
     }
 
+    /// <summary>The caret's row within the viewport.</summary>
     public int CursorY
     {
         get => ansiConsole.CursorY;
@@ -211,10 +237,12 @@ public class TextEditor : Control
     public event EventHandler? Changed;
     #endregion
 
-    #region Methods   
+    #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme() =>
         _selectionBg = UI.StyleTheme.Selection.BackgroundColor?.ToConsoleGUIColor();
 
+    /// <inheritdoc/>
     protected override void Control_OnInitialization()
     {
         if (!string.IsNullOrEmpty(input))
@@ -230,6 +258,7 @@ public class TextEditor : Control
         _selectionDirty = false;
     }
 
+    /// <summary>Re-highlights the text when it or the selection changed, then draws the caret.</summary>
     protected override void Render()
     {
         // Rebuild the buffer when the text changed (newInput) OR the selection changed (so the old highlight is
@@ -274,6 +303,7 @@ public class TextEditor : Control
         }
     }
 
+    /// <summary>Inserts pasted <paramref name="text"/> at the caret in one shot, replacing any selection.</summary>
     // Insert a whole paste at the caret in one shot (no per-key re-interpretation; newlines kept verbatim).
     public override void OnPaste(string text)
     {
@@ -296,6 +326,7 @@ public class TextEditor : Control
     private static string NormalizeNewlines(string? text) =>
         string.IsNullOrEmpty(text) ? string.Empty : text.Replace("\r\n", "\n").Replace('\r', '\n');
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         var key = inputEvent.Key;
@@ -438,6 +469,7 @@ public class TextEditor : Control
     private int SelStart => Math.Min(_selAnchor < 0 ? caretPosition : _selAnchor, caretPosition);
     private int SelEnd => Math.Max(_selAnchor < 0 ? caretPosition : _selAnchor, caretPosition);
 
+    /// <summary>Positions and shows or hides the terminal caret according to the current focus and cursor settings.</summary>
     protected void RenderCursor()
     {
         var pos = GetCursorPositionFromCaret(caretPosition);
@@ -456,10 +488,12 @@ public class TextEditor : Control
     /// <summary>The column the text wraps at — the rendered buffer width.</summary>
     private int WrapWidth => Math.Max(1, ActualWidth);
 
+    /// <inheritdoc/>
     // Report the wrapped row count as the content height so a surrounding ControlFrame sizes the editor to its
     // content and scrolls accurately (measured at the layout width, which may differ from the current ActualWidth).
     protected override int MeasureHeight(int width) => BuildVisualRows(width).Count;
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editor", "Editor", "A multi-line text editor.")
         .WithKey("Arrows", "Move the caret")
         .WithKey("Shift+Arrows", "Select text")

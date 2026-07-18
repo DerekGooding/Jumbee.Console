@@ -28,6 +28,7 @@ using Spectre.Console.Rendering;
 public class AsciiDocViewer : Control
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="AsciiDocViewer"/> showing <paramref name="asciiDoc"/>.</summary>
     public AsciiDocViewer(string asciiDoc = "") => _asciiDoc = asciiDoc ?? "";
     #endregion
 
@@ -53,13 +54,16 @@ public class AsciiDocViewer : Control
         set => UI.Invoke(() => { _styles = value; _version++; Initialize(); });
     }
 
+    /// <summary>Always <see langword="true"/> — the viewer handles scroll keys.</summary>
     public override bool HandlesInput => true;
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     // A viewer paints its own content; don't overlay the themed focus tint over the whole document.
     protected override bool RendersOwnFocus => true;
 
+    /// <inheritdoc/>
     protected override HelpInfo? GetHelpInfo() => new HelpInfo("AsciiDoc", "AsciiDoc Viewer",
         "A read-only, scrollable AsciiDoc viewer.")
         .WithKey("↑ / ↓", "Scroll a line")
@@ -69,6 +73,7 @@ public class AsciiDocViewer : Control
     // Our content height at this width. Rendering (once per width/text) yields the true height; until the render for
     // this width is ready, report a rough estimate so a surrounding frame allocates a sensible height (replaced when
     // the render completes and re-lays-out). Consulted only when the parent leaves the height unbounded (scrolling).
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width)
     {
         var w = Math.Max(1, width);
@@ -78,6 +83,7 @@ public class AsciiDocViewer : Control
             : EstimateHeight();
     }
 
+    /// <inheritdoc/>
     protected override void Render()
     {
         EnsureRender(Math.Max(1, Size.Width));
@@ -85,6 +91,7 @@ public class AsciiDocViewer : Control
         Blit();
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (Frame is not { } frame) return;

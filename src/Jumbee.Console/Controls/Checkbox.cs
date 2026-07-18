@@ -10,6 +10,7 @@ namespace Jumbee.Console;
 public class Checkbox : ToggleButton
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Checkbox"/> with the given label and initial checked state.</summary>
     public Checkbox(string text = "", bool isChecked = false) : base(text)
     {
         ApplyTheme();
@@ -18,6 +19,7 @@ public class Checkbox : ToggleButton
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         base.ApplyTheme();

@@ -15,6 +15,7 @@ using System.Linq;
 public class MultiTabCodeEditor : CompositeControl
 {
     #region Constructors
+    /// <summary>Initializes an empty editor group whose new documents default to <paramref name="defaultLanguage"/>.</summary>
     public MultiTabCodeEditor(Language defaultLanguage = Language.None)
     {
         _defaultLanguage = defaultLanguage;
@@ -191,8 +192,10 @@ public class MultiTabCodeEditor : CompositeControl
     // Each editor scrolls inside its own per-tab frame (see OpenDocument), so this group must fill a surrounding
     // ControlFrame's viewport rather than balloon to content height — otherwise that outer frame becomes a second
     // scroller and the mouse wheel (routed to the per-tab frame) targets the wrong one and no-ops.
+    /// <inheritdoc/>
     protected internal override bool FillsFrameViewport => true;
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editors", "Editor Group",
         "A tabbed group of code editors.")
         .WithKey("Alt+← / Alt+→", "Switch tab")

@@ -15,7 +15,7 @@ using S = Spectre.Console;
 /// <para>The panel is frosted glass (the app shows through as soft tinted smudges, not raw glyphs); the readout is
 /// drawn crisply on top; it refreshes itself a few times a second while shown.</para>
 /// <para>Timing comes from <see cref="UI.AverageDrawTime"/>/<see cref="UI.AveragePaintTime"/>; process metrics
-/// are read directly from <see cref="Process"/>/<see cref="GC"/>/<see cref="Monitor"/> and differenced across
+/// are read directly from <see cref="Process"/>/<see cref="GC"/>/<see cref="System.Threading.Monitor"/> and differenced across
 /// refreshes, so no external sampling has to be running. Show it with <see cref="GlassPanel.Show"/> /
 /// <see cref="ShowTopRight"/>, toggle with <see cref="GlassPanel.Toggle"/> or <see cref="RegisterToggle"/>.</para>
 /// </remarks>
@@ -123,6 +123,7 @@ public sealed class PerfHud : GlassPanel
         }
     }
 
+    /// <summary>Unsubscribes from the paint loop and releases the base control's resources.</summary>
     public override void Dispose()
     {
         UI.Paint -= OnHudPaint;

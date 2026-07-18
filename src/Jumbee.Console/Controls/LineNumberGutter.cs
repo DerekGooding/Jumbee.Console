@@ -17,6 +17,7 @@ using Spectre.Console.Rendering;
 public class LineNumberGutter : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a <see cref="LineNumberGutter"/>.</summary>
     public LineNumberGutter()
     {
         Focusable = false;   // an adornment: never in the tab order, never owns the cursor
@@ -62,15 +63,18 @@ public class LineNumberGutter : RenderableControl
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(NumberStyle))) _numberStyle = UI.StyleTheme.TextMuted;
         if (!IsThemeOverridden(nameof(ActiveStyle))) _activeStyle = UI.StyleTheme.TextAccent;
     }
 
+    /// <inheritdoc/>
     // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var width = Math.Min(ActualWidth > 0 ? ActualWidth : maxWidth, maxWidth);

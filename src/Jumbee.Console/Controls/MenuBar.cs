@@ -21,6 +21,7 @@ using Spectre.Console.Rendering;
 public class MenuBar : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes an empty <see cref="MenuBar"/>.</summary>
     public MenuBar() { }
     #endregion
 
@@ -30,8 +31,11 @@ public class MenuBar : RenderableControl
     #endregion
 
     #region Properties
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
+    /// <inheritdoc/>
     protected override bool WantsMouse => true;
+    /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;   // highlights the active menu item
     #endregion
 
@@ -44,9 +48,12 @@ public class MenuBar : RenderableControl
         return this;
     }
 
+    /// <inheritdoc/>
     protected override int IntrinsicHeight() => 1;
+    /// <inheritdoc/>
     protected override int IntrinsicWidth() => 0;   // fill the width; titles sit at the left
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         switch (inputEvent.Key.Key)
@@ -63,8 +70,10 @@ public class MenuBar : RenderableControl
         inputEvent.Handled = true;
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseMove(Position position) => RecordOrigin(position);
 
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         RecordOrigin(position);
@@ -74,6 +83,7 @@ public class MenuBar : RenderableControl
         OpenActive();
     }
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("MenuBar", "Menu bar", "Application menus.")
         .WithKey("Left / Right", "Move between menus")
         .WithKey("Enter / Down", "Open a menu");
@@ -137,6 +147,7 @@ public class MenuBar : RenderableControl
         return -1;
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (maxWidth <= 0) yield break;

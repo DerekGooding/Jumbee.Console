@@ -10,22 +10,28 @@ using Spectre.Console;
 /// behaviour, though glyphs of a different cell width do change a control's measured size (controls derive their
 /// layout from the themed glyph's width rather than assuming a constant). Members are default-implemented;
 /// override only the glyphs you want to change, and read the theme through this interface type (e.g.
-/// <see cref="UI.GlyphTheme"/>).
+/// <c>UI.GlyphTheme</c>).
 /// </remarks>
 public interface IGlyphTheme
 {
     #region Checkbox
+    /// <summary>Glyph for a checked checkbox.</summary>
     string CheckboxChecked => "[X]";
+    /// <summary>Glyph for an unchecked checkbox.</summary>
     string CheckboxUnchecked => "[ ]";
     #endregion
 
     #region Radio
+    /// <summary>Glyph for a selected radio button.</summary>
     string RadioSelected => "(●)";     // (●)
+    /// <summary>Glyph for an unselected radio button.</summary>
     string RadioUnselected => "( )";
     #endregion
 
     #region Switch
+    /// <summary>Glyph for a switch in the on position.</summary>
     string SwitchOn => "(─●)";    // (─●)
+    /// <summary>Glyph for a switch in the off position.</summary>
     string SwitchOff => "(●─)";   // (●─)
     #endregion
 

@@ -11,7 +11,7 @@ using ConsoleGUI.Space;
 /// The visual scaffold behind <see cref="TabPanel"/>: a ConsoleGUI <see cref="ConsoleGUI.Controls.DockPanel"/> that
 /// docks a thin tab bar (a horizontal or vertical stack of <see cref="TabHeader"/> cells) on one edge and fills the
 /// rest with the active tab's content. It does no selection bookkeeping — <see cref="TabPanel"/> owns the model and
-/// drives this through <see cref="AddHeader"/> / <see cref="SetFill"/>.
+/// drives this through <see cref="SetHeaders"/> / <see cref="SetFill"/>.
 /// </summary>
 public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
 {
@@ -44,12 +44,14 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
     #endregion
 
     #region Properties
+    /// <summary><see langword="true"/> when the tab bar runs horizontally (docked top or bottom).</summary>
     public bool IsHorizontalTabBar { get; }
     #endregion
 
     #region Methods
     // Replace the whole bar with the given headers, in order — the single path for add/remove/reorder/hide, since the
     // stack panels only append/remove and can't insert at a position.
+    /// <summary>Replaces the entire tab bar with <paramref name="headers"/>, in order.</summary>
     public void SetHeaders(IEnumerable<IControl> headers)
     {
         if (_bar is ConsoleGUI.Controls.HorizontalStackPanel h) h.Children = headers;
@@ -57,6 +59,7 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
     }
 
     // Resize a vertical bar's cross-axis to the widest visible label (a horizontal bar stays one row tall).
+    /// <summary>Sets a vertical bar's cross-axis width to <paramref name="thickness"/> (no-op for a horizontal bar).</summary>
     public void SetBarThickness(int thickness)
     {
         if (IsHorizontalTabBar) return;
@@ -65,6 +68,7 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
     }
 
     // Null clears the fill (the empty state when no tab is selectable); DrawingContext tolerates a null child.
+    /// <summary>Sets the fill region to the active tab's <paramref name="content"/>, or <see langword="null"/> to clear it.</summary>
     public void SetFill(IControl? content) => FillingControl = content!;
     #endregion
 

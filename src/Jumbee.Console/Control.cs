@@ -16,6 +16,7 @@ using ConsoleGUI.Space;
 public abstract class Control : CControl, IFocusable, IDisposable, IMouseListener, IMouseWheelListener
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Control"/>, creating its render buffers and wiring up paint, theme, focus, and initialization handlers.</summary>
     public Control() : base()
     {
         consoleBuffer = new ConsoleBuffer();
@@ -31,7 +32,8 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
    
     #endregion
 
-    #region Indexers    
+    #region Indexers
+    /// <summary>Gets the composited <see cref="Cell"/> at <paramref name="position"/>, applying the default focus cue and attaching this control as the cell's mouse listener where applicable.</summary>
     public override Cell this[Position position]
     {
         get
@@ -85,6 +87,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #endregion
 
     #region Properties
+    /// <summary>The requested width in cells; setting it resizes the control. 0 (the default) fills the space the parent offers.</summary>
     public virtual int Width
     {
         get => field;
@@ -98,8 +101,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         }
     }
 
+    /// <summary>The control's actual laid-out width in cells.</summary>
     public int ActualWidth => Size.Width;
-    
+
+    /// <summary>The requested height in cells; setting it resizes the control. 0 (the default) fills the space the parent offers.</summary>
     public virtual int Height
     {
         get => field;
@@ -113,10 +118,13 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         }
     }
 
+    /// <summary>The control's actual laid-out height in cells.</summary>
     public int ActualHeight => Size.Height;
 
+    /// <summary><see langword="true"/> once the control has a non-empty laid-out size.</summary>
     public bool HasLayout => ActualWidth > 0 && ActualHeight > 0;
 
+    /// <summary>The optional <see cref="ControlFrame"/> drawing borders, margins, scrollbars, and a titlebar around this control, or <see langword="null"/>.</summary>
     public ControlFrame? Frame
     {
         get => field;
@@ -132,6 +140,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         }
     }
 
+    /// <summary><see langword="true"/> when this control has a <see cref="Frame"/>.</summary>
     public bool HasFrame => Frame is not null;
 
     /// <summary>The composite that owns this control as one of its children (set by <see cref="CompositeControl"/>),
@@ -142,8 +151,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>The outermost navigable focus unit for this control: the topmost owning composite, or itself.</summary>
     internal Control FocusRoot => Owner?.FocusRoot ?? this;
 
+    /// <summary>When <see langword="true"/> (the default), this control can receive keyboard focus.</summary>
     public bool Focusable { get; set; } = true;
 
+    /// <summary>Whether this control currently holds keyboard focus; setting it raises the focus events and repaints so the terminal cursor moves.</summary>
     public bool IsFocused
     {
         get => field;
@@ -168,6 +179,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         }
     }
 
+    /// <summary>The focus target the UI registers for this control — its <see cref="Frame"/> when framed (so the frame handles input routing), otherwise the control itself.</summary>
     public IFocusable FocusableControl => this.Frame is not null ? this.Frame : this;
 
     /// <summary>
@@ -180,8 +192,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// </remarks>
     public virtual IFocusable? FocusedControl => Focusable && IsFocused ? this : null;
 
+    /// <summary>When <see langword="true"/>, this control processes keyboard input dispatched to it; the default (<see langword="false"/>) ignores it.</summary>
     public virtual bool HandlesInput { get; } = false;
-    
+
+    /// <summary>Dispatches a UI input event to <see cref="OnInput(InputEvent)"/> when <see cref="HandlesInput"/> is set.</summary>
     public void OnInput(UI.InputEventArgs inputEventArgs)
     {
         // Input is dispatched on the UI thread (the input reader posts it there), so no lock is needed.
@@ -191,6 +205,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         }
     }
 
+    /// <summary>Handles a keyboard input event; override on input-handling controls. The default is a no-op.</summary>
     protected virtual void OnInput(InputEvent inputEvent) {}
 
     /// <summary><see langword="true"/> while the pointer is over this control (between enter and leave).</summary>
@@ -217,12 +232,19 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected virtual bool RendersOwnFocus => false;
 
     #region Mouse hooks (override to react; defaults are no-ops)
+    /// <summary>Called when the pointer enters the control.</summary>
     protected virtual void OnMouseEnter() {}
+    /// <summary>Called when the pointer leaves the control.</summary>
     protected virtual void OnMouseLeave() {}
+    /// <summary>Called as the pointer moves within the control (relative position).</summary>
     protected virtual void OnMouseMove(Position position) {}
+    /// <summary>Called when a button is pressed over the control (relative position).</summary>
     protected virtual void OnMousePress(Position position) {}
+    /// <summary>Called when a button is released over the control (relative position).</summary>
     protected virtual void OnMouseRelease(Position position) {}
+    /// <summary>Called on a press+release on this control (relative position).</summary>
     protected virtual void OnClick(Position position) {}
+    /// <summary>Called on two clicks within <see cref="DoubleClickMs"/> at the same position.</summary>
     protected virtual void OnDoubleClick(Position position) {}
 
     /// <summary>
@@ -327,6 +349,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #endregion
 
     #region Methods
+    /// <summary>Cancels any live feeds and detaches the control's paint, theme, and frame event handlers.</summary>
     public virtual void Dispose()
     {
         CancelFeeds();
@@ -375,8 +398,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     // Move focus here *exclusively*, the same as click-to-focus. Setting IsFocused directly would leave any
     // previously-focused control focused too (only UI.SetFocus clears the others), and Layout input routing then
     // delivers keys to every focused control. Always go through UI.SetFocus so single-focus is preserved.
+    /// <summary>Moves keyboard focus to this control exclusively (via <see cref="UI.SetFocus"/>), clearing focus from any other control.</summary>
     public void Focus() => UI.SetFocus(this);
 
+    /// <summary>Removes keyboard focus from this control.</summary>
     public void UnFocus() => IsFocused = false;
 
     /// <summary>
@@ -410,8 +435,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <remarks>This method is always called inside UI.Invoke.</remarks>
     protected virtual void Control_OnInitialization() {}
 
+    /// <summary>Called when this control loses focus; override to react. The default is a no-op.</summary>
     protected virtual void Control_OnLostFocus() {}
 
+    /// <summary>Called when this control gains focus; override to react. The default is a no-op.</summary>
     protected virtual void Control_OnFocus() {}
 
     /// <summary>
@@ -421,9 +448,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// </remarks>
     protected abstract void Render();
 
+    /// <summary>Lays the control out on the UI thread: computes and applies its size, sizes the buffer, invalidates, and raises <see cref="OnInitialization"/>.</summary>
     protected override void Initialize()
     {
-        UI.Invoke((() => 
+        UI.Invoke((() =>
         {
             var (width, height) = CalculateSize();
             var size = new Size(width, height);
@@ -735,8 +763,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     // viewport is far smaller, so it cleanly distinguishes "unbounded for scrolling" from a finite parent.
     private const int UnboundedHeight = 100_000;
 
+    /// <summary>Clamps <paramref name="width"/> to the range [0, this control's width].</summary>
     public int ClampWidth(int width) => Math.Clamp(width, 0, Size.Width);
 
+    /// <summary>Clamps <paramref name="height"/> to the range [0, this control's height].</summary>
     public int ClampHeight(int height) => Math.Clamp(height, 0, Size.Height);
     /// <summary>
     /// Handles the paint event triggered by the UI timer. If one or more paint requests are pending, it runs the painting process and resets the paint request count.
@@ -779,8 +809,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #endregion
 
     #region Events
+    /// <summary>Raised when the control is initialized (laid out); always invoked on the UI thread.</summary>
     public event InitializationHandler OnInitialization;
+    /// <summary>Raised when the control gains focus.</summary>
     public event FocusableEventHandler? OnFocus;
+    /// <summary>Raised when the control loses focus.</summary>
     public event FocusableEventHandler? OnLostFocus;
 
     /// <summary>Raised while the global help dialog is compiled, letting code add or modify this control's help
@@ -807,10 +840,15 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #endregion
 
     #region Fields
+    /// <summary>A shared empty <see cref="Character"/>.</summary>
     public static Character emptyChar = new Character();
-    protected static readonly Cell emptyCell = new Cell(Character.Empty);    
+    /// <summary>A shared empty <see cref="Cell"/>, returned for positions outside the control's size.</summary>
+    protected static readonly Cell emptyCell = new Cell(Character.Empty);
+    /// <summary>Count of pending paint requests; a non-zero value triggers a repaint on the next paint tick.</summary>
     protected internal uint paintRequests;
+    /// <summary>The buffer the control renders its cells into.</summary>
     protected readonly ConsoleBuffer consoleBuffer;
+    /// <summary>The Spectre.Console <see cref="AnsiConsoleBuffer"/> that writes styled output into <see cref="consoleBuffer"/>.</summary>
     protected readonly AnsiConsoleBuffer ansiConsole;
     // Damaged sub-rects reported during the current paint by a TracksDamage control; drained in OnPaint. UI-thread only.
     private readonly List<Rect> _damage = new();
@@ -830,6 +868,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #endregion
 
     #region Types
+    /// <summary>Delegate for the <see cref="OnInitialization"/> event.</summary>
     public delegate void InitializationHandler();
     #endregion
 }

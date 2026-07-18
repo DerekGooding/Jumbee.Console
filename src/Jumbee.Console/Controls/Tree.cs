@@ -13,11 +13,16 @@ using ConsoleGUI.Space;
 
 using CircularTreeException = Spectre.Console.Interop.CircularTreeException;
 
+/// <summary>The line style used to draw the connecting guide lines of a <see cref="Tree"/>.</summary>
 public enum TreeGuide
 {
+    /// <summary>ASCII guide lines (<c>|</c>, <c>+</c>, <c>-</c>) for terminals without Unicode support.</summary>
     Ascii,
+    /// <summary>Single box-drawing guide lines.</summary>
     Line,
+    /// <summary>Heavy (bold) box-drawing guide lines.</summary>
     BoldLine,
+    /// <summary>Double box-drawing guide lines.</summary>
     DoubleLine
 }
 
@@ -34,6 +39,9 @@ public partial class Tree : RenderableControl
     /// Create a tree with a root label.
     /// </summary>
     /// <param name="rootLabel">The tree root label.</param>
+    /// <param name="guide">The connector-line glyph set (defaults to <see cref="TreeGuide.Line"/>).</param>
+    /// <param name="guideStyle">The style of the connector lines (defaults to <see cref="Style.Plain"/>).</param>
+    /// <param name="expanded">Whether the root starts expanded.</param>
     public Tree(IRenderable rootLabel, TreeGuide? guide = null, Style? guideStyle = null, bool expanded = true) : base()
     {
         this._rootLabel = rootLabel;
@@ -49,7 +57,10 @@ public partial class Tree : RenderableControl
     /// Initializes a new instance of the <see cref="Tree"/> class.
     /// </summary>
     /// <param name="rootText">The tree root label as a string.</param>
-    public Tree(string rootText, TreeGuide? guide = null, Style ? guideStyle = null, bool expanded = true) : 
+    /// <param name="guide">The connector-line glyph set (defaults to <see cref="TreeGuide.Line"/>).</param>
+    /// <param name="guideStyle">The style of the connector lines (defaults to <see cref="Style.Plain"/>).</param>
+    /// <param name="expanded">Whether the root starts expanded.</param>
+    public Tree(string rootText, TreeGuide? guide = null, Style ? guideStyle = null, bool expanded = true) :
         this(new Markup(rootText), guide, guideStyle, expanded) 
     {
         _root.Text = rootText;
@@ -57,6 +68,7 @@ public partial class Tree : RenderableControl
     #endregion
     
     #region Properties
+    /// <summary>The root node of the tree.</summary>
     public TreeNode Root => _root;
 
     /// <summary>
@@ -159,8 +171,10 @@ public partial class Tree : RenderableControl
     /// right-clicked node.</remarks>
     public ContextMenu? ContextMenu { get; set; }
 
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
 
+    /// <inheritdoc/>
     protected override bool WantsMouse => true;   // click to select/toggle, hover to highlight
 
     #endregion
@@ -178,10 +192,12 @@ public partial class Tree : RenderableControl
     #endregion
 
     #region Indexers
+    /// <summary>Gets the direct child of the root node at <paramref name="index"/>, or <see langword="null"/> if none.</summary>
     public TreeNode? this[uint index] => _root[index];
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     // Default the selected-node colours from the theme so a bare Tree shows a visible selection (re-applied on a
     // runtime theme switch; explicit SelectedForeground/BackgroundColor overrides are left alone).
     protected override void ApplyTheme()
@@ -197,24 +213,30 @@ public partial class Tree : RenderableControl
         if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.Hover;
     }
 
+    /// <summary>Adds a top-level node with the given renderable label and returns it.</summary>
     public TreeNode AddNode(IRenderable label) => _root.AddChild(label);
 
+    /// <summary>Adds a top-level node with the given text label and returns it.</summary>
     public TreeNode AddNode(string label) => _root.AddChild(label);
 
+    /// <summary>Adds several top-level nodes from the given renderable labels; returns this tree for chaining.</summary>
     public Tree AddNodes(params IRenderable[] labels)
     {
         _root.AddChildren(labels);
         return this;
     }
 
+    /// <summary>Adds several top-level nodes from the given text labels; returns this tree for chaining.</summary>
     public Tree AddNodes(params string[] labels)
     {
         _root.AddChildren(labels);
-        return this;    
+        return this;
     }
 
-    public bool RemoveNode(TreeNode node) => _root.RemoveChild(node.Index);   
+    /// <summary>Removes <paramref name="node"/> from the root's children; returns <see langword="true"/> if it was removed.</summary>
+    public bool RemoveNode(TreeNode node) => _root.RemoveChild(node.Index);
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         switch (inputEvent.Key.Key)
@@ -281,6 +303,7 @@ public partial class Tree : RenderableControl
     // adjusts for scroll). A single click selects; clicking a parent's disclosure glyph toggles it; double-clicking
     // a parent's label toggles it — so a double-click anywhere on a parent row ends up toggled exactly once. (Wheel
     // scrolling is the inherited default: OnMouseWheel -> Frame.Scroll.)
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position); return; }
@@ -289,6 +312,7 @@ public partial class Tree : RenderableControl
         SelectNode(node);
     }
 
+    /// <inheritdoc/>
     protected override void OnDoubleClick(Position position)
     {
         // A fast double right-click still just opens the menu (don't toggle/activate underneath it).
@@ -322,6 +346,7 @@ public partial class Tree : RenderableControl
 
     // Hover: track the node under the pointer and repaint so its row is tinted; clear it when the pointer leaves.
     // Opt-in via HoverHighlighting (off by default) — when disabled we ignore pointer movement entirely.
+    /// <inheritdoc/>
     protected override void OnMouseMove(Position position)
     {
         if (!_hoverHighlighting) return;
@@ -333,6 +358,7 @@ public partial class Tree : RenderableControl
         }
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseLeave()
     {
         if (!_hoverHighlighting) return;
@@ -397,6 +423,7 @@ public partial class Tree : RenderableControl
 
     internal void Update() => this.Invalidate();
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var result = new List<Segment>();
@@ -556,6 +583,7 @@ public partial class Tree : RenderableControl
         return result;
     }
     
+    /// <summary>Maps a Jumbee <see cref="TreeGuide"/> to the corresponding Spectre.Console tree guide.</summary>
     protected static Spectre.Console.TreeGuide GetSpectreConsoleTreeGuide(TreeGuide guide) => guide switch
     {
         TreeGuide.Ascii => Spectre.Console.TreeGuide.Ascii,
@@ -671,11 +699,17 @@ public partial class Tree : RenderableControl
     #endregion
 
     #region Fields
+    /// <summary>The renderable used as the root node's label.</summary>
     public IRenderable _rootLabel;
+    /// <summary>Backing field for <see cref="Root"/>.</summary>
     public TreeNode _root;
+    /// <summary>Backing field for <see cref="Style"/>.</summary>
     protected Style _style;
+    /// <summary>Backing field for <see cref="Guide"/>.</summary>
     protected TreeGuide _guide;
-    protected Spectre.Console.TreeGuide scguide; 
+    /// <summary>The Spectre.Console guide derived from <see cref="_guide"/>, used when rendering guide lines.</summary>
+    protected Spectre.Console.TreeGuide scguide;
+    /// <summary>Backing field for <see cref="Expanded"/>.</summary>
     protected bool _expanded;
     private Color? _selectedForegroundColor;
     private Color? _selectedBackgroundColor;

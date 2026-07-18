@@ -5,9 +5,12 @@ using System.Linq;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
+/// <summary>The layout direction of a <see cref="TextLabel"/>.</summary>
 public enum TextLabelOrientation
 {
+    /// <summary>Text runs left-to-right across a single row.</summary>
     Horizontal,
+    /// <summary>Text runs top-to-bottom down a single column.</summary>
     Vertical
 }
 
@@ -17,6 +20,7 @@ public enum TextLabelOrientation
 public class TextLabel : Control
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="TextLabel"/> with the given <paramref name="orientation"/>, <paramref name="text"/>, and optional foreground/background colours.</summary>
     // Colours are nullable and default to transparent (null): an unset foreground inherits the terminal default and
     // an unset background lets whatever is behind show through. Passing the non-nullable default(Color) here would
     // paint an opaque BLACK background — invisible on a black terminal, but it dims to near-black under an overlay
@@ -49,6 +53,7 @@ public class TextLabel : Control
         set => SetAtomicProperty(ref _bgcolor, value);
     }
 
+    /// <summary>The label text. Setting it re-sizes the control when the length changes.</summary>
     public string Text
     {
         get => _text;
@@ -68,6 +73,7 @@ public class TextLabel : Control
     #endregion
 
     #region Indexers
+    /// <summary>The rendered cell at <paramref name="position"/>, or an empty cell outside the text.</summary>
     public override Cell this[Position position]
     {
         get
@@ -103,6 +109,7 @@ public class TextLabel : Control
     #endregion
 
     #region Methods
+    /// <summary>Renders each character into the label's cell buffer with the configured colours.</summary>
     // We use a 1D buffer to render instead of the 2D consoleBuffer as it's more efficient to access.
     protected override void Render()
     {
@@ -115,8 +122,10 @@ public class TextLabel : Control
     // A label is fixed in its minor axis (a horizontal label is 1 row tall, a vertical one is 1 column wide) and
     // fills along its text axis (returning 0 there). Reporting this as an intrinsic size keeps a label docked on a
     // DockPanel edge from ballooning to fill the panel and collapsing the fill region — see CalculateSize.
+    /// <summary>1 for a vertical label (fixed one column wide), otherwise 0 (fills along the text axis).</summary>
     protected override int IntrinsicWidth() => _orientation == TextLabelOrientation.Vertical ? 1 : 0;
 
+    /// <summary>1 for a horizontal label (fixed one row tall), otherwise 0 (fills along the text axis).</summary>
     protected override int IntrinsicHeight() => _orientation == TextLabelOrientation.Horizontal ? 1 : 0;
 
     #endregion

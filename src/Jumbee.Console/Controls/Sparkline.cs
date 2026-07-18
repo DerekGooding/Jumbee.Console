@@ -15,6 +15,7 @@ using Spectre.Console.Rendering;
 public class Sparkline : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Sparkline"/> with the given series <paramref name="values"/> (one cell per value).</summary>
     public Sparkline(params double[] values)
     {
         Focusable = false;   // a passive display control: never a focus/tab target
@@ -66,20 +67,24 @@ public class Sparkline : RenderableControl
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(BarStyle))) _barStyle = UI.StyleTheme.TextAccent;
     }
 
+    /// <summary>Content-only render (never reads focus/hover), so the cached buffer is reused on interactive-state changes.</summary>
     // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     protected override Measurement Measure(RenderOptions options, int maxWidth)
     {
         var width = Math.Min(_values.Length, maxWidth);
         return new Measurement(width, width);
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (_values.Length == 0) yield break;

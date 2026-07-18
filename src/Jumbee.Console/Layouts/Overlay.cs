@@ -24,6 +24,7 @@ using COverlay = ConsoleGUI.Controls.Overlay;
 public class Overlay : Layout<COverlay>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Overlay"/> with <paramref name="bottom"/> as its persistent base layer.</summary>
     public Overlay(ILayout bottom) : base(new COverlay())
     {
         _bottom = bottom;
@@ -38,6 +39,7 @@ public class Overlay : Layout<COverlay>
     /// <summary>The popup currently shown, or <see langword="null"/>.</summary>
     public Control? Top => _top;
 
+    /// <summary><see langword="true"/> when a popup is currently shown.</summary>
     public bool IsShowing => _top is not null;
 
     /// <summary><see langword="true"/> when the current popup is modal (shown over a click-blocking scrim).</summary>
@@ -175,6 +177,7 @@ public class Overlay : Layout<COverlay>
         new DimScrim(_bottom.CControl, CenterIn(popup), ModalScrim, ModalDim);
 
     // Tunnel phase (see Layout.OnInput): close any open popup on CloseKey before the popup itself sees the key.
+    /// <summary>Closes any open popup when <see cref="CloseKey"/> is pressed, before the popup sees the key.</summary>
     protected override bool InterceptInput(UI.InputEventArgs inputEventArgs)
     {
         if (IsShowing && !_passive && CloseKey is { } key && inputEventArgs.InputEvent?.Key.Key == key)
@@ -192,8 +195,11 @@ public class Overlay : Layout<COverlay>
     // the bottom layer, so spatial nav (Ctrl+arrows) and routing see the bottom's real structure. While a popup is
     // shown it presents ONLY the popup (a single cell), so focus/input/nav are exclusive to it until it closes.
     // A passive top is drawn but never captures routing/nav, so the bottom layer stays addressable beneath it.
+    /// <summary>Number of rows in the layout grid (1 while a capturing popup is shown, otherwise the bottom layer's rows).</summary>
     public override int Rows => _top is not null && !_passive ? 1 : _bottom.Rows;
+    /// <summary>Number of columns in the layout grid (1 while a capturing popup is shown, otherwise the bottom layer's columns).</summary>
     public override int Columns => _top is not null && !_passive ? 1 : _bottom.Columns;
+    /// <summary>Gets the control at the given <paramref name="row"/> and <paramref name="column"/> (the popup while one is shown, otherwise the bottom layer's cell).</summary>
     public override IFocusable this[int row, int column] => _top is not null && !_passive ? _top : _bottom[row, column];
     #endregion
 

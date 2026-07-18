@@ -70,14 +70,17 @@ public class Log : Control
     /// <summary>Scrolls the view to the newest entry and re-engages tailing.</summary>
     public void ScrollToBottom() => UI.Invoke(() => { if (!_follow) { _follow = true; Invalidate(); } });
 
+    /// <summary>Reports <see langword="true"/> so the log fills its framing viewport rather than growing content-tall (keeping writing/painting O(viewport)).</summary>
     // The log manages its own scrolling, so it fills the framing viewport (a bounded height) rather than growing
     // content-tall for the frame to window — that's what makes writing/painting O(viewport) instead of O(entries).
     protected internal override bool FillsFrameViewport => true;
 
+    /// <summary>Reports <see langword="true"/> so the log receives mouse-wheel events for scrolling.</summary>
     // Output never depends on focus/hover, so a focus/mouse change shouldn't re-render (there's nothing to re-render
     // here anyway — Render blits pre-built lines — but keep the default focus tint from repainting needlessly).
     protected override bool WantsMouse => true;
 
+    /// <inheritdoc/>
     // Re-render the retained entries whenever the usable width changes (wrapping is width-dependent). Cheap on a
     // steady-state log (only on resize); the per-write path stays incremental.
     protected override void Control_OnInitialization()
@@ -86,6 +89,7 @@ public class Log : Control
         if (ContentWidth != _renderedWidth) _needsRebuild = true;
     }
 
+    /// <summary>Blits the visible page of pre-built log lines and the scrollbar into the viewport.</summary>
     protected override void Render()
     {
         int width = ActualWidth, height = ActualHeight;
@@ -131,8 +135,10 @@ public class Log : Control
         }
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseWheel(Position position, int delta) => ScrollByLines(delta);
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         int height = Math.Max(1, ActualHeight);
@@ -149,6 +155,7 @@ public class Log : Control
         inputEvent.Handled = true;
     }
 
+    /// <summary>Reports <see langword="true"/> so input routing delivers scroll keys to the log.</summary>
     // Log is a keyboard target only for scrolling; report that so input routing delivers keys to it.
     public override bool HandlesInput => true;
 

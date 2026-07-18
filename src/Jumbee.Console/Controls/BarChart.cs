@@ -16,6 +16,7 @@ using Spectre.Console.Rendering;
 public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="BarChart"/> with the given orientation and initial items.</summary>
     public BarChart(ChartOrientation orientation, params (string label, double value, Color color)[] items)
     {
         Focusable = false;   // a passive display control: never a focus/tab target
@@ -29,10 +30,12 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         _structureDirty = true;
     }
 
+    /// <summary>Initializes a new horizontal <see cref="BarChart"/> with the given initial items.</summary>
     public BarChart(params (string label, double value, Color color)[] items) : this(ChartOrientation.Horizontal, items) {}
     #endregion
 
     #region Properties
+    /// <summary>The chart's items.</summary>
     public ICollection<BarChartItem> Data => data.Values;
 
     /// <summary>
@@ -84,6 +87,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     }
 
     private bool _showValues = true;
+    /// <summary>Whether each bar's value is shown alongside it. Defaults to <see langword="true"/>.</summary>
     public bool ShowValues
     {
         get => _showValues;
@@ -97,9 +101,11 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         }
     }
 
+    /// <summary>The culture used to format values, or <see langword="null"/> for the invariant culture.</summary>
     public CultureInfo? Culture { get; set; }
 
     private double? _maxValue;
+    /// <summary>The axis maximum, or <see langword="null"/> to derive it from the largest item value. Never negative.</summary>
     public double? MaxValue
     {
         get => _maxValue;
@@ -108,8 +114,10 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             watch: (_, _) => UI.Invoke(UpdateAllBars));
     }
 
+    /// <summary>An optional custom formatter for bar values, or <see langword="null"/> to use the default culture formatting.</summary>
     public Func<double, CultureInfo, string>? ValueFormatter { get; set; }
 
+    /// <summary>The chart width in cells; setting it re-lays out all bars.</summary>
     public int? BarWidth
     {
         get => Width;
@@ -127,6 +135,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         }
     }
 
+    /// <summary>When set to <see langword="true"/>, centers the chart label (sets <see cref="LabelAlignment"/> to <see cref="Justify.Center"/>).</summary>
     public bool CenterLabel
     {
         set
@@ -140,6 +149,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     #endregion
 
     #region Indexers
+    /// <summary>Sets the values of the items matching the given labels (counts must match).</summary>
     public double[] this[params string[] labels]
     {
         set
@@ -166,10 +176,12 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     #endregion
 
     #region Methods
+    /// <summary>Requests a redraw of the chart.</summary>
     public void Update() => Invalidate();
 
     // Item creation (and the atomic index) happens on the calling thread so AddItem can return immediately;
     // the dictionary mutation and chart rebuild are marshaled to the UI thread.
+    /// <summary>Adds an item with the given label, value and colour, and returns it.</summary>
     public BarChartItem AddItem(string label, double value, Color color)
     {
         var index = Interlocked.Increment(ref itemIndex);
@@ -182,6 +194,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         return item;
     }
 
+    /// <summary>Adds multiple items and returns this chart for chaining.</summary>
     public BarChart AddItems(params (string label, double value, Color color)[] items)
     {
         var added = items.Select(i => (index: Interlocked.Increment(ref itemIndex), i)).ToArray();
@@ -215,8 +228,10 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         return removed;
     }
 
+    /// <summary>Removes the given item. Reliable only when called on the UI thread.</summary>
     public bool RemoveItem(BarChartItem item) => RemoveItem(item.Index);
 
+    /// <inheritdoc/>
     protected override Measurement Measure(RenderOptions options, int maxWidth)
     {
         var width = Math.Min(Width, maxWidth);
@@ -272,6 +287,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         });
     }
 
+    /// <summary>Recomputes every bar's max value and size to match the current data and control dimensions.</summary>
     protected void UpdateAllBars()
     {
         var maxValue = Math.Max(MaxValue ?? 0d, data.Values.Select(item => item.Value).DefaultIfEmpty(0).Max());
@@ -292,6 +308,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         }
     }
 
+    /// <summary>Builds the optional container grid that stacks the chart <see cref="Label"/> above the bars.</summary>
     protected void CreateChartLabel()
     {
         if (string.IsNullOrWhiteSpace(Label))
@@ -309,9 +326,10 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         }
     }
 
+    /// <summary>Rebuilds the grid and bar renderables from the current data and orientation.</summary>
     protected void CreateChartElements()
     {
-        _grid = new Spectre.Console.Grid();        
+        _grid = new Spectre.Console.Grid();
         _grid.Collapse();
         _bars.Clear();
         var sortedData = data.Values.OrderBy(x => x.Index).ToList();
@@ -409,8 +427,10 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     }
 
     // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
+    /// <inheritdoc/>
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         // Rebuild structure lazily on the UI thread, coalescing any structural changes since the last render.
@@ -428,14 +448,22 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     #endregion
 
     #region Fields
+    /// <summary>The last-assigned item index; incremented atomically to key new items.</summary>
     protected int itemIndex = -1;
+    /// <summary>The glyph used to draw filled vertical bars.</summary>
     protected char VerticalUnicodeBar { get; set; } = '█';
+    /// <summary>The glyph used to draw bars in ASCII (non-Unicode) mode.</summary>
     protected char AsciiBar { get; set; } = '-';
+    /// <summary>The glyph used to draw filled horizontal bars.</summary>
     protected static char HorizontalUnicodeBar { get; set; } = '█';
+    /// <summary>The chart items keyed by their index.</summary>
     protected readonly Dictionary<int, BarChartItem> data = new();
 
+    /// <summary>The grid holding the bar renderables.</summary>
     protected Spectre.Console.Grid _grid = new();
+    /// <summary>The optional outer grid stacking the label above <see cref="_grid"/>, or <see langword="null"/> when there is no label.</summary>
     protected Spectre.Console.Grid? _containerGrid = new();
+    /// <summary>The bar renderables in render order.</summary>
     protected List<IBarControl> _bars = new();
 
     // Set when a structural change (items, orientation, value display, label) needs the grid rebuilt; consumed

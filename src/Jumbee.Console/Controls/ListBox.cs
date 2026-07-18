@@ -17,15 +17,19 @@ using ConsoleGUI.Space;
 public partial class ListBox : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes an empty <see cref="ListBox"/>.</summary>
     public ListBox() => ApplyTheme();
 
+    /// <summary>Initializes a <see cref="ListBox"/> populated with the given renderable items.</summary>
     public ListBox(params IRenderable[] items) : this() => AddItems(items);
 
+    /// <summary>Initializes a <see cref="ListBox"/> populated with the given text items.</summary>
     public ListBox(params string[] items) : this() => AddItems(items);
 
     #endregion
 
     #region Properties
+    /// <summary>The items currently in the list.</summary>
     public ICollection<ListBoxItem> Items => _items.Values;
 
     /// <summary>Foreground of the selected row. Defaults to the theme's <see cref="IStyleTheme.Selection"/>.</summary>
@@ -92,6 +96,7 @@ public partial class ListBox : RenderableControl
     /// right-clicked row.</remarks>
     public ContextMenu? ContextMenu { get; set; }
 
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
     #endregion
 
@@ -113,6 +118,7 @@ public partial class ListBox : RenderableControl
     // Item creation (and the atomic index) happens on the calling thread so AddItem can return immediately;
     // the dictionary mutation is marshaled to the UI thread (inline when already there) so reads during
     // rendering never see a concurrent write.
+    /// <summary>Appends the given renderable items to the list.</summary>
     public void AddItems(params IEnumerable<IRenderable> items)
     {
         var added = items.Select(i => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), i)).ToArray();
@@ -123,6 +129,7 @@ public partial class ListBox : RenderableControl
         });
     }
 
+    /// <summary>Appends the given text items to the list.</summary>
     public void AddItems(params IEnumerable<string> items)
     {
         var added = items.Select(s => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), s)).ToArray();
@@ -133,6 +140,7 @@ public partial class ListBox : RenderableControl
         });
     }
 
+    /// <summary>Appends the given text items with per-item foreground/background colours to the list.</summary>
     public void AddItems(params (string text, Color? fgColor, Color? bgColor)[] items)
     {
         var added = items.Select(t => new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), t.text, t.fgColor, t.bgColor)).ToArray();
@@ -143,6 +151,7 @@ public partial class ListBox : RenderableControl
         });
     }
 
+    /// <summary>Appends a single renderable item and returns it.</summary>
     public ListBoxItem AddItem(IRenderable item)
     {
         var listItem = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), item);
@@ -154,6 +163,7 @@ public partial class ListBox : RenderableControl
         return listItem;
     }
 
+    /// <summary>Appends a single text item with optional foreground/background colours and returns it.</summary>
     public ListBoxItem AddItem(string text, Color? foreground = null, Color? background = null)
     {
         var item = new ListBoxItem(this, Interlocked.Increment(ref _itemIndex), text, foreground, background);
@@ -185,6 +195,7 @@ public partial class ListBox : RenderableControl
         return removed;
     }
 
+    /// <summary>Removes all items from the list.</summary>
     public void Clear()
     {
         UI.Invoke(() =>
@@ -195,12 +206,15 @@ public partial class ListBox : RenderableControl
         });
     }
 
+    /// <summary>Requests a redraw of the list.</summary>
     public void Update() => Invalidate();
 
+    /// <inheritdoc/>
     // The selected row is the focus indicator, so don't also tint the whole control when it's focused (a borderless
     // list would otherwise light up entirely on focus). A framed list already shows focus through its border colour.
     protected override bool RendersOwnFocus => true;
 
+    /// <inheritdoc/>
     // Default the selected-row colours from the theme so a bare ListBox shows a visible selection (re-applied on a
     // runtime theme switch; explicit SelectedForeground/BackgroundColor overrides are left alone).
     protected override void ApplyTheme()
@@ -220,6 +234,7 @@ public partial class ListBox : RenderableControl
     // wrapped. This is deliberate — a width-dependent height feeds the layout's content-height↔width convergence in a
     // scrolling frame and can fail to settle (an infinite layout loop); a width-independent height converges exactly
     // as the single-line case always did.
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width) => Math.Max(1, EnsureLayout()[^1]);
 
     // Per-item vertical layout: cumulative row offsets, length = itemCount + 1, so _offsets[k] is the first row of
@@ -265,6 +280,7 @@ public partial class ListBox : RenderableControl
         return -1;
     }
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("List", "List", "A scrollable list of items; the selected item is highlighted.")
         .WithKey("↑ / ↓", "Move the selection")
         .WithKey("Home / End", "First / last item")
@@ -272,6 +288,7 @@ public partial class ListBox : RenderableControl
         .WithKey("Enter", "Choose the selected item")
         .WithKey("Click", "Select an item");
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         var count = _items.Count;
@@ -326,6 +343,7 @@ public partial class ListBox : RenderableControl
 
     // A left click selects the item under the pointer and commits it; a right click selects it and opens the context
     // menu instead. The listener position is in content coordinates; an item may span several rows, so map the row.
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         if (UI.MouseButton == TerminalMouseButton.Right) { OpenContextMenu(position.Y); return; }
@@ -336,6 +354,7 @@ public partial class ListBox : RenderableControl
     }
 
     // A fast double right-click still just (re)opens the menu rather than committing underneath it.
+    /// <inheritdoc/>
     protected override void OnDoubleClick(Position position)
     {
         if (UI.MouseButton == TerminalMouseButton.Right) OpenContextMenu(position.Y);
@@ -383,6 +402,7 @@ public partial class ListBox : RenderableControl
             Frame.Top = Math.Min(itemTop, itemBottom - viewportHeight);   // below: reveal its bottom (top wins if taller than the viewport)
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var items = OrderedItems();

@@ -33,13 +33,20 @@ public sealed class MarkdownWithMermaidLanguage : ILanguage
     #endregion
 
     #region ILanguage
+    /// <summary>The ColorCode language id (<c>"markdown-mermaid"</c>).</summary>
     public string Id => "markdown-mermaid";
+    /// <summary>The display name.</summary>
     public string Name => "Markdown (with Mermaid)";
+    /// <summary>The CSS class name used for HTML output.</summary>
     public string CssClassName => "markdown-mermaid";
+    /// <summary>First-line detection pattern (unused; <see langword="null"/>).</summary>
     public string FirstLinePattern => null!;
+    /// <summary>Always <see langword="false"/> — this grammar has no aliases.</summary>
     public bool HasAlias(string lang) => false;
+    /// <inheritdoc/>
     public override string ToString() => Name;
 
+    /// <summary>The highlighting rules: the <c>```mermaid</c>-fence rule followed by the standard Markdown rules.</summary>
     public IList<LanguageRule> Rules
     {
         get

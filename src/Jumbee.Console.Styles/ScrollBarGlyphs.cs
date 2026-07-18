@@ -89,6 +89,7 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
     // Hand-written: the string fields make this struct non-bitwise-comparable, so the runtime's default
     // ValueType.Equals falls back to a reflective, boxing compare (~336 bytes per comparison). See Color.
     // Ordinal string comparison — these are glyphs, not text, so culture must not enter into it.
+    /// <summary>Determines whether this <see cref="ScrollBarGlyphs"/> equals <paramref name="other"/>.</summary>
     public bool Equals(ScrollBarGlyphs other) =>
         Mode == other.Mode
         && string.Equals(Thumb, other.Thumb, System.StringComparison.Ordinal)
@@ -96,8 +97,10 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
         && string.Equals(UpArrow, other.UpArrow, System.StringComparison.Ordinal)
         && string.Equals(DownArrow, other.DownArrow, System.StringComparison.Ordinal);
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is ScrollBarGlyphs other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         var hash = new System.HashCode();
@@ -109,8 +112,10 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
         return hash.ToHashCode();
     }
 
+    /// <summary>Equality operator.</summary>
     public static bool operator ==(ScrollBarGlyphs a, ScrollBarGlyphs b) => a.Equals(b);
 
+    /// <summary>Inequality operator.</summary>
     public static bool operator !=(ScrollBarGlyphs a, ScrollBarGlyphs b) => !a.Equals(b);
     #endregion
 }

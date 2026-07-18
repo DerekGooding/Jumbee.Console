@@ -23,6 +23,7 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 public class MarkdownViewer : Control
 {
     #region Constructors
+    /// <summary>Initializes a <see cref="MarkdownViewer"/> with the given Markdown source.</summary>
     public MarkdownViewer(string markdown = "") => _markdown = markdown ?? "";
     #endregion
 
@@ -48,13 +49,16 @@ public class MarkdownViewer : Control
         set => UI.Invoke(() => { _styles = value; _version++; Initialize(); });
     }
 
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     // A viewer paints its own content; don't overlay the themed focus tint over the whole document.
     protected override bool RendersOwnFocus => true;
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Markdown", "Markdown Viewer",
         "A read-only, scrollable Markdown viewer.")
         .WithKey("↑ / ↓", "Scroll a line")
@@ -64,6 +68,7 @@ public class MarkdownViewer : Control
     // Our content height at this width. Rendering (once per width/text) yields the true height; until the render for
     // this width is ready, report a rough estimate so a surrounding frame allocates a sensible height (replaced when
     // the render completes and re-lays-out). Consulted only when the parent leaves the height unbounded (scrolling).
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width)
     {
         var w = Math.Max(1, width);
@@ -73,6 +78,7 @@ public class MarkdownViewer : Control
             : EstimateHeight();
     }
 
+    /// <inheritdoc/>
     protected override void Render()
     {
         EnsureRender(Math.Max(1, Size.Width));
@@ -80,6 +86,7 @@ public class MarkdownViewer : Control
         Blit();
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (Frame is not { } frame) return;
@@ -169,6 +176,8 @@ public class MarkdownViewer : Control
     // allocating. Resilient: any failure in the third-party writer yields a blank buffer rather than throwing.
     // Instance-virtual so a subclass can post-process the document (e.g. rasterize embedded diagrams); the base body
     // uses only its arguments (no instance state), so it stays safe to call on the background render thread.
+    /// <summary>Renders <paramref name="text"/> into <paramref name="target"/> at <paramref name="width"/> using
+    /// <paramref name="styles"/> and returns the measured content height. Overridable to post-process the document.</summary>
     protected virtual int RenderMarkdown(string text, MarkdownStyles styles, int width, ConsoleBuffer target)
     {
         var cap = Math.Clamp(LineCount(text) * 3 + 40, 8, MaxRows);
@@ -223,6 +232,7 @@ public class MarkdownViewer : Control
     #region Fields
     // The rendered content is capped at this many rows — beyond the control's own ~1000-row size clamp nothing is
     // reachable anyway, so a taller document simply clips at the bottom.
+    /// <summary>The maximum number of rows the rendered document is capped at.</summary>
     protected const int MaxRows = 1024;
 
     private string _markdown;

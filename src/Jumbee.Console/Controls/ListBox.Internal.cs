@@ -11,6 +11,7 @@ public partial class ListBox
     public class ListBoxItem
     {
         #region Constructors
+        /// <summary>Initializes an item with the given renderable content at <paramref name="index"/> in <paramref name="listBox"/>.</summary>
         public ListBoxItem(ListBox listBox, int index, IRenderable content)
         {
             this.ListBox = listBox;
@@ -18,6 +19,7 @@ public partial class ListBox
             this._content = content;
         }
 
+        /// <summary>Initializes a text item with optional foreground/background colours at <paramref name="index"/> in <paramref name="listBox"/>.</summary>
         public ListBoxItem(ListBox listBox, int index, string text, Color? foreground = null, Color? background = null)
         {
             this.ListBox = listBox;
@@ -30,11 +32,14 @@ public partial class ListBox
         #endregion
 
         #region Properties
+        /// <summary>This item's stable index within its owning list.</summary>
         public readonly int Index;
 
+        /// <summary>The list this item belongs to, or <see langword="null"/> once detached.</summary>
         public ListBox? ListBox { get; private set; }
 
         private IRenderable _content = default!;
+        /// <summary>The renderable drawn for this item; setting it clears any text and re-measures the list.</summary>
         public IRenderable Content
         {
             get => _content;
@@ -47,6 +52,7 @@ public partial class ListBox
         }
 
         private string? _text;
+        /// <summary>The item's plain text, or <see langword="null"/> if it was created from a renderable.</summary>
         public string? Text
         {
             get => _text;
@@ -58,6 +64,7 @@ public partial class ListBox
         }
 
         private Color? _foregroundColor;
+        /// <summary>Foreground colour of a text item.</summary>
         public Color? ForegroundColor
         {
             get => _foregroundColor;
@@ -69,6 +76,7 @@ public partial class ListBox
         }
 
         private Color? _backgroundColor;
+        /// <summary>Background colour of a text item.</summary>
         public Color? BackgroundColor
         {
             get => _backgroundColor;
@@ -90,8 +98,10 @@ public partial class ListBox
             }
         }
 
+        /// <summary>Detaches the item from its owning list.</summary>
         public void Detach() => ListBox = null;
 
+        /// <summary>Whether the item has been detached from its list.</summary>
         public bool IsDetached => ListBox is null;
         #endregion
     }

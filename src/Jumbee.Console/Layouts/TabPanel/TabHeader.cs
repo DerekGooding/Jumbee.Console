@@ -14,8 +14,8 @@ using Spectre.Console.Rendering;
 /// </summary>
 /// <remarks>
 /// Focusable and listener-tagging (so a click selects it and keyboard focus can land on it); renders its name styled
-/// by active / hover / inactive state. Selecting raises <see cref="Activated"/>; an arrow key along the bar raises
-/// <see cref="Navigated"/> with a step of -1/+1. The owning <see cref="TabPanel"/> wires both.
+/// by active / hover / inactive state. Selecting raises <see cref="Activated"/> and closing raises
+/// <see cref="CloseRequested"/>; tab-to-tab navigation (Alt+arrows) is handled by the owning <see cref="TabPanel"/>.
 /// </remarks>
 public class TabHeader : RenderableControl
 {
@@ -42,7 +42,9 @@ public class TabHeader : RenderableControl
     #endregion
 
     #region Properties
+    /// <summary><see langword="true"/> unless the tab is disabled: an enabled header handles Enter/Space to select.</summary>
     public override bool HandlesInput => _isEnabled;
+    /// <summary><see langword="true"/>: the header shows keyboard focus itself by underlining an inactive tab.</summary>
     protected override bool RendersOwnFocus => true;   // underlines an inactive header on focus
 
     /// <summary>This tab's position among all tabs. Kept in sync by the owning <see cref="TabPanel"/>.</summary>
@@ -87,6 +89,7 @@ public class TabHeader : RenderableControl
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(ActiveStyle))) _activeStyle = UI.StyleTheme.Selection;
@@ -97,6 +100,7 @@ public class TabHeader : RenderableControl
         _closeGlyph = UI.GlyphTheme.TabClose;
     }
 
+    /// <summary>Renders the tab label styled by active / hover / focus / disabled state, with the optional close (✕) slot.</summary>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         Spectre.Console.Style style;
@@ -140,6 +144,7 @@ public class TabHeader : RenderableControl
         yield return new Segment(label, style);
     }
 
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         if (!_isEnabled) return;
@@ -164,6 +169,7 @@ public class TabHeader : RenderableControl
         return (gutter + _text.Length + 2, _closeGlyph.GetCellWidth());
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (!_isEnabled) return;

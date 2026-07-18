@@ -49,7 +49,9 @@ public class TerminalEmulator : Control
     #endregion
 
     #region Properties
+    /// <summary>Always <see langword="true"/>: the terminal consumes keyboard input to forward to the child process.</summary>
     public override bool HandlesInput => true;
+    /// <summary>Always <see langword="true"/>: the terminal's own cursor indicates focus, so no focus tint is drawn.</summary>
     protected override bool RendersOwnFocus => true;   // the terminal cursor shows focus
 
     /// <summary>The window title the running program set via OSC 0/2, or <see langword="null"/> if none. Hosts can
@@ -88,12 +90,13 @@ public class TerminalEmulator : Control
     // A terminal owns its own scrollback, so it must fill the framing viewport rather than be given a frame's
     // unbounded scroll height — otherwise it balloons to ~1000 rows, oversizing the PTY and pushing live output
     // off-screen (no auto-scroll). Opting out makes the frame offer the bounded viewport height instead.
+    /// <summary>Always <see langword="true"/>: the terminal owns its scrollback and fills its frame's viewport rather than being scrolled.</summary>
     protected internal override bool FillsFrameViewport => true;
 
     // The cell columns the shell draws into: the control width minus the column reserved for the scrollbar.
     private int ContentWidth => Math.Max(1, ActualWidth - ScrollbarWidth);
 
-    // Start (or re-size) the PTY once the control has a real cell area. Runs on the UI thread.
+    /// <summary>Starts or resizes the PTY once the control has a real cell area.</summary>
     protected override void Control_OnInitialization()
     {
         var cols = (short)Math.Max(1, ContentWidth);
@@ -270,6 +273,7 @@ public class TerminalEmulator : Control
         catch (Exception) { }
     }
 
+    /// <summary>Translates keystrokes to bytes for the child process; Shift+PageUp/PageDown scroll the scrollback instead.</summary>
     protected override void OnInput(InputEvent inputEvent)
     {
         var key = inputEvent.Key;
@@ -293,16 +297,20 @@ public class TerminalEmulator : Control
 
     // Tag cells for mouse so motion/hover (not just clicks) reach the control — needed to forward the mouse to a
     // program that requested tracking.
+    /// <summary>Always <see langword="true"/>: motion/hover as well as clicks reach the control so mouse tracking can be forwarded.</summary>
     protected override bool WantsMouse => true;
 
     // Forward a left-button press/release to the program when it is tracking the mouse and we're at the live view;
     // otherwise let the base behavior stand (the press already focused us via click-to-focus). The framework's
     // mouse events carry no button/modifier, so only the left button (0) with no modifiers is reported.
+    /// <summary>Forwards a left-button press to the child program when it is tracking the mouse.</summary>
     protected override void OnMousePress(Position position) => ForwardMouse(position, button: 0, press: true);
+    /// <summary>Forwards a left-button release to the child program when it is tracking the mouse.</summary>
     protected override void OnMouseRelease(Position position) => ForwardMouse(position, button: 0, press: false);
 
     // When the program is tracking the mouse and we're following the live screen, the wheel belongs to it (e.g.
     // scrolling inside less/vim); otherwise it scrolls our own scrollback.
+    /// <summary>Forwards the wheel to the child program when it is tracking the mouse; otherwise scrolls the scrollback.</summary>
     protected override void OnMouseWheel(Position position, int delta)
     {
         if (_terminal.MouseTrackingEnabled && _follow && InContent(position))
@@ -355,6 +363,7 @@ public class TerminalEmulator : Control
         if (!_follow) { _follow = true; Invalidate(); }
     }
 
+    /// <summary>Sends pasted text to the child process, wrapping it in bracketed-paste markers when the program enabled DECSET 2004.</summary>
     public override void OnPaste(string text)
     {
         var body = Encoding.UTF8.GetBytes(text);
@@ -444,6 +453,7 @@ public class TerminalEmulator : Control
         return bytes;
     }
 
+    /// <summary>Paints the visible terminal screen (or scrollback view) and scrollbar to the buffer.</summary>
     protected override void Render()
     {
         var width = ActualWidth;
@@ -556,6 +566,7 @@ public class TerminalEmulator : Control
             : null;
     }
 
+    /// <summary>Tears down the child process and PTY, then disposes the base control.</summary>
     public override void Dispose()
     {
         _wantRunning = false;

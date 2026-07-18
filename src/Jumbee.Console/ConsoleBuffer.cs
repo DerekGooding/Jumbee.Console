@@ -12,6 +12,7 @@ using ConsoleGUI.Space;
 public class ConsoleBuffer : IConsole
 {
     #region Properties
+    /// <summary>The logical size of the buffer; setting it resizes the backing cell arrays.</summary>
     public Size Size
     {
         get => field;
@@ -22,12 +23,15 @@ public class ConsoleBuffer : IConsole
             field = value;
         }
     }
+    /// <summary>Always <see langword="false"/>; input is handled by the input listeners, not this buffer.</summary>
     public bool KeyAvailable => false;
     #endregion
 
     #region Indexers
+    /// <summary>Gets the cell at <paramref name="position"/>.</summary>
     public Cell this[Position position] => buffer[position.Y][position.X];
-    
+
+    /// <summary>Gets the cell at column <paramref name="x"/>, row <paramref name="y"/>.</summary>
     public Cell this[int x, int y] => buffer[y][x];
     #endregion
 
@@ -45,6 +49,7 @@ public class ConsoleBuffer : IConsole
         }
     }
 
+    /// <summary>No-op; the buffer is composited by the renderer rather than refreshing itself.</summary>
     public void OnRefresh() { }
 
     /// <summary>
@@ -71,6 +76,7 @@ public class ConsoleBuffer : IConsole
     /// <returns></returns>
     public ConsoleKeyInfo ReadKey() => throw new NotImplementedException();
     
+    /// <summary>Converts a linear cell <paramref name="distance"/> (row-major) into an (x, y) <see cref="Position"/>.</summary>
     public Position GetPosition(int distance)
     {
         if (Size.Width == 0)
@@ -82,6 +88,7 @@ public class ConsoleBuffer : IConsole
         return new Position(x, y);
     }
 
+    /// <summary>Advances <paramref name="pos1"/> by <paramref name="x"/> cells in row-major order, wrapping across rows.</summary>
     public Position AddX(Position pos1, int x)
     {
         if (Size.Width == 0)

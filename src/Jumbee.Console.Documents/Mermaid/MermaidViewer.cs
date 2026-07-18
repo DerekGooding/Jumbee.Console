@@ -28,6 +28,7 @@ using Jumbee.Console.Documents.Mermaid;
 public class MermaidViewer : Control
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="MermaidViewer"/> showing <paramref name="mermaid"/>.</summary>
     public MermaidViewer(string mermaid = "") => _mermaid = mermaid ?? "";
     #endregion
 
@@ -54,12 +55,15 @@ public class MermaidViewer : Control
         set => UI.Invoke(() => { _styles = value; _version++; _hscroll.Reset(); Initialize(); });
     }
 
+    /// <summary>Always <see langword="true"/> — the viewer handles scroll/pan keys.</summary>
     public override bool HandlesInput => true;
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;
 
+    /// <inheritdoc/>
     protected override HelpInfo? GetHelpInfo() => new HelpInfo("Mermaid", "Mermaid Viewer",
         "A read-only, scrollable Mermaid diagram viewer.")
         .WithKey("↑ / ↓", "Scroll a line")
@@ -67,12 +71,14 @@ public class MermaidViewer : Control
         .WithKey("PgUp / PgDn", "Scroll a page")
         .WithKey("Home / End", "Top / bottom");
 
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width)
     {
         EnsureRender();
         return _renderedVersion == _version ? Math.Max(1, _contentHeight) : EstimateHeight();
     }
 
+    /// <inheritdoc/>
     protected override void Render()
     {
         EnsureRender();
@@ -80,6 +86,7 @@ public class MermaidViewer : Control
         Blit();
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         // Horizontal panning is control-managed (Blit offset via HScroll), so it works with or without a frame.

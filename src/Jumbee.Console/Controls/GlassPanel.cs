@@ -49,6 +49,8 @@ public class GlassPanel : Control
     #endregion
 
     #region Indexers
+    /// <summary>The composited cell at <paramref name="position"/>: the panel's opaque content where it has ink,
+    /// otherwise the tinted glass backdrop (the layer beneath).</summary>
     // Composite: the panel's own rendered content (opaque, crisp) wherever it has ink, otherwise the glass backdrop
     // (the layer beneath, tinted). A content glyph with no background of its own sits on the glass so text never
     // punches a hole to the terminal default.
@@ -142,15 +144,18 @@ public class GlassPanel : Control
         _anchor = anchor;
     }
 
+    /// <summary>Renders <see cref="Content"/> (if any) opaquely into the panel's buffer.</summary>
     protected override void Render()
     {
         ansiConsole.Clear(true);
         if (_content is not null) ansiConsole.Write(_content);
     }
 
+    /// <summary>The panel's fixed width in cells.</summary>
     // A fixed extent so a docking/placement parent (the overlay's anchoring Box) sizes the panel snugly instead of
     // stretching it to fill the screen.
     protected override int IntrinsicWidth() => _w;
+    /// <summary>The panel's fixed height in cells.</summary>
     protected override int IntrinsicHeight() => _h;
 
     // The glass backdrop for one cell: the layer beneath, tinted. Carries the beneath cell's mouse listener so a

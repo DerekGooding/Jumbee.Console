@@ -36,11 +36,14 @@ public class SplitDivider : RenderableControl
     #endregion
 
     #region Properties
+    /// <summary><see langword="true"/>: the divider consumes keyboard input to resize with the arrow keys.</summary>
     public override bool HandlesInput => true;
+    /// <summary><see langword="true"/>: the divider draws its own focus indication by recolouring the line.</summary>
     protected override bool RendersOwnFocus => true;   // recolours the divider when focused (grabbed for resize)
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(LineStyle))) _lineStyle = UI.StyleTheme.TextMuted;
@@ -57,6 +60,7 @@ public class SplitDivider : RenderableControl
     /// <summary>Style when focused or being dragged. Defaults to <see cref="IStyleTheme.Selection"/>.</summary>
     public Style ActiveStyle { get => _activeStyle; set => SetAtomicProperty(ref _activeStyle, value, themeOverride: true); }
 
+    /// <summary>Renders the divider line, brightening it while dragged and highlighting it on hover or focus.</summary>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         // Bright ActiveStyle only while actually dragging; hover OR keyboard-focus shows the milder HoverStyle; else
@@ -79,6 +83,7 @@ public class SplitDivider : RenderableControl
         }
     }
 
+    /// <inheritdoc/>
     protected override void OnMousePress(Position position)
     {
         _dragging = true;
@@ -87,6 +92,7 @@ public class SplitDivider : RenderableControl
         Invalidate();
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseMove(Position position)
     {
         if (!_dragging) return;
@@ -95,6 +101,7 @@ public class SplitDivider : RenderableControl
         if (delta != 0) { _dragLast = cur; Dragged?.Invoke(delta); }
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseRelease(Position position)
     {
         if (!_dragging) return;
@@ -103,6 +110,7 @@ public class SplitDivider : RenderableControl
         Invalidate();
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         var big = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0 ? 5 : 1;

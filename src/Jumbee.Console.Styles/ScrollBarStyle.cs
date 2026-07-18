@@ -9,6 +9,7 @@ namespace Jumbee.Console;
 public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="ScrollBarStyle"/> from the thumb, track, and end-arrow styles.</summary>
     public ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow)
     {
         Thumb = thumb;
@@ -61,15 +62,20 @@ public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
     #region Equality
     // Hand-written: Style holds a reference, so the runtime's default ValueType.Equals falls back to a reflective,
     // boxing field-by-field compare — which is what SetAtomicProperty would run on every assignment. See Color.
+    /// <summary>Determines whether this <see cref="ScrollBarStyle"/> equals <paramref name="other"/>.</summary>
     public bool Equals(ScrollBarStyle other) =>
         Thumb == other.Thumb && Track == other.Track && UpArrow == other.UpArrow && DownArrow == other.DownArrow;
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is ScrollBarStyle other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode() => System.HashCode.Combine(Thumb, Track, UpArrow, DownArrow);
 
+    /// <summary>Equality operator.</summary>
     public static bool operator ==(ScrollBarStyle a, ScrollBarStyle b) => a.Equals(b);
 
+    /// <summary>Inequality operator.</summary>
     public static bool operator !=(ScrollBarStyle a, ScrollBarStyle b) => !a.Equals(b);
     #endregion
 }

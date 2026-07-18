@@ -15,10 +15,15 @@ using ConsoleGUI.Space;
 /// </summary>
 public sealed class MenuItem
 {
+    /// <summary>The item's label text.</summary>
     public string Text { get; init; } = string.Empty;
+    /// <summary>An optional right-aligned shortcut hint (display only).</summary>
     public string? Shortcut { get; init; }
+    /// <summary>The action invoked when the item is chosen.</summary>
     public Action? Action { get; init; }
+    /// <summary>Whether the item is selectable; disabled items are shown muted and skipped.</summary>
     public bool Enabled { get; init; } = true;
+    /// <summary>Whether the item is a non-selectable divider row.</summary>
     public bool IsSeparator { get; init; }
 
     /// <summary>Child items shown as a submenu to the right when this item is highlighted or chosen.</summary>
@@ -26,7 +31,9 @@ public sealed class MenuItem
     /// depth.</remarks>
     public IReadOnlyList<MenuItem>? Submenu { get; init; }
 
+    /// <summary>Initializes an empty <see cref="MenuItem"/>.</summary>
     public MenuItem() { }
+    /// <summary>Initializes a <see cref="MenuItem"/> with the given label and optional action.</summary>
     public MenuItem(string text, Action? action = null) { Text = text; Action = action; }
 
     /// <summary>A parent item that opens <paramref name="submenu"/> when chosen (Right/Enter, or hover).</summary>
@@ -60,6 +67,7 @@ public sealed class MenuItem
 public class ContextMenu : Control
 {
     #region Constructors
+    /// <summary>Initializes a <see cref="ContextMenu"/> from the given top-level items.</summary>
     public ContextMenu(IEnumerable<MenuItem> items)
     {
         _root = items?.ToList() ?? throw new ArgumentNullException(nameof(items));
@@ -78,8 +86,11 @@ public class ContextMenu : Control
     #endregion
 
     #region Properties
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
+    /// <inheritdoc/>
     protected override bool WantsMouse => true;   // hover highlights an item / opens its submenu
+    /// <summary>The menu's top-level items.</summary>
     public IReadOnlyList<MenuItem> Items => _root;
     #endregion
 
@@ -88,6 +99,7 @@ public class ContextMenu : Control
     // indexer (which guards on Size, not the buffer) can be read re-entrantly by the overlay's re-layout in the
     // window between Size growing and the buffer growing — reading past the buffer and throwing. Returning an empty
     // cell for out-of-buffer positions keeps that transient read safe.
+    /// <inheritdoc/>
     public override Cell this[Position position]
     {
         get
@@ -111,6 +123,7 @@ public class ContextMenu : Control
         UI.Overlay?.Show(this, x, y);
     }
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         _textStyle = UI.StyleTheme.Text;
@@ -119,12 +132,14 @@ public class ContextMenu : Control
         _borderStyle = UI.StyleTheme.BorderText;
     }
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Menu", "Menu", "A pop-up menu.")
         .WithKey("Up / Down", "Move")
         .WithKey("Right / Left", "Open / close submenu")
         .WithKey("Enter", "Choose")
         .WithKey("Esc", "Close");
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         var active = _levels[^1];   // keyboard always drives the deepest open level
@@ -145,6 +160,7 @@ public class ContextMenu : Control
 
     // Hover highlights the item under the pointer and opens its submenu; moving to a shallower level trims the deeper
     // ones. Guarded on the last-hovered cell so jitter within one item doesn't rebuild the chain.
+    /// <inheritdoc/>
     protected override void OnMouseMove(Position position)
     {
         var (level, item) = HitTest(position);
@@ -163,9 +179,11 @@ public class ContextMenu : Control
         Relayout();
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseLeave() { _lastHoverLevel = _lastHoverItem = -1; }
 
     // Click a leaf to choose it; click a submenu parent to open it.
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         var (level, item) = HitTest(position);
@@ -279,7 +297,9 @@ public class ContextMenu : Control
 
     // The menu sizes itself to the whole open chain's bounding box (an intrinsic extent honored even under a finite
     // parent), so the overlay anchors the popup to it and Size stays in step with the buffer.
+    /// <inheritdoc/>
     protected override int IntrinsicWidth() => _chainWidth;
+    /// <inheritdoc/>
     protected override int IntrinsicHeight() => _chainHeight;
 
     // The (level, item) under a content-space position, searching the deepest box first, or (-1, -1) if over a gap.
@@ -297,6 +317,7 @@ public class ContextMenu : Control
         return (-1, -1);
     }
 
+    /// <inheritdoc/>
     protected override void Render()
     {
         ansiConsole.Clear(true);   // clear to transparent so the gaps between boxes show the layer beneath

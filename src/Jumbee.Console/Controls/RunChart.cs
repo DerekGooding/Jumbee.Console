@@ -21,6 +21,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class RunChart : CompositeControl
 {
     #region Constructors
+    /// <summary>Initializes a new empty <see cref="RunChart"/> (a streaming <see cref="Plot"/> with a docked legend).</summary>
     public RunChart()
     {
         _plot = new Plot();
@@ -39,6 +40,7 @@ public class RunChart : CompositeControl
         set => UI.Invoke(() => { _format = string.IsNullOrEmpty(value) ? "0.##" : value; RefreshLegend(); });
     }
 
+    /// <summary>Reports <see langword="true"/> so the chart fills its framing viewport rather than ballooning (it owns its own scrolling via the strip axis).</summary>
     // The chart owns its scrolling via the strip axis, so it fills the framing viewport rather than ballooning.
     protected internal override bool FillsFrameViewport => true;
 

@@ -29,6 +29,7 @@ using Spectre.Console.Rendering;
 public abstract class ToggleButton : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="ToggleButton"/> with the given label <paramref name="text"/>.</summary>
     protected ToggleButton(string text)
     {
         _text = text;
@@ -44,14 +45,17 @@ public abstract class ToggleButton : RenderableControl
     #endregion
 
     #region Properties
+    /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
 
+    /// <summary>Whether the toggle is in its on state. Setting it raises <see cref="Changed"/> when it flips.</summary>
     public bool IsChecked
     {
         get => _isChecked;
         set => SetAtomicProperty(ref _isChecked, value, watch: (_, v) => Changed?.Invoke(this, v));
     }
 
+    /// <summary>The label drawn after the state indicator. Setting it re-sizes the control.</summary>
     public string Text
     {
         get => _text;
@@ -75,6 +79,7 @@ public abstract class ToggleButton : RenderableControl
     /// <summary>Flips the state (the same path as a click). Overridden by <see cref="RadioButton"/> to latch on.</summary>
     public virtual void Toggle() => IsChecked = !IsChecked;
 
+    /// <inheritdoc/>
     // Captures the label/indicator styles from the style theme. Subclasses override to also set their glyphs
     // (via SetGlyphs) from the glyph theme, calling base first.
     protected override void ApplyTheme()
@@ -95,8 +100,10 @@ public abstract class ToggleButton : RenderableControl
         RefreshWidth();
     }
 
+    /// <summary>The width in cells of the state indicator glyph.</summary>
     protected int IndicatorWidth => _indicatorWidth;
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var indicator = _isChecked ? _accentStyle : _mutedStyle;
@@ -111,11 +118,14 @@ public abstract class ToggleButton : RenderableControl
         yield return new Segment(text, label);
     }
 
+    /// <inheritdoc/>
     protected override void OnClick(Position position) => Toggle();
 
+    /// <inheritdoc/>
     // A double-click is two presses; for a toggle that means two state changes (the same as clicking twice).
     protected override void OnDoubleClick(Position position) => Toggle();
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)

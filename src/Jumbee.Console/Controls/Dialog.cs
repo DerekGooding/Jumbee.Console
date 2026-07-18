@@ -12,10 +12,38 @@ using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 /// <summary>The predefined button set a <see cref="Dialog"/> shows along its bottom edge.</summary>
-public enum DialogButtons { None, Ok, OkCancel, YesNo, YesNoCancel, Close }
+public enum DialogButtons
+{
+    /// <summary>No buttons.</summary>
+    None,
+    /// <summary>A single OK button.</summary>
+    Ok,
+    /// <summary>OK and Cancel buttons.</summary>
+    OkCancel,
+    /// <summary>Yes and No buttons.</summary>
+    YesNo,
+    /// <summary>Yes, No and Cancel buttons.</summary>
+    YesNoCancel,
+    /// <summary>A single Close button.</summary>
+    Close,
+}
 
 /// <summary>Which button dismissed a <see cref="Dialog"/> (or how it was dismissed).</summary>
-public enum DialogResult { None, Ok, Cancel, Yes, No, Close }
+public enum DialogResult
+{
+    /// <summary>Not yet dismissed.</summary>
+    None,
+    /// <summary>Dismissed with OK.</summary>
+    Ok,
+    /// <summary>Dismissed with Cancel.</summary>
+    Cancel,
+    /// <summary>Dismissed with Yes.</summary>
+    Yes,
+    /// <summary>Dismissed with No.</summary>
+    No,
+    /// <summary>Dismissed with Close.</summary>
+    Close,
+}
 
 /// <summary>
 /// A modal dialog window shown over the ambient <see cref="UI.Overlay"/>: a titled, bordered box that takes
@@ -91,6 +119,7 @@ public class Dialog : CompositeControl
     // Composite every interior cell onto the opaque surface background: a modal must not let the dimmed layer behind
     // bleed through transparent gaps (a short custom control, inter-child spacing, a glyph with no background). Keeps
     // the cell's glyph/foreground/decoration/cursor and its mouse listener; only fills an absent background.
+    /// <inheritdoc/>
     public override Cell this[Position position]
     {
         get
@@ -160,6 +189,7 @@ public class Dialog : CompositeControl
     // After the content lays out, shrink a custom-content dialog to its content's natural height so a short control
     // (e.g. a one-line input) doesn't leave a tall empty box. One-shot (guarded), and skipped for message text
     // (already sized exactly). Re-sizing re-centers the dialog in the overlay.
+    /// <inheritdoc/>
     protected override void Control_OnInitialization()
     {
         base.Control_OnInitialization();
@@ -171,6 +201,7 @@ public class Dialog : CompositeControl
         if (target != Height) Height = target;
     }
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         _surfaceBg = UI.StyleTheme.Surface.BackgroundColor?.ToConsoleGUIColor();
@@ -183,10 +214,12 @@ public class Dialog : CompositeControl
 
     // The dialog is content-sized (its Width/Height are set in the ctor); report the interior height so the wrapping
     // frame in the overlay sizes to the box instead of ballooning to the scroll clamp.
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width) => Math.Max(1, Height);
 
     // A dialog never scrolls, so tell the frame not to reserve the vertical-scrollbar column — otherwise it leaves a
     // blank gutter down the right of the content. (The composite's explicit Width/Height still drive its real size.)
+    /// <inheritdoc/>
     protected internal override bool FillsFrameViewport => true;
 
     private void OnDialogLostFocus()

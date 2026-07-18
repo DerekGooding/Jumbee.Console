@@ -22,6 +22,7 @@ using Spectre.Console;
 public class ChatPrompt : CompositeControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="ChatPrompt"/> with an optional <paramref name="placeholder"/> hint.</summary>
     public ChatPrompt(string placeholder = "")
     {
         _input = new TextInput(placeholder: placeholder);
@@ -111,8 +112,10 @@ public class ChatPrompt : CompositeControl
     public Autocomplete WithSuggestions(Func<string, IEnumerable<string>> suggest) => new(_input, suggest);
 
     // A single input row; a surrounding frame sizes us to one row (plus its border) instead of the 1000-row fill.
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width) => 1;
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Prompt", "Chat prompt",
         "A prompt for entering a message or command, with an optional busy spinner and type-ahead.")
         .WithKey("Arrows", "Move the caret")

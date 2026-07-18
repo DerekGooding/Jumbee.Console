@@ -10,7 +10,7 @@ using ConsoleGUI.Space;
 /// The <see cref="IConsole"/> used by the ANSI render path. The terminal size is <b>read</b> from the live terminal,
 /// but the setter deliberately does <b>not</b> manipulate it — unlike <see cref="StandardConsole"/>, whose
 /// <c>SetWindowSize</c>/<c>SetBufferSize</c> dance fights the live window size and never converges, so
-/// <see cref="ConsoleManager.AdjustBufferSize"/> resizes (and re-lays-out the whole UI) on <em>every</em> frame.
+/// <c>ConsoleManager.AdjustBufferSize</c> resizes (and re-lays-out the whole UI) on <em>every</em> frame.
 /// The ANSI renderer emits escape sequences into whatever size the terminal reports; the app adapts to the terminal,
 /// not the reverse. Everything else (UTF-8 setup, cursor hide, clear) delegates to a real <see cref="StandardConsole"/>
 /// and only runs on genuine (re)initialization. Rendering never uses <see cref="Write"/> on this path (the

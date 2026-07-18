@@ -19,6 +19,8 @@ public sealed record KeyHelp(string Keys, string Description);
 public sealed class HelpInfo
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="HelpInfo"/> with the given <paramref name="name"/>, and optional
+    /// <paramref name="title"/> (defaults to the name) and <paramref name="text"/>.</summary>
     public HelpInfo(string name, string? title = null, string? text = null)
     {
         Name = name;

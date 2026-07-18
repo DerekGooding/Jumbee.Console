@@ -73,6 +73,7 @@ public sealed class AnsiConsoleSession : IDisposable
         }
     }
 
+    /// <summary>Restores the previous <see cref="ConsoleManager"/> output sink and ANSI mode.</summary>
     public void Dispose()
     {
         ConsoleManager.AnsiOutput = _prevOutput;

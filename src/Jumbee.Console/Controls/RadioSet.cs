@@ -12,6 +12,7 @@ using System;
 public class RadioSet : ToggleList
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="RadioSet"/> with the given <paramref name="options"/>.</summary>
     public RadioSet(params string[] options) : base(options) => ApplyTheme();
     #endregion
 
@@ -42,10 +43,13 @@ public class RadioSet : ToggleList
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override bool IsChecked(int index) => index == _selectedIndex;
 
+    /// <inheritdoc/>
     protected override void Activate(int index) => SelectedIndex = index;
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         base.ApplyTheme();

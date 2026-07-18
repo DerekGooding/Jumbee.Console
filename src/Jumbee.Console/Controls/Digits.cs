@@ -15,6 +15,7 @@ using Spectre.Console.Rendering;
 public class Digits : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Digits"/> displaying the given text in large glyphs.</summary>
     public Digits(string text = "")
     {
         Focusable = false;   // a passive display control: never a focus/tab target
@@ -38,20 +39,24 @@ public class Digits : RenderableControl
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(DigitStyle))) _digitStyle = UI.StyleTheme.TextAccent;
     }
 
     // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
+    /// <inheritdoc/>
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     protected override Measurement Measure(RenderOptions options, int maxWidth)
     {
         var width = Math.Min(_text.Length * GlyphWidth, maxWidth);
         return new Measurement(width, width);
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var style = _digitStyle.SpectreConsoleStyle;

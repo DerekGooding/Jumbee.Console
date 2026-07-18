@@ -4,6 +4,7 @@ using ConsoleGUI.Common;
 using ConsoleGUI.Space;
 using System;
 
+/// <summary>Fluent extension helpers for configuring controls, frames, and geometry values.</summary>
 public static class ControlExtensions
 {
     /// <summary>
@@ -31,12 +32,14 @@ public static class ControlExtensions
     internal static ConsoleGUI.IControl RenderNode(this IFocusable focusable) =>
         focusable is ILayout layout ? layout.CControl : focusable.FocusableControl;
 
+    /// <summary>Deconstructs a <see cref="Position"/> into its <paramref name="X"/> and <paramref name="Y"/> components.</summary>
     public static void Deconstruct(this Position position, out int X, out int Y)
     {
         X = position.X;
         Y = position.Y;
     }
 
+    /// <summary>Subtracts <paramref name="position2"/> from <paramref name="position1"/>, clamping each axis at zero.</summary>
     public static Position SubtractClamp(this Position position1, Position position2)
     {
         var x = position1.X - position2.X;
@@ -44,22 +47,27 @@ public static class ControlExtensions
         return new Position(Math.Max(0, x), Math.Max(0, y));
     }
 
+    /// <summary>Returns <paramref name="position"/> offset by <paramref name="x"/> columns and <paramref name="y"/> rows.</summary>
     public static Position Add(this Position position, int x, int y) => new Position(position.X + x, position.Y + y);
 
+    /// <summary>Returns <paramref name="size"/> with its width reduced by <paramref name="width"/>.</summary>
     public static CSize SubtractWidth(this CSize size, int width) => new CSize(size.Width - width, size.Height);
 
+    /// <summary>Sets the control's <see cref="Control.Width"/> and returns it.</summary>
     public static T WithWidth<T>(this T control, int width) where T : Control
     {
         control.Width = width;
         return control;
     }
 
+    /// <summary>Sets the control's <see cref="Control.Height"/> and returns it.</summary>
     public static T WithHeight<T>(this T control, int height) where T : Control
     {
         control.Height = height;
         return control;
     }
 
+    /// <summary>Sets the control's width and/or height (at least one must be supplied) and returns it.</summary>
     public static T WithSize<T>(this T control, int? width = null, int? height = null) where T : Control
     {
         if (width is null && height is null) throw new ArgumentNullException("You must specify either a width or height.");
@@ -75,11 +83,14 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the control's <see cref="Control.Frame"/> to <paramref name="frame"/> and returns it.</summary>
     public static T WithFrame<T>(this T control, ControlFrame frame) where T : Control
     {
         control.Frame = frame;
         return control;
     }
+    /// <summary>Creates or updates the control's <see cref="ControlFrame"/> from the supplied border, margin, colour,
+    /// and title options (only supplied arguments are applied) and returns the control.</summary>
     public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null) where T : Control
     {
         // Assign only the arguments actually supplied: self-assigning (x ?? frame.x) would fire the themeable
@@ -96,6 +107,7 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the frame's margin to the given left/top/right/bottom offsets (creating a frame if needed) and returns the control.</summary>
     public static T WithMargin<T>(this T control, int left, int top, int right, int bottom) where T : Control
     {
         if (control.Frame != null)
@@ -110,8 +122,10 @@ public static class ControlExtensions
         }
     }
 
+    /// <summary>Sets a uniform frame margin of <paramref name="offset"/> on all sides and returns the control.</summary>
     public static T WithMargin<T>(this T control, int offset) where T : Control => control.WithMargin(offset, offset, offset, offset);
 
+    /// <summary>Sets the frame's border style, colours, and placement (creating a frame if needed) and returns the control.</summary>
     public static T WithBorder<T>(this T control, BorderStyle? style, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
@@ -122,6 +136,7 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the frame's title (creating a frame if needed) and returns the control.</summary>
     public static T WithTitle<T>(this T control, string title) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
@@ -129,6 +144,7 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the frame's title and <see cref="TitleStyle"/> (creating a frame if needed) and returns the control.</summary>
     public static T WithTitle<T>(this T control, string title, TitleStyle titleStyle) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
@@ -137,6 +153,7 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the frame's title with the given position, border style, and colour style (creating a frame if needed) and returns the control.</summary>
     public static T WithTitle<T>(this T control, string title, TitlePos pos, TitleBorderStyle borderStyle, TitleColorStyle color) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
@@ -145,6 +162,7 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the frame's <see cref="ScrollBarStyle"/> (creating a frame if needed) and returns the control.</summary>
     public static T WithScrollBarStyle<T>(this T control, ScrollBarStyle style) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
@@ -152,6 +170,7 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Sets the frame's <see cref="ScrollBarGlyphs"/> (creating a frame if needed) and returns the control.</summary>
     public static T WithScrollBarGlyphs<T>(this T control, ScrollBarGlyphs glyphs) where T : Control
     {
         var frame = control.Frame ??= new ControlFrame(control);
@@ -159,23 +178,30 @@ public static class ControlExtensions
         return control;
     }
 
+    /// <summary>Removes the frame's border (<see cref="BorderStyle.None"/>) and returns the control.</summary>
     public static T WithNoBorder<T>(this T control) where T : Control =>
         control.WithBorder(BorderStyle.None);
 
+    /// <summary>Applies an ASCII border with optional colours and returns the control.</summary>
     public static T WithAsciiBorder<T>(this T control, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control =>
         control.WithBorder(BorderStyle.Ascii, borderFgColor, borderBgColor);
 
+    /// <summary>Applies a heavy-line border with optional colours and returns the control.</summary>
     public static T WithHeavyBorder<T>(this T control, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control =>
          control.WithBorder(BorderStyle.Heavy, borderFgColor, borderBgColor);
 
+    /// <summary>Applies a double-line border with optional colours and returns the control.</summary>
     public static T WithDoubleBorder<T>(this T control, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control =>
         control.WithBorder(BorderStyle.Double, borderFgColor, borderBgColor);
 
+    /// <summary>Applies a rounded border with optional colours and returns the control.</summary>
     public static T WithRoundedBorder<T>(this T control, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control =>
         control.WithBorder(BorderStyle.Rounded, borderFgColor, borderBgColor);
 
+    /// <summary>Applies a square border with optional colours and returns the control.</summary>
     public static T WithSquareBorder<T>(this T control, Color? borderFgColor = null, Color? borderBgColor = null) where T : Control =>
         control.WithBorder(BorderStyle.Square, borderFgColor, borderBgColor);
 
+    /// <summary>Wraps <paramref name="s"/> in a Spectre <see cref="Spectre.Console.Markup"/> using <paramref name="style"/>.</summary>
     public static Spectre.Console.Markup WithStyle(this string s, Style style) => style[s];
 }

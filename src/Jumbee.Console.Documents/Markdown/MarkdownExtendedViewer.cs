@@ -24,6 +24,7 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 public class MarkdownExtendedViewer : MarkdownViewer
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="MarkdownExtendedViewer"/> showing <paramref name="markdown"/>.</summary>
     public MarkdownExtendedViewer(string markdown = "") : base(markdown) { }
     #endregion
 
@@ -37,6 +38,7 @@ public class MarkdownExtendedViewer : MarkdownViewer
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     // Splits the document at fenced ```mermaid blocks, renders markdown spans via the base viewer and diagram spans via
     // the mermaid rasterizer, then stacks the pieces into the reusable `target` content buffer. Falls straight through
     // to the base single pass when there are no diagrams, so plain markdown pays only one O(lines) scan.

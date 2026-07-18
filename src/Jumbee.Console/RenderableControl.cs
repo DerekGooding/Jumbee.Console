@@ -11,6 +11,7 @@ using Spectre.Console.Rendering;
 /// </summary>
 public abstract class RenderableControl : Control, IRenderable
 {
+    /// <summary>Initializes a new <see cref="RenderableControl"/>.</summary>
     public RenderableControl() : base() {}
     
     #region Methods
@@ -18,8 +19,10 @@ public abstract class RenderableControl : Control, IRenderable
 
     IEnumerable<Segment> IRenderable.Render(RenderOptions options, int maxWidth) => this.Render(options, maxWidth);
 
+    /// <summary>Produces the Spectre.Console <see cref="Segment"/>s for the control's content within <paramref name="maxWidth"/>.</summary>
     protected abstract IEnumerable<Segment> Render(RenderOptions options, int maxWidth);
 
+    /// <summary>Measures the control's desired width; the default reports <paramref name="maxWidth"/> as both minimum and maximum. Override for intrinsic sizing.</summary>
     [DebuggerStepThrough]
     protected virtual Measurement Measure(RenderOptions options, int maxWidth) => new Measurement(maxWidth, maxWidth);
 
@@ -38,12 +41,14 @@ public abstract class RenderableControl : Control, IRenderable
     // Content changes go through Invalidate(), which marks the buffer stale so the next paint re-runs the Spectre
     // pipeline. Interactive-state changes route through InvalidateInteractive() below, which (for content-only
     // controls) requests a repaint WITHOUT re-rendering.
+    /// <summary>Marks the content stale (so the next paint re-runs the Spectre pipeline) and requests a repaint.</summary>
     protected override void Invalidate()
     {
         _contentDirty = true;
         base.Invalidate();
     }
 
+    /// <summary>Requests an interactive-state repaint: re-renders when <see cref="RendersInteractiveState"/> is set, otherwise reuses the cached buffer for a cheap composite.</summary>
     protected override void InvalidateInteractive()
     {
         if (RendersInteractiveState)
@@ -57,9 +62,10 @@ public abstract class RenderableControl : Control, IRenderable
         }
     }
 
+    /// <summary>Lays the control out on the UI thread: measures the renderable, resizes the control and buffer when the size changed, and invalidates.</summary>
     protected override void Initialize()
-    {        
-        UI.Invoke(() => 
+    {
+        UI.Invoke(() =>
         {
             var (width, height) = CalculateSize();
 

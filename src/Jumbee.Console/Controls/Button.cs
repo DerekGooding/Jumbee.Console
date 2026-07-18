@@ -24,6 +24,7 @@ using TextStyle = Jumbee.Console.Style;
 public class Button : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new primary-styled <see cref="Button"/> with the given label.</summary>
     public Button(string text) : this(text, ButtonRole.Primary) { }
 
     private Button(string text, ButtonRole role)
@@ -40,13 +41,17 @@ public class Button : RenderableControl
     #endregion
 
     #region Properties
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
+    /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;   // focus lightens the tile / bolds the label
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Button", text: "A clickable button.")
         .WithKey("Enter / Space", "Activate when focused")
         .WithKey("Click", "Activate");
 
+    /// <summary>The button's label text.</summary>
     public string Text
     {
         get => _text;
@@ -74,16 +79,20 @@ public class Button : RenderableControl
     /// <summary>Programmatically activate the button (the same path as a click).</summary>
     public void Activate() => Activated?.Invoke(this, EventArgs.Empty);
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(Style)))
             _style = _role == ButtonRole.Secondary ? UI.StyleTheme.SecondaryButton : UI.StyleTheme.PrimaryButton;
     }
 
+    /// <inheritdoc/>
     protected override int IntrinsicWidth() => OuterWidth();
 
+    /// <inheritdoc/>
     protected override int IntrinsicHeight() => _style.IsModern ? 3 : 1;
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var fill = IsMousePressed ? _style.Press : IsMouseOver ? _style.Hover : _style.Normal;
@@ -143,8 +152,10 @@ public class Button : RenderableControl
     private TextStyle Focused(TextStyle label) => IsFocused ? label | TextStyle.Invert : label;
 
     // Mouse click (press+release on this control) is synthesized by the base Control.
+    /// <inheritdoc/>
     protected override void OnClick(Position position) => Activate();
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)

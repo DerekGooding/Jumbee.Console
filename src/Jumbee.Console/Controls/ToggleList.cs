@@ -28,6 +28,7 @@ using Spectre.Console.Rendering;
 public abstract class ToggleList : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="ToggleList"/> with the given <paramref name="options"/>.</summary>
     protected ToggleList(IEnumerable<string> options)
     {
         _options = options.ToList();
@@ -38,8 +39,10 @@ public abstract class ToggleList : RenderableControl
     #endregion
 
     #region Properties
+    /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
 
+    /// <summary>The list's options.</summary>
     public IReadOnlyList<string> Options => _options;
 
     /// <summary>The highlighted row (navigation cursor), clamped to the option range.</summary>
@@ -80,6 +83,7 @@ public abstract class ToggleList : RenderableControl
     /// <summary>Acts on the option at <paramref name="index"/> (select it, or toggle its checked state).</summary>
     protected abstract void Activate(int index);
 
+    /// <inheritdoc/>
     // Captures the row styles from the style theme. Subclasses override to also set their glyphs (via SetGlyphs)
     // from the glyph theme, calling base first.
     protected override void ApplyTheme()
@@ -104,6 +108,7 @@ public abstract class ToggleList : RenderableControl
         Width = _indicatorWidth + 1 + (_options.Count == 0 ? 0 : _options.Max(o => o.Length));
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         var count = _options.Count;
@@ -135,6 +140,7 @@ public abstract class ToggleList : RenderableControl
         }
     }
 
+    /// <inheritdoc/>
     // Each option is one row and the listener position is in content coordinates, so the row index is position.Y.
     protected override void OnClick(Position position)
     {
@@ -144,9 +150,11 @@ public abstract class ToggleList : RenderableControl
         Activate(index);
     }
 
+    /// <inheritdoc/>
     // A double-click is two presses; treat it as clicking the row twice.
     protected override void OnDoubleClick(Position position) => OnClick(position);
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         for (int i = 0; i < _options.Count; i++)

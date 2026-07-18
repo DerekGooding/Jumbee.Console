@@ -114,6 +114,7 @@ public sealed class VtInputSource : IInputSource, IDisposable
         try { File.AppendAllText(LogPath, $"{DateTime.Now:HH:mm:ss.fff} {msg}{Environment.NewLine}"); } catch { }
     }
 
+    /// <summary>Stops the reader thread and restores the console mode (disabling mouse/paste/focus reporting).</summary>
     public void Dispose()
     {
         if (!_running) return;

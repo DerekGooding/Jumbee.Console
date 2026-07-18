@@ -19,6 +19,7 @@ using Spectre.Console;
 public class TextInput : Control
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="TextInput"/> with the given initial <paramref name="text"/> and <paramref name="placeholder"/> hint.</summary>
     public TextInput(string text = "", string placeholder = "")
     {
         _text = SingleLine(text);
@@ -29,7 +30,9 @@ public class TextInput : Control
     #endregion
 
     #region Properties
+    /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
+    /// <summary>Reports <see langword="true"/>: the text cursor indicates focus, so no default focus tint is drawn.</summary>
     protected override bool RendersOwnFocus => true;   // the text cursor shows focus
 
     /// <summary>The entered text (newlines stripped). Setting it moves the caret to the end and raises <see cref="Changed"/>.</summary>
@@ -98,9 +101,12 @@ public class TextInput : Control
     #endregion
 
     #region Methods
+    /// <summary>The input's fixed height of one row.</summary>
     protected override int IntrinsicHeight() => 1;   // one row tall
+    /// <summary>Returns 0 so the input fills the available width.</summary>
     protected override int IntrinsicWidth() => 0;    // fill the available width
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(TextStyle))) _textStyle = UI.StyleTheme.Text;
@@ -108,6 +114,7 @@ public class TextInput : Control
         if (!IsThemeOverridden(nameof(SelectionStyle))) _selectionStyle = UI.StyleTheme.Selection;
     }
 
+    /// <summary>Renders the (scrolled) text or placeholder, highlighting any selection.</summary>
     protected override void Render()
     {
         ansiConsole.Clear(true);   // clear the buffer (and reset the cursor) before redrawing the line
@@ -176,6 +183,7 @@ public class TextInput : Control
     /// while the field keeps focus and continues to edit on other keys.</remarks>
     public Func<InputEvent, bool>? KeyInterceptor { get; set; }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (KeyInterceptor is { } intercept && intercept(inputEvent))
@@ -250,6 +258,7 @@ public class TextInput : Control
         Invalidate();
     }
 
+    /// <summary>Inserts pasted <paramref name="text"/> (flattened to a single line) at the caret, replacing any selection.</summary>
     public override void OnPaste(string text)
     {
         if (_readOnly || string.IsNullOrEmpty(text)) return;
@@ -262,6 +271,7 @@ public class TextInput : Control
         Invalidate();
     }
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Input", "Text input", "A single-line text field.")
         .WithKey("Arrows", "Move the caret")
         .WithKey("Shift+Arrows", "Select")

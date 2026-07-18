@@ -34,6 +34,7 @@ public enum SelectPopupPosition
 public class Select : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Select"/> with the given <paramref name="options"/>.</summary>
     public Select(params string[] options)
     {
         _options = options.ToList();
@@ -48,16 +49,21 @@ public class Select : RenderableControl
     #endregion
 
     #region Properties
+    /// <summary>The selectable options.</summary>
     public IReadOnlyList<string> Options => _options;
 
+    /// <summary>Text shown when no option is selected.</summary>
     public string Placeholder { get; set; } = "Select…";
 
+    /// <summary>The text colour of the collapsed control.</summary>
     public Color Foreground { get; set; } = Color.White;
+    /// <summary>The background colour of the collapsed control.</summary>
     public Color Background { get; set; } = new(50, 50, 70);
 
     /// <summary>Whether the dropdown opens below or above the control. Defaults to <see cref="SelectPopupPosition.Auto"/>.</summary>
     public SelectPopupPosition PopupPosition { get; set; } = SelectPopupPosition.Auto;
 
+    /// <summary>The index of the selected option, or -1 when none is selected. Setting it raises <see cref="SelectionChanged"/>.</summary>
     public int SelectedIndex
     {
         get => _selectedIndex;
@@ -71,8 +77,10 @@ public class Select : RenderableControl
         }
     }
 
+    /// <summary>The selected option text, or <see langword="null"/> when nothing is selected.</summary>
     public string? SelectedValue => _selectedIndex >= 0 && _selectedIndex < _options.Count ? _options[_selectedIndex] : null;
 
+    /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
     #endregion
 
@@ -121,6 +129,7 @@ public class Select : RenderableControl
         };
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var style = new Spectre.Console.Style(Foreground, Background);
@@ -133,6 +142,7 @@ public class Select : RenderableControl
         yield return new Segment(text, style);
     }
 
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         // Record this control's top-left on screen: the click's absolute position minus its position relative to us.
@@ -145,6 +155,7 @@ public class Select : RenderableControl
         Open();
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         // Enter/Space or Down/Up open the dropdown (the standard combobox keys); the open list then navigates.

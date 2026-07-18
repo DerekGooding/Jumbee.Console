@@ -12,16 +12,22 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Interop;
 
+/// <summary>Common interface for Jumbee.Console layout classes: a 2-D grid of focusable cells over a ConsoleGUI control, with focus navigation and input routing.</summary>
 public interface ILayout : IFocusable, IDrawingContextListener
 {
+    /// <summary>The number of rows in the layout grid.</summary>
     int Rows { get; }
 
+    /// <summary>The number of columns in the layout grid.</summary>
     int Columns { get; }
 
+    /// <summary>The underlying ConsoleGUI control this layout wraps.</summary>
     IControl CControl { get; }
 
+    /// <summary>Gets the focusable at the given grid cell.</summary>
     IFocusable this[int row, int column] { get; }
 
+    /// <summary>The focusables in every grid cell, in row-major order.</summary>
     IEnumerable<IFocusable> Controls { get; }
 
     // ---- Focus navigation -------------------------------------------------------------------------------------
@@ -130,9 +136,11 @@ public interface ILayout : IFocusable, IDrawingContextListener
     }
 }
 
+/// <summary>Base class for Jumbee.Console layouts wrapping a ConsoleGUI layout control <typeparamref name="T"/> and exposing it through <see cref="ILayout"/>.</summary>
 public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListener
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Layout{T}"/> wrapping the given ConsoleGUI <paramref name="control"/>.</summary>
     protected Layout(T control)
     {
         this.control = control;
@@ -140,26 +148,34 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     #endregion
 
     #region Indexers
+    /// <summary>Gets the focusable at the given grid cell.</summary>
     public abstract IFocusable this[int row, int column] { get; }
     #endregion
 
     #region Properties
+    /// <summary>The number of rows in the layout grid.</summary>
     public abstract int Rows { get; }
 
+    /// <summary>The number of columns in the layout grid.</summary>
     public abstract int Columns { get; }
 
+    /// <summary>Gets the composited <see cref="Cell"/> at <paramref name="position"/> from the wrapped control.</summary>
     public Cell this[Position position] => control[position];
 
-    public Size Size => control.Size;   
+    /// <summary>The wrapped control's laid-out size.</summary>
+    public Size Size => control.Size;
 
+    /// <summary>The underlying ConsoleGUI control this layout wraps.</summary>
     public IControl CControl => control;
-    
+
+    /// <summary>The wrapped control's drawing context.</summary>
     public IDrawingContext Context
     {
         get => ((IControl) control).Context;
         set => ((IControl)control).Context = value;
     }
 
+    /// <summary>The focusables in every grid cell, in row-major order.</summary>
     public IEnumerable<IFocusable> Controls
     {
         get
@@ -174,10 +190,13 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
         }
     }
 
+    /// <summary>When <see langword="true"/> (the default), this layout can hold focus.</summary>
     public bool Focusable { get; set; } = true;
 
+    /// <summary>The focus target the UI registers for this layout — the layout itself.</summary>
     public IFocusable FocusableControl => this;
 
+    /// <summary>Whether this layout holds focus; setting it raises the focus events.</summary>
     public bool IsFocused
     {
         get => field;
@@ -194,6 +213,7 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
         }
     }
 
+    /// <summary>Always <see langword="true"/> — a layout routes input to its focused descendant.</summary>
     public bool HandlesInput => true;
 
     /// <summary>
@@ -217,16 +237,21 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     #endregion
 
     #region Events
+    /// <summary>Raised when the layout gains focus.</summary>
     public event FocusableEventHandler? OnFocus;
 
+    /// <summary>Raised when the layout loses focus.</summary>
     public event FocusableEventHandler? OnLostFocus;
     #endregion
 
     #region Methods
+    /// <inheritdoc/>
     public void OnRedraw(DrawingContext drawingContext) => control.OnRedraw(drawingContext);
 
+    /// <inheritdoc/>
     public void OnUpdate(DrawingContext drawingContext, Rect rect) => control.OnUpdate(drawingContext, rect);
 
+    /// <summary>Routes a UI input event: this layout's tunnel gets a first look, then the event is delivered to the focused descendant.</summary>
     public void OnInput(UI.InputEventArgs inputEventArgs)
     {
         // Tunnel phase: let this layout consume the input before it routes down (e.g. an Overlay closing on its
@@ -275,10 +300,12 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     /// <summary>Lets a layout intercept input before it routes to the focused control. Return true if handled.</summary>
     protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs) => false;
 
+    /// <summary>Forwards a bracketed-paste payload to each cell's focused descendant.</summary>
     public void OnPaste(string text) => Controls.ForEach(f => f?.FocusedControl?.OnPaste(text));
     #endregion
 
     #region Fields
+    /// <summary>The wrapped ConsoleGUI layout control.</summary>
     public readonly T control;
     #endregion
 }

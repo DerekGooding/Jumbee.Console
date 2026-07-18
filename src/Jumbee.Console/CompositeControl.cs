@@ -30,8 +30,10 @@ using ConsoleGUI.Space;
 public abstract class CompositeControl : Control, IDrawingContextListener
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="CompositeControl"/> with no content; the subclass calls <see cref="SetContent"/> after building its children.</summary>
     protected CompositeControl() : base() { }
 
+    /// <summary>Initializes a new <see cref="CompositeControl"/> with the given <paramref name="content"/> layout arranging its children.</summary>
     protected CompositeControl(ILayout content) : base() => SetContent(content);
     #endregion
 
@@ -83,6 +85,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     #endregion
 
     #region Indexers
+    /// <summary>Gets the composited <see cref="Cell"/> at <paramref name="position"/> — a child's cell (keeping its mouse listener) where a child covers it, otherwise the composite's own surface.</summary>
     public override Cell this[Position position]
     {
         get
@@ -123,6 +126,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     // The composite is the navigable focus unit; route focus inward to a child so keyboard input (via
     // FocusedControl) and the child's caret/selection follow. A no-op when a descendant is already focused (e.g. a
     // child claimed by a more specific path). Overriding FocusChild changes which child this picks.
+    /// <summary>Routes focus inward to <see cref="FocusChild"/> when the composite gains focus.</summary>
     protected override void Control_OnFocus()
     {
         if (FocusChild is { } child && !child.IsFocused) child.IsFocused = true;
@@ -130,6 +134,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
 
     // Clear the focused descendant when the composite loses focus (covers the direct UnFocus path; UI.SetFocus
     // already clears registered children when focus moves elsewhere).
+    /// <summary>Clears the focused descendant when the composite loses focus.</summary>
     protected override void Control_OnLostFocus()
     {
         if (FocusedControl is Control child && !ReferenceEquals(child, this)) child.IsFocused = false;
@@ -198,10 +203,12 @@ public abstract class CompositeControl : Control, IDrawingContextListener
 
     // Children render themselves into their own buffers; the composite paints nothing by default. Subclasses may
     // override to draw a background/chrome behind the children (the indexer composites children over the buffer).
+    /// <summary>Renders the composite's own surface; the default draws nothing (children render themselves). Override to paint a background or chrome behind the children.</summary>
     protected override void Render() { }
 
     // Runs on the UI thread after Control.Initialize has resized the composite (Control subscribes this to its
     // OnInitialization event). Size the internal layout to fill the composite's current area.
+    /// <summary>Sizes the internal content layout to fill the composite's current area after initialization.</summary>
     protected override void Control_OnInitialization()
     {
         base.Control_OnInitialization();
@@ -219,6 +226,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     // redraw every frame. A subclass whose chrome depends on child state can still override this to Invalidate().
     void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect) => Update(rect);
 
+    /// <summary>Disposes the content drawing context and the base control.</summary>
     public override void Dispose()
     {
         if (!ReferenceEquals(_contentContext, DrawingContext.Dummy)) _contentContext.Dispose();

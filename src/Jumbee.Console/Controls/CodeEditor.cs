@@ -20,6 +20,7 @@ using ColorCode;
 public class CodeEditor : CompositeControl
 {
     #region Constructors
+    /// <summary>Creates a code editor highlighted for the given built-in <see cref="Language"/>.</summary>
     public CodeEditor(Language language = Language.None) : this(new TextEditor(language)) { }
 
     /// <summary>Creates an editor highlighted by a custom ColorCode grammar — for languages outside the built-in
@@ -79,10 +80,12 @@ public class CodeEditor : CompositeControl
     #region Methods
     // Our content height is the editor's wrapped row count at the editor's width (our width minus the gutter), so a
     // surrounding frame sizes us to content and its scrollbar/scroll-range are accurate.
+    /// <inheritdoc/>
     protected override int MeasureHeight(int width) =>
         Math.Max(1, _editor.VisualRowCount(Math.Max(1, width - _gutter.Width)));
 
     // Named "Editor" so it shares the editor tab (and the focused composite opens it). Describes the code editor.
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Editor", "Editor",
         "A code editor with line numbers and syntax highlighting.")
         .WithKey("Arrows", "Move the caret")
@@ -92,6 +95,7 @@ public class CodeEditor : CompositeControl
 
     // Re-baseline the cached "what the gutter currently shows" on every (re)layout, so the first edit after a
     // resize compares against the just-laid-out width rather than a stale measurement.
+    /// <inheritdoc/>
     protected override void Control_OnInitialization()
     {
         base.Control_OnInitialization();

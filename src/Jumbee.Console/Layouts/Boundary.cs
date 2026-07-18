@@ -50,12 +50,15 @@ public class Boundary : Layout<ConsoleGUI.Controls.Boundary>
     /// <summary>Maximum height in cells, or <see langword="null"/> for none.</summary>
     public int? MaxHeight { get => control.MaxHeight; set => control.MaxHeight = value; }
 
+    /// <summary>Number of rows in the layout grid (always 1).</summary>
     public override int Rows => 1;
 
+    /// <summary>Number of columns in the layout grid (always 1).</summary>
     public override int Columns => 1;
     #endregion
 
     #region Indexers
+    /// <summary>Gets the bounded child at cell (0, 0).</summary>
     public override IFocusable this[int row, int column] => row == 0 && column == 0
         ? _content
         : throw new ArgumentOutOfRangeException(row != 0 ? nameof(row) : nameof(column));

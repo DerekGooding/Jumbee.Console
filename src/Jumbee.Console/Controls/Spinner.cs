@@ -5,13 +5,16 @@ using System.Linq;
 
 using Spectre.Console;
 
+/// <summary>An animated spinner glyph with an optional label, cycling through a <see cref="Spectre.Console.Spinner"/>'s frames.</summary>
 public class Spinner : AnimatedControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Spinner"/> using the default spinner style.</summary>
     public Spinner() => Focusable = false;   // a passive display control: never a focus/tab target
     #endregion
 
     #region Properties
+    /// <summary>The spinner animation (frame set and interval) to cycle through.</summary>
     public Spectre.Console.Spinner SpinnerType
     {
         get => _spinner;
@@ -25,6 +28,7 @@ public class Spinner : AnimatedControl
         }
     }
 
+    /// <summary>The style applied to the spinner glyph and label.</summary>
     public Style Style
     {
         get => _style;
@@ -36,6 +40,7 @@ public class Spinner : AnimatedControl
         }
     }
 
+    /// <summary>An optional label drawn after the spinner glyph.</summary>
     public string Text
     {
         get => _text;
@@ -48,6 +53,7 @@ public class Spinner : AnimatedControl
     #endregion
 
     #region Methods
+    /// <summary>Renders the current animation frame (glyph plus label).</summary>
     protected sealed override void Render()
     {
         ansiConsole.Clear(true);        

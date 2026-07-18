@@ -30,13 +30,20 @@ public sealed class MermaidLanguage : ILanguage
     #endregion
 
     #region ILanguage
+    /// <summary>The ColorCode language id (<c>"mermaid"</c>).</summary>
     public string Id => "mermaid";
+    /// <summary>The display name.</summary>
     public string Name => "Mermaid";
+    /// <summary>The CSS class name used for HTML output.</summary>
     public string CssClassName => "mermaid";
+    /// <summary>First-line detection pattern (unused; <see langword="null"/>).</summary>
     public string FirstLinePattern => null!;
+    /// <summary>Returns <see langword="true"/> when <paramref name="lang"/> is a known alias (<c>mermaid</c>/<c>mmd</c>).</summary>
     public bool HasAlias(string lang) => lang is "mermaid" or "mmd";
+    /// <inheritdoc/>
     public override string ToString() => Name;
 
+    /// <summary>The ordered highlighting rules (the first to match a position wins).</summary>
     public IList<LanguageRule> Rules => new List<LanguageRule>
     {
         // %% line/trailing comment (incl. the %%{init:...}%% directive). Mermaid's only comment form.

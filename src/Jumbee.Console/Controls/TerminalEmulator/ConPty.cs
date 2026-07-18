@@ -76,6 +76,7 @@ public sealed class ConPty : IPty
         ResizePseudoConsole(_handle, new COORD { X = Math.Max((short)1, columns), Y = Math.Max((short)1, rows) });
     }
 
+    /// <summary>Closes the pseudo console (signalling the child's input EOF) and disposes its streams and process.</summary>
     public void Dispose()
     {
         // Closing the pseudo console signals the child's input EOF and lets it exit.

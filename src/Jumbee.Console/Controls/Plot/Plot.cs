@@ -21,6 +21,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class Plot : Control
 {
     #region Constructors
+    /// <summary>Initializes a new display-only <see cref="Plot"/> (not focusable).</summary>
     public Plot() => Focusable = false;   // display-only
     #endregion
 
@@ -638,8 +639,10 @@ public class Plot : Control
     // A plot fills its container and re-fits on resize; it must never be scrolled. Inside a ControlFrame this makes
     // the frame hand the plot the bounded viewport height instead of the unbounded scroll height (which would
     // otherwise balloon the plot to the size clamp and show only a thin slice).
+    /// <summary>Always <see langword="true"/>: the plot fills its frame's viewport and is never scrolled.</summary>
     protected internal override bool FillsFrameViewport => true;
 
+    /// <summary>Rebuilds the underlying chart when needed and blits it to the buffer.</summary>
     protected override void Render()
     {
         var w = Size.Width;

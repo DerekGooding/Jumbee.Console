@@ -21,15 +21,21 @@ public interface IShape
 /// <summary>A straight line between two points in canvas coordinates.</summary>
 public sealed class Line : IShape
 {
+    /// <summary>Initializes a new <see cref="Line"/> from (<paramref name="x1"/>, <paramref name="y1"/>) to (<paramref name="x2"/>, <paramref name="y2"/>) in the given colour.</summary>
     public Line(double x1, double y1, double x2, double y2, Color color)
     {
         X1 = x1; Y1 = y1; X2 = x2; Y2 = y2; Color = color;
     }
 
+    /// <summary>X coordinate of the start point.</summary>
     public double X1 { get; }
+    /// <summary>Y coordinate of the start point.</summary>
     public double Y1 { get; }
+    /// <summary>X coordinate of the end point.</summary>
     public double X2 { get; }
+    /// <summary>Y coordinate of the end point.</summary>
     public double Y2 { get; }
+    /// <summary>Colour of the line.</summary>
     public Color Color { get; }
 
     void IShape.Draw(Painter painter)
@@ -49,16 +55,23 @@ public sealed class Line : IShape
 /// <remarks>The fill runs vertically from each line point to the row of <see cref="FillToY"/>.</remarks>
 public sealed class FilledLine : IShape
 {
+    /// <summary>Initializes a new <see cref="FilledLine"/> from (<paramref name="x1"/>, <paramref name="y1"/>) to (<paramref name="x2"/>, <paramref name="y2"/>), filled down to <paramref name="fillToY"/>, in the given colour.</summary>
     public FilledLine(double x1, double y1, double x2, double y2, double fillToY, Color color)
     {
         X1 = x1; Y1 = y1; X2 = x2; Y2 = y2; FillToY = fillToY; Color = color;
     }
 
+    /// <summary>X coordinate of the start point.</summary>
     public double X1 { get; }
+    /// <summary>Y coordinate of the start point.</summary>
     public double Y1 { get; }
+    /// <summary>X coordinate of the end point.</summary>
     public double X2 { get; }
+    /// <summary>Y coordinate of the end point.</summary>
     public double Y2 { get; }
+    /// <summary>Y coordinate the fill extends to from each line point.</summary>
     public double FillToY { get; }
+    /// <summary>Colour of the line and its fill.</summary>
     public Color Color { get; }
 
     void IShape.Draw(Painter painter)
@@ -88,15 +101,21 @@ public sealed class FilledLine : IShape
 /// </summary>
 public sealed class Rectangle : IShape
 {
+    /// <summary>Initializes a new <see cref="Rectangle"/> at bottom-left corner (<paramref name="x"/>, <paramref name="y"/>) with the given size and colour.</summary>
     public Rectangle(double x, double y, double width, double height, Color color)
     {
         X = x; Y = y; Width = width; Height = height; Color = color;
     }
 
+    /// <summary>X coordinate of the bottom-left corner.</summary>
     public double X { get; }
+    /// <summary>Y coordinate of the bottom-left corner.</summary>
     public double Y { get; }
+    /// <summary>Width of the rectangle.</summary>
     public double Width { get; }
+    /// <summary>Height of the rectangle.</summary>
     public double Height { get; }
+    /// <summary>Colour of the outline.</summary>
     public Color Color { get; }
 
     void IShape.Draw(Painter painter)
@@ -115,13 +134,16 @@ public sealed class Rectangle : IShape
 /// <summary>A scatter of individual points in canvas coordinates.</summary>
 public sealed class Points : IShape
 {
+    /// <summary>Initializes a new <see cref="Points"/> scatter from the given coordinates and colour.</summary>
     public Points(IReadOnlyList<(double X, double Y)> coords, Color color)
     {
         Coords = coords;
         Color = color;
     }
 
+    /// <summary>The point coordinates in canvas space.</summary>
     public IReadOnlyList<(double X, double Y)> Coords { get; }
+    /// <summary>Colour of the points.</summary>
     public Color Color { get; }
 
     void IShape.Draw(Painter painter)
@@ -136,14 +158,19 @@ public sealed class Points : IShape
 /// <summary>A circle outline traced at one-degree steps around its centre, in canvas coordinates.</summary>
 public sealed class Circle : IShape
 {
+    /// <summary>Initializes a new <see cref="Circle"/> centred at (<paramref name="x"/>, <paramref name="y"/>) with the given radius and colour.</summary>
     public Circle(double x, double y, double radius, Color color)
     {
         X = x; Y = y; Radius = radius; Color = color;
     }
 
+    /// <summary>X coordinate of the centre.</summary>
     public double X { get; }
+    /// <summary>Y coordinate of the centre.</summary>
     public double Y { get; }
+    /// <summary>Radius of the circle.</summary>
     public double Radius { get; }
+    /// <summary>Colour of the outline.</summary>
     public Color Color { get; }
 
     void IShape.Draw(Painter painter)

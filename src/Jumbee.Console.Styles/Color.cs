@@ -8,6 +8,7 @@ using SystemDrawingColor = System.Drawing.Color;
 public readonly partial struct Color : System.IEquatable<Color>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="Color"/> from red, green, and blue channel values.</summary>
     public Color(byte r, byte g, byte b)
     {
         R = r;
@@ -19,16 +20,20 @@ public readonly partial struct Color : System.IEquatable<Color>
     #region Properties
     // Computed on demand (not stored) so Color stays a 3-byte value instead of carrying a ~24-byte
     // System.Drawing.Color; R/G/B already fully describe the colour and the alpha is always opaque.
+    /// <summary>This colour as a <see cref="System.Drawing.Color"/> (always fully opaque).</summary>
     public SystemDrawingColor SystemColor => SystemDrawingColor.FromArgb(R, G, B);
     #endregion
-    
+
     #region Methods
+    /// <summary>Converts this colour to a <see cref="Spectre.Console.Color"/>.</summary>
     public SpectreColor ToSpectreColor() => new SpectreColor(R, G, B);
-    
 
+
+    /// <summary>Creates a <see cref="Color"/> from a <see cref="Spectre.Console.Color"/>.</summary>
     public static Color FromSpectreColor(SpectreColor color) => new Color(color.R, color.G, color.B);
-    
 
+
+    /// <summary>Converts a <see cref="Spectre.Console.Color"/> to a ConsoleGUI colour, or <see langword="null"/> for the default colour.</summary>
     public static ConsoleGUIColor? ToConsoleGUIColor(SpectreColor color)
     {
         if (color == SpectreColor.Default)
@@ -39,10 +44,13 @@ public readonly partial struct Color : System.IEquatable<Color>
         return new ConsoleGUIColor(color.R, color.G, color.B);
     }
 
-    public ConsoleGUIColor ToConsoleGUIColor() => new ConsoleGUIColor(R, G, B);    
+    /// <summary>Converts this colour to a ConsoleGUI colour.</summary>
+    public ConsoleGUIColor ToConsoleGUIColor() => new ConsoleGUIColor(R, G, B);
 
+    /// <summary>Creates a <see cref="Color"/> from a ConsoleGUI colour.</summary>
     public static Color FromConsoleGUIColor(ConsoleGUIColor color) => new Color(color.Red, color.Green, color.Blue);
 
+    /// <summary>Creates a <see cref="Color"/> from a <see cref="System.ConsoleColor"/>.</summary>
     public static Color FromSystemConsoleColor(System.ConsoleColor color) => SpectreColor.FromConsoleColor(color);
 
     /// <summary>A copy of this colour blended <paramref name="amount"/> (0..1) of the way toward white.</summary>
@@ -65,38 +73,54 @@ public readonly partial struct Color : System.IEquatable<Color>
     // setter goes through — resolves to ObjectEqualityComparer and calls ValueType.Equals(object), boxing BOTH
     // operands. Measured: 16.9ns and 48 bytes per comparison, versus 1.1ns and nothing with this.
     // (Style carries the same implementation for the same reason.)
+    /// <summary>Determines whether this <see cref="Color"/> equals <paramref name="other"/>.</summary>
     public bool Equals(Color other) => R == other.R && G == other.G && B == other.B;
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is Color other && Equals(other);
 
     // R/G/B fit in 24 bits, so packing them is a perfect hash — distinct colours never collide.
+    /// <inheritdoc/>
     public override int GetHashCode() => (R << 16) | (G << 8) | B;
 
     #endregion
 
     #region Operators
+    /// <summary>Equality operator.</summary>
     public static bool operator ==(Color a, Color b) => a.Equals(b);
 
+    /// <summary>Inequality operator.</summary>
     public static bool operator !=(Color a, Color b) => !a.Equals(b);
 
+    /// <summary>Implicitly converts a <see cref="Color"/> to a <see cref="Spectre.Console.Color"/>.</summary>
     public static implicit operator SpectreColor(Color color) => color.ToSpectreColor();
 
+    /// <summary>Implicitly converts a <see cref="Spectre.Console.Color"/> to a <see cref="Color"/>.</summary>
     public static implicit operator Color(SpectreColor color) => FromSpectreColor(color);
 
+    /// <summary>Implicitly converts a <see cref="Color"/> to a ConsoleGUI colour.</summary>
     public static implicit operator ConsoleGUIColor(Color color) => color.ToConsoleGUIColor();
 
+    /// <summary>Implicitly converts a ConsoleGUI colour to a <see cref="Color"/>.</summary>
     public static implicit operator Color(ConsoleGUIColor color) => FromConsoleGUIColor(color);
 
+    /// <summary>Implicitly converts a <see cref="Color"/> to a <see cref="System.Drawing.Color"/>.</summary>
     public static implicit operator SystemDrawingColor(Color color) => color.SystemColor;
     #endregion
 
     #region Fields
+    /// <summary>The red channel value.</summary>
     public readonly byte R;
+    /// <summary>The green channel value.</summary>
     public readonly byte G;
+    /// <summary>The blue channel value.</summary>
     public readonly byte B;
 
     // The following color names are imported from the Spectre.Console definitions.
 
+    /// <summary>
+    /// Gets the color "Black" (RGB 0,0,0).
+    /// </summary>
     public static readonly Color Black = FromSpectreColor(SpectreColor.Black);
     /// <summary>
     /// Gets the color "Maroon" (RGB 128,0,0).

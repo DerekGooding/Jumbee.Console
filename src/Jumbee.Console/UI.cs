@@ -379,8 +379,11 @@ public static class UI
     /// <summary>Moves focus one cell left/right/up/down in the root layout's 2-D grid (wraps; skips empties). Bound
     /// to <c>Ctrl+Left/Right/Up/Down</c> by default.</summary>
     public static void FocusLeft() => MoveSpatialFocus(0, -1);
+    /// <summary>Moves focus one cell right in the root layout's 2-D grid. Bound to <c>Ctrl+Right</c> by default.</summary>
     public static void FocusRight() => MoveSpatialFocus(0, +1);
+    /// <summary>Moves focus one cell up in the root layout's 2-D grid. Bound to <c>Ctrl+Up</c> by default.</summary>
     public static void FocusUp() => MoveSpatialFocus(-1, 0);
+    /// <summary>Moves focus one cell down in the root layout's 2-D grid. Bound to <c>Ctrl+Down</c> by default.</summary>
     public static void FocusDown() => MoveSpatialFocus(+1, 0);
 
     private static void MoveSpatialFocus(int dRow, int dCol) => Invoke(() =>
@@ -584,6 +587,7 @@ public static class UI
     #endregion
 
     #region Properties
+    /// <summary>The root layout hosting the UI's controls, set by <see cref="Start"/>.</summary>
     public static ILayout Layout => layout!;
 
     /// <summary>
@@ -667,6 +671,7 @@ public static class UI
     /// it terminates on shutdown instead of running on.</remarks>
     public static CancellationToken CancellationToken => cancellationToken;
     
+    /// <summary>Average time (ms) spent firing control <see cref="Paint"/> handlers, over the recent sample window.</summary>
     public static double AveragePaintTime
     {
         get
@@ -685,8 +690,10 @@ public static class UI
         }
     }
 
+    /// <summary>Average time (ms) the renderer spent compositing/drawing frames to the console.</summary>
     public static double AverageDrawTime => ConsoleManager.AverageDrawTime;
 
+    /// <summary>Per-control average paint time (ms) over the recent sample window, keyed by control.</summary>
     public static IDictionary<IFocusable, double> AverageControlPaintTimes
     {
         get
@@ -710,6 +717,7 @@ public static class UI
         }
     }
 
+    /// <summary>Per-control peak paint time (ms) over the recent sample window, keyed by control.</summary>
     public static IDictionary<IFocusable, double> MaxControlPaintTimes => controlPaintTimes
         .Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Where(v => v.HasValue).Select(v => v!.Value).DefaultIfEmpty().Max()))
         .ToDictionary();
@@ -728,6 +736,8 @@ public static class UI
     internal static void RaiseFocusChanged() => FocusChanged?.Invoke();
 
     private static EventHandler<PaintEventArgs>? _Paint;
+    /// <summary>Raised each frame so subscribed controls render their state; the subscriber's target control is
+    /// tracked for per-control paint timing and focus.</summary>
     public static event EventHandler<PaintEventArgs> Paint
     {
         add
@@ -768,6 +778,7 @@ public static class UI
     #region Fields
     /// <summary>Lines scrolled per mouse-wheel notch.</summary>
     private const int WheelLines = 3;
+    /// <summary>Collector for process/frame performance metrics, sampled each frame and surfaced by the perf HUD.</summary>
     public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics();
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
@@ -821,26 +832,33 @@ public static class UI
     #endregion
 
     #region Types
+    /// <summary>Arguments for the <see cref="Paint"/> event; carries no data (controls read their own state).</summary>
     public class PaintEventArgs : EventArgs
     {
     }
 
+    /// <summary>Arguments for control input handling, wrapping the decoded <see cref="InputEvent"/>.</summary>
     public class InputEventArgs : EventArgs
     {
+        /// <summary>The decoded input event being dispatched, or <see langword="null"/>.</summary>
         public InputEvent? InputEvent { get; internal set; }
 
+        /// <summary>Initializes an empty <see cref="InputEventArgs"/>.</summary>
         public InputEventArgs()
         {
         }
 
+        /// <summary>Initializes a new <see cref="InputEventArgs"/> carrying <paramref name="inputEvent"/>.</summary>
         public InputEventArgs(InputEvent? inputEvent)
         {
             InputEvent = inputEvent;
         }
     }
 
+    /// <summary>Input listener that dispatches globally-registered hotkeys before any control sees the event.</summary>
     public class GlobalInputListener: IInputListener
     {
+        /// <summary>Invokes the registered action for a matching global hotkey and marks the event handled.</summary>
         public void OnInput(InputEvent inputEvent)
         {
             if (GlobalHotKeys.TryGetValue(inputEvent.Key, out var action))
@@ -852,8 +870,10 @@ public static class UI
         }
     }
 
+    /// <summary>Factory helpers and well-known <see cref="ConsoleKeyInfo"/> constants for registering hotkeys.</summary>
     public static class HotKeys
     {
+        /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for <paramref name="key"/> with the Ctrl modifier.</summary>
         public static ConsoleKeyInfo Ctrl(ConsoleKey key)
         {
             // For letter keys, a control character is generated. For other keys, the character is '\0'.
@@ -863,6 +883,7 @@ public static class UI
             return new ConsoleKeyInfo(keyChar, key, false, false, true);
         }
 
+        /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for <paramref name="key"/> with the Alt modifier.</summary>
         public static ConsoleKeyInfo Alt(ConsoleKey key)
         {
             // For letter keys, a lowercase character is generated. For other keys, the character is '\0'.
@@ -872,6 +893,7 @@ public static class UI
             return new ConsoleKeyInfo(keyChar, key, false, true, false);
         }
 
+        /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for <paramref name="key"/> with both Ctrl and Alt modifiers.</summary>
         public static ConsoleKeyInfo CtrlAlt(ConsoleKey key) =>
             new('\0', key, false, true, true);
 
@@ -887,20 +909,33 @@ public static class UI
         /// <summary>Shift+Tab (back-tab), as produced by the input decoder from CSI Z (KeyChar <c>\0</c>, Shift).</summary>
         public static ConsoleKeyInfo ShiftTab = new('\0', ConsoleKey.Tab, true, false, false);
 
+        /// <summary>Ctrl+Q — the default quit hotkey.</summary>
         public static ConsoleKeyInfo CtrlQ = Ctrl(ConsoleKey.Q);
         // Focus navigation (Ctrl tier): Ctrl+N/P cycle within a region; Ctrl+arrows move between regions.
+        /// <summary>Ctrl+N — cycles focus to the next control within the region.</summary>
         public static ConsoleKeyInfo CtrlN = Ctrl(ConsoleKey.N);
+        /// <summary>Ctrl+P — cycles focus to the previous control within the region.</summary>
         public static ConsoleKeyInfo CtrlP = Ctrl(ConsoleKey.P);
+        /// <summary>Ctrl+Left — moves focus one region left.</summary>
         public static ConsoleKeyInfo CtrlLeft = Ctrl(ConsoleKey.LeftArrow);
+        /// <summary>Ctrl+Right — moves focus one region right.</summary>
         public static ConsoleKeyInfo CtrlRight = Ctrl(ConsoleKey.RightArrow);
+        /// <summary>Ctrl+Up — moves focus one region up.</summary>
         public static ConsoleKeyInfo CtrlUp = Ctrl(ConsoleKey.UpArrow);
+        /// <summary>Ctrl+Down — moves focus one region down.</summary>
         public static ConsoleKeyInfo CtrlDown = Ctrl(ConsoleKey.DownArrow);
+        /// <summary>Ctrl+F12.</summary>
         public static ConsoleKeyInfo CtrlF12 = Ctrl(ConsoleKey.F12);
         // Alt+arrows — the "Alt tier" layout navigation keys (e.g. TabPanel switches tabs on Alt+Left/Right).
+        /// <summary>Alt+Up — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltUp = Alt(ConsoleKey.UpArrow);
+        /// <summary>Alt+Down — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltDown = Alt(ConsoleKey.DownArrow);
+        /// <summary>Alt+Left — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltLeft = Alt(ConsoleKey.LeftArrow);
+        /// <summary>Alt+Right — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltRight = Alt(ConsoleKey.RightArrow);
+        /// <summary>Ctrl+Alt+Up.</summary>
         public static ConsoleKeyInfo CtrlAltUp = CtrlAlt(ConsoleKey.UpArrow);
     }
     #endregion

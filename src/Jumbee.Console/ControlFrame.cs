@@ -26,6 +26,7 @@ using CBorderPlacement = ConsoleGUI.Data.BorderPlacement;
 public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener, IMouseListener, IMouseWheelListener
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="ControlFrame"/> wrapping <paramref name="control"/>, taking the border shape, margin, foreground/background and border colours, title, and title style (defaulting any unset value from the active theme).</summary>
     public ControlFrame(Control control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title=null, Color? borderFgColor = null, Color? borderBgColor = null, TitleStyle? titleStyle = null)
     {
         // The default border shape comes from the style theme when the caller doesn't specify one.
@@ -65,6 +66,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #endregion
 
     #region Indexers
+    /// <summary>Gets the composited <see cref="Cell"/> at <paramref name="position"/>, drawing the border, title, scrollbar, and margins around the wrapped control.</summary>
     public override Cell this[Position position]
     {
         get
@@ -171,6 +173,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #endregion
 
     #region Properties
+    /// <summary>The control wrapped by this frame; setting it rebinds the frame to the new control.</summary>
     public Control Control
     {
         get => _control;
@@ -182,6 +185,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The border shape drawn around the control.</summary>
     public BorderStyle BorderStyle
     {
         get => _borderStyle;
@@ -198,6 +202,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The text shown in the frame's title bar, or <see langword="null"/> for no title.</summary>
     public string? Title
     {
         get => _title;
@@ -212,6 +217,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The title's position, border style, and colour.</summary>
     public TitleStyle TitleStyle
     {
         get => _titleStyle;
@@ -227,6 +233,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>Which edges of the frame draw a border.</summary>
     public BorderPlacement BorderPlacement
     {
         get => (BorderPlacement)_borderPlacement;
@@ -242,6 +249,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The margin (empty space) between the border and the wrapped control.</summary>
     public Offset Margin
     {
         get => _margin;
@@ -256,6 +264,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The foreground colour used for the title text, or <see langword="null"/> for the theme default.</summary>
     public Color? Foreground
     {
         get => _foreground;
@@ -268,6 +277,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The background colour filling the frame, or <see langword="null"/> for none.</summary>
     public Color? Background
     {
         get => _background;
@@ -279,6 +289,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The border foreground colour, or <see langword="null"/> for the theme default.</summary>
     public Color? BorderFgColor
     {
         get => _borderFgColor;
@@ -291,6 +302,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The border background colour, or <see langword="null"/> for none.</summary>
     public Color? BorderBgColor
     {
         get => _borderBgColor;
@@ -302,6 +314,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
    
+    /// <summary>The vertical scroll offset (topmost visible row of the wrapped control); clamped to the scrollable range and raises <see cref="Scrolled"/> on change.</summary>
     public int Top
     {
         get => _top;
@@ -332,6 +345,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
   
+    /// <summary>The glyph/cell drawn for the scrollbar thumb (foreground).</summary>
     public Character ScrollBarForeground
     {
         get => _scrollBarForeground;
@@ -343,6 +357,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
   
+    /// <summary>The glyph/cell drawn for the scrollbar track (background).</summary>
     public Character ScrollBarBackground
     {
         get => _scrollBarBackground;
@@ -354,6 +369,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The glyph/cell drawn for the scrollbar's up arrow.</summary>
     public Character ScrollBarUpArrow
     {
         get => _scrollBarUpArrow;
@@ -368,6 +384,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The glyph/cell drawn for the scrollbar's down arrow.</summary>
     public Character ScrollBarDownArrow
     {
         get => _scrollBarDownArrow;
@@ -402,12 +419,16 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         set => UI.Invoke(() => { _themeOverrides.Mark(nameof(ScrollBarStyle)); _scrollBarStyle = value; RecomposeScrollBar(); Redraw(); });
     }
 
+    /// <summary>The key that scrolls the frame's content up one row.</summary>
     public ConsoleKeyInfo ScrollUpKey { get; set; } = UI.HotKeys.AltUp;
 
+    /// <summary>The key that scrolls the frame's content down one row.</summary>
     public ConsoleKeyInfo ScrollDownKey { get; set; } = UI.HotKeys.AltDown;
-   
+
+    /// <summary>When <see langword="true"/> (the default), the frame can receive keyboard focus.</summary>
     public bool Focusable { get; set; } = true;
 
+    /// <summary>Whether the frame (and its wrapped control) holds focus; setting it raises the focus events and repaints the border cue.</summary>
     public bool IsFocused
     {
         get => field;
@@ -445,6 +466,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         _Redraw();
     }
 
+    /// <summary>The focus target the UI registers for this frame — the frame itself, which routes input to the wrapped control.</summary>
     public IFocusable FocusableControl => this;
 
     /// <summary>
@@ -458,6 +480,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// </remarks>
     public IFocusable? FocusedControl => _control.FocusedControl is not null ? this : null;
 
+    /// <summary>Always <see langword="true"/> — the frame processes input (scroll keys) and tunnels the rest to the wrapped control.</summary>
     public bool HandlesInput => true;
 
     private DrawingContext ControlContext
@@ -472,6 +495,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The size of the visible content area inside the border and margins.</summary>
     public Size ViewportSize => GetViewportSize();
 
     /// <summary>Whether this frame draws a focus-dependent border cue — i.e. it draws a visible border while focused,
@@ -483,7 +507,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         (_focusedBorderStyle ?? _borderStyle) != BorderStyle.None && _borderPlacement != CBorderPlacement.None;
     #endregion
 
-    #region Methods    
+    #region Methods
+    /// <inheritdoc/>
     void IDrawingContextListener.OnRedraw(DrawingContext drawingContext)
     {
         Initialize();
@@ -494,6 +519,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         UI.Invoke(() => Update(rect));
     }
 
+    /// <summary>Handles a UI input event: consumes the frame's own scroll keys, then tunnels the rest to the focused descendant (or a composite's navigation).</summary>
     public void OnInput(UI.InputEventArgs inputEventArgs)
     {
         var inputEvent = inputEventArgs.InputEvent!;
@@ -518,8 +544,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     // Bracketed paste, like OnInput, must tunnel through the frame to the focused descendant — the routing layer
     // delivers it to the frame (the focus node), not the wrapped control. Without this it hits the IFocusable
     // default no-op and pasted text is silently dropped for any framed control.
+    /// <summary>Tunnels a bracketed-paste payload through the frame to the focused descendant.</summary>
     public void OnPaste(string text) => (_control.FocusedControl ?? (IFocusable)_control).OnPaste(text);
 
+    /// <summary>Handles a keyboard input event, scrolling the frame when the scroll key is pressed and the frame can scroll in that direction.</summary>
     public void OnInput(InputEvent inputEvent)
     {
         // Only claim the scroll key when this frame can actually scroll in that direction. Otherwise leave it
@@ -541,6 +569,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private bool CanScrollUp => IsScrollable && _top > 0;
     private bool CanScrollDown => IsScrollable && _top < ControlContext.Size.Height - ViewportSize.Height;
 
+    /// <summary>Scrolls the frame's content by <paramref name="n"/> rows (negative up, positive down).</summary>
     public void Scroll(int n) => Top += n;
 
     /// <summary>
@@ -554,9 +583,10 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// </remarks>
     public void Relayout() => Initialize();
 
+    /// <summary>Re-lays-out the frame on the UI thread: recomputes the border offset and re-establishes the wrapped control's size limits and scroll position.</summary>
     protected override void Initialize()
-    {       
-        UI.Invoke(() => 
+    {
+        UI.Invoke(() =>
         {
             UpdateBorderOffsetField();
             using (Freeze())
@@ -982,7 +1012,9 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #endregion
 
     #region Events
+    /// <summary>Raised when the frame gains focus.</summary>
     public event FocusableEventHandler? OnFocus;
+    /// <summary>Raised when the frame loses focus.</summary>
     public event FocusableEventHandler? OnLostFocus;
     /// <summary>Raised after the vertical scroll position (<see cref="Top"/>) changes.</summary>
     public event Action? Scrolled;
@@ -991,7 +1023,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #region Fields
     private bool _scrollDragging;
     private double _scrollGrabOffset;
-    public static Offset DefaultMargin { get; } = new Offset(0, 0, 0, 0);   
+    /// <summary>The default frame margin (zero on all sides) used when none is supplied.</summary>
+    public static Offset DefaultMargin { get; } = new Offset(0, 0, 0, 0);
     private SpectreBoxBorder _boxBorder;
     private BorderStyle _borderStyle;
     private Control _control;

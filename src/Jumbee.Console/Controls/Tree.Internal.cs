@@ -20,7 +20,11 @@ public partial class Tree
         /// <summary>
         /// Initializes a new <see cref="TreeNode"/> instance.
         /// </summary>
-        /// <param name="renderable">The tree node label.</param>
+        /// <param name="tree">The tree this node belongs to.</param>
+        /// <param name="index">The node's stable index within its parent's children.</param>
+        /// <param name="label">The tree node label.</param>
+        /// <param name="parent">The parent node, or <see langword="null"/> for the root.</param>
+        /// <param name="text">The plain-text form of the label, when created from a string.</param>
         internal TreeNode(Tree tree, uint index, IRenderable label, TreeNode? parent = null, string? text = null)
         {
             Tree = tree;
@@ -34,14 +38,19 @@ public partial class Tree
         #endregion
 
         #region Properties
+        /// <summary>The tree this node belongs to.</summary>
         public Tree Tree { get; protected set; }
 
+        /// <summary>This node's parent, or <see langword="null"/> for the root.</summary>
         public TreeNode? Parent { get; protected set; }
 
+        /// <summary>This node's stable index within its parent's children.</summary>
         public uint Index { get; }
 
+        /// <summary>The node's plain-text label, if it was created from a string; otherwise <see langword="null"/>.</summary>
         public string? Text { get; internal set; }
 
+        /// <summary>The renderable drawn as the node's label.</summary>
         public IRenderable Label
         {
             get => field;
@@ -124,6 +133,7 @@ public partial class Tree
             }
         }
 
+        /// <summary>Whether this node has been removed from the tree.</summary>
         public bool IsRemoved { get; internal set; } = false;
 
         /// <summary>
@@ -148,10 +158,12 @@ public partial class Tree
         #endregion
 
         #region Indexers
+        /// <summary>Gets the child node with the given index, or <see langword="null"/> if none.</summary>
         public TreeNode? this[uint id] => _children.TryGetValue(id, out var node) ? node : null;
         #endregion
-        
+
         #region Methods
+        /// <summary>Adds a child node with the given renderable label (and optional plain text) and returns it.</summary>
         public TreeNode AddChild(IRenderable label, string? text = null)
         {
             // Create the node (with an atomic index) on the calling thread so we can return it immediately;
@@ -165,8 +177,10 @@ public partial class Tree
             return c;
         }
 
+        /// <summary>Adds a child node with the given text label and returns it.</summary>
         public TreeNode AddChild(string label) => AddChild(new Markup(label), label);
 
+        /// <summary>Adds several child nodes from the given renderable labels.</summary>
         public void AddChildren(params IRenderable[] children)
         {
             foreach (IRenderable child in children)
@@ -175,6 +189,7 @@ public partial class Tree
             }
         }
 
+        /// <summary>Adds several child nodes from the given text labels.</summary>
         public void AddChildren(params string[] children)
         {
             foreach (var child in children)
@@ -183,6 +198,7 @@ public partial class Tree
             }
         }
 
+        /// <summary>Removes the child node with the given index; returns <see langword="true"/> if it was removed.</summary>
         public bool RemoveChild(uint id)
         {
             // Reliable only when called on the UI thread; off-thread the removal is marshaled and deferred.
@@ -200,6 +216,7 @@ public partial class Tree
             return removed;
         }
 
+        /// <summary>Requests a redraw of the owning tree unless this node has been removed.</summary>
         protected void UpdateTree()
         {
             if (!IsRemoved) Tree.Update();

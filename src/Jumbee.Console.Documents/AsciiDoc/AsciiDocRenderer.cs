@@ -17,7 +17,7 @@ using Spectre.Console.Rendering;
 /// Traverses an AsciiDoc <see cref="DocumentNode"/> and composes a tree of Spectre.Console
 /// <see cref="IRenderable"/>s (headings as rules, code/example/admonition blocks as panels, AsciiDoc tables as
 /// Spectre tables, inline markup as styled <see cref="Markup"/>). The whole document is written to an
-/// <see cref="IAnsiConsole"/> in a single <see cref="AnsiConsoleExtensions.Write(IAnsiConsole, IRenderable)"/> call.
+/// <see cref="IAnsiConsole"/> in a single <c>AnsiConsoleExtensions.Write(IAnsiConsole, IRenderable)</c> call.
 /// </summary>
 internal sealed class AsciiDocRenderer
 {

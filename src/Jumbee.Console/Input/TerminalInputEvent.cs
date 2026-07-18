@@ -8,30 +8,45 @@ using System;
 [Flags]
 public enum TerminalModifiers
 {
+    /// <summary>No modifier keys held.</summary>
     None = 0,
+    /// <summary>The Shift key is held.</summary>
     Shift = 1,
+    /// <summary>The Alt key is held.</summary>
     Alt = 2,
+    /// <summary>The Control key is held.</summary>
     Control = 4,
 }
 
 /// <summary>Mouse button (or wheel direction) reported by the terminal.</summary>
 public enum TerminalMouseButton
 {
+    /// <summary>No button (e.g. a bare move).</summary>
     None,
+    /// <summary>The left mouse button.</summary>
     Left,
+    /// <summary>The middle mouse button.</summary>
     Middle,
+    /// <summary>The right mouse button.</summary>
     Right,
+    /// <summary>The wheel scrolled up.</summary>
     WheelUp,
+    /// <summary>The wheel scrolled down.</summary>
     WheelDown,
 }
 
 /// <summary>The kind of mouse action reported.</summary>
 public enum TerminalMouseKind
 {
+    /// <summary>A button was pressed.</summary>
     Down,
+    /// <summary>A button was released.</summary>
     Up,
+    /// <summary>The pointer moved with a button held.</summary>
     Drag,
+    /// <summary>The pointer moved with no button held.</summary>
     Move,
+    /// <summary>A wheel scroll.</summary>
     Wheel,
 }
 
@@ -45,12 +60,14 @@ public abstract record TerminalInputEvent;
 /// <remarks>Bridges to/from the existing <see cref="ConsoleGUI.Input.InputEvent"/> path via <see cref="ConsoleKeyInfo"/>.</remarks>
 public sealed record KeyInputEvent(ConsoleKey Key, char KeyChar, TerminalModifiers Modifiers) : TerminalInputEvent
 {
+    /// <summary>Converts this event to an equivalent <see cref="ConsoleKeyInfo"/>.</summary>
     public ConsoleKeyInfo ToConsoleKeyInfo() => new(
         KeyChar, Key,
         shift: (Modifiers & TerminalModifiers.Shift) != 0,
         alt: (Modifiers & TerminalModifiers.Alt) != 0,
         control: (Modifiers & TerminalModifiers.Control) != 0);
 
+    /// <summary>Creates a <see cref="KeyInputEvent"/> from an existing <see cref="ConsoleKeyInfo"/>.</summary>
     public static KeyInputEvent From(ConsoleKeyInfo key)
     {
         var mods = TerminalModifiers.None;

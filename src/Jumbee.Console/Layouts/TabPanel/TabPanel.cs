@@ -3,11 +3,16 @@ namespace Jumbee.Console;
 using System;
 using System.Collections.Generic;
 
+/// <summary>Which edge a <see cref="TabPanel"/> docks its tab bar on.</summary>
 public enum TabBarDock
 {
+    /// <summary>Tab bar along the top edge.</summary>
     Top,
+    /// <summary>Tab bar along the left edge.</summary>
     Left,
+    /// <summary>Tab bar along the right edge.</summary>
     Right,
+    /// <summary>Tab bar along the bottom edge.</summary>
     Bottom
 }
 
@@ -24,6 +29,7 @@ public enum TabBarDock
 public class TabPanel : Layout<TabPanelDockPanel>
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="TabPanel"/> with its bar docked at <paramref name="tabBarDock"/> and the given <paramref name="tabs"/> (first selectable tab auto-selects).</summary>
     public TabPanel(TabBarDock tabBarDock, params (string Name, IFocusable Content)[] tabs)
         : base(new TabPanelDockPanel(tabBarDock, BarThickness(tabBarDock, tabs)))
     {
@@ -132,6 +138,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
     // OnInput walks Controls) or nested in another layout (the parent routes through FocusedControl below): the
     // selectable (visible, enabled) tab headers, then the active tab's content. The visual arrangement is handled
     // separately by the wrapped DockPanel.
+    /// <summary>Number of logical rows for input routing: the selectable tab headers plus one for the active content.</summary>
     public override int Rows
     {
         get
@@ -142,8 +149,10 @@ public class TabPanel : Layout<TabPanelDockPanel>
         }
     }
 
+    /// <summary>Number of columns in the layout grid (always 1).</summary>
     public override int Columns => 1;
 
+    /// <summary>Gets the logical child at <paramref name="row"/>: a selectable tab header, or the active content in the last row.</summary>
     public override IFocusable this[int row, int column]
     {
         get
@@ -164,6 +173,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
 
     // Return the focused descendant — a focused tab header, else whatever is focused inside the active content — so
     // a parent layout routing input through this single IFocusable reaches it (the CompositeControl pattern).
+    /// <inheritdoc/>
     public override IFocusable? FocusedControl
     {
         get
@@ -208,6 +218,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
     // bar — switch tabs. Handled here (the tunnel) rather than on the header so it works from anywhere inside the
     // panel, including while the active tab's content is focused. The base Layout.OnInput calls this for the panel
     // whenever it is on the focus path (even nested), and marks the key handled when we return true.
+    /// <summary>Intercepts Alt+arrow tab switching, "+"-button keys, and header arrow navigation before input routes to the focused control.</summary>
     protected override bool InterceptInput(UI.InputEventArgs inputEventArgs)
     {
         if (inputEventArgs.InputEvent is not { } e) return false;

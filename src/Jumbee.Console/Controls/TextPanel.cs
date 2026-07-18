@@ -18,6 +18,7 @@ using Spectre.Console.Rendering;
 public class TextPanel : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="TextPanel"/> displaying the given Spectre <paramref name="markup"/>.</summary>
     public TextPanel(string markup = "")
     {
         Focusable = false;   // a passive display control: never a focus/tab target
@@ -39,9 +40,11 @@ public class TextPanel : RenderableControl
     /// <c>Markup.Escape</c>).</summary>
     public static string Escape(string text) => Spectre.Console.Markup.Escape(text ?? "");
 
+    /// <inheritdoc/>
     // Content-only render (never reads focus/hover): reuse the cached buffer on interactive-state changes.
     protected override bool RendersInteractiveState => false;
 
+    /// <inheritdoc/>
     // Report the rendered line count so a wrapping ControlFrame can size/scroll it; in a fixed cell it fills and
     // overflow clips. Consulted only when the parent leaves the height unbounded (see Control.CalculateSize).
     protected override int MeasureHeight(int width)
@@ -53,6 +56,7 @@ public class TextPanel : RenderableControl
         return Math.Max(1, Segment.SplitLines(segments).Count);
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (string.IsNullOrEmpty(_markup)) return [];

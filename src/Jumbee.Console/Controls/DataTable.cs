@@ -26,6 +26,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class DataTable : Control
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="DataTable"/> with the given column headers.</summary>
     public DataTable(params string[] columns)
     {
         _columns = columns?.ToList() ?? new List<string>();
@@ -41,10 +42,14 @@ public class DataTable : Control
     #endregion
 
     #region Properties
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
+    /// <inheritdoc/>
     protected override bool WantsMouse => true;
 
+    /// <summary>The column headers.</summary>
     public IReadOnlyList<string> Columns => _columns;
+    /// <summary>The number of data rows.</summary>
     public int RowCount => _rows.Count;
 
     /// <summary>The selected row index, or -1 when there are no rows.</summary>
@@ -59,6 +64,7 @@ public class DataTable : Control
     #endregion
 
     #region Methods
+    /// <summary>Appends a column with the given header.</summary>
     public void AddColumn(string header)
     {
         _columns.Add(header ?? string.Empty);
@@ -74,6 +80,7 @@ public class DataTable : Control
         return _rows.Count - 1;
     }
 
+    /// <summary>Removes the row at <paramref name="index"/> (no-op if out of range).</summary>
     public void RemoveRow(int index)
     {
         if (index < 0 || index >= _rows.Count) return;
@@ -82,6 +89,7 @@ public class DataTable : Control
         Invalidate();
     }
 
+    /// <summary>Removes all rows and resets the selection and scroll.</summary>
     public void Clear()
     {
         _rows.Clear();
@@ -90,11 +98,13 @@ public class DataTable : Control
         Invalidate();
     }
 
+    /// <inheritdoc/>
     protected internal override HelpInfo? GetHelpInfo() => new HelpInfo("Table", "Data table", "A scrollable data grid.")
         .WithKey("Up / Down", "Select a row")
         .WithKey("PgUp / PgDn", "Page")
         .WithKey("Enter", "Activate the row");
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         var visible = Math.Max(1, VisibleRows());
@@ -114,6 +124,7 @@ public class DataTable : Control
         inputEvent.Handled = true;
     }
 
+    /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
         // A press that landed on the scrollbar (page/drag) isn't a row click; nor is the reserved last column.
@@ -140,6 +151,7 @@ public class DataTable : Control
         return true;
     }
 
+    /// <inheritdoc/>
     protected override void OnMousePress(Position position)
     {
         _pressedScrollbar = OnScrollbar(position, out var i, out var visible, out var thumb, out var thumbPos);
@@ -157,6 +169,7 @@ public class DataTable : Control
         }
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseMove(Position position)
     {
         if (!_scrollDragging) return;
@@ -169,6 +182,7 @@ public class DataTable : Control
         SetScroll((int)Math.Round((double)desiredThumbPos / available * (_rows.Count - visible)));
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseRelease(Position position)
     {
         if (!_scrollDragging) return;
@@ -176,6 +190,7 @@ public class DataTable : Control
         ReleaseMouse();
     }
 
+    /// <inheritdoc/>
     protected override void OnMouseWheel(Position position, int delta) => SetScroll(_scroll + delta);
 
     private void Select(int index)
@@ -189,6 +204,7 @@ public class DataTable : Control
         SelectionChanged?.Invoke(this, _selected);
     }
 
+    /// <inheritdoc/>
     protected override void Render()
     {
         ansiConsole.Clear(true);

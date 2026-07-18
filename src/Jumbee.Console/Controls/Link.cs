@@ -20,6 +20,7 @@ using Spectre.Console.Rendering;
 public class Link : RenderableControl
 {
     #region Constructors
+    /// <summary>Initializes a <see cref="Link"/> with the given display text and optional URL.</summary>
     public Link(string text, string? url = null)
     {
         _text = text;
@@ -36,9 +37,12 @@ public class Link : RenderableControl
     #endregion
 
     #region Properties
+    /// <inheritdoc/>
     public override bool HandlesInput => true;
+    /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;   // underlines/highlights on focus
 
+    /// <summary>The link's display text.</summary>
     public string Text
     {
         get => _text;
@@ -64,12 +68,14 @@ public class Link : RenderableControl
         Activated?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <inheritdoc/>
     protected override void ApplyTheme()
     {
         if (!IsThemeOverridden(nameof(LinkStyle))) _linkStyle = UI.StyleTheme.Info | Style.Underline;
         if (!IsThemeOverridden(nameof(HoverStyle))) _hoverStyle = UI.StyleTheme.Info | Style.Underline | Style.Invert;
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         var style = (IsMouseOver || IsFocused) ? _hoverStyle : _linkStyle;
@@ -77,8 +83,10 @@ public class Link : RenderableControl
         yield return new Segment(label, style.SpectreConsoleStyle);
     }
 
+    /// <inheritdoc/>
     protected override void OnClick(Position position) => Activate();
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
         if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)

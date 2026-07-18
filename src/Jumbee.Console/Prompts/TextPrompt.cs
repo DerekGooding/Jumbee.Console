@@ -6,9 +6,11 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 
+/// <summary>A single-line text input that shows a prompt label and edits an inline entry with a terminal cursor.</summary>
 public class TextPrompt : Prompt
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="TextPrompt"/> with the given <paramref name="prompt"/> label; <paramref name="showCursor"/> and <paramref name="blinkCursor"/> control the terminal cursor.</summary>
     public TextPrompt(string prompt, bool showCursor = true, bool blinkCursor = false) : base()
     {
         this._prompt = prompt;
@@ -18,12 +20,15 @@ public class TextPrompt : Prompt
     #endregion
 
     #region Events
+    /// <summary>Raised when the entry is committed (Enter), carrying the current input text.</summary>
     public event EventHandler<string>? Committed;
     #endregion
 
     #region Properties
+    /// <summary><see langword="true"/>: the prompt handles keyboard input to edit its entry.</summary>
     public override bool HandlesInput => true;
 
+    /// <summary>The prompt label shown before the entry (a trailing space is appended).</summary>
     public string Prompt
     {
         get => _prompt;
@@ -35,17 +40,20 @@ public class TextPrompt : Prompt
 
     }
     
+    /// <summary>When <see langword="true"/>, the terminal cursor is shown at the caret while focused.</summary>
     public bool ShowCursor
     {
         get => _showCursor;
         set => SetAtomicProperty(ref _showCursor, value);
     }
+    /// <summary>When <see langword="true"/>, the shown cursor blinks (DECSCUSR blinking block).</summary>
     public bool BlinkCursor
     {
         get => _blinkCursor;
         set => SetAtomicProperty(ref _blinkCursor, value);
     }
 
+    /// <summary>The caret's index within the input text.</summary>
     public int CaretPosition
     {
         get => _caretPosition;
@@ -56,6 +64,7 @@ public class TextPrompt : Prompt
         }
     }
 
+    /// <summary>The cursor's column in the buffer.</summary>
     public int CursorX
     {
         get => ansiConsole.CursorX;
@@ -67,6 +76,7 @@ public class TextPrompt : Prompt
         }
     }
 
+    /// <summary>The cursor's row in the buffer.</summary>
     public int CursorY
     {
         get => ansiConsole.CursorY;
@@ -80,11 +90,13 @@ public class TextPrompt : Prompt
     #endregion
 
     #region Methods       
+    /// <inheritdoc/>
     protected override void Control_OnInitialization()
     {
         RenderPrompt();
-    }   
-    
+    }
+
+    /// <inheritdoc/>
     protected override void Render()
     {
         if (newInput)
@@ -96,6 +108,7 @@ public class TextPrompt : Prompt
         RenderCursor();
     }
 
+    /// <summary>Clears the buffer and draws the prompt label, recording where the entry text begins.</summary>
     protected void RenderPrompt()
     {
         ansiConsole.Clear(true);
@@ -103,6 +116,7 @@ public class TextPrompt : Prompt
         inputStart = new Position(ansiConsole.CursorX, ansiConsole.CursorY);
     }
 
+    /// <summary>Shows the terminal cursor at the caret while focused, or hides it otherwise.</summary>
     protected void RenderCursor()
     {
         // Only the focused control may own the terminal cursor; otherwise clear it so it doesn't linger.
@@ -118,8 +132,9 @@ public class TextPrompt : Prompt
         }
     }
 
+    /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
-    {        
+    {
         switch (inputEvent.Key.Key)
         {
             case ConsoleKey.LeftArrow:
@@ -181,6 +196,7 @@ public class TextPrompt : Prompt
         Invalidate();
     }
 
+    /// <summary><see langword="true"/> when the cursor position lies within the control's bounds.</summary>
     protected bool IsValidCursorPosition => CursorX < Size.Width && CursorY < Size.Height;
 
     private void AttemptCommit()

@@ -19,6 +19,8 @@ using Spectre.Console.Rendering;
 public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOutput, IExclusivityMode, IDisposable
 {
     #region Constructors
+    /// <summary>Initializes a new <see cref="AnsiConsoleBuffer"/> that renders Spectre.Console output into
+    /// <paramref name="console"/>.</summary>
     public AnsiConsoleBuffer(ConsoleBuffer console)
     {
         _console = console;
@@ -45,18 +47,24 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     #endregion
 
     #region Properties
+    /// <summary>The Spectre.Console profile describing this buffer's capabilities.</summary>
     public Profile Profile => _profile;
+    /// <summary>The cursor for this buffer.</summary>
     public IAnsiConsoleCursor Cursor => _cursor;
     /// <summary>The concrete buffer cursor, exposing Jumbee-specific <see cref="AnsiConsoleBufferCursor.Style"/>/<see cref="AnsiConsoleBufferCursor.Color"/>.</summary>
     internal AnsiConsoleBufferCursor BufferCursor => _cursor;
+    /// <summary>The input source for this console (throws on read; input is handled elsewhere).</summary>
     public IAnsiConsoleInput Input => _input;
+    /// <summary>The exclusivity mode guarding concurrent Spectre live/exclusive operations.</summary>
     public IExclusivityMode ExclusivityMode => _exclusivityMode;
+    /// <summary>The Spectre.Console render pipeline for this console.</summary>
     public RenderPipeline Pipeline => _pipeline;
     internal int CursorX => _cursorX;
     internal int CursorY => _cursorY;
     #endregion
 
     #region Methods
+    /// <summary>Clears the buffer; when <paramref name="home"/> is <see langword="true"/> also resets the cursor to the origin.</summary>
     public void Clear(bool home)
     {
         if (marshal)
@@ -87,6 +95,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         
     }
 
+    /// <summary>Renders <paramref name="renderable"/> to segments and writes them into the buffer.</summary>
     public void Write(IRenderable renderable)
     {
         // Render to segments on the calling thread (which owns/mutates the renderable), then apply them to the
@@ -226,10 +235,12 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
     }
 
+    /// <summary>The cursor position expressed as a linear (row-major) cell distance from the buffer origin.</summary>
     public int CursorDistance
     {
         get => _cursorY * _console.Size.Width + _cursorX;

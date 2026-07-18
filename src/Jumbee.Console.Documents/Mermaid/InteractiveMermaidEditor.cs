@@ -37,8 +37,10 @@ public class InteractiveMermaidEditor : InteractiveSourceEditor
     #endregion
 
     #region Methods
+    /// <summary>Pushes the edited <paramref name="text"/> into the preview pane's <see cref="MermaidViewer.Mermaid"/>.</summary>
     protected override void ApplyPreviewText(string text) => Preview.Mermaid = text;
 
+    /// <inheritdoc/>
     // GetHelpInfo overrides Control's protected internal member from another assembly, so it must be plain protected.
     protected override HelpInfo? GetHelpInfo() => new HelpInfo("Mermaid Editor", "Interactive Mermaid Editor",
         "Edit Mermaid on the left; the diagram (flowchart / state) renders live on the right.")

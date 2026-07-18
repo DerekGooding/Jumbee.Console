@@ -47,8 +47,10 @@ public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
     #endregion
 
     #region Methods
+    /// <summary>Pushes the edited <paramref name="text"/> into the preview pane's <see cref="MarkdownViewer.Markdown"/>.</summary>
     protected override void ApplyPreviewText(string text) => Preview.Markdown = text;
 
+    /// <inheritdoc/>
     // GetHelpInfo overrides Control's protected internal member from another assembly, so it must be plain protected.
     protected override HelpInfo? GetHelpInfo() => new HelpInfo("Markdown Editor", "Interactive Markdown + Mermaid Editor",
         "Edit Markdown (with embedded ```mermaid diagrams) on the left; a live preview renders on the right.")
