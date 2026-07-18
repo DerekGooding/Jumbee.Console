@@ -182,9 +182,19 @@ public sealed class AnsiControlSequenceBuilder
     /// <summary>Clears this builder and returns it to the reuse pool. See the ordering contract on <see cref="Rent"/>.</summary>
     public void Return()
     {
-        Clear();   // resets length (and sheds an oversized buffer via the default threshold) before pooling
+        // Retain the grown buffer across frames — that is the whole point of the pool. A full-screen truecolor frame
+        // is ~40 chars/cell of SGR + glyph (hundreds of KB), so the old default 4096 shed threshold discarded the
+        // buffer EVERY full-screen frame and forced a fresh doubling regrowth (7+ Array.Resize<char> copies) on the
+        // next one — the dominant per-frame render allocation for any animating full-screen control. Keep buffers up
+        // to ~2M chars (a very large truecolor viewport); only a pathological one-off beyond that is shed, so the
+        // pooled high-water footprint stays bounded (about one builder is in flight at a time).
+        Clear(reallocateThreshold: RetainThreshold);
         _pool.Add(this);
     }
+
+    // The largest builder buffer kept across frames before it is shed on Return (see the reasoning there). Sized to
+    // comfortably hold a full-screen truecolor frame on a large terminal; sheds only genuinely pathological one-offs.
+    private const int RetainThreshold = 1 << 21;
 
     /// <summary>
     /// Appends a span of characters to the builder.

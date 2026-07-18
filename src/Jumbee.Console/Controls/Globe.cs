@@ -302,7 +302,7 @@ public class Globe : Control
     // Surface colour: ocean-depth blue → land-elevation green/tan/brown, whitened toward the poles by latitude.
     private static CColor Surface(double latDeg, bool land, int elev, int depth)
     {
-        var c = land ? Ramp(LandStops, Math.Clamp(elev / 12.0, 0, 1)) : Ramp(OceanStops, Math.Clamp(depth / 10.0, 0, 1));
+        var c = land ? Ramp(LandStops, Math.Clamp(elev / BrownDepth, 0, 1)) : Ramp(OceanStops, Math.Clamp(depth / 10.0, 0, 1));
         double ice = Math.Clamp((Math.Abs(latDeg) - 66.0) / 14.0, 0, 1);   // sea-ice / ice-sheet toward the poles
         return ice <= 0 ? c : Mix(c, Ice, ice);
     }
@@ -339,6 +339,11 @@ public class Globe : Control
     private static readonly CColor[] OceanStops = [new(46, 112, 150), new(24, 74, 132), new(10, 32, 82)];
     // Coast lowland green → inland green → tan highland → brown mountains.
     private static readonly CColor[] LandStops = [new(74, 132, 78), new(92, 146, 74), new(150, 148, 96), new(126, 102, 74)];
+    // Inland distance (grid cells from the coast, from EarthMask's distance transform) at which land reaches full
+    // brown. This fakes elevation from distance-to-coast — so brown coverage scales with a continent's size. At the
+    // old value (12) a mid-size landmass like Australia peaked at ~11 and never browned; 9 lets its arid interior read
+    // tan→brown while keeping a green coastal band, and only marginally deepens the already-brown large deserts.
+    private const double BrownDepth = 9.0;
     private static readonly CColor Ice = new(232, 238, 245);
 
     private double _angle;
@@ -437,7 +442,7 @@ internal sealed class EarthMask
         while (q.Count > 0)
         {
             var (y, x) = q.Dequeue();
-            foreach (var (dy, dx) in new[] { (-1, 0), (1, 0), (0, -1), (0, 1) })
+            foreach (var (dy, dx) in Neighbors4)   // static array — avoids allocating a (int,int)[4] per visited cell
             {
                 int ny = y + dy; if (ny < 0 || ny >= H) continue;
                 int nx = ((x + dx) % W + W) % W;
@@ -478,6 +483,7 @@ internal sealed class EarthMask
 
     #region Fields
     private const int W = 400, H = 200;
+    private static readonly (int dy, int dx)[] Neighbors4 = [(-1, 0), (1, 0), (0, -1), (0, 1)];   // BFS 4-neighbourhood
     private static EarthMask? _instance;
     private readonly bool[,] _ocean;
     private readonly int[,] _elev;
