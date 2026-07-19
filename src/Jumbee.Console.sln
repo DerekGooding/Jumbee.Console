@@ -31,6 +31,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{28E2
 		..\build-docker.cmd = ..\build-docker.cmd
 		..\build.cmd = ..\build.cmd
 		Directory.Build.props = Directory.Build.props
+		..\examples-aot.sh = ..\examples-aot.sh
 		..\examples.cmd = ..\examples.cmd
 		..\examples.sh = ..\examples.sh
 		..\pack.ps1 = ..\pack.ps1

@@ -1,23 +1,26 @@
 # syntax=docker/dockerfile:1
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Jumbee.Console examples browser — SLIM, NATIVE-AOT image.
+# Jumbee.Console — SLIM, NATIVE-AOT image.
 #
-# Unlike the full playground image (./Dockerfile), this ships ONLY the examples
-# browser, compiled to a single self-contained native binary with NativeAOT — no
-# .NET runtime and no SDK in the final image. The IDE/agent demos are intentionally
-# excluded here because they shell out to `dotnet` at runtime and so need the SDK
-# (keep using ./Dockerfile for those).
+# Unlike the full playground image (./Dockerfile), this ships only the two
+# AOT-eligible demos — the examples browser and the agent-harness demo — each
+# compiled to a self-contained native binary with NativeAOT. No .NET runtime and
+# no SDK in the final image. The IDE demo is excluded on purpose: it needs the
+# in-container `dotnet` (edit + build/run a project in its terminal pane), so keep
+# using ./Dockerfile for that one.
 #
 #     docker build -f Dockerfile.aot -t jumbee-console-aot .
-#     docker run --rm -it -e TERM=xterm-256color jumbee-console-aot
+#     docker run --rm -it jumbee-console-aot                 # examples browser (default)
+#     docker run --rm -it jumbee-console-aot agent-harness   # agent harness demo
 #
-# Quit with Ctrl+Q; it restores your terminal on exit.
+# The first `docker run` argument picks the app (see examples-aot.sh). Quit with
+# Ctrl+Q; it restores your terminal on exit.
 # NOTE: the ext/* git submodules must be initialised on the host first
 # (`git submodule update --init --recursive`).
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Stage 1: build + NativeAOT-publish the examples browser ──────────────────
+# ── Stage 1: build + NativeAOT-publish the two AOT-eligible demos ────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 # NativeAOT compiles and links a native binary, which needs the clang toolchain and
@@ -32,11 +35,16 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
 WORKDIR /src
 COPY . .
 
-# The project already sets <PublishAot>true</PublishAot> and <InvariantGlobalization>true</InvariantGlobalization>,
-# so `-r linux-x64` produces a trimmed, self-contained native binary (no ICU needed). Restores every project
-# reference (ext/*, src/*) and NuGet package (AdocNet, Mermaider, …) from nuget.org.
+# Produce trimmed, self-contained NATIVE-AOT binaries (no ICU needed). PublishAot/InvariantGlobalization are passed
+# explicitly here rather than relying on the csproj (the examples project sets them, but the agent-harness project
+# does not — without the flags it would publish a framework-dependent apphost that needs a runtime the slim image
+# lacks). Restores every project reference (ext/*, src/*) and NuGet package (AdocNet, Mermaider, …) from nuget.org.
+# The agent-harness references Jumbee.Console.Snapshot (ImageSharp) only for a headless smoke check; the trimmer
+# drops it from the native binary.
 RUN dotnet publish examples/Jumbee.Console.Examples/Jumbee.Console.Examples.csproj \
-        -c Release -r linux-x64 -o /app/publish
+        -c Release -r linux-x64 -p:PublishAot=true -p:InvariantGlobalization=true -o /app/examples
+RUN dotnet publish examples/Jumbee.Console.AgentHarnessDemo/Jumbee.Console.AgentHarnessDemo.csproj \
+        -c Release -r linux-x64 -p:PublishAot=true -p:InvariantGlobalization=true -o /app/agent
 
 # ── Stage 2: minimal runtime image (no SDK, no .NET runtime — just OS deps) ───
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0 AS runtime
@@ -52,8 +60,10 @@ ENV LANG=C.UTF-8 \
     TERM=xterm-256color
 
 WORKDIR /app
-COPY --from=build /app/publish/ ./
+COPY --from=build /app/examples/ ./examples/
+COPY --from=build /app/agent/ ./agent/
+COPY examples-aot.sh ./
 
-# The examples browser is an INTERACTIVE full-screen TUI (mouse, alternate screen, raw key input), so the container
-# MUST be given a TTY (`docker run -it`). The native binary is the entry point directly — no shell, no `dotnet`.
-ENTRYPOINT ["/app/Jumbee.Console.Examples"]
+# The demos are INTERACTIVE full-screen TUIs (mouse, alternate screen, raw key input), so the container MUST be given
+# a TTY (`docker run -it`). examples-aot.sh execs the right native binary based on the first argument — no `dotnet`.
+ENTRYPOINT ["bash", "/app/examples-aot.sh"]
