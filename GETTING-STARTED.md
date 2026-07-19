@@ -1,12 +1,12 @@
 # Getting Started with Jumbee.Console
-
-Jumbee.Console is a .NET library for building TUIs that are fast and take advantage of modern terminal capabilities. It uses a retained-mode control/layout model: place controls in layouts, let the library redraw only what changed. If
-you've built a desktop UI with WinForms or WPF, the model will feel familiar: a tree of controls, a single UI thread, and property changes that trigger a repaint.
+![](https://i.imgur.com/mpNylpY.gif)
+Jumbee.Console is a .NET library for building high-performance TUIs that take advantage of modern terminal capabilities. It uses a retained-mode user interface model where controls are regularly sent messages to repaint and redraw themselves by the library and the library takes care of rendering the resulting changes to the terminal. If you've built a desktop UI with WinForms or WPF, then the user interface model should feel familiar: a tree of controls, a single UI thread, and property changes that trigger a repaint.
 
 > Status: pre-release (v0.1.x). APIs may still change.
 
 ## Contents
 - [Requirements](#requirements)
+- [Running examples](#running-examples)
 - [Add the library to a project](#add-the-library-to-a-project)
 - [Your first app](#your-first-app)
 - [The essential concepts](#the-essential-concepts)
@@ -25,27 +25,30 @@ Non-ANSI terminals like the Windows legacy terminal are also supported but with 
 ## Running examples 
 Easiest way to try out the examples is to pull the [Docker image](https://hub.docker.com/r/allisterb/jumbee-console):
 
-`docker run --rm -it allisterb/jumbee-console:latest` Pull the latest image and run the examples browser.
+Pull the latest image and run the examples browser:
+`docker run --rm -it allisterb/jumbee-console:latest` 
 
-`docker run --rm -it allisterb/jumbee-console:latest agent-harness` Pull the latest image and run the agent harness example.
+Pull the latest image and run the agent harness example.: `docker run --rm -it allisterb/jumbee-console:latest agent-harness` 
 
 ## Add the library to a project
 
 `dotnet add package Jumbee.Console`
 
+
+## Your first app
 Everything you need lives in the single `Jumbee.Console` namespace (`UI`, `Grid`, `Button`, `TextLabel`, `Color`,
 `VtInputSource`, …).
 
-## Your first app
-
-A counter: a label and a button that increments it. This is a complete `Program.cs`.
+So this is a pretty simple TUI that shows a counter: a label and a button that increments it. 
 
 ```csharp
 using Jumbee.Console;
+//Import static color names
+using static Color; 
 
 var count = 0;
 
-var label  = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Color.Cyan1);
+var label  = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
 var button = new Button("Increment");
 
 button.Activated += (_, _) =>
@@ -64,13 +67,15 @@ var root = new Grid(
         [button.WithRoundedBorder(Color.Grey50)],   // wrap the button in a rounded border
     ]);
 
-// Esc quits (Ctrl+Q already does by default); focus the button so Enter/Space activates it.
+// Esc quits (Ctrl+Q already does by default)
 UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+// Focus the button on startup so Enter/Space activates it.
 UI.SetFocus(button);
 
 // Start the UI. Mouse/hover need a VtInputSource; keyboard works without one.
 var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).
-// Wait till the UI tops.
+// Wait till the UI stops.
 t.Wait();
 ```
 
@@ -86,8 +91,7 @@ What's happening:
 
 ### 1. The single UI thread (the most important thing)
 
-All UI state lives on **one dedicated UI thread**, driven by a `Dispatcher` on a frame loop. There is no UI lock;
-instead, work is *marshalled* onto that thread — exactly like WPF/WinForms.
+All UI state lives in a single dedicated UI thread, driven by a `Dispatcher` on a frame loop and anything that modifies the UI is marshalled onto that thread — exactly like WPF/WinForms.
 
 - **Scalar property setters marshal for you.** Setting `label.Text`, `gauge.Value`, `globe.RotationAngle`, etc.
   from any thread is safe — the setter posts the change to the UI thread and requests a repaint.
