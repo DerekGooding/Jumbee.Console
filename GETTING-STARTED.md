@@ -8,19 +8,17 @@ Jumbee.Console is a .NET library for building high-performance TUIs that take ad
 - [Requirements](#requirements)
 - [Running examples](#running-examples)
 - [Add the library to a project](#add-the-library-to-a-project)
-- [Your first app](#your-first-app)
+- [A simple TUI app](#your-first-app)
 - [The essential concepts](#the-essential-concepts)
-- [Updating the UI from a background thread](#updating-the-ui-from-a-background-thread)
 - [Testing without a terminal](#testing-without-a-terminal)
 - [Where to go next](#where-to-go-next)
 
 ## Requirements
 
 - .NET 10 
-- (Preferred) A terminal emulator that supports ANSI escape sequences and, ideally, UTF-8 and 24-bit colour — Windows Terminal, the VS Code integrated terminal, iTerm2, most modern Linux terminals. Mouse support and hover need a VT-capable terminal.
+- (Preferred) A terminal emulator that supports ANSI escape sequences and UTF-8 and 24-bit color like Windows Terminal and most modern Linux terminals. Mouse support and hover need a VT-capable terminal.
 
-Non-ANSI terminals like the Windows legacy terminal are also supported but with degraded performance and features.
-
+Non-ANSI terminals like the Windows legacy terminal are also supported but with degraded performance and features and no mouse support.
 
 ## Running examples 
 Easiest way to try out the examples is to pull the [Docker image](https://hub.docker.com/r/allisterb/jumbee-console):
@@ -28,19 +26,19 @@ Easiest way to try out the examples is to pull the [Docker image](https://hub.do
 Pull the latest image and run the examples browser:
 `docker run --rm -it allisterb/jumbee-console:latest` 
 
-Pull the latest image and run the agent harness example.: `docker run --rm -it allisterb/jumbee-console:latest agent-harness` 
+Pull the latest image and run the agent harness example: 
+`docker run --rm -it allisterb/jumbee-console:latest agent-harness` 
 
 ## Add the library to a project
 
 `dotnet add package Jumbee.Console`
 
+Or in a file-based app like in [1.basics.cs](docs/getting-started/1.basics.cs) You can can just use `#:package Jumbee.Console@*`at the top of th e file.
 
 ## A simple TUI app
 This is a pretty simple TUI that shows a counter: a label and a button that increments it. 
 
 ```csharp
-namespace ConsoleApp1;
-
 using Jumbee.Console;
 
 using static Jumbee.Console.Color; //Import static color names
@@ -88,30 +86,47 @@ If you run it in a terminal you should see:
 ![](https://i.imgur.com/h2moStO.png)
 
 
-Click **Increment** or focus it and press **Enter/Space**; press
-**Esc** or **Ctrl+Q** to quit.
-
-What's happening:
-- `UI.Start(rootLayout, …)` takes over the terminal, spins up the UI thread, and renders frames until `UI.Stop()`
-  is called. It returns a `Task`; `.Wait()` blocks your `Main` until the UI exits.
-- Setting `label.Text` from the event handler schedules a repaint on the UI thread.
+Click **Increment** or focus it and press **Enter/Space**. Press **Esc** or **Ctrl+Q** to quit.
 
 ## The essential concepts
 
-### 1. The single UI thread (the most important thing)
+### Startup
+- `UI.Start(root, …)` takes over the terminal, spins up the UI thread, and renders frames until `UI.Stop()` is called. It returns a `Task`. `.Wait()` blocks `Main` until the UI exits.
+- Setting `label.Text` schedules a repaint on the UI thread.
 
-All UI state lives in a single dedicated UI thread, driven by a `Dispatcher` on a frame loop and anything that modifies the UI is marshalled onto that thread — exactly like WPF/WinForms.
+### 1. The single UI thread
 
-- **Scalar property setters marshal for you.** Setting `label.Text`, `gauge.Value`, `globe.RotationAngle`, etc.
-  from any thread is safe — the setter posts the change to the UI thread and requests a repaint.
-- **Multi-step changes and collections must be marshalled explicitly.** For anything that isn't a single scalar
-  assignment (mutating a list, changing several fields together, reading collection state), wrap it:
+All UI state changes live in a single dedicated UI thread, driven by a `Dispatcher` on a frame loop and anything that modifies the UI needs to be marshalled onto that thread — exactly like WPF/WinForms.
+
+The API tries to make this marshalling as transparent as possible:
+- Scalar property setters `label.Text`, `gauge.Value`, `globe.RotationAngle`, etc. from any thread is safe — the setter posts the change to the UI thread and requests a repaint.
+- Multi-step changes and modifying collections must be marshalled explicitly. For anything that isn't a single scalar assignment like mutating a list or changing several fields together or reading mutable collection state, wrap it in `UI.Invoke` and related threading methods:
   - `UI.Invoke(() => { … })` — run now on the UI thread (inline if you're already on it, else posted and awaited).
   - `UI.Post(() => { … })` — fire-and-forget onto the UI thread.
   - `UI.InvokeAsync(() => { … })` — awaitable.
 
-You rarely call `Invalidate()` yourself; property setters do it. If you write a control that needs a redraw after
-some internal change, call `Invalidate()`.
+
+Since scalar setters marshal automatically, a background thread can access the UI directly for many operations e.g. a live clock([2.clock.cs](docs/getting-started/2.clock.cs)):
+
+```csharp
+using Jumbee.Console;
+
+var clock = new Digits(DateTime.Now.ToString("HH:mm:ss")) { DigitStyle = Color.Green1 };
+
+var root = new Grid(rowHeights: [3], columnWidths: [26], controls: [[clock]]);
+
+_ = Task.Run(async () =>
+{
+    while (true)
+    {
+        await Task.Delay(1000);
+        clock.Text = DateTime.Now.ToString("HH:mm:ss");   // safe from any thread
+    }
+});
+
+UI.Start(root, width: 30, height: 5).Wait();
+```
+![](https://i.imgur.com/GvpedMj.png)
 
 ### 2. Controls
 
@@ -198,44 +213,17 @@ UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);   // wire a quit key
 UI.Start(root, width: 100, height: 30).Wait();    // blocks until UI.Stop()
 ```
 
-`UI.Start` renders on an alternate screen buffer by default (your app gets a clean screen and the shell's
-scrollback is restored on exit); pass `useAlternateScreen: false` to render inline. `UI.Stop()` ends the loop and
+`UI.Start` renders on an alternate screen buffer by default and the shell's scrollback is restored on exit). Use `useAlternateScreen: false` to render inline. `UI.Stop()` ends the loop and
 restores the terminal.
 
 ### 9. Building your own composite control
-
 When several controls always travel together (an editor + its gutter, a labelled input), package them as a
 `CompositeControl`: build the children, arrange them in any layout, wire their events, and call `SetContent`. The
-result *is* a `Control`, so it drops into any layout cell and can be framed. See
-[Composite Controls](docs/controls/Composite%20Controls.md).
+result is a `Control`, so it drops into any layout cell and can be framed. See [Composite Controls](docs/controls/Composite%20Controls.md).
 
-## Updating the UI from a background thread
-
-Because scalar setters marshal automatically, a background loop can drive the UI directly. A live clock:
-
-```csharp
-using Jumbee.Console;
-
-var clock = new Digits(DateTime.Now.ToString("HH:mm:ss")) { DigitStyle = Color.Green1 };
-
-var root = new Grid(rowHeights: [3], columnWidths: [26], controls: [[clock]]);
-
-_ = Task.Run(async () =>
-{
-    while (true)
-    {
-        await Task.Delay(1000);
-        clock.Text = DateTime.Now.ToString("HH:mm:ss");   // safe from any thread
-    }
-});
-
-UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
-UI.Start(root, width: 30, height: 5).Wait();
-```
 
 For changes that aren't a single property assignment (updating a list, mutating a wrapped Spectre widget), wrap
-them in `UI.Invoke(() => { … })`. If you're *authoring* a control that needs a periodic tick, the protected
-`Control.Feed(tick, interval)` helper runs a repeating timer that posts to the UI thread and cancels on dispose.
+them in `UI.Invoke(() => { … })`. If you're authoring a control that needs a periodic tick, the protected `Control.Feed(tick, interval)` helper runs a repeating timer that posts to the UI thread and cancels on dispose.
 
 ## Testing without a terminal
 
@@ -260,4 +248,3 @@ Assert.Contains("Count: 0", text);
   theming.
 - Examples — `examples/Jumbee.Console.Examples` is a browsable gallery (each example shown next to its source);
   `examples/Jumbee.Console.IdeDemo` and `examples/Jumbee.Console.AgentHarnessDemo` are larger, full apps.
-- 
