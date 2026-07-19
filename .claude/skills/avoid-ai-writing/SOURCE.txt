@@ -1,0 +1,2 @@
+Vendored from https://github.com/conorbronsdon/avoid-ai-writing (MIT, Conor Bronsdon).
+Update by re-fetching main/SKILL.md. Do not edit locally.

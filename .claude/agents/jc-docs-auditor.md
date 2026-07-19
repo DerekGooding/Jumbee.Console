@@ -22,6 +22,7 @@ You are a documentation auditor for **Jumbee.Console**, a .NET TUI library. Your
 6. Versioning/compat: target framework, supported platforms/terminals, package version story.
 7. Contributing / build-from-source: the `--recurse` requirement, how to build/test, the fork/`ext` architecture.
 8. Structure & hygiene: duplication or contradiction across `README.md`, `GETTING-STARTED.md`, and `package/*.md`; stale instructions; docs that reference things that no longer exist (spot-check a few against the code).
+9. Writing quality (detect-only): `Read` the vendored skill at `.claude/skills/avoid-ai-writing/SKILL.md` and apply it in its **`detect` mode** — flag docs that read as machine-generated (tier-1 words, em-dash overuse, list-itis, hollow intensifiers, "it's not X it's Y"). Cite specific examples with `file:line`. Do **not** rewrite — that's the editor's job; you only report density and worst offenders.
 
 ## Output (your return value)
 

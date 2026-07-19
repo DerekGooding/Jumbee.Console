@@ -9,6 +9,7 @@ Jumbee.Console is a .NET library for building high-performance TUIs that take ad
 - [Running examples](#running-examples)
 - [Add the library to a project](#add-the-library-to-a-project)
 - [A simple TUI app](#your-first-app)
+- [A two-pane app: a list with a detail view](#a-two-pane-app-a-list-with-a-detail-view)
 - [The essential concepts](#the-essential-concepts)
 - [Testing without a terminal](#testing-without-a-terminal)
 - [Where to go next](#where-to-go-next)
@@ -87,6 +88,55 @@ If you run it in a terminal you should see:
 
 
 Click **Increment** or focus it and press **Enter/Space**. Press **Esc** or **Ctrl+Q** to quit.
+
+## A two-pane app: a list with a detail view
+
+Most real TUIs are some flavour of *master–detail*: a scrollable list on one side, the selected item's details on the other. Here's a small news reader — it pulls headlines from an RSS feed into a `ListBox` and shows the selected story's summary in a `MarkdownViewer` beside it. `DockPanel` pins the list to the left and lets the article fill the rest; `ListBox.SelectionChanged` keeps the two in sync.
+
+```csharp
+using System.Xml.Linq;
+using Jumbee.Console;
+
+// --- Fetch a few headlines from a public RSS feed ---
+var items = new List<(string Title, string Summary)>();
+try
+{
+    using var http = new HttpClient();
+    var xml = await http.GetStringAsync("https://feeds.bbci.co.uk/news/rss.xml");
+    foreach (var item in XDocument.Parse(xml).Descendants("item").Take(20))
+        items.Add((item.Element("title")?.Value ?? "(no title)",
+                   item.Element("description")?.Value ?? ""));
+}
+catch (Exception ex)
+{
+    items.Add(("Failed to fetch feed", ex.Message));
+}
+
+// --- Left: the scrollable headline list. Right: the selected story's summary. ---
+var headlines = new ListBox([.. items.Select(i => i.Title)]);
+var article = new MarkdownViewer(items.Count > 0 ? items[0].Summary : "");
+
+// Keep the detail pane in sync with the selected row.
+headlines.SelectionChanged += (_, _) =>
+{
+    var i = headlines.SelectedIndex;
+    if (i >= 0 && i < items.Count) article.Markdown = items[i].Summary;
+};
+
+// DockPanel pins one control to an edge and fills the rest with the other. Give the
+// docked control an explicit size with .WithWidth — a docked control otherwise takes
+// its intrinsic width.
+var root = new DockPanel(
+    DockedControlPlacement.Left,
+    headlines.WithWidth(40).WithBorder(BorderStyle.Double).WithTitle("Headlines"),
+    article.WithBorder(BorderStyle.Double).WithTitle("Article"));
+
+UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+UI.SetFocus(headlines);   // arrow keys drive the list
+UI.Start(root, width: 100, height: 30, input: new VtInputSource(anyMotion: true)).Wait();
+```
+
+Arrow keys (or the mouse) move the selection and the article pane updates as you go. This is the same list-plus-detail shape behind a file explorer, a chat app, or an IDE's editor tabs — swap `MarkdownViewer` for a `CodeEditor`, a `TextEditor`, or any other control.
 
 ## The essential concepts
 
