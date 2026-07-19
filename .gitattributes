@@ -3,3 +3,7 @@ build      text eol=lf
 testdemo   text eol=lf
 examples.sh   text eol=lf
 *.sh       text eol=lf
+
+# Keep Windows batch files CRLF — cmd.exe drops leading characters from LF-only .cmd/.bat files.
+*.cmd      text eol=crlf
+*.bat      text eol=crlf

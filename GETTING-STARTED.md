@@ -16,33 +16,14 @@ you've built a desktop UI with WinForms or WPF, the model will feel familiar: a 
 
 ## Requirements
 
-- **.NET 10 SDK** (the libraries target `net10.0` and use C# 14).
-- A terminal that supports ANSI escape sequences and, ideally, UTF-8 and 24-bit colour — Windows Terminal,
-  the VS Code integrated terminal, iTerm2, most modern Linux terminals. Mouse and hover need a VT-capable terminal.
+- .NET 10 
+- (Preferred) A terminal emulator that supports ANSI escape sequences and, ideally, UTF-8 and 24-bit colour — Windows Terminal, the VS Code integrated terminal, iTerm2, most modern Linux terminals. Mouse support and hover need a VT-capable terminal.
+
+Non-ANSI terminals like the Windows legacy terminal are also supported but with degraded performance and features.
 
 ## Add the library to a project
 
-Jumbee.Console is not on NuGet yet, so reference the projects from a clone of this repo. Create a console app and
-add a project reference to `Jumbee.Console` (and `Jumbee.Console.Snapshot` if you want headless tests):
-
-```bash
-dotnet new console -n MyTui
-cd MyTui
-dotnet add reference ../Jumbee.Console/src/Jumbee.Console/Jumbee.Console.csproj
-```
-
-Make sure the app targets `net10.0`:
-
-```xml
-<!-- MyTui.csproj -->
-<PropertyGroup>
-  <TargetFramework>net10.0</TargetFramework>
-  <Nullable>enable</Nullable>
-  <ImplicitUsings>enable</ImplicitUsings>   <!-- so System, System.Threading.Tasks, etc. are available -->
-</PropertyGroup>
-```
-
-> Once the package is published you'll be able to `dotnet add package Jumbee.Console` instead.
+`dotnet add package Jumbee.Console`
 
 Everything you need lives in the single `Jumbee.Console` namespace (`UI`, `Grid`, `Button`, `TextLabel`, `Color`,
 `VtInputSource`, …).

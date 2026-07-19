@@ -17,7 +17,7 @@
     <!-- The one and only reference: the shipped package. Its bundled fork DLLs (ConsoleGUI, the
          Spectre.Console fork, ConsolePlot, ...) and its single real dependency (NTokenizers) all
          arrive transitively from the feed. -->
-    <PackageReference Include="Jumbee.Console" Version="$(JumbeeVersion)" />
+    <PackageReference Include="Jumbee.Console" Version="0.1.1" />
   </ItemGroup>
 
 </Project>

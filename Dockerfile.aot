@@ -1,0 +1,59 @@
+# syntax=docker/dockerfile:1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Jumbee.Console examples browser — SLIM, NATIVE-AOT image.
+#
+# Unlike the full playground image (./Dockerfile), this ships ONLY the examples
+# browser, compiled to a single self-contained native binary with NativeAOT — no
+# .NET runtime and no SDK in the final image. The IDE/agent demos are intentionally
+# excluded here because they shell out to `dotnet` at runtime and so need the SDK
+# (keep using ./Dockerfile for those).
+#
+#     docker build -f Dockerfile.aot -t jumbee-console-aot .
+#     docker run --rm -it -e TERM=xterm-256color jumbee-console-aot
+#
+# Quit with Ctrl+Q; it restores your terminal on exit.
+# NOTE: the ext/* git submodules must be initialised on the host first
+# (`git submodule update --init --recursive`).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: build + NativeAOT-publish the examples browser ──────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+# NativeAOT compiles and links a native binary, which needs the clang toolchain and
+# zlib headers (not present in the SDK image by default).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends clang zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_NOLOGO=1
+
+WORKDIR /src
+COPY . .
+
+# The project already sets <PublishAot>true</PublishAot> and <InvariantGlobalization>true</InvariantGlobalization>,
+# so `-r linux-x64` produces a trimmed, self-contained native binary (no ICU needed). Restores every project
+# reference (ext/*, src/*) and NuGet package (AdocNet, Mermaider, …) from nuget.org.
+RUN dotnet publish examples/Jumbee.Console.Examples/Jumbee.Console.Examples.csproj \
+        -c Release -r linux-x64 -o /app/publish
+
+# ── Stage 2: minimal runtime image (no SDK, no .NET runtime — just OS deps) ───
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0 AS runtime
+
+# Patch base OS packages to trim CVEs (same rationale as the full image).
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && rm -rf /var/lib/apt/lists/*
+
+# UTF-8 (box-drawing glyphs) and a colour-capable TERM for the TUI.
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TERM=xterm-256color
+
+WORKDIR /app
+COPY --from=build /app/publish/ ./
+
+# The examples browser is an INTERACTIVE full-screen TUI (mouse, alternate screen, raw key input), so the container
+# MUST be given a TTY (`docker run -it`). The native binary is the entry point directly — no shell, no `dotnet`.
+ENTRYPOINT ["/app/Jumbee.Console.Examples"]
