@@ -21,6 +21,14 @@ you've built a desktop UI with WinForms or WPF, the model will feel familiar: a 
 
 Non-ANSI terminals like the Windows legacy terminal are also supported but with degraded performance and features.
 
+
+## Running examples 
+Easiest way to try out the examples is to pull the [Docker image](https://hub.docker.com/repository/docker/allisterb/jumbee-console/general):
+
+`docker run --rm -it allisterb/jumbee-console:latest` Pull the latest image and run the examples browser.
+
+`docker run --rm -it allisterb/jumbee-console:latest agent-harness` Pull the latest image and run the agent harness example.
+
 ## Add the library to a project
 
 `dotnet add package Jumbee.Console`
@@ -232,10 +240,11 @@ Assert.Contains("Count: 0", text);
 
 ## Where to go next
 
-- **[API reference](docs/api/)** — every public type, grouped by namespace, with summaries.
-- **[Control guides](docs/controls/)** — task-focused walkthroughs (selection controls, display widgets, links,
+- [API reference](docs/api/) — every public type, grouped by namespace, with summaries.
+- [Control guides](docs/controls/) — task-focused walkthroughs (selection controls, display widgets, links,
   composite controls).
-- **[Internals](docs/internal/)** — architecture notes: the rendering pipeline, input model, multithreading, and
+- [Internals](docs/internal/) — architecture notes: the rendering pipeline, input model, multithreading, and
   theming.
-- **Examples** — `examples/Jumbee.Console.Examples` is a browsable gallery (each example shown next to its source);
+- Examples — `examples/Jumbee.Console.Examples` is a browsable gallery (each example shown next to its source);
   `examples/Jumbee.Console.IdeDemo` and `examples/Jumbee.Console.AgentHarnessDemo` are larger, full apps.
+- 
