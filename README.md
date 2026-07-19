@@ -14,7 +14,7 @@
 * Also support legacy non-ANSI terminal emulators like the classic Windows console.
 * Uses Spectre.Console-compatible markup, styles, text rendering, and widgets in a retained-mode rendering pipeline.
 * Supports both fixed-width layouts like `Grid` and flexible, resizable layouts like `DockPanel`, `HorizontalStack`, `VerticalStack`, resizable `SplitPanel`.
-* Large set of common GUI controls: menus, buttons, trees, text inputs with autocomplete, modal dialog windows, etc...., supports easy composition of controld    
+* Large set of common GUI controls: menus, buttons, trees, text inputs with autocomplete, modal dialog windows, etc...., supports easy composition of controls.    
 * Control frames support adornments like titles, borders, margins, and scrollbars.
 * Cross-platform 100% managed code terminal-emulator.
 * Muti-tab editor that supports C#, JavaScript, C++, Markdown + a dozen other languages.
@@ -22,6 +22,17 @@
 * Visualization and graphics: Many different types of plots and graphs like candlestick & heatmap plots & bar/run charts, world maps, sub-cell drawing canvas and shapes, 3D texture rendering, and support for animation.
 * Flexible themes that support styling both colors and glyphs independently.
 * Headless snapshot testing: render any control or layout to text or PNG without a real terminal.
+
+## Requirements
+* .NET 10.0 SDK
+
+## Building
+
+
+
+* Clone the repo: ``git clone https://github.com/allisterb/Jumbee.Console --recurse``
+* Switch to the repo dir and run the build script: ``.\build.cmd`` or `./build`
+
 
 ## Getting Started
 See [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the project [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs). 
