@@ -46,57 +46,52 @@ using Jumbee.Console;
 
 using static Jumbee.Console.Color; //Import static color names
 
-internal class Program
+var count = 0;
+
+var label = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
+var button = new Button("Increment");
+
+button.Activated += (_, _) =>
 {
-    static void Main(string[] args)
-    {     
-        var count = 0;
+    count++;
+    label.Text = $"Count: {count}";
+};
 
-        var label = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
-        var button = new Button("Increment");
+// Arrange the two controls in a grid: one column, two rows
+var root = new Grid(
+    columnWidths: [30],
+    rowHeights: [1, 3],
+    controls:
+    [
+      [label],
+      [button],   // wrap the button in a rounded border
+   ]);
 
-        button.Activated += (_, _) =>
-        {
-            count++;
-            label.Text = $"Count: {count}";
-        };
+// Esc quits (Ctrl+Q already does by default)
+UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 
-        // Arrange the two controls in a grid: one column, two rows
-        var root = new Grid(
-            columnWidths: [30],
-            rowHeights: [1, 3],
-            controls:
-            [
-                [label],
-        [button.WithRoundedBorder(Grey50)],   // wrap the button in a rounded border
-            ]);
+// Focus the button on startup so Enter/Space activates it.
+UI.SetFocus(button);
 
-        // Esc quits (Ctrl+Q already does by default)
-        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
-
-        // Focus the button on startup so Enter/Space activates it.
-        UI.SetFocus(button);
-
-        // Start the UI. Mouse/hover need a VtInputSource; keyboard works without one.
-        var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true));
-        // Wait till the UI stops.
-        t.Wait();
-    }
-}
-
+// Start the UI. Mouse/hover need a VtInputSource; keyboard works without one.
+var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true));
+// Wait till the UI stops.
+t.Wait(); 
 ```
 If you run it in a terminal you should see:
-![](https://i.imgur.com/h2moStO.png)
+
+![](https://i.imgur.com/SPVPmW6.png)
 
 
 Click **Increment** or focus it and press **Enter/Space**. Press **Esc** or **Ctrl+Q** to quit.
 
-## A two-pane app: a list with a detail view
+## A two-pane TUI app: a list with a detail view
 
-Most real TUIs are some flavour of *master–detail*: a scrollable list on one side, the selected item's details on the other. Here's a small news reader — it pulls headlines from an RSS feed into a `ListBox` and shows the selected story's summary in a `MarkdownViewer` beside it. `DockPanel` pins the list to the left and lets the article fill the rest; `ListBox.SelectionChanged` keeps the two in sync.
+Most real TUIs are some flavour of *master–detail*: a scrollable list on one side, the selected item's details on the other. Here's a small news reader [3.newsreader.cs](docs/getting-started/3.newsreader.cs) — it pulls headlines from an RSS feed into a `ListBox` and shows the selected story's summary in a `MarkdownViewer` beside it. `DockPanel` pins the list to the left and lets the article fill the rest; `ListBox.SelectionChanged` keeps the two in sync.
 
 ```csharp
 using System.Xml.Linq;
+
 using Jumbee.Console;
 
 // --- Fetch a few headlines from a public RSS feed ---
@@ -114,27 +109,32 @@ catch (Exception ex)
     items.Add(("Failed to fetch feed", ex.Message));
 }
 
-// --- Left: the scrollable headline list. Right: the selected story's summary. ---
-var headlines = new ListBox([.. items.Select(i => i.Title)]);
-var article = new MarkdownViewer(items.Count > 0 ? items[0].Summary : "");
-
+// Left: the scrollable headline list. Right: the selected story's summary. ---
+// DockPanel pins one control to an edge and fills the rest with the other. Give the docked control an explicit size with .WithWidth(),
+// Otherwise a docked control otherwise takes its intrinsic width.
+var headlines = 
+  new ListBox([.. items.Select(i => i.Title)])
+      .WithWidth(40)
+      .WithBorder(BorderStyle.Double)
+      .WithTitle("Headlines");
+var article = 
+  new MarkdownViewer(items.Count > 0 ? items[0].Summary : "")
+      .WithBorder(BorderStyle.Double)
+      .WithTitle("Article");
 // Keep the detail pane in sync with the selected row.
 headlines.SelectionChanged += (_, _) =>
 {
     var i = headlines.SelectedIndex;
-    if (i >= 0 && i < items.Count) article.Markdown = items[i].Summary;
+    if (i >= 0 && i < items.Count) 
+      article.Markdown = items[i].Summary;
 };
 
-// DockPanel pins one control to an edge and fills the rest with the other. Give the
-// docked control an explicit size with .WithWidth — a docked control otherwise takes
-// its intrinsic width.
-var root = new DockPanel(
-    DockedControlPlacement.Left,
-    headlines.WithWidth(40).WithBorder(BorderStyle.Double).WithTitle("Headlines"),
-    article.WithBorder(BorderStyle.Double).WithTitle("Article"));
+//
+var root = new DockPanel(DockedControlPlacement.Left, headlines, article);
 
 UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
 UI.SetFocus(headlines);   // arrow keys drive the list
+// Wait for the UI to stop.
 UI.Start(root, width: 100, height: 30, input: new VtInputSource(anyMotion: true)).Wait();
 ```
 
