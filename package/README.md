@@ -14,14 +14,53 @@
 * Also support legacy non-ANSI terminal emulators like the classic Windows console.
 * Uses Spectre.Console-compatible markup, styles, text rendering, and widgets in a retained-mode rendering pipeline.
 * Supports both fixed-width layouts like `Grid` and flexible, resizable layouts like `DockPanel`, `HorizontalStack`, `VerticalStack`, resizable `SplitPanel`.
-* Large set of common GUI controls: menus, buttons, trees, text inputs with autocomplete, modal dialog windows, etc...., supports easy composition of controld    
+* Large set of common GUI controls: menus, buttons, trees, text inputs with autocomplete, modal dialog windows, etc...., supports easy composition of controls    
 * Control frames support adornments like titles, borders, margins, and scrollbars.
 * Cross-platform 100% managed code terminal-emulator.
-* Muti-tab editor that supports C#, JavaScript, C++, Markdown + a dozen other languages.
+* Multi-tab editor that supports C#, JavaScript, C++, Markdown + a dozen other languages.
 * Split-pane interactive editors with preview for Markdown, AsciiDoc, Mermaid documents, Mermaid embedded in Markdown.
 * Visualization and graphics: Many different types of plots and graphs like candlestick & heatmap plots & bar/run charts, world maps, sub-cell drawing canvas and shapes, 3D texture rendering, and support for animation.
 * Flexible themes that support styling both colors and glyphs independently.
 * Headless snapshot testing: render any control or layout to text or PNG without a real terminal.
 
 ## Getting Started
-See [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) on the project site, and the project [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs). 
+
+`dotnet add package Jumbee.Console`
+
+> **Note:** Jumbee.Console bundles a private fork of Spectre.Console. Do **not** also add the `Spectre.Console` NuGet package. The two share an assembly identity, so the build fails with `CS1704`.
+
+A first app — a label and a button that increments a counter:
+
+```csharp
+using Jumbee.Console;
+using static Jumbee.Console.Color;   // import the static colour names
+
+var count = 0;
+
+var label = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
+var button = new Button("Increment");
+
+button.Activated += (_, _) =>
+{
+    count++;
+    label.Text = $"Count: {count}";
+};
+
+// One column, two rows: the label above the (rounded-bordered) button.
+var root = new Grid(
+    columnWidths: [30],
+    rowHeights: [1, 3],
+    controls:
+    [
+        [label],
+        [button.WithRoundedBorder(Grey50)],
+    ]);
+
+UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);   // Esc quits (Ctrl+Q also quits by default)
+UI.SetFocus(button);                             // focus it so Enter/Space activates
+
+// Mouse/hover need a VtInputSource; keyboard works without one.
+UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).Wait();
+```
+
+For a scrollable list with a detail view, theming, input, and headless testing, see [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs).

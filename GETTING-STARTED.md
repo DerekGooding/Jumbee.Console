@@ -34,7 +34,9 @@ Pull the latest image and run the agent harness example:
 
 `dotnet add package Jumbee.Console`
 
-Or in a file-based app like in [1.basics.cs](docs/getting-started/1.basics.cs) You can can just use `#:package Jumbee.Console@*`at the top of th e file.
+Or in a file-based app like [1.basics.cs](docs/getting-started/1.basics.cs), you can just use `#:package Jumbee.Console@*` at the top of the file.
+
+> **Note:** Jumbee.Console bundles a private fork of Spectre.Console. Do **not** also add the `Spectre.Console` NuGet package to the same project. The two share the assembly identity `Spectre.Console`, so the build fails with `CS1704`. Everything you'd reach for in Spectre (markup, styles, `IRenderable`) is re-exposed through Jumbee.Console.
 
 ## A simple TUI app
 This is a pretty simple TUI that shows a counter: a label and a button that increments it. 
@@ -137,6 +139,8 @@ UI.Start(root, width: 100, height: 30, input: new VtInputSource(anyMotion: true)
 ```
 
 Arrow keys (or the mouse) move the selection and the article pane updates as you go. This is the same list-plus-detail shape behind a file explorer, a chat app, or an IDE's editor tabs — swap `MarkdownViewer` for a `CodeEditor`, a `TextEditor`, or any other control.
+
+The feed fetch needs outbound network access; offline or behind a proxy, the `catch` block shows a single error row instead of headlines.
 
 ## The essential concepts
 
@@ -291,6 +295,7 @@ Assert.Contains("Count: 0", text);
 
 ## Where to go next
 
+- [Troubleshooting](TROUBLESHOOTING.md) — the Spectre.Console collision, submodules/CS1704, non-TTY rendering, and mouse input.
 - [API reference](docs/api/) — every public type, grouped by namespace, with summaries.
 - [Control guides](docs/controls/) — task-focused walkthroughs (selection controls, display widgets, links,
   composite controls).
