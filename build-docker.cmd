@@ -27,4 +27,9 @@ echo Building Docker image jumbee-console:%VERSION% (also tagged latest)...
 docker build %* -t jumbee-console:%VERSION% -t jumbee-console:latest .
 if errorlevel 1 exit /b 1
 
-echo Done: jumbee-console:%VERSION% (and jumbee-console:latest).
+rem Also build the slim NativeAOT image (examples browser only, single native binary; see Dockerfile.aot).
+echo Building NativeAOT Docker image jumbee-console-aot:%VERSION% (also tagged latest)...
+docker build %* -f Dockerfile.aot -t jumbee-console-aot:%VERSION% -t jumbee-console-aot:latest .
+if errorlevel 1 exit /b 1
+
+echo Done: jumbee-console:%VERSION% and jumbee-console-aot:%VERSION% (both also tagged latest).
