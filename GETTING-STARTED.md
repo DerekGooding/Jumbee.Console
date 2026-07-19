@@ -35,57 +35,66 @@ Pull the latest image and run the agent harness example.: `docker run --rm -it a
 `dotnet add package Jumbee.Console`
 
 
-## Your first app
-Everything you need lives in the single `Jumbee.Console` namespace (`UI`, `Grid`, `Button`, `TextLabel`, `Color`,
-`VtInputSource`, …).
-
-So this is a pretty simple TUI that shows a counter: a label and a button that increments it. 
+## A simple TUI app
+This is a pretty simple TUI that shows a counter: a label and a button that increments it. 
 
 ```csharp
+namespace ConsoleApp1;
+
 using Jumbee.Console;
-//Import static color names
-using static Color; 
 
-var count = 0;
+using static Jumbee.Console.Color; //Import static color names
 
-var label  = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
-var button = new Button("Increment");
-
-button.Activated += (_, _) =>
+internal class Program
 {
-    count++;
-    label.Text = $"Count: {count}";   // a property change repaints on the next frame
-};
+    static void Main(string[] args)
+    {     
+        var count = 0;
 
-// Arrange the two controls in a grid: one column, two rows (1 tall for the label, 3 for the framed button).
-var root = new Grid(
-    rowHeights:   [1, 3],
-    columnWidths: [30],
-    controls:
-    [
-        [label],
-        [button.WithRoundedBorder(Color.Grey50)],   // wrap the button in a rounded border
-    ]);
+        var label = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
+        var button = new Button("Increment");
 
-// Esc quits (Ctrl+Q already does by default)
-UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+        button.Activated += (_, _) =>
+        {
+            count++;
+            label.Text = $"Count: {count}";
+        };
 
-// Focus the button on startup so Enter/Space activates it.
-UI.SetFocus(button);
+        // Arrange the two controls in a grid: one column, two rows
+        var root = new Grid(
+            columnWidths: [30],
+            rowHeights: [1, 3],
+            controls:
+            [
+                [label],
+        [button.WithRoundedBorder(Grey50)],   // wrap the button in a rounded border
+            ]);
 
-// Start the UI. Mouse/hover need a VtInputSource; keyboard works without one.
-var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).
-// Wait till the UI stops.
-t.Wait();
+        // Esc quits (Ctrl+Q already does by default)
+        UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);
+
+        // Focus the button on startup so Enter/Space activates it.
+        UI.SetFocus(button);
+
+        // Start the UI. Mouse/hover need a VtInputSource; keyboard works without one.
+        var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true));
+        // Wait till the UI stops.
+        t.Wait();
+    }
+}
+
 ```
+If you run it in a terminal you should see:
+![](https://i.imgur.com/h2moStO.png)
 
-Run it in a real terminal (`dotnet run`). Click **Increment** or focus it and press **Enter/Space**; press
+
+Click **Increment** or focus it and press **Enter/Space**; press
 **Esc** or **Ctrl+Q** to quit.
 
 What's happening:
 - `UI.Start(rootLayout, …)` takes over the terminal, spins up the UI thread, and renders frames until `UI.Stop()`
   is called. It returns a `Task`; `.Wait()` blocks your `Main` until the UI exits.
-- Setting `label.Text` from the event handler schedules a repaint — you never call "draw" yourself.
+- Setting `label.Text` from the event handler schedules a repaint on the UI thread.
 
 ## The essential concepts
 
