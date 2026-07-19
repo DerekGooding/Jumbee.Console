@@ -23,7 +23,7 @@ Non-ANSI terminals like the Windows legacy terminal are also supported but with 
 
 
 ## Running examples 
-Easiest way to try out the examples is to pull the [Docker image](https://hub.docker.com/repository/docker/allisterb/jumbee-console/general):
+Easiest way to try out the examples is to pull the [Docker image](https://hub.docker.com/r/allisterb/jumbee-console):
 
 `docker run --rm -it allisterb/jumbee-console:latest` Pull the latest image and run the examples browser.
 
