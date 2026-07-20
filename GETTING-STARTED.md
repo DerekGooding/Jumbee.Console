@@ -1,5 +1,4 @@
 # Getting Started with Jumbee.Console
-![](https://i.imgur.com/mpNylpY.gif)
 Jumbee.Console is a .NET library for building high-performance TUIs that take advantage of modern terminal capabilities. It uses a retained-mode user interface model where controls are regularly sent messages to repaint and redraw themselves by the library and the library takes care of rendering the resulting changes to the terminal. If you've built a desktop UI with WinForms or WPF, then the user interface model should feel familiar: a tree of controls, a single UI thread, and property changes that trigger a repaint.
 
 > Status: pre-release (v0.1.x). APIs may still change.
@@ -35,8 +34,6 @@ Pull the latest image and run the agent harness example:
 `dotnet add package Jumbee.Console`
 
 Or in a file-based app like [1.basics.cs](docs/getting-started/1.basics.cs), you can just use `#:package Jumbee.Console@*` at the top of the file.
-
-> **Note:** Jumbee.Console bundles a private fork of Spectre.Console. Do **not** also add the `Spectre.Console` NuGet package to the same project. The two share the assembly identity `Spectre.Console`, so the build fails with `CS1704`. Everything you'd reach for in Spectre (markup, styles, `IRenderable`) is re-exposed through Jumbee.Console.
 
 ## A simple TUI app
 This is a pretty simple TUI ([1.basics.cs](docs/getting-started/1.basics.cs)) that shows a counter: a label and a button that increments it. 
@@ -142,21 +139,34 @@ Arrow keys (or the mouse) move the selection and the article pane updates as you
 
 The feed fetch needs outbound network access; offline or behind a proxy, the `catch` block shows a single error row instead of headlines.
 
+**Adding search.** `ListBox` has no built-in filter — you rebuild it. Keep the full list, and on each query clear the box and re-add the matches (its constructor and `AddItems` both take any `IEnumerable<string>`):
+
+```csharp
+void Filter(string query)
+{
+    var matches = items.Where(i => i.Title.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+    headlines.Clear();
+    headlines.AddItems(matches.Select(i => i.Title));
+    // Re-point SelectionChanged at `matches` while filtered, since row indices no longer map to `items`.
+}
+```
+
 ## The essential concepts
 
 ### Startup
-- `UI.Start(root, …)` takes over the terminal, spins up the UI thread, and renders frames until `UI.Stop()` is called. It returns a `Task`. `.Wait()` blocks `Main` until the UI exits.
-- Setting `label.Text` schedules a repaint on the UI thread.
+- `UI.Start(root, …)` takes over the terminal, spins up the UI thread, and renders frames until `UI.Stop()` is called. 
+- It returns a `Task`. `.Wait()` blocks `Main` until the UI exits and the previous terminal output is restored.
+- Setting `label.Text` automatically schedules a repaint on the UI thread from any thread.
 
 ### 1. The single UI thread
 
-All UI state changes live in a single dedicated UI thread, driven by a `Dispatcher` on a frame loop and anything that modifies the UI needs to be marshalled onto that thread — exactly like WPF/WinForms.
+All UI state changes live in a single dedicated UI thread, driven by a `Dispatcher` on a frame loop and anything that modifies the UI needs to be marshalled onto that thread — similar to WinForms/WPF.
 
 The API tries to make this marshalling as transparent as possible:
 - Scalar property setters `label.Text`, `gauge.Value`, `globe.RotationAngle`, etc. from any thread is safe — the setter posts the change to the UI thread and requests a repaint.
 - Multi-step changes and modifying collections must be marshalled explicitly. For anything that isn't a single scalar assignment like mutating a list or changing several fields together or reading mutable collection state, wrap it in `UI.Invoke` and related threading methods:
-  - `UI.Invoke(() => { … })` — run now on the UI thread (inline if you're already on it, else posted and awaited).
-  - `UI.Post(() => { … })` — fire-and-forget onto the UI thread.
+  - `UI.Invoke(() => { … })` — run now on the UI thread 
+  - `UI.Post(() => { … })` — fire-and-forget onto the UI thread, run on the next frame event.
   - `UI.InvokeAsync(() => { … })` — awaitable.
 
 
@@ -211,6 +221,28 @@ Controls are arranged by an `ILayout`. `UI.Start` takes a layout as the root. Th
 
 Layouts nest: a `Grid` cell can hold another layout wrapped in a control, and composite controls embed a layout
 internally.
+
+**Runtime layout: a "zen mode" toggle.** A `SplitPanel`'s orientation is about the *panes*, not the divider:
+`Horizontal` puts them side by side (first = left), `Vertical` stacks them (first = top). Because the first pane's
+size is just the `SplitPosition` property, you get a full-screen "focus the detail" toggle for free — collapse the
+list to a sliver and restore it, with no relayout code:
+
+```csharp
+// A left list / right article split, like a news reader.
+var split = new SplitPanel(SplitOrientation.Horizontal, headlines, article, splitPosition: 32);
+
+int expanded = split.SplitPosition;                 // remember the open width
+split.MinFirst = 1;                                  // allow the thinnest possible sliver (MinFirst floors at 1)
+
+// A bare-letter global hotkey is a ConsoleKeyInfo whose char matches the keystroke (lowercase 'z').
+var zenKey = new ConsoleKeyInfo('z', ConsoleKey.Z, shift: false, alt: false, control: false);
+UI.RegisterHotKey(zenKey, () =>
+    split.SplitPosition = split.SplitPosition > split.MinFirst ? split.MinFirst : expanded);
+```
+
+Toggling drives `SplitPosition` between the saved width and `MinFirst`, so `z` collapses the list to a 1-cell
+sliver (the article fills the screen) and `z` again restores it. `SplitPosition` can't reach 0 — `MinFirst` is
+clamped to at least 1 — so a hair of the first pane always remains.
 
 ### 4. Frames (borders, titles, scrollbars)
 
@@ -299,6 +331,11 @@ var afterNav = ConsoleSnapshot.ToTextAfter(list, 80, 24, [ConsoleSnapshot.Key(Co
 
 // Fire a GLOBAL hotkey (one registered with UI.RegisterHotKey) — pass routeGlobal: true.
 var afterHotkey = ConsoleSnapshot.ToTextAfter(list, 80, 24, [ConsoleSnapshot.Key(ConsoleKey.R)], routeGlobal: true);
+
+// Key(...) fills the char only for letters and digits, so a global hotkey on a punctuation key (e.g. '/')
+// won't match unless you build the ConsoleKeyInfo yourself with the same char you registered it under:
+var slash = new ConsoleKeyInfo('/', ConsoleKey.Oem2, shift: false, alt: false, control: false);
+var afterSearch = ConsoleSnapshot.ToTextAfter(list, 80, 24, [slash], routeGlobal: true);
 ```
 
 Two things to know when asserting: text snapshots are **glyphs only** — colour and decoration aren't captured, so check colour with `SavePng`/`ToImage` (or render a visible marker and assert on that); and `ToTextAfter` sends the keys to the single control you pass, so to prove an effect that spans panes, target the control that actually changes.
