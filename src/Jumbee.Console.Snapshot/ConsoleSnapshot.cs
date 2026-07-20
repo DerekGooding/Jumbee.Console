@@ -72,20 +72,23 @@ public static class ConsoleSnapshot
 
     /// <summary>
     /// As <see cref="RenderAfter(JControl, int, int, ConsoleKey[])"/> but accepts full key info, so modifier
-    /// keys (e.g. <c>Alt+Down</c> via <see cref="Key"/>) can be sent.
+    /// keys (e.g. <c>Alt+Down</c> via <see cref="Key"/>) can be sent. When <paramref name="routeGlobal"/> is
+    /// <see langword="true"/>, each key runs the global hotkey dispatch first (see
+    /// <see cref="UI.SendInput(IFocusable, ConsoleKeyInfo, bool)"/>) so a snapshot can exercise hotkeys registered
+    /// with <see cref="UI.RegisterHotKey"/> — build the keys the same way they were registered.
     /// </summary>
-    public static ConsoleBuffer RenderAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys)
-        => RenderAfterCore(control, width, height, keys);
+    public static ConsoleBuffer RenderAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
+        => RenderAfterCore(control, width, height, keys, routeGlobal);
 
     /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a key with optional modifiers.</summary>
     public static ConsoleKeyInfo Key(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
         => new('\0', key, shift, alt, control);
 
-    private static ConsoleBuffer RenderAfterCore(JControl control, int width, int height, IEnumerable<ConsoleKeyInfo> keys)
+    private static ConsoleBuffer RenderAfterCore(JControl control, int width, int height, IEnumerable<ConsoleKeyInfo> keys, bool routeGlobal = false)
     {
         // Establish sizing first so input-driven behavior (e.g. auto-scroll) has a viewport to work against.
         Render(control, width, height);
-        foreach (var key in keys) UI.SendInput(control, key);
+        foreach (var key in keys) UI.SendInput(control, key, routeGlobal);
         return Render(control, width, height);
     }
     #endregion
@@ -119,9 +122,11 @@ public static class ConsoleSnapshot
     public static string ToTextAfter(JControl control, int width, int height, params ConsoleKey[] keys)
         => ToText(RenderAfter(control, width, height, keys));
 
-    /// <summary>Renders a control after sending the given keys (with modifiers) and returns its text snapshot.</summary>
-    public static string ToTextAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys)
-        => ToText(RenderAfter(control, width, height, keys));
+    /// <summary>Renders a control after sending the given keys (with modifiers) and returns its text snapshot.
+    /// Pass <paramref name="routeGlobal"/> to run each key through the global hotkey dispatch first (see
+    /// <see cref="RenderAfter(JControl, int, int, IReadOnlyList{ConsoleKeyInfo}, bool)"/>).</summary>
+    public static string ToTextAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
+        => ToText(RenderAfter(control, width, height, keys, routeGlobal));
     #endregion
 
     #region Image snapshot

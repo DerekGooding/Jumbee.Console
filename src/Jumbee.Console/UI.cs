@@ -464,16 +464,30 @@ public static class UI
     public static void PaintFrame() => _Paint?.Invoke(null, paintEventArgs);
 
     /// <summary>
-    /// Sends a key (with optional modifiers) to a focusable..
+    /// Sends a key to <paramref name="target"/>. When <paramref name="routeGlobal"/> is <see langword="true"/>,
+    /// the global hotkey dispatch runs first (mirroring the live <see cref="OnInput"/> path): a matching hotkey
+    /// registered via <see cref="RegisterHotKey"/> fires and marks the event handled, in which case the focused
+    /// control never sees the key. Lets headless/snapshot tests exercise global hotkeys, not just control-routed
+    /// input. To match a registered hotkey, build <paramref name="key"/> the same way it was registered (e.g. with
+    /// the <see cref="HotKeys"/> helpers, or a <see cref="ConsoleKeyInfo"/> whose char matches).
     /// </summary>
-    public static void SendInput(IFocusable target, ConsoleKeyInfo key)
-        => target.FocusableControl.OnInput(new InputEventArgs(new InputEvent(key)));
+    public static void SendInput(IFocusable target, ConsoleKeyInfo key, bool routeGlobal = false)
+    {
+        var inputEvent = new InputEvent(key);
+        if (routeGlobal)
+        {
+            globalInputListener.OnInput(inputEvent);
+            if (inputEvent.Handled) return;
+        }
+        target.FocusableControl.OnInput(new InputEventArgs(inputEvent));
+    }
 
     /// <summary>
-    /// Sends a key (with optional modifiers) to a focusable..
+    /// Sends a key (with optional modifiers) to <paramref name="target"/>. See
+    /// <see cref="SendInput(IFocusable, ConsoleKeyInfo, bool)"/> for <paramref name="routeGlobal"/>.
     /// </summary>
-    public static void SendInput(IFocusable target, ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
-        => target.FocusableControl.OnInput(new InputEventArgs(new InputEvent(new ConsoleKeyInfo('\0', key, shift, alt, control))));
+    public static void SendInput(IFocusable target, ConsoleKey key, bool shift = false, bool alt = false, bool control = false, bool routeGlobal = false)
+        => SendInput(target, new ConsoleKeyInfo('\0', key, shift, alt, control), routeGlobal);
 
     /// <summary>
     /// Runs once per frame on the UI thread: redraws the UI and invokes the <see cref="Paint"/> event,

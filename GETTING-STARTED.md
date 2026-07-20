@@ -39,7 +39,7 @@ Or in a file-based app like [1.basics.cs](docs/getting-started/1.basics.cs), you
 > **Note:** Jumbee.Console bundles a private fork of Spectre.Console. Do **not** also add the `Spectre.Console` NuGet package to the same project. The two share the assembly identity `Spectre.Console`, so the build fails with `CS1704`. Everything you'd reach for in Spectre (markup, styles, `IRenderable`) is re-exposed through Jumbee.Console.
 
 ## A simple TUI app
-This is a pretty simple TUI that shows a counter: a label and a button that increments it. 
+This is a pretty simple TUI ([1.basics.cs](docs/getting-started/1.basics.cs)) that shows a counter: a label and a button that increments it. 
 
 ```csharp
 using Jumbee.Console;
@@ -87,7 +87,7 @@ Click **Increment** or focus it and press **Enter/Space**. Press **Esc** or **Ct
 
 ## A two-pane TUI app: a list with a detail view
 
-Most real TUIs are some flavour of *master–detail*: a scrollable list on one side, the selected item's details on the other. Here's a small news reader [3.newsreader.cs](docs/getting-started/3.newsreader.cs) — it pulls headlines from an RSS feed into a `ListBox` and shows the selected story's summary in a `MarkdownViewer` beside it. `DockPanel` pins the list to the left and lets the article fill the rest; `ListBox.SelectionChanged` keeps the two in sync.
+Most real TUIs are some flavor of *master–detail*: a scrollable list on one side, the selected item's details on the other. Here's a small news reader ([3.newsreader.cs](docs/getting-started/3.newsreader.cs)) - it pulls headlines from an RSS feed into a `ListBox` and shows the selected story's summary in a `MarkdownViewer` beside it. `DockPanel` pins the list to the left and lets the article fill the rest; `ListBox.SelectionChanged` keeps the two in sync.
 
 ```csharp
 using System.Xml.Linq;

@@ -102,7 +102,7 @@ public static ConsoleBuffer Render(ILayout layout, int width, int height)
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_ConsoleKey___"></a> RenderAfter\(Control, int, int, params ConsoleKey\[\]\)
 
 Renders <code class="paramref">control</code> once to establish layout, sends the given keys to it (routed via
-<xref href="Jumbee.Console.UI.SendInput(Jumbee.Console.IFocusable%2cSystem.ConsoleKey%2cSystem.Boolean%2cSystem.Boolean%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>), then renders and returns the result.
+UI.SendInput(IFocusable, ConsoleKey, bool, bool, bool)), then renders and returns the result.
 
 ```csharp
 public static ConsoleBuffer RenderAfter(Control control, int width, int height, params ConsoleKey[] keys)
@@ -126,13 +126,16 @@ public static ConsoleBuffer RenderAfter(Control control, int width, int height, 
 
 Handy for snapshotting a control after navigation/editing.
 
-### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__"></a> RenderAfter\(Control, int, int, IReadOnlyList<ConsoleKeyInfo\>\)
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__System_Boolean_"></a> RenderAfter\(Control, int, int, IReadOnlyList<ConsoleKeyInfo\>, bool\)
 
 As <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Console.Control%2cSystem.Int32%2cSystem.Int32%2cSystem.ConsoleKey%5b%5d)" data-throw-if-not-resolved="false"></xref> but accepts full key info, so modifier
-keys (e.g. <code>Alt+Down</code> via <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.Key(System.ConsoleKey%2cSystem.Boolean%2cSystem.Boolean%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>) can be sent.
+keys (e.g. <code>Alt+Down</code> via <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.Key(System.ConsoleKey%2cSystem.Boolean%2cSystem.Boolean%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>) can be sent. When <code class="paramref">routeGlobal</code> is
+<a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>, each key runs the global hotkey dispatch first (see
+<xref href="Jumbee.Console.UI.SendInput(Jumbee.Console.IFocusable%2cSystem.ConsoleKeyInfo%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>) so a snapshot can exercise hotkeys registered
+with <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> — build the keys the same way they were registered.
 
 ```csharp
-public static ConsoleBuffer RenderAfter(Control control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys)
+public static ConsoleBuffer RenderAfter(Control control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
 ```
 
 #### Parameters
@@ -144,6 +147,8 @@ public static ConsoleBuffer RenderAfter(Control control, int width, int height, 
 `height` int
 
 `keys` IReadOnlyList<ConsoleKeyInfo\>
+
+`routeGlobal` bool
 
 #### Returns
 
@@ -341,12 +346,14 @@ public static string ToTextAfter(Control control, int width, int height, params 
 
  string
 
-### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToTextAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__"></a> ToTextAfter\(Control, int, int, IReadOnlyList<ConsoleKeyInfo\>\)
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToTextAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__System_Boolean_"></a> ToTextAfter\(Control, int, int, IReadOnlyList<ConsoleKeyInfo\>, bool\)
 
 Renders a control after sending the given keys (with modifiers) and returns its text snapshot.
+    Pass <code class="paramref">routeGlobal</code> to run each key through the global hotkey dispatch first (see
+    <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Console.Control%2cSystem.Int32%2cSystem.Int32%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.ConsoleKeyInfo%7d%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>).
 
 ```csharp
-public static string ToTextAfter(Control control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys)
+public static string ToTextAfter(Control control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
 ```
 
 #### Parameters
@@ -358,6 +365,8 @@ public static string ToTextAfter(Control control, int width, int height, IReadOn
 `height` int
 
 `keys` IReadOnlyList<ConsoleKeyInfo\>
+
+`routeGlobal` bool
 
 #### Returns
 

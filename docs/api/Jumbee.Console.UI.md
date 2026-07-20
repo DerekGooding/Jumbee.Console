@@ -519,12 +519,17 @@ public static void RegisterHotKey(ConsoleKeyInfo key, Action action)
 <xref href="Jumbee.Console.UI.Start(Jumbee.Console.ILayout%2cSystem.Int32%2cSystem.Int32%2cSystem.Int32%2cSystem.Boolean%2cConsoleGUI.Api.IConsole%2cJumbee.Console.IInputSource%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>; the key must match what the input decoder produces (use the <xref href="Jumbee.Console.UI.HotKeys" data-throw-if-not-resolved="false"></xref>
 constants/helpers).
 
-### <a id="Jumbee_Console_UI_SendInput_Jumbee_Console_IFocusable_System_ConsoleKeyInfo_"></a> SendInput\(IFocusable, ConsoleKeyInfo\)
+### <a id="Jumbee_Console_UI_SendInput_Jumbee_Console_IFocusable_System_ConsoleKeyInfo_System_Boolean_"></a> SendInput\(IFocusable, ConsoleKeyInfo, bool\)
 
-Sends a key (with optional modifiers) to a focusable..
+Sends a key to <code class="paramref">target</code>. When <code class="paramref">routeGlobal</code> is <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>,
+the global hotkey dispatch runs first (mirroring the live <xref href="Jumbee.Console.UI.OnInput(Jumbee.Console.TerminalInputEvent)" data-throw-if-not-resolved="false"></xref> path): a matching hotkey
+registered via <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> fires and marks the event handled, in which case the focused
+control never sees the key. Lets headless/snapshot tests exercise global hotkeys, not just control-routed
+input. To match a registered hotkey, build <code class="paramref">key</code> the same way it was registered (e.g. with
+the <xref href="Jumbee.Console.UI.HotKeys" data-throw-if-not-resolved="false"></xref> helpers, or a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> whose char matches).
 
 ```csharp
-public static void SendInput(IFocusable target, ConsoleKeyInfo key)
+public static void SendInput(IFocusable target, ConsoleKeyInfo key, bool routeGlobal = false)
 ```
 
 #### Parameters
@@ -533,12 +538,15 @@ public static void SendInput(IFocusable target, ConsoleKeyInfo key)
 
 `key` ConsoleKeyInfo
 
-### <a id="Jumbee_Console_UI_SendInput_Jumbee_Console_IFocusable_System_ConsoleKey_System_Boolean_System_Boolean_System_Boolean_"></a> SendInput\(IFocusable, ConsoleKey, bool, bool, bool\)
+`routeGlobal` bool
 
-Sends a key (with optional modifiers) to a focusable..
+### <a id="Jumbee_Console_UI_SendInput_Jumbee_Console_IFocusable_System_ConsoleKey_System_Boolean_System_Boolean_System_Boolean_System_Boolean_"></a> SendInput\(IFocusable, ConsoleKey, bool, bool, bool, bool\)
+
+Sends a key (with optional modifiers) to <code class="paramref">target</code>. See
+<xref href="Jumbee.Console.UI.SendInput(Jumbee.Console.IFocusable%2cSystem.ConsoleKeyInfo%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref> for <code class="paramref">routeGlobal</code>.
 
 ```csharp
-public static void SendInput(IFocusable target, ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
+public static void SendInput(IFocusable target, ConsoleKey key, bool shift = false, bool alt = false, bool control = false, bool routeGlobal = false)
 ```
 
 #### Parameters
@@ -552,6 +560,8 @@ public static void SendInput(IFocusable target, ConsoleKey key, bool shift = fal
 `alt` bool
 
 `control` bool
+
+`routeGlobal` bool
 
 ### <a id="Jumbee_Console_UI_SetFocus_Jumbee_Console_IFocusable_"></a> SetFocus\(IFocusable\)
 
