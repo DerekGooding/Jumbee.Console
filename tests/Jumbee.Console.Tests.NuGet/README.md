@@ -28,13 +28,41 @@ Exit code is `0` when every check passes, otherwise the number of failed checks.
 ## Running
 
 ```sh
-# Test the pinned version (JumbeeVersion in the .csproj — keep it in step with
-# ProjectAssemblyVersion in src/Directory.Build.props):
+# Test the LATEST stable release on nuget.org (JumbeeVersion defaults to the floating '*',
+# so restore always resolves the newest published version — nothing to bump on each publish):
 dotnet run -c Release
 
-# Test a specific published version:
+# Pin a specific published version to reproduce/investigate:
 dotnet run -c Release -p:JumbeeVersion=0.1.2 -- --version 0.1.2
 ```
 
+> If you *just* published a release and the run still resolves the previous one, NuGet is serving a cached
+> registration — clear it first: `dotnet nuget locals http-cache --clear`.
+
 The project keeps its own `Directory.Build.props` so it does **not** inherit `tests/Directory.Build.props`
 (which would pull in the local `ext/` fork project references and collide with the package's bundled copies).
+
+## AOT smoke test (opt-in)
+
+`publish-aot.ps1` / `publish-aot.sh` run the **same `Program.cs`** but published as a **NativeAOT** native
+single-file binary (restored from nuget.org), then execute the binary and assert exit code `0`. This is a
+stronger guarantee than the `dotnet run` test: it proves the *published* package is AOT- and trim-clean when
+consumed from the feed — the local `ProjectReference` build can't catch a package that shipped without the
+trim metadata it carries implicitly.
+
+It is **not** part of the default run because it requires a native toolchain — on Windows, VS Build Tools with
+the Desktop C++ workload / linker; on Linux, `clang` + `zlib`.
+
+```powershell
+# Windows (latest release, win-x64):
+./publish-aot.ps1
+./publish-aot.ps1 -Version 0.1.2          # pin a specific release
+./publish-aot.ps1 -Version 0.1.2 -Rid linux-x64
+```
+
+```sh
+# Linux / CI (latest release, linux-x64):
+./publish-aot.sh
+./publish-aot.sh 0.1.2                     # pin a specific release
+./publish-aot.sh 0.1.2 linux-arm64
+```
