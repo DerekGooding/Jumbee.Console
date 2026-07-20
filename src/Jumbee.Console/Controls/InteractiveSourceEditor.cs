@@ -30,10 +30,16 @@ public abstract class InteractiveSourceEditor : CompositeControl
         _lastSynced = initialText ?? "";
 
         _editor = editor;
-        _editor.WithFrame(title: editorTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.None);
+        // A title bar with no box: BorderStyle.None draws no border glyphs, but the title only renders when its edge
+        // is a placed border — so keep BorderPlacement.Top (BorderPlacement.None would drop the title entirely).
+        // focusedBorderStyle: None suppresses the theme's focus border too — each pane already shows focus its own way
+        // (the editor's text cursor), so a focus box would just be redundant chrome.
+        _editor.WithFrame(title: editorTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.Top,
+            focusedBorderStyle: BorderStyle.None);
 
         _previewControl = preview;
-        preview.WithFrame(title: previewTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.None);
+        preview.WithFrame(title: previewTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.Top,
+            focusedBorderStyle: BorderStyle.None);
 
         _split = new SplitPanel(orientation, _editor, preview, splitPosition);
 

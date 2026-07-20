@@ -16,6 +16,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{C9B2828B-DAC4-4D99-B75E-890596A0B988}"
 	ProjectSection(SolutionItems) = preProject
 		..\.gitignore = ..\.gitignore
+		..\CHANGELOG.md = ..\CHANGELOG.md
 		..\CLAUDE.md = ..\CLAUDE.md
 		..\GEMINI.md = ..\GEMINI.md
 		..\GETTING-STARTED.md = ..\GETTING-STARTED.md
@@ -86,6 +87,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jumbee.Console.Tests.NuGet", "..\tests\Jumbee.Console.Tests.NuGet\Jumbee.Console.Tests.NuGet.csproj", "{CCFDC7B0-9990-8B8C-778B-9D3AD1666F29}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "getting-started", "getting-started", "{627ECFD0-E9A1-425A-B3AE-3803C7AC92EC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "package", "package", "{F66CB214-77BC-4202-95DC-AF4DD1703C43}"
+	ProjectSection(SolutionItems) = preProject
+		..\package\README.md = ..\package\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -403,6 +409,7 @@ Global
 		{ECFDEFBF-9E78-40BC-86F7-97316A640D02} = {4F600471-D58C-4C2C-89DF-1166AFF08905}
 		{CCFDC7B0-9990-8B8C-778B-9D3AD1666F29} = {6ED98344-E90A-44C5-8EB8-CBA5F48FF975}
 		{627ECFD0-E9A1-425A-B3AE-3803C7AC92EC} = {C9B2828B-DAC4-4D99-B75E-890596A0B988}
+		{F66CB214-77BC-4202-95DC-AF4DD1703C43} = {C9B2828B-DAC4-4D99-B75E-890596A0B988}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65B3BAD7-920D-4EBC-B47B-01164C7E4AF1}

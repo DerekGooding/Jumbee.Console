@@ -1,7 +1,5 @@
 # Changelog
 
-Notable changes to Jumbee.Console. The file is packed as the NuGet release notes for all three packages, so keep the newest version on top.
-
 ## 0.1.3
 
 ### Changed
@@ -26,4 +24,4 @@ Notable changes to Jumbee.Console. The file is packed as the NuGet release notes
 
 ## 0.1.1
 
-- Initial public release. Retained-mode TUI library for .NET 10: the self-contained `Jumbee.Console` core plus the `Jumbee.Console.Documents` (Markdown/AsciiDoc/Mermaid viewers) and `Jumbee.Console.Snapshot` (headless snapshot testing) add-ons.
+- Initial public release.

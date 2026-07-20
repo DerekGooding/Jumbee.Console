@@ -5,21 +5,25 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
+using ConsoleGUI;
 using ConsoleGUI.Api;
+using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 using Jumbee.Console;
+using Jumbee.Console.Documents;
 
 // In this namespace (not Jumbee.Console) a bare `Color` is ambiguous between Jumbee's Styles struct and
 // ConsoleGUI.Data.Color (imported above for Character). The public API is Jumbee's, so pin it.
 using Color = Jumbee.Console.Color;
 
 /// <summary>
-/// A headless CLI smoke test for the published <c>Jumbee.Console</c> NuGet package. It restores the package from
-/// nuget.org (see the .csproj), then constructs and drives the major control families to prove the package — its
-/// bundled ext/ fork assemblies and its NTokenizers dependency — loads and runs end-to-end. Exit code 0 = all
-/// checks passed; non-zero = the number of failed checks. No real terminal required (renders to a null console).
+/// A headless CLI smoke test for the published <c>Jumbee.Console</c> and <c>Jumbee.Console.Documents</c> NuGet
+/// packages. It restores them from nuget.org (see the .csproj), then constructs and drives the major control
+/// families — including the Documents viewers/editors, whose parsers pull the heaviest transitive dependencies and
+/// are the most trim/AOT-sensitive — to prove the packages load and run end-to-end. Exit code 0 = all checks
+/// passed; non-zero = the number of failed checks. No real terminal required (renders to a null console).
 /// </summary>
 public static class Program
 {
@@ -52,6 +56,7 @@ public static class Program
         Check("Composite / agent controls (ChatPrompt / MenuBar / Footer)", ExerciseCompositeControls);
         Check("Theming (style + glyph themes)", ExerciseTheming);
         Check("Spectre.Console bridge (AnsiConsoleBuffer + SpectreControl)", ExerciseSpectreBridge);
+        Check("Documents package (Markdown / AsciiDoc / Mermaid viewers + interactive editors)", ExerciseDocuments);
         Check("Headless UI loop (start, live-update, hotkeys, stop)", ExerciseHeadlessUiLoop);
 
         Console.WriteLine();
@@ -173,6 +178,33 @@ public static class Program
         _ = new SpectreControl<Spectre.Console.Panel>(panel);
     }
 
+    private static void ExerciseDocuments()
+    {
+        // The Documents viewers parse their source at RENDER time (not construction), and the parsers + renderers
+        // are exactly the transitive deps (AdocNet, the vendored Mermaid parsers, NTokenizers) most at risk under
+        // trimming/AOT. So render each offscreen to actually run that code — constructing alone would prove nothing.
+        const string md = "# Title\n\n- **bold** item\n- second\n\n```mermaid\ngraph LR\n  X --> Y\n```\n";
+        const string adoc = "= Title\n\n* one\n* two\n\n|===\n| a | b\n| 1 | 2\n|===\n";
+        const string mermaid = "graph TD\n    A[Start] --> B{Choice}\n    B --> C[End]";
+
+        RenderOffscreen(new MarkdownExtendedViewer(md));   // Markdown + embedded ```mermaid``` fences
+        RenderOffscreen(new AsciiDocViewer(adoc));         // AdocNet
+        RenderOffscreen(new MermaidViewer(mermaid));       // vendored Mermaid parser + flowchart renderer
+        // The interactive editors compose a CodeEditor with a live preview built from the viewers above.
+        RenderOffscreen(new InteractiveMarkdownExtendedEditor(md));
+        RenderOffscreen(new InteractiveAsciiDocEditor(adoc));
+        RenderOffscreen(new InteractiveMermaidEditor(mermaid));
+    }
+
+    // Drives layout + a single paint for one control with no running UI loop (like ConsoleSnapshot.Render, but
+    // without taking the Snapshot package as a dependency). This is what forces a viewer to parse and render.
+    private static void RenderOffscreen(Jumbee.Console.Control control, int width = 60, int height = 20)
+    {
+        using var ctx = new DrawingContext(new NoopListener(), (IControl)control.FocusableControl);
+        ctx.SetLimits(new Size(width, height), new Size(width, height));
+        UI.PaintFrame();
+    }
+
     private static void ExerciseHeadlessUiLoop()
     {
         var log = new Log();
@@ -273,5 +305,13 @@ public static class Program
         public void OnRefresh() { }
         public void Write(Position position, in Character character) { }
         public ConsoleKeyInfo ReadKey() => throw new NotSupportedException();
+    }
+
+    /// <summary>A no-op drawing-context listener so a control can be laid out and painted offscreen (see
+    /// <see cref="RenderOffscreen"/>).</summary>
+    private sealed class NoopListener : IDrawingContextListener
+    {
+        public void OnRedraw(DrawingContext d) { }
+        public void OnUpdate(DrawingContext d, Rect r) { }
     }
 }

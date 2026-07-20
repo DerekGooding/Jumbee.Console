@@ -13,10 +13,19 @@ public class FocusIndicatorTests
 {
     private static ConsoleGUI.Data.Color Tint => UI.StyleTheme.Focus.BackgroundColor!.Value.ToConsoleGUIColor();
 
+    // A minimal focusable control that fills its area with empty cells and opts into the default focus cue —
+    // RendersOwnFocus stays false. (A real ListBox instead shows its selected row as its own cue, so it opts OUT
+    // via RendersOwnFocus => true; using one here would test the wrong path.) This isolates the base-class cue.
+    private sealed class BlankFocusable : RenderableControl
+    {
+        protected override System.Collections.Generic.IEnumerable<Spectre.Console.Rendering.Segment> Render(
+            Spectre.Console.Rendering.RenderOptions options, int maxWidth) => [];
+    }
+
     [Fact]
     public void FocusedUnframedControl_GetsTheDefaultFocusTint()
     {
-        var list = new ListBox("a", "b", "c");   // ListBox doesn't render its own focus, so it opts into the default
+        var list = new BlankFocusable();   // opts into the default cue (RendersOwnFocus == false)
 
         var unfocused = ConsoleSnapshot.Render(list, 10, 4);
         Assert.Null(unfocused[0, 3].Background);         // an empty row is untinted while unfocused
@@ -58,7 +67,7 @@ public class FocusIndicatorTests
     {
         // A borderless frame (used e.g. to give a control a scroll viewport without a visible box) shows no focus
         // border — so the wrapped control must fall back to the default tint rather than have no cue at all.
-        var list = new ListBox("a", "b", "c");
+        var list = new BlankFocusable();
         list.WithFrame(borderStyle: BorderStyle.None);
         list.Focus();
 
@@ -120,7 +129,7 @@ public class FocusIndicatorTests
     [Fact]
     public void FocusStyle_Ring_TintsOnlyTheEdgeCells() => WithTheme(new RingFocusTheme(), () =>
     {
-        var list = new ListBox("a", "b", "c");   // constructed under the ring theme -> captures Ring
+        var list = new BlankFocusable();   // constructed under the ring theme -> captures Ring
         list.Focus();
         var buf = ConsoleSnapshot.Render(list, 10, 5);
 
@@ -131,7 +140,7 @@ public class FocusIndicatorTests
     [Fact]
     public void FocusStyle_Underline_UnderlinesTheBottomRow() => WithTheme(new UnderlineFocusTheme(), () =>
     {
-        var list = new ListBox("a", "b", "c");
+        var list = new BlankFocusable();
         list.Focus();
         var buf = ConsoleSnapshot.Render(list, 10, 5);
 

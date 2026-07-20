@@ -249,6 +249,25 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         }
     }
 
+    /// <summary>The border shape drawn while the frame is focused (or contains focus), overriding the theme's
+    /// <see cref="IStyleTheme.FocusedFrameBorder"/>. Set to <see cref="BorderStyle.None"/> to suppress the focus
+    /// border entirely — e.g. when the wrapped control already shows focus another way (a text cursor).</summary>
+    public BorderStyle? FocusedBorderStyle
+    {
+        get => _focusedBorderStyle;
+        set
+        {
+            UI.Invoke(() =>
+            {
+                _themeOverrides.Mark(nameof(FocusedBorderStyle));
+                if (_focusedBorderStyle == value) return;
+                _focusedBorderStyle = value;
+                _focusedBoxBorder = value is { } style ? GetSpectreBoxBorder(style) : null;
+                Initialize();
+            });
+        }
+    }
+
     /// <summary>The margin (empty space) between the border and the wrapped control.</summary>
     public Offset Margin
     {
@@ -783,11 +802,15 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     internal void OnThemeChanged(object? sender, EventArgs e) => ApplyTheme();
 
     // Captures the focus appearance from the theme: the optional focused border shape (null = no shape change) and
-    // the focused border colour. These are theme-only (no per-frame override), so they refresh on every theme switch.
+    // the focused border colour. The shape honours an explicit FocusedBorderStyle override (so a control that opted
+    // out of the focus border keeps it across theme switches); the colour is theme-only.
     private void CaptureFocusStyle()
     {
-        _focusedBorderStyle = UI.StyleTheme.FocusedFrameBorder;
-        _focusedBoxBorder = _focusedBorderStyle is { } style ? GetSpectreBoxBorder(style) : null;
+        if (!_themeOverrides.IsOverridden(nameof(FocusedBorderStyle)))
+        {
+            _focusedBorderStyle = UI.StyleTheme.FocusedFrameBorder;
+            _focusedBoxBorder = _focusedBorderStyle is { } style ? GetSpectreBoxBorder(style) : null;
+        }
         _focusedBorderFgColor = UI.StyleTheme.BorderFocusedText.ForegroundColor;
     }
 

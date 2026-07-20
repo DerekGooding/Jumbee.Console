@@ -23,8 +23,9 @@ public partial class ListBox : RenderableControl
     /// <summary>Initializes a <see cref="ListBox"/> populated with the given renderable items.</summary>
     public ListBox(params IRenderable[] items) : this() => AddItems(items);
 
-    /// <summary>Initializes a <see cref="ListBox"/> populated with the given text items.</summary>
-    public ListBox(params string[] items) : this() => AddItems(items);
+    /// <summary>Initializes a <see cref="ListBox"/> populated with the given text items (an array, a
+    /// <see cref="List{T}"/>, a LINQ query, or individual strings).</summary>
+    public ListBox(params IEnumerable<string> items) : this() => AddItems(items);
 
     #endregion
 

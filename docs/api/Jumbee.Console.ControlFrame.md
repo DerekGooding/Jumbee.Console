@@ -159,6 +159,20 @@ public IFocusable FocusableControl { get; }
 
  [IFocusable](Jumbee.Console.IFocusable.md)
 
+### <a id="Jumbee_Console_ControlFrame_FocusedBorderStyle"></a> FocusedBorderStyle
+
+The border shape drawn while the frame is focused (or contains focus), overriding the theme's
+    <xref href="Jumbee.Console.IStyleTheme.FocusedFrameBorder" data-throw-if-not-resolved="false"></xref>. Set to <xref href="Jumbee.Console.BorderStyle.None" data-throw-if-not-resolved="false"></xref> to suppress the focus
+    border entirely — e.g. when the wrapped control already shows focus another way (a text cursor).
+
+```csharp
+public BorderStyle? FocusedBorderStyle { get; set; }
+```
+
+#### Property Value
+
+ [BorderStyle](Jumbee.Console.BorderStyle.md)?
+
 ### <a id="Jumbee_Console_ControlFrame_FocusedControl"></a> FocusedControl
 
 When something inside the frame is focused, the frame stays the routing node (so it can still intercept

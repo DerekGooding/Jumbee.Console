@@ -1,11 +1,12 @@
 # Jumbee.Console.Tests.NuGet
 
-A headless CLI **smoke test for the published `Jumbee.Console` NuGet package**.
+A headless CLI **smoke test for the published `Jumbee.Console` and `Jumbee.Console.Documents` NuGet packages**.
 
 Unlike the other projects in this repo (which reference the library via local `ProjectReference`s and the
-`ext/` forks), this one references **only the package restored from nuget.org**. Its bundled fork assemblies
-(ConsoleGUI, the Spectre.Console fork, ConsolePlot, …) and its single real dependency (NTokenizers) all arrive
-transitively from the feed. That makes it a true end-to-end check that the package *as shipped* loads and runs.
+`ext/` forks), this one references **only the packages restored from nuget.org**. Their bundled fork assemblies
+(ConsoleGUI, the Spectre.Console fork, ConsolePlot, …) and dependencies (NTokenizers, and — via Documents —
+AdocNet and the vendored Mermaid parsers) all arrive transitively from the feed. That makes it a true end-to-end
+check that the packages *as shipped* load and run.
 
 ## What it does
 
@@ -20,6 +21,10 @@ Constructs and drives the major control families and subsystems, one isolated ch
 - Composite / agent controls (`ChatPrompt`, `MenuBar`, `Footer`, `ContextMenu`)
 - Theming (`DefaultStyleTheme` / `DefaultGlyphTheme`, live `UI.SetTheme`)
 - The Spectre.Console bridge (`AnsiConsoleBuffer`, `SpectreControl`)
+- The **Documents** package — `MarkdownExtendedViewer`, `AsciiDocViewer`, `MermaidViewer`, and the interactive
+  editors — each **rendered offscreen** so its parser/renderer actually runs. These pull the heaviest transitive
+  dependencies and are the most trim/AOT-sensitive, so this is the check most likely to catch an AOT regression
+  (and it covers future doc formats automatically, since a trimmed-away type surfaces as a render failure here).
 - A real **headless `UI` loop** — start, live-update from a worker thread, hotkeys, `UI.Invoke`/`UI.Post`, stop —
   rendered to a null console so no terminal is required (CI-safe).
 

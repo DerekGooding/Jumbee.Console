@@ -8,13 +8,13 @@
 ## Features
 
 * 100% managed AOT-compatible code.
-* Retained-mode GUI framework with a modern API designed to be easy to use and extend.
+* Retained-mode GUI framework with an API designed to be easy to use and extend.
 * Sub-ms frame rendering times and minimal CPU consumption even with complex displays like multi-tab document editing and syntax highlighting.
 * Uses modern terminal features: ANSI/VT control sequences, 24-bit colour, SGR-encoded mouse (mode 1006) with motion tracking, bracketed paste (mode 2004), focus reporting (mode 1004), and the alternate-screen buffer (mode 1049).
 * Also support legacy non-ANSI terminal emulators like the classic Windows console.
 * Uses Spectre.Console-compatible markup, styles, text rendering, and widgets in a retained-mode rendering pipeline.
 * Supports both fixed-width layouts like `Grid` and flexible, resizable layouts like `DockPanel`, `HorizontalStack`, `VerticalStack`, resizable `SplitPanel`.
-* Large set of common GUI controls: menus, buttons, trees, text inputs with autocomplete, modal dialog windows, etc...., supports easy composition of controls    
+* Large set of common GUI controls: menus, buttons, trees, text inputs with autocomplete, modal dialog windows, etc...., supports easy composition of controls.    
 * Control frames support adornments like titles, borders, margins, and scrollbars.
 * Cross-platform 100% managed code terminal-emulator.
 * Multi-tab editor that supports C#, JavaScript, C++, Markdown + a dozen other languages.
@@ -27,12 +27,11 @@
 
 `dotnet add package Jumbee.Console`
 
-> **Note:** Jumbee.Console bundles a private fork of Spectre.Console. Do **not** also add the `Spectre.Console` NuGet package. The two share an assembly identity, so the build fails with `CS1704`.
-
 A first app — a label and a button that increments a counter:
 
 ```csharp
 using Jumbee.Console;
+
 using static Jumbee.Console.Color;   // import the static colour names
 
 var count = 0;
@@ -46,21 +45,25 @@ button.Activated += (_, _) =>
     label.Text = $"Count: {count}";
 };
 
-// One column, two rows: the label above the (rounded-bordered) button.
+// One column, two rows: the label above the button.
 var root = new Grid(
     columnWidths: [30],
     rowHeights: [1, 3],
     controls:
     [
         [label],
-        [button.WithRoundedBorder(Grey50)],
+        [button],
     ]);
 
 UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);   // Esc quits (Ctrl+Q also quits by default)
 UI.SetFocus(button);                             // focus it so Enter/Space activates
 
-// Mouse/hover need a VtInputSource; keyboard works without one.
-UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).Wait();
+// Start the UI. Mouse/hover need a VtInputSource or omit for keyboard only.
+// Returns a task.
+var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true));
+
+// Wait for the UI to stop.
+t.Wait();
 ```
 
-For a scrollable list with a detail view, theming, input, and headless testing, see [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs).
+See [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs).

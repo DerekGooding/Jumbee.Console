@@ -91,7 +91,7 @@ public static class ControlExtensions
     }
     /// <summary>Creates or updates the control's <see cref="ControlFrame"/> from the supplied border, margin, colour,
     /// and title options (only supplied arguments are applied) and returns the control.</summary>
-    public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null) where T : Control
+    public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null, BorderStyle? focusedBorderStyle = null) where T : Control
     {
         // Assign only the arguments actually supplied: self-assigning (x ?? frame.x) would fire the themeable
         // setters and wrongly mark those properties as explicit overrides, freezing them against theme switches.
@@ -104,6 +104,7 @@ public static class ControlExtensions
         if (borderFgColor.HasValue) frame.BorderFgColor = borderFgColor.Value;
         if (borderBgColor.HasValue) frame.BorderBgColor = borderBgColor.Value;
         if (borderPlacement.HasValue) frame.BorderPlacement = borderPlacement.Value;
+        if (focusedBorderStyle.HasValue) frame.FocusedBorderStyle = focusedBorderStyle.Value;
         return control;
     }
 

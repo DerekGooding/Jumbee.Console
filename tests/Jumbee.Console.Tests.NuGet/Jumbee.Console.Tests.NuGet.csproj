@@ -14,10 +14,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The one and only reference: the shipped package. Its bundled fork DLLs (ConsoleGUI, the
-         Spectre.Console fork, ConsolePlot, ...) and its single real dependency (NTokenizers) all
-         arrive transitively from the feed. -->
+    <!-- The core package. Its bundled fork DLLs (ConsoleGUI, the Spectre.Console fork, ConsolePlot, ...)
+         and its single real dependency (NTokenizers) all arrive transitively from the feed. -->
     <PackageReference Include="Jumbee.Console" Version="$(JumbeeVersion)" />
+    <!-- The Documents add-on: Markdown/AsciiDoc/Mermaid viewers + interactive editors. It pulls the most
+         transitive dependencies (AdocNet, the vendored Mermaid parsers, NTokenizers) and its parsers/renderers
+         are the code most at risk under trimming/AOT — so covering it here catches breakage a core-only test
+         would miss (and future doc formats, e.g. PDF, get checked automatically). -->
+    <PackageReference Include="Jumbee.Console.Documents" Version="$(JumbeeVersion)" />
   </ItemGroup>
 
 </Project>

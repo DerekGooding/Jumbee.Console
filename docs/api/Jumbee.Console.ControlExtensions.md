@@ -186,13 +186,13 @@ public static T WithFrame<T>(this T control, ControlFrame frame) where T : Contr
 
 `T` 
 
-### <a id="Jumbee_Console_ControlExtensions_WithFrame__1___0_System_Nullable_Jumbee_Console_BorderStyle__System_Nullable_ConsoleGUI_Space_Offset__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__System_String_System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_BorderPlacement__"></a> WithFrame<T\>\(T, BorderStyle?, Offset?, Color?, Color?, string?, Color?, Color?, BorderPlacement?\)
+### <a id="Jumbee_Console_ControlExtensions_WithFrame__1___0_System_Nullable_Jumbee_Console_BorderStyle__System_Nullable_ConsoleGUI_Space_Offset__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__System_String_System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_BorderPlacement__System_Nullable_Jumbee_Console_BorderStyle__"></a> WithFrame<T\>\(T, BorderStyle?, Offset?, Color?, Color?, string?, Color?, Color?, BorderPlacement?, BorderStyle?\)
 
 Creates or updates the control's <xref href="Jumbee.Console.ControlFrame" data-throw-if-not-resolved="false"></xref> from the supplied border, margin, colour,
     and title options (only supplied arguments are applied) and returns the control.
 
 ```csharp
-public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null) where T : Control
+public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null, BorderStyle? focusedBorderStyle = null) where T : Control
 ```
 
 #### Parameters
@@ -214,6 +214,8 @@ public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Of
 `borderBgColor` [Color](Jumbee.Console.Color.md)?
 
 `borderPlacement` [BorderPlacement](Jumbee.Console.BorderPlacement.md)?
+
+`focusedBorderStyle` [BorderStyle](Jumbee.Console.BorderStyle.md)?
 
 #### Returns
 

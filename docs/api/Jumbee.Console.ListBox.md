@@ -117,7 +117,7 @@ Control ←
 [ControlExtensions.WithBorder<ListBox\>\(ListBox, BorderStyle?, Color?, Color?, BorderPlacement?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_), 
 [ControlExtensions.WithDoubleBorder<ListBox\>\(ListBox, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithDoubleBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
 [ControlExtensions.WithFrame<ListBox\>\(ListBox, ControlFrame\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_Jumbee\_Console\_ControlFrame\_), 
-[ControlExtensions.WithFrame<ListBox\>\(ListBox, BorderStyle?, Offset?, Color?, Color?, string?, Color?, Color?, BorderPlacement?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_ConsoleGUI\_Space\_Offset\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_String\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_), 
+[ControlExtensions.WithFrame<ListBox\>\(ListBox, BorderStyle?, Offset?, Color?, Color?, string?, Color?, Color?, BorderPlacement?, BorderStyle?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithFrame\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_System\_Nullable\_ConsoleGUI\_Space\_Offset\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_String\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_BorderPlacement\_\_System\_Nullable\_Jumbee\_Console\_BorderStyle\_\_), 
 [ControlExtensions.WithHeavyBorder<ListBox\>\(ListBox, Color?, Color?\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithHeavyBorder\_\_1\_\_\_0\_System\_Nullable\_Jumbee\_Console\_Color\_\_System\_Nullable\_Jumbee\_Console\_Color\_\_), 
 [ControlExtensions.WithHeight<ListBox\>\(ListBox, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithHeight\_\_1\_\_\_0\_System\_Int32\_), 
 [ControlExtensions.WithMargin<ListBox\>\(ListBox, int, int, int, int\)](Jumbee.Console.ControlExtensions.md\#Jumbee\_Console\_ControlExtensions\_WithMargin\_\_1\_\_\_0\_System\_Int32\_System\_Int32\_System\_Int32\_System\_Int32\_), 
@@ -155,17 +155,18 @@ public ListBox(params IRenderable[] items)
 
 `items` IRenderable\[\]
 
-### <a id="Jumbee_Console_ListBox__ctor_System_String___"></a> ListBox\(params string\[\]\)
+### <a id="Jumbee_Console_ListBox__ctor_System_Collections_Generic_IEnumerable_System_String__"></a> ListBox\(params IEnumerable<string\>\)
 
-Initializes a <xref href="Jumbee.Console.ListBox" data-throw-if-not-resolved="false"></xref> populated with the given text items.
+Initializes a <xref href="Jumbee.Console.ListBox" data-throw-if-not-resolved="false"></xref> populated with the given text items (an array, a
+    <xref href="System.Collections.Generic.List%601" data-throw-if-not-resolved="false"></xref>, a LINQ query, or individual strings).
 
 ```csharp
-public ListBox(params string[] items)
+public ListBox(params IEnumerable<string> items)
 ```
 
 #### Parameters
 
-`items` string\[\]
+`items` IEnumerable<string\>
 
 ## Properties
 
