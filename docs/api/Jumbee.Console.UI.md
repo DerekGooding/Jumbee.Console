@@ -168,6 +168,13 @@ public static ILayout Layout { get; }
 
  [ILayout](Jumbee.Console.ILayout.md)
 
+#### Remarks
+
+Read-only: the root can't be swapped after <xref href="Jumbee.Console.UI.Start(Jumbee.Console.ILayout%2cSystem.Int32%2cSystem.Int32%2cSystem.Int32%2cSystem.Boolean%2cConsoleGUI.Api.IConsole%2cJumbee.Console.IInputSource%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>. To reconfigure the UI at runtime
+    (e.g. a full-screen "zen" toggle), change a container in place rather than the root — collapse a pane via
+    <xref href="Jumbee.Console.SplitPanel.SplitPosition" data-throw-if-not-resolved="false"></xref>, or reassign a <xref href="Jumbee.Console.DockPanel.DockedControl" data-throw-if-not-resolved="false"></xref> /
+    <xref href="Jumbee.Console.DockPanel.FillControl" data-throw-if-not-resolved="false"></xref>. Move focus to a still-visible control when you hide the focused one.
+
 ### <a id="Jumbee_Console_UI_MaxControlPaintTimes"></a> MaxControlPaintTimes
 
 Per-control peak paint time (ms) over the recent sample window, keyed by control.

@@ -54,4 +54,25 @@ public class GlobalHotKeySnapshotTests
             UI.UnregisterHotKey(key);
         }
     }
+
+    [Fact]
+    public void ConsoleSnapshotKey_FiresBareLetterGlobalHotKey_ViaRouteGlobal()
+    {
+        // Regression: ConsoleSnapshot.Key(letter) must produce a KeyChar matching a hotkey registered the natural
+        // way (a bare letter), so routeGlobal fires it. Previously Key() left KeyChar='\0' and the hotkey silently
+        // never fired — a documented footgun. Now Key(ConsoleKey.J) == new ConsoleKeyInfo('j', ConsoleKey.J,...).
+        var registered = new ConsoleKeyInfo('j', ConsoleKey.J, shift: false, alt: false, control: false);
+        var fired = 0;
+        UI.RegisterHotKey(registered, () => fired++);
+        try
+        {
+            var target = new ListBox("a", "b");
+            ConsoleSnapshot.RenderAfter(target, 20, 6, new[] { ConsoleSnapshot.Key(ConsoleKey.J) }, routeGlobal: true);
+            Assert.Equal(1, fired);
+        }
+        finally
+        {
+            UI.UnregisterHotKey(registered);
+        }
+    }
 }

@@ -602,6 +602,10 @@ public static class UI
 
     #region Properties
     /// <summary>The root layout hosting the UI's controls, set by <see cref="Start"/>.</summary>
+    /// <remarks>Read-only: the root can't be swapped after <see cref="Start"/>. To reconfigure the UI at runtime
+    /// (e.g. a full-screen "zen" toggle), change a container in place rather than the root — collapse a pane via
+    /// <see cref="SplitPanel.SplitPosition"/>, or reassign a <see cref="DockPanel.DockedControl"/> /
+    /// <see cref="DockPanel.FillControl"/>. Move focus to a still-visible control when you hide the focused one.</remarks>
     public static ILayout Layout => layout!;
 
     /// <summary>

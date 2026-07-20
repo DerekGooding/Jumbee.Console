@@ -291,7 +291,17 @@ var text = ConsoleSnapshot.ToText(root, width: 80, height: 24);
 Assert.Contains("Count: 0", text);
 ```
 
-`ConsoleSnapshot` can also save a PNG (`SavePng`) and render *after* feeding keystrokes (`ToTextAfter`).
+`ConsoleSnapshot` can also save a PNG (`SavePng`) and render *after* feeding keystrokes — including global hotkeys:
+
+```csharp
+// Feed keys to a focused control, then re-render. Build keys with ConsoleSnapshot.Key(...).
+var afterNav = ConsoleSnapshot.ToTextAfter(list, 80, 24, [ConsoleSnapshot.Key(ConsoleKey.DownArrow)]);
+
+// Fire a GLOBAL hotkey (one registered with UI.RegisterHotKey) — pass routeGlobal: true.
+var afterHotkey = ConsoleSnapshot.ToTextAfter(list, 80, 24, [ConsoleSnapshot.Key(ConsoleKey.R)], routeGlobal: true);
+```
+
+Two things to know when asserting: text snapshots are **glyphs only** — colour and decoration aren't captured, so check colour with `SavePng`/`ToImage` (or render a visible marker and assert on that); and `ToTextAfter` sends the keys to the single control you pass, so to prove an effect that spans panes, target the control that actually changes.
 
 ## Where to go next
 

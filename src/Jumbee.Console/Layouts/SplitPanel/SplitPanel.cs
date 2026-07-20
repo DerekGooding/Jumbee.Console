@@ -59,7 +59,9 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
 
     /// <summary>The first pane's extent in cells (width for a horizontal split, height for a vertical one).</summary>
     /// <remarks>Clamped to <see cref="MinFirst"/> and to leaving the divider plus <see cref="MinSecond"/> for the
-    /// second pane; raises <see cref="SplitChanged"/> when it actually changes.</remarks>
+    /// second pane; raises <see cref="SplitChanged"/> when it actually changes. Set it to <see cref="MinFirst"/> to
+    /// collapse the first pane to a sliver (a "focus"/zen toggle); save the previous value and restore it to expand
+    /// again — the simplest runtime layout change, since it's just a resize.</remarks>
     public int SplitPosition
     {
         get => _splitPosition;

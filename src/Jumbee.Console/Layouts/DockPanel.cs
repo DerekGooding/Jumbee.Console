@@ -35,7 +35,12 @@ public class DockPanel : Layout<ConsoleGUI.Controls.DockPanel>
         };
     }
 
-    /// <summary>The control pinned to the docked edge.</summary>
+    /// <summary>The control pinned to the docked edge. Settable at runtime: reassign it to swap the docked pane in
+    /// place — e.g. a "zen"/full-screen toggle that swaps this to a small placeholder and back — without rebuilding
+    /// the layout.</summary>
+    /// <remarks>Give the docked control a positive width (for a Left/Right dock) or height (Top/Bottom). A width or
+    /// height of 0 is the "fill the parent" sentinel, so a 0-sized docked control takes the whole panel and starves
+    /// the fill control — use a positive extent, or swap this to a narrow control, to collapse the pane instead.</remarks>
     public IFocusable DockedControl
     {
         get => field;
@@ -46,7 +51,7 @@ public class DockPanel : Layout<ConsoleGUI.Controls.DockPanel>
         }
     }
 
-    /// <summary>The control that fills the space left after docking.</summary>
+    /// <summary>The control that fills the space left after docking. Settable at runtime.</summary>
     public IFocusable FillControl
     {
         get => field;

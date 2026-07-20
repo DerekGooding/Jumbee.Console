@@ -2,6 +2,17 @@
 
 Notable changes to Jumbee.Console. The file is packed as the NuGet release notes for all three packages, so keep the newest version on top.
 
+## 0.1.3
+
+### Changed
+
+- `ConsoleSnapshot.Key(key, …)` now fills in `KeyChar` for letter and digit keys (lowercase, uppercase under Shift, the control char under Ctrl), so a simulated key matches a hotkey registered the natural way (a bare letter). Previously it left `KeyChar='\0'`, so `ToTextAfter(…, routeGlobal: true)` silently failed to fire bare-letter global hotkeys. Non-character keys (arrows, function keys) are unchanged.
+
+### Docs
+
+- Documented that text snapshots (`ConsoleSnapshot.ToText`) don't capture colour or decoration — assert colour with `SavePng`/`ToImage`, or render a visible marker.
+- Documented the runtime-reconfiguration pattern on `UI.Layout` (read-only): for a full-screen "zen" toggle, collapse a `SplitPanel` pane via `SplitPosition` or reassign `DockPanel.DockedControl`/`FillControl`, rather than swapping the root.
+
 ## 0.1.2
 
 ### Added

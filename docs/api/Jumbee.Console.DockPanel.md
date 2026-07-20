@@ -78,7 +78,9 @@ public override int Columns { get; }
 
 ### <a id="Jumbee_Console_DockPanel_DockedControl"></a> DockedControl
 
-The control pinned to the docked edge.
+The control pinned to the docked edge. Settable at runtime: reassign it to swap the docked pane in
+    place — e.g. a "zen"/full-screen toggle that swaps this to a small placeholder and back — without rebuilding
+    the layout.
 
 ```csharp
 public IFocusable DockedControl { get; set; }
@@ -88,9 +90,15 @@ public IFocusable DockedControl { get; set; }
 
  [IFocusable](Jumbee.Console.IFocusable.md)
 
+#### Remarks
+
+Give the docked control a positive width (for a Left/Right dock) or height (Top/Bottom). A width or
+    height of 0 is the "fill the parent" sentinel, so a 0-sized docked control takes the whole panel and starves
+    the fill control — use a positive extent, or swap this to a narrow control, to collapse the pane instead.
+
 ### <a id="Jumbee_Console_DockPanel_FillControl"></a> FillControl
 
-The control that fills the space left after docking.
+The control that fills the space left after docking. Settable at runtime.
 
 ```csharp
 public IFocusable FillControl { get; set; }

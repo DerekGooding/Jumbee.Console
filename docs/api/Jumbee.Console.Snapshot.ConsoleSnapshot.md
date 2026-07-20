@@ -19,7 +19,12 @@ object ←
 
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_Key_System_ConsoleKey_System_Boolean_System_Boolean_System_Boolean_"></a> Key\(ConsoleKey, bool, bool, bool\)
 
-Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> for a key with optional modifiers.
+Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> for a key with optional modifiers. For letter and digit keys
+    the <code>KeyChar</code> is filled in (lowercase, uppercase under Shift, the control char under Ctrl) so the result
+    matches how a hotkey registered with <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> — or a real keystroke — is keyed. That
+    matters for <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Console.Control%2cSystem.Int32%2cSystem.Int32%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.ConsoleKeyInfo%7d%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref> with
+    <code>routeGlobal</code>: a bare-letter global hotkey only fires when the simulated key's char matches. Non-character
+    keys (arrows, function keys, …) keep <code>'\0'</code>.
 
 ```csharp
 public static ConsoleKeyInfo Key(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
@@ -102,7 +107,7 @@ public static ConsoleBuffer Render(ILayout layout, int width, int height)
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_ConsoleKey___"></a> RenderAfter\(Control, int, int, params ConsoleKey\[\]\)
 
 Renders <code class="paramref">control</code> once to establish layout, sends the given keys to it (routed via
-UI.SendInput(IFocusable, ConsoleKey, bool, bool, bool)), then renders and returns the result.
+<xref href="Jumbee.Console.UI.SendInput(Jumbee.Console.IFocusable%2cSystem.ConsoleKeyInfo%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>), then renders and returns the result.
 
 ```csharp
 public static ConsoleBuffer RenderAfter(Control control, int width, int height, params ConsoleKey[] keys)
@@ -270,7 +275,10 @@ public static Image<Rgba32> ToImage(ConsoleBuffer buffer, SnapshotImageOptions? 
 
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToText_Jumbee_Console_ConsoleBuffer_"></a> ToText\(ConsoleBuffer\)
 
-Converts a buffer to a plain-text snapshot (glyphs only, one line per row).
+Converts a buffer to a plain-text snapshot (glyphs only, one line per row). Colour and text
+    decoration are NOT captured, so state distinguished only by colour (e.g. a dimmed "read" row) is invisible to
+    a text assertion — use <code>ToImage</code>/<code>SavePng</code> for colour, or render a visible glyph marker to assert on
+    with text.
 
 ```csharp
 public static string ToText(ConsoleBuffer buffer)

@@ -64,7 +64,7 @@ public static class ConsoleSnapshot
 
     /// <summary>
     /// Renders <paramref name="control"/> once to establish layout, sends the given keys to it (routed via
-    /// <see cref="UI.SendInput(IFocusable, ConsoleKey, bool, bool, bool)"/>), then renders and returns the result.
+    /// <see cref="UI.SendInput(IFocusable, ConsoleKeyInfo, bool)"/>), then renders and returns the result.
     /// </summary>
     /// <remarks>Handy for snapshotting a control after navigation/editing.</remarks>
     public static ConsoleBuffer RenderAfter(JControl control, int width, int height, params ConsoleKey[] keys)
@@ -80,9 +80,29 @@ public static class ConsoleSnapshot
     public static ConsoleBuffer RenderAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
         => RenderAfterCore(control, width, height, keys, routeGlobal);
 
-    /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a key with optional modifiers.</summary>
+    /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a key with optional modifiers. For letter and digit keys
+    /// the <c>KeyChar</c> is filled in (lowercase, uppercase under Shift, the control char under Ctrl) so the result
+    /// matches how a hotkey registered with <see cref="UI.RegisterHotKey"/> — or a real keystroke — is keyed. That
+    /// matters for <see cref="RenderAfter(JControl, int, int, IReadOnlyList{ConsoleKeyInfo}, bool)"/> with
+    /// <c>routeGlobal</c>: a bare-letter global hotkey only fires when the simulated key's char matches. Non-character
+    /// keys (arrows, function keys, …) keep <c>'\0'</c>.</summary>
     public static ConsoleKeyInfo Key(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
-        => new('\0', key, shift, alt, control);
+        => new(KeyChar(key, shift, control), key, shift, alt, control);
+
+    // The char a real terminal/input decoder produces for a key, for the cases that carry one. Letters: lowercase,
+    // uppercase under Shift, the C0 control char under Ctrl (matches UI.HotKeys.Ctrl). Digits: their glyph.
+    private static char KeyChar(ConsoleKey key, bool shift, bool control)
+    {
+        if (key >= ConsoleKey.A && key <= ConsoleKey.Z)
+        {
+            if (control) return (char)(key - ConsoleKey.A + 1);   // Ctrl+A..Z -> ..
+            var lower = (char)('a' + (key - ConsoleKey.A));
+            return shift ? char.ToUpperInvariant(lower) : lower;
+        }
+        if (!control && key >= ConsoleKey.D0 && key <= ConsoleKey.D9) return (char)('0' + (key - ConsoleKey.D0));
+        if (!control && key >= ConsoleKey.NumPad0 && key <= ConsoleKey.NumPad9) return (char)('0' + (key - ConsoleKey.NumPad0));
+        return '\0';
+    }
 
     private static ConsoleBuffer RenderAfterCore(JControl control, int width, int height, IEnumerable<ConsoleKeyInfo> keys, bool routeGlobal = false)
     {
@@ -94,7 +114,10 @@ public static class ConsoleSnapshot
     #endregion
 
     #region Text snapshot
-    /// <summary>Converts a buffer to a plain-text snapshot (glyphs only, one line per row).</summary>
+    /// <summary>Converts a buffer to a plain-text snapshot (glyphs only, one line per row). Colour and text
+    /// decoration are NOT captured, so state distinguished only by colour (e.g. a dimmed "read" row) is invisible to
+    /// a text assertion — use <c>ToImage</c>/<c>SavePng</c> for colour, or render a visible glyph marker to assert on
+    /// with text.</summary>
     public static string ToText(ConsoleBuffer buffer)
     {
         var sb = new StringBuilder();

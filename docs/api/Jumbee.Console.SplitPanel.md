@@ -203,7 +203,9 @@ public int SplitPosition { get; set; }
 #### Remarks
 
 Clamped to <xref href="Jumbee.Console.SplitPanel.MinFirst" data-throw-if-not-resolved="false"></xref> and to leaving the divider plus <xref href="Jumbee.Console.SplitPanel.MinSecond" data-throw-if-not-resolved="false"></xref> for the
-    second pane; raises <xref href="Jumbee.Console.SplitPanel.SplitChanged" data-throw-if-not-resolved="false"></xref> when it actually changes.
+    second pane; raises <xref href="Jumbee.Console.SplitPanel.SplitChanged" data-throw-if-not-resolved="false"></xref> when it actually changes. Set it to <xref href="Jumbee.Console.SplitPanel.MinFirst" data-throw-if-not-resolved="false"></xref> to
+    collapse the first pane to a sliver (a "focus"/zen toggle); save the previous value and restore it to expand
+    again — the simplest runtime layout change, since it's just a resize.
 
 ### <a id="Jumbee_Console_SplitPanel_Item_System_Int32_System_Int32_"></a> this\[int, int\]
 

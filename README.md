@@ -1,6 +1,8 @@
 # Jumbee.Console
 ![](https://i.imgur.com/oCTmJul.gif)
 
+[![NuGet Version](https://img.shields.io/nuget/v/Jumbee.Console?style=plastic)](https://www.nuget.org/packages/Jumbee.Console)
+
 ## About
 [Jumbee.Console](https://github.com/allisterb/Jumbee.Console) is a .NET library for advanced TUIs that focuses on performance and usability. Inspired by libs like [ratatui](https://ratatui.rs/) and [Textual](https://textual.textualize.io/), it tries to provide a high-performance retained-mode library that is easy-to-use with idiomatic .NET GUI and Task patterns, while flexible enough to create different types of TUI applications from news readers to animated dashboards to IDEs to agent harnesses to graphics apps.
 
@@ -42,12 +44,13 @@ Install the package:
 
 `dotnet add package Jumbee.Console`
 
-> **Note:** Jumbee.Console bundles a private fork of Spectre.Console. Do **not** also add the `Spectre.Console` NuGet package. The two share an assembly identity, so the build fails with `CS1704`.
+Note that Jumbee.Console uses its own compatible version of the Spectre.Console library - you shouldn't add both to your projects.
 
 A first app — a label and a button that increments a counter:
 
 ```csharp
 using Jumbee.Console;
+
 using static Jumbee.Console.Color;   // import the static colour names
 
 var count = 0;
@@ -55,6 +58,7 @@ var count = 0;
 var label = new TextLabel(TextLabelOrientation.Horizontal, "Count: 0", Cyan1);
 var button = new Button("Increment");
 
+// Change the label text when the button is clicked or pressed
 button.Activated += (_, _) =>
 {
     count++;
@@ -68,14 +72,18 @@ var root = new Grid(
     controls:
     [
         [label],
-        [button.WithRoundedBorder(Grey50)],
+        [button],
     ]);
 
 UI.RegisterHotKey(UI.HotKeys.Escape, UI.Stop);   // Esc quits (Ctrl+Q also quits by default)
 UI.SetFocus(button);                             // focus it so Enter/Space activates
 
-// Mouse/hover need a VtInputSource; keyboard works without one.
-UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true)).Wait();
+// Start the UI with a width/height. Mouse/hover need a VtInputSource.
+// Returns a Task.
+var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion: true));
+
+// Wait until the UI stops.
+t.Wait()
 ```
 
 For a scrollable list with a detail view, theming, input, and headless testing, see [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs).
