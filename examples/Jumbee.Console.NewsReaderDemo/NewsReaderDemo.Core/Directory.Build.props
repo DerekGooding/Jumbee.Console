@@ -1,0 +1,5 @@
+<Project>
+  <!-- Core is a plain, UI-free domain library (only CodeHollow.FeedReader). This empty file stops MSBuild's
+       upward search so Core does NOT inherit examples/Directory.Build.props, which would otherwise pull in the
+       Jumbee.Console forked assemblies (Spectre, ConsoleGUI, ...) that only the App project needs. -->
+</Project>

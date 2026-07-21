@@ -1,2 +1,4 @@
 # Jumbee.Console Examples
 Jumbee.Console.Examples is the main examples browser project. Jumbee.Console.IdeDemo features a text-based IDE with a multi-tab editor, a file explorer tree control, and terminal emulator, built with Jumbee.Console.
+
+Jumbee.Console.NewsReaderDemo is a terminal RSS reader (feed tree, article list, markdown reader, vim-style keys) with the domain logic split into a UI-free `NewsReaderDemo.Core` library. Its [README](Jumbee.Console.NewsReaderDemo/README.md) is a getting-started case study that walks through building it; run the headless snapshot suite with `dotnet run --project Jumbee.Console.NewsReaderDemo/NewsReaderDemo.App -c Release -- --test`.

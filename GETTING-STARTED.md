@@ -340,6 +340,12 @@ Two things to know when asserting: text snapshots are **glyphs only** — colour
 
 ## Where to go next
 
+- Case study: [building a real TUI](examples/Jumbee.Console.NewsReaderDemo/README.md) — a longer worked
+  example that picks up where the two-pane app above leaves off. It walks through porting a terminal RSS reader
+  (feed tree, article list, markdown reader, vim-style keys) from the ground up: the threading model, splitting
+  domain logic from the UI, off-thread feed fetching, custom `IRenderable`/`CompositeControl` controls, and
+  headless snapshot testing. The full runnable source is in
+  [`examples/Jumbee.Console.NewsReaderDemo`](examples/Jumbee.Console.NewsReaderDemo).
 - [Troubleshooting](TROUBLESHOOTING.md) — the Spectre.Console collision, submodules/CS1704, non-TTY rendering, and mouse input.
 - [API reference](docs/api/) — every public type, grouped by namespace, with summaries.
 - [Control guides](docs/controls/) — task-focused walkthroughs (selection controls, display widgets, links,
@@ -347,4 +353,5 @@ Two things to know when asserting: text snapshots are **glyphs only** — colour
 - [Internals](docs/internal/) — architecture notes: the rendering pipeline, input model, multithreading, and
   theming.
 - Examples — `examples/Jumbee.Console.Examples` is a browsable gallery (each example shown next to its source);
-  `examples/Jumbee.Console.IdeDemo` and `examples/Jumbee.Console.AgentHarnessDemo` are larger, full apps.
+  `examples/Jumbee.Console.IdeDemo`, `examples/Jumbee.Console.AgentHarnessDemo`, and
+  `examples/Jumbee.Console.NewsReaderDemo` are larger, full apps.

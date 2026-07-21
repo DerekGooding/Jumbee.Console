@@ -86,4 +86,5 @@ var t = UI.Start(root, width: 34, height: 6, input: new VtInputSource(anyMotion:
 t.Wait()
 ```
 
-For a scrollable list with a detail view, theming, input, and headless testing, see [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs).
+For more examples see [GETTING-STARTED.md](https://github.com/allisterb/Jumbee.Console/blob/master/GETTING-STARTED.md) and the [documentation](https://github.com/allisterb/Jumbee.Console/tree/master/docs)
+and a longer example [of building a TUI newsreader](examples/Jumbee.Console.NewsReaderDemo/README.md).

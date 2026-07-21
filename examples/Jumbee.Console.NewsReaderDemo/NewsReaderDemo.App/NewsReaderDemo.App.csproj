@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- As an in-repo example this references the library projects directly (like the other examples); the forked
+       assemblies it names on the public API come from examples/Directory.Build.props -> ExternalReferences.props.
+       In your OWN app, use the published package instead: `dotnet add package Jumbee.Console` (+ .Documents / .Snapshot). -->
+  <ItemGroup>
+    <ProjectReference Include="..\NewsReaderDemo.Core\NewsReaderDemo.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\Jumbee.Console\Jumbee.Console.csproj" />
+    <ProjectReference Include="..\..\..\src\Jumbee.Console.Documents\Jumbee.Console.Documents.csproj" />
+    <ProjectReference Include="..\..\..\src\Jumbee.Console.Snapshot\Jumbee.Console.Snapshot.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
