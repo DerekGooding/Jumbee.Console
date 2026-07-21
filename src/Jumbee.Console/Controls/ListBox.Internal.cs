@@ -63,6 +63,10 @@ public partial class ListBox
             }
         }
 
+        /// <summary>Arbitrary application data associated with this item — e.g. the domain object it represents — so
+        /// you can map a selected row back to your model without a side dictionary. Not used by the list.</summary>
+        public object? Tag { get; set; }
+
         private Color? _foregroundColor;
         /// <summary>Foreground colour of a text item.</summary>
         public Color? ForegroundColor

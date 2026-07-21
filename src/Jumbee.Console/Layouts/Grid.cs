@@ -13,12 +13,21 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
 {
     #region Constructors
     /// <summary>
-    /// Creates a grid layout with the specified row heights, column heights, and arrays of controls.
+    /// Creates a grid layout with fixed row heights, fixed column widths, and a control for each cell.
     /// </summary>
-    /// <param name="rowHeights"></param>
-    /// <param name="columnWidths"></param>
-    /// <param name="controls"></param>
-    /// <exception cref="ArgumentException"></exception>
+    /// <remarks>
+    /// Sizing is <b>fixed cells</b>: every value is an absolute cell count (a row's height, a column's width), and
+    /// the grid's own size is their sum. There is no proportional/"star" sizing and no auto-fill — unlike
+    /// <see cref="DockPanel"/>, a <c>0</c> here means a 0-cell (collapsed) row/column, <em>not</em> fill-the-parent.
+    /// Each cell's control is given its cell's fixed size (so a control that fills, i.e. <c>Width</c>/<c>Height</c>
+    /// 0, fills that fixed cell). For proportional/fill layouts, compose <see cref="DockPanel"/>/<see cref="SplitPanel"/>
+    /// instead.
+    /// </remarks>
+    /// <param name="rowHeights">The fixed height in cells of each row, top to bottom.</param>
+    /// <param name="columnWidths">The fixed width in cells of each column, left to right.</param>
+    /// <param name="controls">Row-major controls: one inner array per row, each with one control per column.</param>
+    /// <exception cref="ArgumentException">The control grid's row/column counts don't match
+    /// <paramref name="rowHeights"/>/<paramref name="columnWidths"/>.</exception>
     public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls ) : base(new ConsoleGUI.Controls.Grid())
     {                
         control.Rows = rowHeights.Select(h => new ConsoleGUI.Controls.Grid.RowDefinition(h)).ToArray();

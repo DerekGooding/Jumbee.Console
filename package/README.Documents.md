@@ -1,6 +1,6 @@
 # Jumbee.Console Documents
 
-![](https://ajb.nyc3.cdn.digitaloceanspaces.com/jc/jc_mdmeditor_1.gif)
+![](https://imgur.com/mpNylpY.gif)
 
 ## About
 This is an add-on library for Jumbee.Console that provides TUI viewers and editors for different document formats.

@@ -92,7 +92,9 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
         UI.Post(() => { _extentDirty = false; control.SetFirstExtent(_splitPosition); });
     }
 
-    /// <summary>Minimum extent of the first pane in cells (default 3).</summary>
+    /// <summary>Minimum extent of the first pane in cells (default 3). Clamped to at least <c>1</c>, so
+    /// <see cref="SplitPosition"/> can never reach <c>0</c> — a "fully collapsed" first pane is really a 1-cell
+    /// sliver (set <c>MinFirst = 1</c> for the thinnest zen collapse).</summary>
     public int MinFirst
     {
         get => _minFirst;

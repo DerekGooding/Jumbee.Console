@@ -128,6 +128,19 @@ public ListBox? ListBox { get; }
 
  [ListBox](Jumbee.Console.ListBox.md)?
 
+### <a id="Jumbee_Console_ListBox_ListBoxItem_Tag"></a> Tag
+
+Arbitrary application data associated with this item — e.g. the domain object it represents — so
+    you can map a selected row back to your model without a side dictionary. Not used by the list.
+
+```csharp
+public object? Tag { get; set; }
+```
+
+#### Property Value
+
+ object?
+
 ### <a id="Jumbee_Console_ListBox_ListBoxItem_Text"></a> Text
 
 The item's plain text, or <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> if it was created from a renderable.

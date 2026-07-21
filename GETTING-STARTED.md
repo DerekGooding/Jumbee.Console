@@ -234,9 +234,8 @@ var split = new SplitPanel(SplitOrientation.Horizontal, headlines, article, spli
 int expanded = split.SplitPosition;                 // remember the open width
 split.MinFirst = 1;                                  // allow the thinnest possible sliver (MinFirst floors at 1)
 
-// A bare-letter global hotkey is a ConsoleKeyInfo whose char matches the keystroke (lowercase 'z').
-var zenKey = new ConsoleKeyInfo('z', ConsoleKey.Z, shift: false, alt: false, control: false);
-UI.RegisterHotKey(zenKey, () =>
+// UI.HotKeys.Char builds a bare-letter/punctuation hotkey that matches the real keystroke.
+UI.RegisterHotKey(UI.HotKeys.Char('z'), () =>
     split.SplitPosition = split.SplitPosition > split.MinFirst ? split.MinFirst : expanded);
 ```
 
@@ -332,10 +331,9 @@ var afterNav = ConsoleSnapshot.ToTextAfter(list, 80, 24, [ConsoleSnapshot.Key(Co
 // Fire a GLOBAL hotkey (one registered with UI.RegisterHotKey) — pass routeGlobal: true.
 var afterHotkey = ConsoleSnapshot.ToTextAfter(list, 80, 24, [ConsoleSnapshot.Key(ConsoleKey.R)], routeGlobal: true);
 
-// Key(...) fills the char only for letters and digits, so a global hotkey on a punctuation key (e.g. '/')
-// won't match unless you build the ConsoleKeyInfo yourself with the same char you registered it under:
-var slash = new ConsoleKeyInfo('/', ConsoleKey.Oem2, shift: false, alt: false, control: false);
-var afterSearch = ConsoleSnapshot.ToTextAfter(list, 80, 24, [slash], routeGlobal: true);
+// For a punctuation hotkey (e.g. '/'), register AND test with UI.HotKeys.Char('/') — it produces exactly what
+// the decoder emits, which ConsoleSnapshot.Key(ConsoleKey.Oem2) does not (its char is '\0'), so this matches.
+var afterSearch = ConsoleSnapshot.ToTextAfter(list, 80, 24, [UI.HotKeys.Char('/')], routeGlobal: true);
 ```
 
 Two things to know when asserting: text snapshots are **glyphs only** — colour and decoration aren't captured, so check colour with `SavePng`/`ToImage` (or render a visible marker and assert on that); and `ToTextAfter` sends the keys to the single control you pass, so to prove an effect that spans panes, target the control that actually changes.

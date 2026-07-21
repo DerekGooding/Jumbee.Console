@@ -63,6 +63,20 @@ public bool wrap
 
  bool
 
+### <a id="Jumbee_Console_AnsiConsoleBuffer_wrapWords"></a> wrapWords
+
+When <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>, <xref href="Jumbee.Console.AnsiConsoleBuffer.Write(Spectre.Console.Rendering.IRenderable)" data-throw-if-not-resolved="false"></xref> soft-wraps at <b>word</b> boundaries (breaking to
+    the next row before a word that wouldn't fit), with the character-level wrap as a fallback for an over-long
+    word. Used by <xref href="Jumbee.Console.MarkdownViewer" data-throw-if-not-resolved="false"></xref> so paragraph text reflows to the buffer width instead of clipping.
+
+```csharp
+public bool wrapWords
+```
+
+#### Field Value
+
+ bool
+
 ## Properties
 
 ### <a id="Jumbee_Console_AnsiConsoleBuffer_Cursor"></a> Cursor

@@ -66,7 +66,10 @@ public static class ConsoleSnapshot
     /// Renders <paramref name="control"/> once to establish layout, sends the given keys to it (routed via
     /// <see cref="UI.SendInput(IFocusable, ConsoleKeyInfo, bool)"/>), then renders and returns the result.
     /// </summary>
-    /// <remarks>Handy for snapshotting a control after navigation/editing.</remarks>
+    /// <remarks>Handy for snapshotting a control after navigation/editing. The keys are delivered to
+    /// <paramref name="control"/> itself — <em>not</em> to whatever <see cref="UI.SetFocus"/> last targeted
+    /// elsewhere in the tree — so pass the control that actually changes. For a composite app, that's the specific
+    /// child under test (e.g. the list), not the root layout.</remarks>
     public static ConsoleBuffer RenderAfter(JControl control, int width, int height, params ConsoleKey[] keys)
         => RenderAfterCore(control, width, height, keys.Select(k => Key(k)));
 
@@ -75,7 +78,9 @@ public static class ConsoleSnapshot
     /// keys (e.g. <c>Alt+Down</c> via <see cref="Key"/>) can be sent. When <paramref name="routeGlobal"/> is
     /// <see langword="true"/>, each key runs the global hotkey dispatch first (see
     /// <see cref="UI.SendInput(IFocusable, ConsoleKeyInfo, bool)"/>) so a snapshot can exercise hotkeys registered
-    /// with <see cref="UI.RegisterHotKey"/> — build the keys the same way they were registered.
+    /// with <see cref="UI.RegisterHotKey"/> — build the keys the same way they were registered (e.g. with
+    /// <see cref="UI.HotKeys"/>). As with the other overload, the keys go to <paramref name="control"/> itself,
+    /// not to whatever <see cref="UI.SetFocus"/> designates.
     /// </summary>
     public static ConsoleBuffer RenderAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
         => RenderAfterCore(control, width, height, keys, routeGlobal);
@@ -85,7 +90,8 @@ public static class ConsoleSnapshot
     /// matches how a hotkey registered with <see cref="UI.RegisterHotKey"/> — or a real keystroke — is keyed. That
     /// matters for <see cref="RenderAfter(JControl, int, int, IReadOnlyList{ConsoleKeyInfo}, bool)"/> with
     /// <c>routeGlobal</c>: a bare-letter global hotkey only fires when the simulated key's char matches. Non-character
-    /// keys (arrows, function keys, …) keep <c>'\0'</c>.</summary>
+    /// keys (arrows, function keys, …) keep <c>'\0'</c>. For a punctuation hotkey (e.g. <c>'/'</c>), this method's
+    /// char is <c>'\0'</c> and won't match — use <c>UI.HotKeys.Char('/')</c> to build the key instead.</summary>
     public static ConsoleKeyInfo Key(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
         => new(KeyChar(key, shift, control), key, shift, alt, control);
 

@@ -23,7 +23,10 @@ public enum TreeGuide
     /// <summary>Heavy (bold) box-drawing guide lines.</summary>
     BoldLine,
     /// <summary>Double box-drawing guide lines.</summary>
-    DoubleLine
+    DoubleLine,
+    /// <summary>No connector lines — hierarchy is shown by indentation (and any node glyphs) alone. Useful for a
+    /// clean, icon-driven tree.</summary>
+    None
 }
 
 /// <summary>
@@ -183,6 +186,12 @@ public partial class Tree : RenderableControl
     /// <summary>Raised when a leaf node (one with no children) is activated — double-clicked, or Enter/Space pressed
     /// while it is selected. Parent nodes toggle expansion instead of raising this.</summary>
     public event EventHandler<TreeNode>? NodeActivated;
+
+    /// <summary>Raised whenever the selected (highlighted) node changes — via the arrow/vim keys,
+    /// Home/End/PageUp/PageDown, or a mouse click. Mirrors <see cref="ListBox.SelectionChanged"/>; use it to follow
+    /// highlight movement (e.g. update a detail pane as the user arrows through the tree), rather than only reacting
+    /// to <see cref="NodeActivated"/> (which fires only on leaf Enter/double-click).</summary>
+    public event EventHandler<TreeNode>? SelectionChanged;
 
     /// <summary>Raised just before <see cref="ContextMenu"/> is shown for a right-clicked node, with that node (now
     /// the selected one). Only fires when <see cref="ContextMenu"/> is set.</summary>
@@ -596,6 +605,9 @@ public partial class Tree : RenderableControl
     private Segment GetGuide(RenderOptions options, TreeGuidePart part)
     {
         var guide = scguide.GetSafeTreeGuide(safe: !options.Unicode);
+        // TreeGuide.None draws no connector lines: emit the blank Space part for every position so labels stay
+        // aligned by indentation alone (scguide falls back to Line purely as the source of the blank's width).
+        if (_guide == TreeGuide.None) part = TreeGuidePart.Space;
         return new Segment(guide.GetPart(part), Style);
     }
 
@@ -609,6 +621,7 @@ public partial class Tree : RenderableControl
         if (current is not null && !ReferenceEquals(current, nodes[index])) current.Selected = false;
         nodes[index].Selected = true;
         AutoScroll(nodes[index], index);
+        RaiseSelectionChanged();
     }
 
     // The flattened (visible) index of the selected node, or 0 when nothing is selected.
@@ -643,6 +656,7 @@ public partial class Tree : RenderableControl
 
         nodes[nextIndex].Selected = true;
         AutoScroll(nodes[nextIndex], nextIndex);
+        RaiseSelectionChanged();
     }
 
     // Move the selection to a specific (visible) node, clearing any previous selection and scrolling it into view.
@@ -655,6 +669,17 @@ public partial class Tree : RenderableControl
         foreach (var n in nodes) if (n.Selected && !ReferenceEquals(n, node)) n.Selected = false;
         node.Selected = true;
         AutoScroll(node, index);
+        RaiseSelectionChanged();
+    }
+
+    // Fires SelectionChanged when the highlighted node actually changed since the last raise, so every selection
+    // path (arrows/vim, Home/End/Page, mouse) reports a move exactly once. Called at the end of each selection method.
+    private void RaiseSelectionChanged()
+    {
+        var selected = SelectedNode;
+        if (ReferenceEquals(selected, _lastSelection)) return;
+        _lastSelection = selected;
+        if (selected is not null) SelectionChanged?.Invoke(this, selected);
     }
 
     /// <summary>
@@ -722,6 +747,7 @@ public partial class Tree : RenderableControl
     private Style _hoverStyle;
     private bool _hoverHighlighting;
     private TreeNode? _hoveredNode;
+    private TreeNode? _lastSelection;   // last node reported by SelectionChanged, so we only raise on an actual change
     // Content row -> (owning node, is that node's first/glyph row) for the last render. Lets the mouse handlers map a
     // clicked row to the correct node when labels wrap onto multiple rows. Written in Render, read in the mouse
     // handlers — both on the UI thread.

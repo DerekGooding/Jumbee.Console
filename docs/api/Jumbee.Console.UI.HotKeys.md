@@ -238,6 +238,31 @@ public static ConsoleKeyInfo Alt(ConsoleKey key)
 
  ConsoleKeyInfo
 
+### <a id="Jumbee_Console_UI_HotKeys_Char_System_Char_"></a> Char\(char\)
+
+Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> for a bare printable key — a letter, digit, punctuation,
+    or space — so it can be registered as a global hotkey (e.g. <code>UI.RegisterHotKey(UI.HotKeys.Char('q'),
+    UI.Stop)</code>).
+
+```csharp
+public static ConsoleKeyInfo Char(char c)
+```
+
+#### Parameters
+
+`c` char
+
+#### Returns
+
+ ConsoleKeyInfo
+
+#### Remarks
+
+Produces exactly what the input decoder emits for that keystroke, so the registered hotkey
+    matches a real press: an uppercase letter carries Shift; every non-letter/digit (e.g. <code>'/'</code>) uses
+    key code <code>0</code> with the character. The same value drives a headless test — pass
+    <code>UI.HotKeys.Char(c)</code> to the Snapshot package's <code>ToTextAfter(..., routeGlobal: true)</code>.
+
 ### <a id="Jumbee_Console_UI_HotKeys_Ctrl_System_ConsoleKey_"></a> Ctrl\(ConsoleKey\)
 
 Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> for <code class="paramref">key</code> with the Ctrl modifier.

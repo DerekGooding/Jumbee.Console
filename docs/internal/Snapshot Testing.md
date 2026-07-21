@@ -4,6 +4,10 @@
 `ConsoleBuffer`, then converts that buffer to either a **text** snapshot or a **PNG image**. It is the backbone of
 the control tests and of "visual verification" during widget development.
 
+> For the consumer-facing introduction — asserting content, driving keys, and firing global hotkeys in a test —
+> see **[Testing without a terminal](../../GETTING-STARTED.md#testing-without-a-terminal)** in the getting-started
+> guide. This page assumes that and focuses on the part unique to contributors: **multi-font PNG verification**.
+
 ```csharp
 using Jumbee.Console.Snapshot;
 
@@ -13,8 +17,13 @@ string text = ConsoleSnapshot.ToText(control, width: 24, height: 10);
 // Pixel snapshot — what the cells actually look like rendered with a font:
 ConsoleSnapshot.SavePng(control, 24, 10, "out.png");
 
-// Drive input first (navigation/editing), then snapshot the result:
-string after = ConsoleSnapshot.ToTextAfter(control, 24, 10, ConsoleKey.DownArrow, ConsoleKey.Enter);
+// Drive input, then snapshot. Keys go to the control you pass (NOT to whatever UI.SetFocus targets), so pass
+// the control that actually changes. ToTextAfter/RenderAfter also take full ConsoleKeyInfo lists:
+string afterNav = ConsoleSnapshot.ToTextAfter(list, 24, 10, [ConsoleSnapshot.Key(ConsoleKey.DownArrow)]);
+
+// Global hotkeys (registered with UI.RegisterHotKey) need routeGlobal: true. Build the key the way it was
+// registered — UI.HotKeys.Char('r') for a bare letter, UI.HotKeys.Ctrl(ConsoleKey.S) for a combo:
+string afterHotkey = ConsoleSnapshot.ToTextAfter(list, 24, 10, [UI.HotKeys.Char('r')], routeGlobal: true);
 ```
 
 The headless composer goes through a local `DrawingContext` + `UI.PaintFrame`; it does **not** touch

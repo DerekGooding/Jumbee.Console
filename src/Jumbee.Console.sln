@@ -90,7 +90,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "getting-started", "getting-
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "package", "package", "{F66CB214-77BC-4202-95DC-AF4DD1703C43}"
 	ProjectSection(SolutionItems) = preProject
+		..\package\README.Documents.md = ..\package\README.Documents.md
 		..\package\README.md = ..\package\README.md
+		..\package\README.Snapshot.md = ..\package\README.Snapshot.md
 	EndProjectSection
 EndProject
 Global

@@ -180,12 +180,15 @@ public class MarkdownViewer : Control
     /// <paramref name="styles"/> and returns the measured content height. Overridable to post-process the document.</summary>
     protected virtual int RenderMarkdown(string text, MarkdownStyles styles, int width, ConsoleBuffer target)
     {
-        var cap = Math.Clamp(LineCount(text) * 3 + 40, 8, MaxRows);
+        // Height budget: paragraphs word-wrap to `width`, so a long paragraph spans several rows — estimate from the
+        // text length over the width plus the explicit line count, so wrapped content isn't clipped at the buffer's
+        // bottom (capacity-retentive, so an over-estimate costs nothing after the first render).
+        var cap = Math.Clamp(text.Length / Math.Max(1, width) + LineCount(text) * 2 + 40, 8, MaxRows);
         target.Size = new Size(width, cap);   // capacity-retentive: no realloc once the high-water mark is reached
         target.Initialize();
         try
         {
-            var console = new AnsiConsoleBuffer(target);
+            var console = new AnsiConsoleBuffer(target) { wrapWords = true };   // paragraphs reflow to `width`
             console.WriteMarkdown(text, styles);
             return MeasureRenderedHeight(target);
         }

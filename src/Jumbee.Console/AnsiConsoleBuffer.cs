@@ -191,8 +191,10 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                 var fg = style.Foreground.ToConsoleGUIColor();
                 var bg = style.Background.ToConsoleGUIColor();
                 var decoration = (ConsoleGUI.Data.Decoration)style.Decoration;
-                foreach (char c in segment.Text)
+                var text = segment.Text;
+                for (int i = 0; i < text.Length; i++)
                 {
+                    char c = text[i];
                     if (c == '\n')
                     {
                         _cursorY++;
@@ -208,10 +210,22 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                     {
                         var width = c.GetCellWidth();
                         if (width <= 0) continue; // Skip zero-width chars
+                        // Word-level soft wrap (opt-in via wrapWords, e.g. MarkdownViewer): at the start of a word,
+                        // if the whole word won't fit on the rest of the row, break to the next row first — so words
+                        // stay intact instead of splitting mid-glyph. An over-long word (wider than the row) still
+                        // falls through to the character-level wrap below. Word width is measured within the current
+                        // segment; a word split across styled segments degrades gracefully to the char-level wrap.
+                        if (wrapWords && c != ' ' && _cursorX > 0 && (i == 0 || text[i - 1] == ' '))
+                        {
+                            var wordWidth = 0;
+                            for (int j = i; j < text.Length && text[j] is not (' ' or '\n' or '\r'); j++)
+                                wordWidth += text[j].GetCellWidth();
+                            if (_cursorX + wordWidth > _console.Size.Width) { _cursorX = 0; _cursorY++; }
+                        }
                         // Character-level soft wrap: when the glyph won't fit on the current row, drop to the next
                         // row instead of clipping it. Opt-in (used by TextEditor, which disables Spectre's own
                         // word-wrap so this is the single, deterministic wrap the caret math can mirror exactly).
-                        if (wrap && _cursorX > 0 && _cursorX + width > _console.Size.Width)
+                        if ((wrap || wrapWords) && _cursorX > 0 && _cursorX + width > _console.Size.Width)
                         {
                             _cursorX = 0;
                             _cursorY++;
@@ -342,6 +356,10 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     /// <summary>When <see langword="true"/>, <see cref="Write"/> wraps glyphs to the next row at the buffer's
     /// right edge instead of clipping them. See the wrap note in <see cref="_Write"/>.</summary>
     public bool wrap;
+    /// <summary>When <see langword="true"/>, <see cref="Write"/> soft-wraps at <b>word</b> boundaries (breaking to
+    /// the next row before a word that wouldn't fit), with the character-level wrap as a fallback for an over-long
+    /// word. Used by <see cref="MarkdownViewer"/> so paragraph text reflows to the buffer width instead of clipping.</summary>
+    public bool wrapWords;
     internal readonly ConsoleBuffer _console;
     internal readonly AnsiConsoleBufferCursor _cursor;
     private readonly IAnsiConsoleInput _input;

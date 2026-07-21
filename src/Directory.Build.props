@@ -9,7 +9,7 @@
   <!-- Shared assembly version for the Jumbee.Console libraries. Projects opt in by mapping their AssemblyVersion /
        FileVersion / Version to this property, so bumping the version here restamps them all on the next build. -->
   <PropertyGroup Label="Versioning">
-    <ProjectAssemblyVersion>0.1.3</ProjectAssemblyVersion>
+    <ProjectAssemblyVersion>0.1.4</ProjectAssemblyVersion>
   </PropertyGroup>
 
   <!-- Shared NuGet package metadata. Projects are NOT packed by default; the shipped libraries
@@ -25,7 +25,7 @@
     <RepositoryUrl>https://github.com/allisterb/Jumbee.Console</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>logo.png</PackageIcon>
-    <PackageTags>tui;terminal;console;ansi;ui</PackageTags>
+    <PackageTags>tui;terminal;console;ansi;ui;jumbee</PackageTags>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageVersion>$(ProjectAssemblyVersion)</PackageVersion>
     <!-- NuGet release notes: the repo CHANGELOG.md is packed as the release notes for all three shipped packages.

@@ -24,7 +24,8 @@ Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"><
     matches how a hotkey registered with <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> — or a real keystroke — is keyed. That
     matters for <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Console.Control%2cSystem.Int32%2cSystem.Int32%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.ConsoleKeyInfo%7d%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref> with
     <code>routeGlobal</code>: a bare-letter global hotkey only fires when the simulated key's char matches. Non-character
-    keys (arrows, function keys, …) keep <code>'\0'</code>.
+    keys (arrows, function keys, …) keep <code>'\0'</code>. For a punctuation hotkey (e.g. <code>'/'</code>), this method's
+    char is <code>'\0'</code> and won't match — use <code>UI.HotKeys.Char('/')</code> to build the key instead.
 
 ```csharp
 public static ConsoleKeyInfo Key(ConsoleKey key, bool shift = false, bool alt = false, bool control = false)
@@ -129,7 +130,10 @@ public static ConsoleBuffer RenderAfter(Control control, int width, int height, 
 
 #### Remarks
 
-Handy for snapshotting a control after navigation/editing.
+Handy for snapshotting a control after navigation/editing. The keys are delivered to
+    <code class="paramref">control</code> itself — <em>not</em> to whatever <xref href="Jumbee.Console.UI.SetFocus(Jumbee.Console.IFocusable)" data-throw-if-not-resolved="false"></xref> last targeted
+    elsewhere in the tree — so pass the control that actually changes. For a composite app, that's the specific
+    child under test (e.g. the list), not the root layout.
 
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_Control_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__System_Boolean_"></a> RenderAfter\(Control, int, int, IReadOnlyList<ConsoleKeyInfo\>, bool\)
 
@@ -137,7 +141,9 @@ As <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Consol
 keys (e.g. <code>Alt+Down</code> via <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.Key(System.ConsoleKey%2cSystem.Boolean%2cSystem.Boolean%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>) can be sent. When <code class="paramref">routeGlobal</code> is
 <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>, each key runs the global hotkey dispatch first (see
 <xref href="Jumbee.Console.UI.SendInput(Jumbee.Console.IFocusable%2cSystem.ConsoleKeyInfo%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>) so a snapshot can exercise hotkeys registered
-with <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> — build the keys the same way they were registered.
+with <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> — build the keys the same way they were registered (e.g. with
+<xref href="Jumbee.Console.UI.HotKeys" data-throw-if-not-resolved="false"></xref>). As with the other overload, the keys go to <code class="paramref">control</code> itself,
+not to whatever <xref href="Jumbee.Console.UI.SetFocus(Jumbee.Console.IFocusable)" data-throw-if-not-resolved="false"></xref> designates.
 
 ```csharp
 public static ConsoleBuffer RenderAfter(Control control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)

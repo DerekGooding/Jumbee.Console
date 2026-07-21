@@ -61,6 +61,11 @@ public class LabeledInput : CompositeControl
 }
 ```
 
+`SetContent` takes an `ILayout`. For a composite that wraps a **single** child (e.g. one `ListBox` or
+`MarkdownViewer` with your own logic around it), wrap that child in a one-child layout — `Boundary` — so it fills
+the composite: `SetContent(new Boundary(child));` (pass `Boundary(child, width, height)` to pin a fixed size
+instead). For two-or-more children, use `Grid`/`DockPanel`/a stack panel as above.
+
 What you get for free:
 
 - **Layout** — reuse `Grid`, `DockPanel`, `HorizontalStackPanel`, etc. as the internal arrangement.

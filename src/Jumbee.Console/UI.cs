@@ -401,9 +401,19 @@ public static class UI
     /// overwriting any existing action for the same key.
     /// </summary>
     /// <remarks>
-    /// <see cref="HotKeys.CtrlQ"/> → <see cref="Stop"/> is registered by default. Typically called before
+    /// <para><see cref="HotKeys.CtrlQ"/> → <see cref="Stop"/> is registered by default. Typically called before
     /// <see cref="Start"/>; the key must match what the input decoder produces (use the <see cref="HotKeys"/>
-    /// constants/helpers).
+    /// constants/helpers, e.g. <see cref="HotKeys.Char(char)"/> for a bare letter).</para>
+    /// <para><b>Scope:</b> the hotkey table is <b>process-global</b> — one table shared across the whole app, not
+    /// scoped to a <see cref="Start"/> root or a control tree. Two consequences worth knowing:</para>
+    /// <list type="bullet">
+    /// <item>A matched hotkey is dispatched <em>before</em> the focused control and marks the event handled, so a
+    /// letter registered as a hotkey never reaches a focused text field. To let a <c>TextInput</c>/<c>TextEditor</c>
+    /// receive those letters, <see cref="UnregisterHotKey"/> them while it has focus and re-register on blur.</item>
+    /// <item>Constructing a second app/control tree (e.g. a fresh instance per headless snapshot capture) re-registers
+    /// the same keys onto the one table, so input then routes to the newest registrant. In tests, register/exercise
+    /// one instance at a time (or unregister between them).</item>
+    /// </list>
     /// </remarks>
     public static void RegisterHotKey(ConsoleKeyInfo key, Action action) => Invoke(() => GlobalHotKeys[key] = action);
 
@@ -896,7 +906,7 @@ public static class UI
         {
             // For letter keys, a control character is generated. For other keys, the character is '\0'.
             char keyChar = (key >= ConsoleKey.A && key <= ConsoleKey.Z)
-                ? (char)(Char.ToLower((char)key) - 96)
+                ? (char)(char.ToLower((char)key) - 96)
                 : '\0';
             return new ConsoleKeyInfo(keyChar, key, false, false, true);
         }
@@ -906,7 +916,7 @@ public static class UI
         {
             // For letter keys, a lowercase character is generated. For other keys, the character is '\0'.
             char keyChar = (key >= ConsoleKey.A && key <= ConsoleKey.Z)
-                ? Char.ToLower((char)key)
+                ? char.ToLower((char)key)
                 : '\0';
             return new ConsoleKeyInfo(keyChar, key, false, true, false);
         }
@@ -914,6 +924,27 @@ public static class UI
         /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for <paramref name="key"/> with both Ctrl and Alt modifiers.</summary>
         public static ConsoleKeyInfo CtrlAlt(ConsoleKey key) =>
             new('\0', key, false, true, true);
+
+        /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a bare printable key — a letter, digit, punctuation,
+        /// or space — so it can be registered as a global hotkey (e.g. <c>UI.RegisterHotKey(UI.HotKeys.Char('q'),
+        /// UI.Stop)</c>).</summary>
+        /// <remarks>Produces exactly what the input decoder emits for that keystroke, so the registered hotkey
+        /// matches a real press: an uppercase letter carries Shift; every non-letter/digit (e.g. <c>'/'</c>) uses
+        /// key code <c>0</c> with the character. The same value drives a headless test — pass
+        /// <c>UI.HotKeys.Char(c)</c> to the Snapshot package's <c>ToTextAfter(..., routeGlobal: true)</c>.</remarks>
+        public static ConsoleKeyInfo Char(char c)
+        {
+            // Mirror AnsiInputDecoder's printable-char mapping exactly, so a registered hotkey matches the live key.
+            var (key, shift) = c switch
+            {
+                >= 'a' and <= 'z' => (ConsoleKey.A + (c - 'a'), false),
+                >= 'A' and <= 'Z' => (ConsoleKey.A + (c - 'A'), true),
+                >= '0' and <= '9' => (ConsoleKey.D0 + (c - '0'), false),
+                ' ' => (ConsoleKey.Spacebar, false),
+                _ => ((ConsoleKey)0, false),
+            };
+            return new ConsoleKeyInfo(c, key, shift, false, false);
+        }
 
         /// <summary>The Escape key, as produced by the input decoder (KeyChar <c>\x1b</c>, no modifiers).</summary>
         public static ConsoleKeyInfo Escape = new('\x1b', ConsoleKey.Escape, false, false, false);

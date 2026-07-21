@@ -48,7 +48,7 @@ object ←
 
 ### <a id="Jumbee_Console_Grid__ctor_System_Int32___System_Int32___Jumbee_Console_IFocusable_____"></a> Grid\(int\[\], int\[\], params IFocusable\[\]\[\]\)
 
-Creates a grid layout with the specified row heights, column heights, and arrays of controls.
+Creates a grid layout with fixed row heights, fixed column widths, and a control for each cell.
 
 ```csharp
 public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls)
@@ -58,13 +58,31 @@ public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls
 
 `rowHeights` int\[\]
 
+The fixed height in cells of each row, top to bottom.
+
 `columnWidths` int\[\]
 
+The fixed width in cells of each column, left to right.
+
 `controls` [IFocusable](Jumbee.Console.IFocusable.md)\[\]\[\]
+
+Row-major controls: one inner array per row, each with one control per column.
+
+#### Remarks
+
+Sizing is <b>fixed cells</b>: every value is an absolute cell count (a row's height, a column's width), and
+the grid's own size is their sum. There is no proportional/"star" sizing and no auto-fill — unlike
+<xref href="Jumbee.Console.DockPanel" data-throw-if-not-resolved="false"></xref>, a <code>0</code> here means a 0-cell (collapsed) row/column, <em>not</em> fill-the-parent.
+Each cell's control is given its cell's fixed size (so a control that fills, i.e. <code>Width</code>/<code>Height</code>
+0, fills that fixed cell). For proportional/fill layouts, compose <xref href="Jumbee.Console.DockPanel" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.SplitPanel" data-throw-if-not-resolved="false"></xref>
+instead.
 
 #### Exceptions
 
  ArgumentException
+
+The control grid's row/column counts don't match
+    <code class="paramref">rowHeights</code>/<code class="paramref">columnWidths</code>.
 
 ## Properties
 

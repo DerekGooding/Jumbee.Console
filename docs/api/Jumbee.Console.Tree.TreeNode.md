@@ -194,6 +194,19 @@ public bool Selected { get; set; }
 
  bool
 
+### <a id="Jumbee_Console_Tree_TreeNode_Tag"></a> Tag
+
+Arbitrary application data associated with this node — e.g. the domain object it represents — so
+    you can map a selected/activated node back to your model without a side dictionary. Not used by the tree.
+
+```csharp
+public object? Tag { get; set; }
+```
+
+#### Property Value
+
+ object?
+
 ### <a id="Jumbee_Console_Tree_TreeNode_Text"></a> Text
 
 The node's plain-text label, if it was created from a string; otherwise <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a>.
@@ -308,9 +321,11 @@ public bool RemoveChild(uint id)
 
 ### <a id="Jumbee_Console_Tree_TreeNode_UpdateTree"></a> UpdateTree\(\)
 
-Requests a redraw of the owning tree unless this node has been removed.
+Requests a redraw of the owning tree unless this node has been removed. The mutable properties
+    (<xref href="Jumbee.Console.Tree.TreeNode.Label" data-throw-if-not-resolved="false"></xref>, the glyphs, …) already call this, so it's only needed after changing something a
+    setter doesn't cover (e.g. mutating the underlying renderable in place).
 
 ```csharp
-protected void UpdateTree()
+public void UpdateTree()
 ```
 

@@ -50,6 +50,10 @@ public partial class Tree
         /// <summary>The node's plain-text label, if it was created from a string; otherwise <see langword="null"/>.</summary>
         public string? Text { get; internal set; }
 
+        /// <summary>Arbitrary application data associated with this node — e.g. the domain object it represents — so
+        /// you can map a selected/activated node back to your model without a side dictionary. Not used by the tree.</summary>
+        public object? Tag { get; set; }
+
         /// <summary>The renderable drawn as the node's label.</summary>
         public IRenderable Label
         {
@@ -216,8 +220,10 @@ public partial class Tree
             return removed;
         }
 
-        /// <summary>Requests a redraw of the owning tree unless this node has been removed.</summary>
-        protected void UpdateTree()
+        /// <summary>Requests a redraw of the owning tree unless this node has been removed. The mutable properties
+        /// (<see cref="Label"/>, the glyphs, …) already call this, so it's only needed after changing something a
+        /// setter doesn't cover (e.g. mutating the underlying renderable in place).</summary>
+        public void UpdateTree()
         {
             if (!IsRemoved) Tree.Update();
         }

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.4
+
+### Fixed
+
+- `MarkdownViewer` now **word-wraps paragraph text** to the control width. Previously a paragraph wider than the view clipped at the right edge and dropped everything past the first row (its doc already claimed it "reflows to the control width"). Implemented via a new opt-in `wrapWords` mode on `AnsiConsoleBuffer` (word-boundaried, with a character-level fallback for an over-long word); other controls are unaffected.
+- The package now bundles the **XML documentation** of its private assemblies (`Jumbee.Console.Styles`, the Spectre.Console fork, ConsolePlot, …) alongside their DLLs in `lib/`. Previously only the DLLs shipped, so the theming/`Color`/`IStyleTheme`/`IGlyphTheme` API (in `Jumbee.Console.Styles`) and the bundled Spectre types had **no IntelliSense/doc surface** for consumers. (The bundling target's `.xml` match never fired because the XML doc copies don't carry `ReferenceSourceTarget=ProjectReference`.)
+
+### Added
+
+- `UI.HotKeys.Char(char)` — builds a `ConsoleKeyInfo` for a bare letter, digit, punctuation, or space key so it can be registered as a global hotkey (e.g. `UI.RegisterHotKey(UI.HotKeys.Char('q'), UI.Stop)`). It mirrors the input decoder exactly — including that punctuation keys (e.g. `/`) carry key code `0` with the character — so a registered hotkey matches a real keypress, and the same value drives a headless `routeGlobal` snapshot test.
+- `Tree.SelectionChanged` event — raised whenever the highlighted node changes (arrow/vim keys, Home/End/PageUp/PageDown, or a mouse click), mirroring `ListBox.SelectionChanged`. Lets a detail pane follow tree navigation instead of only reacting to `NodeActivated` (leaf Enter/double-click).
+- `TreeGuide.None` — a connector-less tree where hierarchy is shown by indentation (and node glyphs) alone.
+- `Tree.TreeNode.Tag` and `ListBox.ListBoxItem.Tag` — an `object?` slot for arbitrary application data, so a node/row can map back to its domain object without a side dictionary.
+
+### Changed
+
+- `Tree.TreeNode.UpdateTree()` is now `public` (was `protected`) — it appeared in the docs but wasn't callable (`CS0122`). It forces a redraw of the owning tree, for the rare case a mutation didn't go through a property setter.
+
+### Docs
+
+- Documented that `ConsoleSnapshot.ToTextAfter`/`RenderAfter` deliver keys to the `control` argument itself, not to whatever `UI.SetFocus` last targeted — pass the control that actually changes (for a composite app, the specific child under test, not the root).
+- Refreshed the "Snapshot Testing" internals page to the current input API (`routeGlobal`, `UI.HotKeys.Char`) and cross-linked the getting-started "Testing without a terminal" guide. The getting-started hotkey examples now use `UI.HotKeys.Char`; the previous punctuation example built the key with `ConsoleKey.Oem2`, which does not match a real `/` keypress.
+- `UI.RegisterHotKey`: documented that the hotkey table is **process-global** (not scoped to a `UI.Start` root) — so a hotkey letter never reaches a focused text field (unregister/re-register around focus), and a second app instance re-registers the same keys (register/exercise one at a time in headless tests).
+- `Grid`: documented its **fixed-cell** sizing (each value is an absolute cell count; the grid's size is their sum; `0` is a collapsed row/column, **not** fill-the-parent like `DockPanel`) — use `DockPanel`/`SplitPanel` for proportional/fill layouts.
+- `SplitPanel.MinFirst`: documented it clamps to ≥ 1, so `SplitPosition` can't reach 0 (a "fully collapsed" pane is a 1-cell sliver).
+- Composite Controls: added the single-child idiom (`SetContent(new Boundary(child))`).
+- Troubleshooting: added the `Jumbee.Console.Tree` vs `Spectre.Console.Tree` name-ambiguity (`CS0104`) fix, and clarified that `MarkdownViewer` lives in core `Jumbee.Console` while the other viewers are in `Jumbee.Console.Documents`.
+
 ## 0.1.3
 
 ### Changed

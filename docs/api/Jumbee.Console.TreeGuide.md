@@ -35,3 +35,10 @@ Double box-drawing guide lines.
 
 
 
+`None = 4` 
+
+No connector lines — hierarchy is shown by indentation (and any node glyphs) alone. Useful for a
+    clean, icon-driven tree.
+
+
+

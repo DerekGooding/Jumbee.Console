@@ -130,7 +130,9 @@ levels deep.
 
 ### <a id="Jumbee_Console_SplitPanel_MinFirst"></a> MinFirst
 
-Minimum extent of the first pane in cells (default 3).
+Minimum extent of the first pane in cells (default 3). Clamped to at least <code>1</code>, so
+    <xref href="Jumbee.Console.SplitPanel.SplitPosition" data-throw-if-not-resolved="false"></xref> can never reach <code>0</code> — a "fully collapsed" first pane is really a 1-cell
+    sliver (set <code>MinFirst = 1</code> for the thinnest zen collapse).
 
 ```csharp
 public int MinFirst { get; set; }

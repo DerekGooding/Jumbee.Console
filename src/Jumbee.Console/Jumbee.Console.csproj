@@ -43,10 +43,18 @@
        assemblies (NuGetPackageId set, e.g. NTokenizers) are excluded — they stay as restored dependencies. -->
   <Target Name="_AddBundledAssembliesToPackage" DependsOnTargets="ResolveReferences">
     <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
-        Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and ('%(Extension)' == '.dll' or '%(Extension)' == '.xml')" />
+      <!-- The private project-reference DLLs. -->
+      <_BundledDll Include="@(ReferenceCopyLocalPaths)"
+        Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and '%(Extension)' == '.dll'" />
+      <!-- Their sibling XML docs, when the project emits one (some forks don't). We derive these from each bundled
+           DLL's path rather than matching '.xml' in ReferenceCopyLocalPaths directly: the XML doc copies there do
+           NOT carry ReferenceSourceTarget='ProjectReference', so the old condition silently shipped zero XML — which
+           left the bundled Styles/Spectre/etc. APIs with no IntelliSense for consumers. -->
+      <_BundledXml Include="@(_BundledDll->'%(RootDir)%(Directory)%(Filename).xml')"
+        Condition="Exists('%(RootDir)%(Directory)%(Filename).xml')" />
+      <BuildOutputInPackage Include="@(_BundledDll);@(_BundledXml)" />
     </ItemGroup>
-    <Message Importance="normal" Text="Jumbee.Console pack: bundled @(BuildOutputInPackage->Count()) private assemblies into lib/." />
+    <Message Importance="normal" Text="Jumbee.Console pack: bundled @(_BundledDll->Count()) private assemblies + @(_BundledXml->Count()) XML docs into lib/." />
   </Target>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

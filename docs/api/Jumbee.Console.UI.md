@@ -522,9 +522,16 @@ public static void RegisterHotKey(ConsoleKeyInfo key, Action action)
 
 #### Remarks
 
-<xref href="Jumbee.Console.UI.HotKeys.CtrlQ" data-throw-if-not-resolved="false"></xref> → <xref href="Jumbee.Console.UI.Stop" data-throw-if-not-resolved="false"></xref> is registered by default. Typically called before
+<p><xref href="Jumbee.Console.UI.HotKeys.CtrlQ" data-throw-if-not-resolved="false"></xref> → <xref href="Jumbee.Console.UI.Stop" data-throw-if-not-resolved="false"></xref> is registered by default. Typically called before
 <xref href="Jumbee.Console.UI.Start(Jumbee.Console.ILayout%2cSystem.Int32%2cSystem.Int32%2cSystem.Int32%2cSystem.Boolean%2cConsoleGUI.Api.IConsole%2cJumbee.Console.IInputSource%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref>; the key must match what the input decoder produces (use the <xref href="Jumbee.Console.UI.HotKeys" data-throw-if-not-resolved="false"></xref>
-constants/helpers).
+constants/helpers, e.g. <xref href="Jumbee.Console.UI.HotKeys.Char(System.Char)" data-throw-if-not-resolved="false"></xref> for a bare letter).</p>
+<p><b>Scope:</b> the hotkey table is <b>process-global</b> — one table shared across the whole app, not
+scoped to a <xref href="Jumbee.Console.UI.Start(Jumbee.Console.ILayout%2cSystem.Int32%2cSystem.Int32%2cSystem.Int32%2cSystem.Boolean%2cConsoleGUI.Api.IConsole%2cJumbee.Console.IInputSource%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref> root or a control tree. Two consequences worth knowing:</p>
+<ul><li>A matched hotkey is dispatched <em>before</em> the focused control and marks the event handled, so a
+letter registered as a hotkey never reaches a focused text field. To let a <code>TextInput</code>/<code>TextEditor</code>
+receive those letters, <xref href="Jumbee.Console.UI.UnregisterHotKey(System.ConsoleKeyInfo)" data-throw-if-not-resolved="false"></xref> them while it has focus and re-register on blur.</li><li>Constructing a second app/control tree (e.g. a fresh instance per headless snapshot capture) re-registers
+the same keys onto the one table, so input then routes to the newest registrant. In tests, register/exercise
+one instance at a time (or unregister between them).</li></ul>
 
 ### <a id="Jumbee_Console_UI_SendInput_Jumbee_Console_IFocusable_System_ConsoleKeyInfo_System_Boolean_"></a> SendInput\(IFocusable, ConsoleKeyInfo, bool\)
 

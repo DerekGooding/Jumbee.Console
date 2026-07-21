@@ -8,6 +8,12 @@ Remove the `Spectre.Console` package reference from your project. Jumbee.Console
 
 If you hit CS1704 while building the **repository** rather than your own app, the cause is usually the opposite: missing submodules. See the next entry.
 
+## `CS0104: 'Tree' is an ambiguous reference between 'Jumbee.Console.Tree' and 'Spectre.Console.Tree'`
+
+Jumbee.Console re-exposes the bundled Spectre.Console types, so once you build custom content (`IRenderable` rows, `Markup`, `Segment`) you'll have both namespaces in scope — and a few short type names collide (`Tree` is the common one). Qualify the one you mean, e.g. `Jumbee.Console.Tree`, or add a `using Tree = Jumbee.Console.Tree;` alias. (In a file already inside the `Jumbee.Console` namespace, the Jumbee type wins automatically.)
+
+**Where the document viewers live:** `MarkdownViewer` is part of the **core `Jumbee.Console`** package (namespace `Jumbee.Console`) — only the `MarkdownExtendedViewer`, `AsciiDocViewer`, and `MermaidViewer` are in the separate **`Jumbee.Console.Documents`** add-on.
+
 ## Build errors after cloning the repo (empty `ext/` folders)
 
 The repository builds against vendored forks under `ext/`, wired in as git submodules. A plain clone leaves those directories empty and the build fails, often with a CS1704 or a "project not found".

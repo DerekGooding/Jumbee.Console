@@ -701,3 +701,18 @@ public event EventHandler<Tree.TreeNode>? NodeActivated
 
  EventHandler<[Tree](Jumbee.Console.Tree.md).[TreeNode](Jumbee.Console.Tree.TreeNode.md)\>?
 
+### <a id="Jumbee_Console_Tree_SelectionChanged"></a> SelectionChanged
+
+Raised whenever the selected (highlighted) node changes — via the arrow/vim keys,
+    Home/End/PageUp/PageDown, or a mouse click. Mirrors <xref href="Jumbee.Console.ListBox.SelectionChanged" data-throw-if-not-resolved="false"></xref>; use it to follow
+    highlight movement (e.g. update a detail pane as the user arrows through the tree), rather than only reacting
+    to <xref href="Jumbee.Console.Tree.NodeActivated" data-throw-if-not-resolved="false"></xref> (which fires only on leaf Enter/double-click).
+
+```csharp
+public event EventHandler<Tree.TreeNode>? SelectionChanged
+```
+
+#### Event Type
+
+ EventHandler<[Tree](Jumbee.Console.Tree.md).[TreeNode](Jumbee.Console.Tree.TreeNode.md)\>?
+
