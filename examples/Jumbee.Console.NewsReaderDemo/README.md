@@ -15,7 +15,9 @@ This is the story of building it: the concepts I leaned on, the mistakes I made,
 I had to bend my approach around how the library does things. If you're starting your own Jumbee.Console app, I
 hope this saves you some of the same detours.
 
-Here's the finished thing (`review/01-main-view.png`): a feed tree on the left, the article list top-right with
+Here's the finished thing: 
+![](https://i.imgur.com/qPok0IG.png)
+a feed tree on the left, the article list top-right with
 ● unread / ○ read dots and a right-aligned "feed · age" column, and the reader pane along the bottom taking up
 most of the screen — deliberately. In eilmeldung the reader is the dominant region, not an afterthought, and
 matching that proportion was the very first decision I made.
