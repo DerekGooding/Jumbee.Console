@@ -132,6 +132,8 @@
       href: Jumbee.Console.DockPanel.md
     - name: DocumentClosingEventArgs
       href: Jumbee.Console.DocumentClosingEventArgs.md
+    - name: FeedHandle
+      href: Jumbee.Console.FeedHandle.md
     - name: FocusInputEvent
       href: Jumbee.Console.FocusInputEvent.md
     - name: Footer

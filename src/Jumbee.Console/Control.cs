@@ -537,8 +537,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// — for animations and periodic UI updates, without hand-rolling a timer loop.
     /// </summary>
     /// <remarks>
-    /// The returned <see cref="CancellationTokenSource"/> stops the feed when cancelled; the control also cancels
-    /// every live feed when it is <see cref="Dispose">disposed</see>. The first tick fires after one interval.
+    /// The returned <see cref="FeedHandle"/> stops the feed when cancelled/disposed; the control also cancels every
+    /// live feed when it is <see cref="Dispose">disposed</see>. Await <see cref="FeedHandle.Completion"/> (or
+    /// <see cref="FeedHandle.StopAsync"/>) to join the in-flight tick before tearing down a resource it uses. The
+    /// first tick fires after one interval.
     /// <para/><paramref name="tick"/> <b>always</b> runs on the UI thread — it may read and mutate control state directly (no
     /// marshaling), but it also means heavy work in it runs at frame start and delays the frame. For a tick that needs
     /// expensive <em>off-thread</em> work, use the <see cref="Feed{T}(Func{T}, Action{T}, TimeSpan)"/> overload
@@ -547,10 +549,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// request and state change land together in the same dispatcher drain, before that frame's paint — see the note
     /// on <see cref="UI.Post"/> vs <see cref="UI.Invoke"/>.
     /// </remarks>
-    protected CancellationTokenSource Feed(Action tick, TimeSpan interval) => StartFeed(interval, () => UI.Post(tick));
+    protected FeedHandle Feed(Action tick, TimeSpan interval, Action<Exception>? onError = null) =>
+        StartFeed(interval, () => UI.Post(tick), onError);
 
-    /// <summary>Convenience overload taking the interval in milliseconds. See <see cref="Feed(Action, TimeSpan)"/>.</summary>
-    protected CancellationTokenSource Feed(Action tick, int intervalMs) => Feed(tick, TimeSpan.FromMilliseconds(intervalMs));
+    /// <summary>Convenience overload taking the interval in milliseconds. See <see cref="Feed(Action, TimeSpan, Action{Exception})"/>.</summary>
+    protected FeedHandle Feed(Action tick, int intervalMs, Action<Exception>? onError = null) =>
+        Feed(tick, TimeSpan.FromMilliseconds(intervalMs), onError);
 
     /// <summary>
     /// A producer/consumer feed: every <paramref name="interval"/>, <paramref name="produce"/> runs on the feed's
@@ -559,23 +563,27 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <remarks>
     /// Use this when each tick needs expensive off-thread work (querying the OS, hitting the network, heavy
     /// computation) whose result should update the control — only the cheap <paramref name="apply"/> touches the UI
-    /// thread, so the frame isn't blocked. Cancellation and disposal behave as in <see cref="Feed(Action, TimeSpan)"/>.
+    /// thread, so the frame isn't blocked. Cancellation and disposal behave as in <see cref="Feed(Action, TimeSpan, Action{Exception})"/>.
+    /// <para/>If <paramref name="produce"/> throws, the feed stops and — when <paramref name="onError"/> is supplied —
+    /// the exception is marshaled to it on the UI thread (so it can surface the failure as visible state); without
+    /// <paramref name="onError"/> the throw silently ends the feed. A throw in <paramref name="apply"/> is not caught
+    /// here (it runs on the UI thread via <see cref="UI.Post"/>).
     /// </remarks>
-    protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval) =>
-        StartFeed(interval, () => { var result = produce(); UI.Post(() => apply(result)); });
+    protected FeedHandle Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval, Action<Exception>? onError = null) =>
+        StartFeed(interval, () => { var result = produce(); UI.Post(() => apply(result)); }, onError);
 
-    /// <summary>Convenience overload taking the interval in milliseconds. See <see cref="Feed{T}(Func{T}, Action{T}, TimeSpan)"/>.</summary>
-    protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, int intervalMs) =>
-        Feed(produce, apply, TimeSpan.FromMilliseconds(intervalMs));
+    /// <summary>Convenience overload taking the interval in milliseconds. See <see cref="Feed{T}(Func{T}, Action{T}, TimeSpan, Action{Exception})"/>.</summary>
+    protected FeedHandle Feed<T>(Func<T> produce, Action<T> apply, int intervalMs, Action<Exception>? onError = null) =>
+        Feed(produce, apply, TimeSpan.FromMilliseconds(intervalMs), onError);
 
     // Shared feed loop: every interval, run `pump` on the background task (for a plain feed it posts the tick; for a
     // producer feed it produces off-thread then posts the apply). Registers/unregisters the CTS so Dispose can cancel.
-    private CancellationTokenSource StartFeed(TimeSpan interval, Action pump)
+    private FeedHandle StartFeed(TimeSpan interval, Action pump, Action<Exception>? onError)
     {
         var cts = new CancellationTokenSource();
         lock (_feeds) _feeds.Add(cts);
         var ct = cts.Token;
-        _ = Task.Run(async () =>
+        var loop = Task.Run(async () =>
         {
             try
             {
@@ -583,10 +591,18 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
                 {
                     try { await Task.Delay(interval, ct).ConfigureAwait(false); }
                     catch (TaskCanceledException) { break; }
-                    if (!ct.IsCancellationRequested) pump();
+                    if (ct.IsCancellationRequested) break;
+                    try { pump(); }
+                    catch (Exception ex)
+                    {
+                        // A throwing producer ends the feed (a dead source rarely recovers). Surface it to the caller
+                        // on the UI thread when they asked; otherwise it ends silently rather than as an unobserved
+                        // task exception. Either way we stop.
+                        if (onError is not null) UI.Post(() => onError(ex));
+                        break;
+                    }
                 }
             }
-            catch { /* an unexpected error in pump ends this feed rather than surfacing as an unobserved task exception */ }
             finally
             {
                 // The feed registry is background-task bookkeeping, not UI/render state, so it takes a small lock
@@ -595,7 +611,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
                 lock (_feeds) _feeds.Remove(cts);
             }
         });
-        return cts;
+        return new FeedHandle(cts, loop);
     }
 
     // Cancels every live feed. Called from Dispose; each cancelled feed's loop removes itself from the registry. The

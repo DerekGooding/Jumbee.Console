@@ -45,8 +45,13 @@ public static class UI
         // encoding + bracketed paste + focus reporting, reset SGR, show the cursor. All are idempotent no-ops on a
         // normal start, so this is safe every time. The alternate screen is intentionally NOT toggled here (that would
         // jump the cursor on a normal start); it self-heals via AlternateScreen's own enter/clear/leave plus the clean
-        // Stop. Gated like the VT input source: a real interactive ANSI terminal with no caller-supplied console.
-        if (isAnsiTerminal && console is null && IsInteractiveTerminal() && !NonInteractiveEnvironment())
+        // Stop. Gated to a real interactive ANSI terminal with no caller-supplied console — AND only when we own the
+        // input source (input is null). A caller who passes their own input has already configured the terminal: a
+        // `new VtInputSource(...)` constructed as the Start argument runs its mouse/paste/focus ENABLE sequence before
+        // Start is even called, so self-healing here would disable the mouse it just turned on (keyboard survives —
+        // it isn't mode-gated). When input is null the default VtInputSource is created below, AFTER this reset, so its
+        // enable correctly lands last. Keyboard-only apps (also input == null) still get the heal.
+        if (isAnsiTerminal && console is null && input is null && IsInteractiveTerminal() && !NonInteractiveEnvironment())
         {
             try { Console.Out.Write(TerminalSelfHealSeq); Console.Out.Flush(); } catch { /* best effort */ }
         }
@@ -797,26 +802,25 @@ public static class UI
     {
         add
         {
-            if (value.Target is IFocusable c)
+            // Track a CONTROL subscriber once for per-control paint timing/focus (a control may add more than one Paint
+            // handler — e.g. PerfHud adds base Control.OnPaint and its own OnHudPaint — so the tracking is gated on
+            // "not already tracked" while the combine below is not).
+            if (value.Target is IFocusable c && !controls.Contains(c))
             {
-                // Track the control (for per-control paint timing / focus) once, but ALWAYS combine the handler:
-                // a control may legitimately add more than one Paint handler (e.g. PerfHud adds base Control.OnPaint
-                // and its own OnHudPaint). Gating the combine on "not already tracked" silently dropped the second,
-                // so such a control's extra handler never fired.
-                if (!controls.Contains(c))
-                {
-                    controls.Add(c);
-                    controlPaintTimers[c] = new Stopwatch();
-                    controlPaintTimes[c] = new double?[paintTimeSamples];
-                }
-                _Paint = (EventHandler<PaintEventArgs>?)Delegate.Combine(_Paint, value);
+                controls.Add(c);
+                controlPaintTimers[c] = new Stopwatch();
+                controlPaintTimes[c] = new double?[paintTimeSamples];
             }
+            // ALWAYS combine the handler — including a non-control subscriber (an app-level lambda, an fps counter, a
+            // periodic hook). Paint is a public per-frame event; gating the combine on IFocusable silently dropped
+            // such handlers so they never fired. Only the per-control bookkeeping above is control-specific.
+            _Paint = (EventHandler<PaintEventArgs>?)Delegate.Combine(_Paint, value);
         }
         remove
         {
+            _Paint = (EventHandler<PaintEventArgs>?)Delegate.Remove(_Paint, value);
             if (value.Target is IFocusable c)
             {
-                _Paint = (EventHandler<PaintEventArgs>?)Delegate.Remove(_Paint, value);
                 // Untrack the control only once none of its Paint handlers remain (a control may have added several).
                 bool stillSubscribed = _Paint is not null && _Paint.GetInvocationList().Any(d => ReferenceEquals(d.Target, c));
                 if (!stillSubscribed)

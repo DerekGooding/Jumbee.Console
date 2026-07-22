@@ -143,6 +143,12 @@ A two-child layout that pins one control to an edge and fills the remaining spac
 Arguments for <xref href="Jumbee.Console.MultiTabCodeEditor.DocumentClosing" data-throw-if-not-resolved="false"></xref>. Set <xref href="Jumbee.Console.DocumentClosingEventArgs.Cancel" data-throw-if-not-resolved="false"></xref> to keep the
     document open (e.g. after confirming unsaved changes).
 
+ [FeedHandle](Jumbee.Console.FeedHandle.md)
+
+A handle to a running background feed started by Control.Feed(Action, int) and its overloads.
+Cancel it to stop the feed; await <xref href="Jumbee.Console.FeedHandle.Completion" data-throw-if-not-resolved="false"></xref> (or <xref href="Jumbee.Console.FeedHandle.StopAsync" data-throw-if-not-resolved="false"></xref>) to know the in-flight tick
+has finished — for safely disposing a resource the feed's producer reads.
+
  [FocusInputEvent](Jumbee.Console.FocusInputEvent.md)
 
 Terminal focus gained/lost (DEC mode 1004).

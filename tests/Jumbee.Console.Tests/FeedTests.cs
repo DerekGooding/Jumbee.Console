@@ -121,9 +121,9 @@ public class FeedTests
         public volatile bool ProduceOnUiThread = true;   // start pessimistic; produce (off-thread) must flip it false
         public volatile bool ApplyOnUiThread;
 
-        public CancellationTokenSource StartTickFeed(int ms) => Feed(() => Interlocked.Increment(ref _ticks), ms);
+        public FeedHandle StartTickFeed(int ms) => Feed(() => Interlocked.Increment(ref _ticks), ms);
 
-        public CancellationTokenSource StartProducerFeed(int ms) => Feed(
+        public FeedHandle StartProducerFeed(int ms) => Feed(
             produce: () => { ProduceOnUiThread = UI.CheckAccess(); return 1; },
             apply: _ => { ApplyOnUiThread = UI.CheckAccess(); Interlocked.Increment(ref _applied); },
             intervalMs: ms);

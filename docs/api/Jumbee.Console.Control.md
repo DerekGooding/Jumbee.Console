@@ -176,7 +176,7 @@ public int ActualWidth { get; }
 
 ### <a id="Jumbee_Console_Control_Feeds"></a> Feeds
 
-A thread-safe snapshot of this control's currently live feed handles (each <xref href="Jumbee.Console.Control.Feed(System.Action%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref> call
+A thread-safe snapshot of this control's currently live feed handles (each Feed(Action, int) call
 registers one; it self-unregisters when cancelled or completed).
 
 ```csharp
@@ -572,13 +572,13 @@ Cancels any live feeds and detaches the control's paint, theme, and frame event 
 public virtual void Dispose()
 ```
 
-### <a id="Jumbee_Console_Control_Feed_System_Action_System_TimeSpan_"></a> Feed\(Action, TimeSpan\)
+### <a id="Jumbee_Console_Control_Feed_System_Action_System_TimeSpan_System_Action_System_Exception__"></a> Feed\(Action, TimeSpan, Action<Exception\>?\)
 
 Starts a repeating feed that runs <code class="paramref">tick</code> <b>on the UI thread</b> every <code class="paramref">interval</code>
 — for animations and periodic UI updates, without hand-rolling a timer loop.
 
 ```csharp
-protected CancellationTokenSource Feed(Action tick, TimeSpan interval)
+protected FeedHandle Feed(Action tick, TimeSpan interval, Action<Exception>? onError = null)
 ```
 
 #### Parameters
@@ -587,18 +587,22 @@ protected CancellationTokenSource Feed(Action tick, TimeSpan interval)
 
 `interval` TimeSpan
 
+`onError` Action<Exception\>?
+
 #### Returns
 
- CancellationTokenSource
+ [FeedHandle](Jumbee.Console.FeedHandle.md)
 
 #### Remarks
 
-    The returned <xref href="System.Threading.CancellationTokenSource" data-throw-if-not-resolved="false"></xref> stops the feed when cancelled; the control also cancels
-    every live feed when it is <xref href="Jumbee.Console.Control.Dispose?text=disposed" data-throw-if-not-resolved="false"></xref>. The first tick fires after one interval.
+    The returned <xref href="Jumbee.Console.FeedHandle" data-throw-if-not-resolved="false"></xref> stops the feed when cancelled/disposed; the control also cancels every
+    live feed when it is <xref href="Jumbee.Console.Control.Dispose?text=disposed" data-throw-if-not-resolved="false"></xref>. Await <xref href="Jumbee.Console.FeedHandle.Completion" data-throw-if-not-resolved="false"></xref> (or
+    <xref href="Jumbee.Console.FeedHandle.StopAsync" data-throw-if-not-resolved="false"></xref>) to join the in-flight tick before tearing down a resource it uses. The
+    first tick fires after one interval.
 
     <p></p><code class="paramref">tick</code> <b>always</b> runs on the UI thread — it may read and mutate control state directly (no
     marshaling), but it also means heavy work in it runs at frame start and delays the frame. For a tick that needs
-    expensive <em>off-thread</em> work, use the <xref href="Jumbee.Console.Control.Feed%60%601(System.Func%7b%60%600%7d%2cSystem.Action%7b%60%600%7d%2cSystem.TimeSpan)" data-throw-if-not-resolved="false"></xref> overload
+    expensive <em>off-thread</em> work, use the Feed<T>(Func<T>, Action<T>, TimeSpan) overload
     instead, which runs the work on a background thread and only applies the result on the UI thread.
 
     <p></p>
@@ -606,12 +610,12 @@ Implementation note: the tick is delivered via <xref href="Jumbee.Console.UI.Pos
     request and state change land together in the same dispatcher drain, before that frame's paint — see the note
     on <xref href="Jumbee.Console.UI.Post(System.Action)" data-throw-if-not-resolved="false"></xref> vs <xref href="Jumbee.Console.UI.Invoke(System.Action)" data-throw-if-not-resolved="false"></xref>.
 
-### <a id="Jumbee_Console_Control_Feed_System_Action_System_Int32_"></a> Feed\(Action, int\)
+### <a id="Jumbee_Console_Control_Feed_System_Action_System_Int32_System_Action_System_Exception__"></a> Feed\(Action, int, Action<Exception\>?\)
 
-Convenience overload taking the interval in milliseconds. See <xref href="Jumbee.Console.Control.Feed(System.Action%2cSystem.TimeSpan)" data-throw-if-not-resolved="false"></xref>.
+Convenience overload taking the interval in milliseconds. See <xref href="Jumbee.Console.Control.Feed(System.Action%2cSystem.TimeSpan%2cSystem.Action%7bSystem.Exception%7d)" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
-protected CancellationTokenSource Feed(Action tick, int intervalMs)
+protected FeedHandle Feed(Action tick, int intervalMs, Action<Exception>? onError = null)
 ```
 
 #### Parameters
@@ -620,17 +624,19 @@ protected CancellationTokenSource Feed(Action tick, int intervalMs)
 
 `intervalMs` int
 
+`onError` Action<Exception\>?
+
 #### Returns
 
- CancellationTokenSource
+ [FeedHandle](Jumbee.Console.FeedHandle.md)
 
-### <a id="Jumbee_Console_Control_Feed__1_System_Func___0__System_Action___0__System_TimeSpan_"></a> Feed<T\>\(Func<T\>, Action<T\>, TimeSpan\)
+### <a id="Jumbee_Console_Control_Feed__1_System_Func___0__System_Action___0__System_TimeSpan_System_Action_System_Exception__"></a> Feed<T\>\(Func<T\>, Action<T\>, TimeSpan, Action<Exception\>?\)
 
 A producer/consumer feed: every <code class="paramref">interval</code>, <code class="paramref">produce</code> runs on the feed's
 <b>background thread</b> and its result is posted to <code class="paramref">apply</code> on the <b>UI thread</b>.
 
 ```csharp
-protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval)
+protected FeedHandle Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval, Action<Exception>? onError = null)
 ```
 
 #### Parameters
@@ -641,9 +647,11 @@ protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, Time
 
 `interval` TimeSpan
 
+`onError` Action<Exception\>?
+
 #### Returns
 
- CancellationTokenSource
+ [FeedHandle](Jumbee.Console.FeedHandle.md)
 
 #### Type Parameters
 
@@ -651,16 +659,22 @@ protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, Time
 
 #### Remarks
 
-Use this when each tick needs expensive off-thread work (querying the OS, hitting the network, heavy
-computation) whose result should update the control — only the cheap <code class="paramref">apply</code> touches the UI
-thread, so the frame isn't blocked. Cancellation and disposal behave as in <xref href="Jumbee.Console.Control.Feed(System.Action%2cSystem.TimeSpan)" data-throw-if-not-resolved="false"></xref>.
+    Use this when each tick needs expensive off-thread work (querying the OS, hitting the network, heavy
+    computation) whose result should update the control — only the cheap <code class="paramref">apply</code> touches the UI
+    thread, so the frame isn't blocked. Cancellation and disposal behave as in <xref href="Jumbee.Console.Control.Feed(System.Action%2cSystem.TimeSpan%2cSystem.Action%7bSystem.Exception%7d)" data-throw-if-not-resolved="false"></xref>.
 
-### <a id="Jumbee_Console_Control_Feed__1_System_Func___0__System_Action___0__System_Int32_"></a> Feed<T\>\(Func<T\>, Action<T\>, int\)
+    <p></p>
+If <code class="paramref">produce</code> throws, the feed stops and — when <code class="paramref">onError</code> is supplied —
+    the exception is marshaled to it on the UI thread (so it can surface the failure as visible state); without
+    <code class="paramref">onError</code> the throw silently ends the feed. A throw in <code class="paramref">apply</code> is not caught
+    here (it runs on the UI thread via <xref href="Jumbee.Console.UI.Post(System.Action)" data-throw-if-not-resolved="false"></xref>).
 
-Convenience overload taking the interval in milliseconds. See <xref href="Jumbee.Console.Control.Feed%60%601(System.Func%7b%60%600%7d%2cSystem.Action%7b%60%600%7d%2cSystem.TimeSpan)" data-throw-if-not-resolved="false"></xref>.
+### <a id="Jumbee_Console_Control_Feed__1_System_Func___0__System_Action___0__System_Int32_System_Action_System_Exception__"></a> Feed<T\>\(Func<T\>, Action<T\>, int, Action<Exception\>?\)
+
+Convenience overload taking the interval in milliseconds. See <xref href="Jumbee.Console.Control.Feed%60%601(System.Func%7b%60%600%7d%2cSystem.Action%7b%60%600%7d%2cSystem.TimeSpan%2cSystem.Action%7bSystem.Exception%7d)" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
-protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, int intervalMs)
+protected FeedHandle Feed<T>(Func<T> produce, Action<T> apply, int intervalMs, Action<Exception>? onError = null)
 ```
 
 #### Parameters
@@ -671,9 +685,11 @@ protected CancellationTokenSource Feed<T>(Func<T> produce, Action<T> apply, int 
 
 `intervalMs` int
 
+`onError` Action<Exception\>?
+
 #### Returns
 
- CancellationTokenSource
+ [FeedHandle](Jumbee.Console.FeedHandle.md)
 
 #### Type Parameters
 

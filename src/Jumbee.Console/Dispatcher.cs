@@ -47,6 +47,14 @@ public sealed class Dispatcher
         ArgumentNullException.ThrowIfNull(frame);
         if (_running) return;
 
+        // Fresh lifetime for this run: a prior Stop cancelled the old one, so replace it before any work is marshalled
+        // (otherwise this run's Invoke/InvokeAsync would be born already-cancelled).
+        if (_lifetime.IsCancellationRequested)
+        {
+            _lifetime.Dispose();
+            _lifetime = new CancellationTokenSource();
+        }
+
         // A previous loop stopped from the UI thread itself does not Join (a thread cannot join itself), so it may
         // still be unwinding when we restart. Wait for it to fully exit first — otherwise the old and new loops would
         // briefly drain the same queue concurrently and could run posted work out of order.
@@ -79,6 +87,10 @@ public sealed class Dispatcher
 
         _running = false;
         _wake.Set();
+        // Release in-flight marshalled work BEFORE draining the queue: the completion closures about to be discarded
+        // are what a blocking Invoke's waiter and an awaited InvokeAsync task depend on, so without this they'd hang
+        // forever. Cancelling makes Invoke return and InvokeAsync tasks transition to cancelled instead.
+        _lifetime.Cancel();
         if (!onUiThread)
         {
             _thread?.Join(1000);
@@ -119,7 +131,10 @@ public sealed class Dispatcher
             catch (Exception ex) { error = ExceptionDispatchInfo.Capture(ex); }
             finally { done.Set(); }
         });
-        done.Wait();
+        // Wait on the UI thread to run it, but bail if the UI stops first (the posted closure would be discarded unrun,
+        // and done would never be set) — drop the mutation rather than hang the caller.
+        try { done.Wait(_lifetime.Token); }
+        catch (OperationCanceledException) { return; }
         error?.Throw();
     }
 
@@ -135,10 +150,12 @@ public sealed class Dispatcher
         }
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reg = _lifetime.Token.Register(() => tcs.TrySetCanceled());   // UI stops before it runs → cancel, don't hang
         Post(() =>
         {
-            try { action(); tcs.SetResult(); }
-            catch (Exception ex) { tcs.SetException(ex); }
+            try { action(); tcs.TrySetResult(); }
+            catch (Exception ex) { tcs.TrySetException(ex); }
+            finally { reg.Dispose(); }
         });
         return tcs.Task;
     }
@@ -155,10 +172,12 @@ public sealed class Dispatcher
         }
 
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reg = _lifetime.Token.Register(() => tcs.TrySetCanceled());   // UI stops before it runs → cancel, don't hang
         Post(() =>
         {
-            try { tcs.SetResult(func()); }
-            catch (Exception ex) { tcs.SetException(ex); }
+            try { tcs.TrySetResult(func()); }
+            catch (Exception ex) { tcs.TrySetException(ex); }
+            finally { reg.Dispose(); }
         });
         return tcs.Task;
     }
@@ -178,10 +197,12 @@ public sealed class Dispatcher
         }
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reg = _lifetime.Token.Register(() => tcs.TrySetCanceled());   // UI stops before it runs → cancel, don't hang
         Post(async () =>
         {
-            try { await func(); tcs.SetResult(); }
-            catch (Exception ex) { tcs.SetException(ex); }
+            try { await func(); tcs.TrySetResult(); }
+            catch (Exception ex) { tcs.TrySetException(ex); }
+            finally { reg.Dispose(); }
         });
         return tcs.Task;
     }
@@ -200,10 +221,12 @@ public sealed class Dispatcher
         }
 
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reg = _lifetime.Token.Register(() => tcs.TrySetCanceled());   // UI stops before it runs → cancel, don't hang
         Post(async () =>
         {
-            try { tcs.SetResult(await func()); }
-            catch (Exception ex) { tcs.SetException(ex); }
+            try { tcs.TrySetResult(await func()); }
+            catch (Exception ex) { tcs.TrySetException(ex); }
+            finally { reg.Dispose(); }
         });
         return tcs.Task;
     }
@@ -256,6 +279,10 @@ public sealed class Dispatcher
     private int _frameIntervalMs = 100;
     private volatile int _uiThreadId = NoThread;
     private volatile bool _running;
+    // Cancelled by Stop and re-created by Start. Marshalled work (Invoke/InvokeAsync) links to this so a Stop that
+    // discards queued completion closures RELEASES its waiters (Invoke returns; InvokeAsync tasks cancel) instead of
+    // hanging them forever.
+    private CancellationTokenSource _lifetime = new();
     #endregion
 }
 
