@@ -70,6 +70,9 @@ Unlike <xref href="Jumbee.Console.PlotSeries.Push(System.Double%2cSystem.Double%
 ### <a id="Jumbee_Console_PlotSeries_SetData_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Double__"></a> SetData\(IReadOnlyList<double\>, IReadOnlyList<double\>\)
 
 Replaces the series data with the paired <code class="paramref">xs</code>/<code class="paramref">ys</code> (same length).
+    Passing empty lists is valid and draws nothing — a live series can be emptied (equivalently, <xref href="Jumbee.Console.PlotSeries.Clear" data-throw-if-not-resolved="false"></xref>)
+    and refilled without removing/re-adding it, so a series that appears only under some state (a trigger marker,
+    peaks) can be toggled by feeding it data or emptying it.
 
 ```csharp
 public void SetData(IReadOnlyList<double> xs, IReadOnlyList<double> ys)

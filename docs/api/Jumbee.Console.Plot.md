@@ -791,7 +791,7 @@ public Plot Configure(Action<Plot> configure)
 
 ### <a id="Jumbee_Console_Plot_ConfigureAxis_System_Action_ConsolePlot_Plotting_AxisSettings__"></a> ConfigureAxis\(Action<AxisSettings\>\)
 
-Configures the axis lines. This styling is retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
+Configures the axis lines and their captions. This styling is retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public Plot ConfigureAxis(Action<AxisSettings> configure)
@@ -808,7 +808,11 @@ public Plot ConfigureAxis(Action<AxisSettings> configure)
 #### Remarks
 
 The passed settings expose <code>IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) and <code>Pen</code> (a
-    <code>LinePen</code> of brush + colour). Hide the axis with <code>ConfigureAxis(a =&gt; a.IsVisible = false)</code>.
+    <code>LinePen</code> of brush + colour), plus optional <code>XTitle</code>/<code>YTitle</code> captions (with <code>TitleColor</code>).
+    The captions are <b>screen-anchored</b> — <code>YTitle</code> is pinned to the top-left, <code>XTitle</code> to the
+    bottom-right — so they stay put when the axes rescale, unlike a data-anchored <xref href="Jumbee.Console.Plot.AddLabel(System.Double%2cSystem.Double%2cSystem.String%2cSystem.Nullable%7bJumbee.Console.Color%7d%2cSystem.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotLabelAlign%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>. Hide the
+    axis with <code>ConfigureAxis(a =&gt; a.IsVisible = false)</code>; label it with
+    <code>ConfigureAxis(a =&gt; { a.XTitle = "time"; a.YTitle = "amplitude"; })</code>.
 
 ### <a id="Jumbee_Console_Plot_ConfigureGrid_System_Action_ConsolePlot_Plotting_GridSettings__"></a> ConfigureGrid\(Action<GridSettings\>\)
 

@@ -621,9 +621,13 @@ public class Plot : Control
         return this;
     }
 
-    /// <summary>Configures the axis lines. This styling is retained across <see cref="Clear"/>.</summary>
+    /// <summary>Configures the axis lines and their captions. This styling is retained across <see cref="Clear"/>.</summary>
     /// <remarks>The passed settings expose <c>IsVisible</c> (default <see langword="true"/>) and <c>Pen</c> (a
-    /// <c>LinePen</c> of brush + colour). Hide the axis with <c>ConfigureAxis(a =&gt; a.IsVisible = false)</c>.</remarks>
+    /// <c>LinePen</c> of brush + colour), plus optional <c>XTitle</c>/<c>YTitle</c> captions (with <c>TitleColor</c>).
+    /// The captions are <b>screen-anchored</b> — <c>YTitle</c> is pinned to the top-left, <c>XTitle</c> to the
+    /// bottom-right — so they stay put when the axes rescale, unlike a data-anchored <see cref="AddLabel"/>. Hide the
+    /// axis with <c>ConfigureAxis(a =&gt; a.IsVisible = false)</c>; label it with
+    /// <c>ConfigureAxis(a =&gt; { a.XTitle = "time"; a.YTitle = "amplitude"; })</c>.</remarks>
     public Plot ConfigureAxis(Action<AxisSettings> configure) => ConfigureChrome(p => configure(p.Axis));
 
     /// <summary>Configures the background grid. This styling is retained across <see cref="Clear"/>.</summary>
