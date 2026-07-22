@@ -38,6 +38,18 @@ public static class UI
     {
         if (isRunning) return runCompletion.Task;
         ProcessMetrics.Start();
+        // Self-heal a terminal left in a bad state by a PREVIOUS run that was hard-killed (SIGKILL, Task-Manager "End
+        // task", a debugger Stop): no in-process code runs on a hard kill, so that run never disabled mouse/paste/focus
+        // reporting and the shell has been echoing stray reports ever since. We can't fix the dying process, but the
+        // next run can reset a clean baseline here before configuring its own session — disable every mouse-tracking
+        // encoding + bracketed paste + focus reporting, reset SGR, show the cursor. All are idempotent no-ops on a
+        // normal start, so this is safe every time. The alternate screen is intentionally NOT toggled here (that would
+        // jump the cursor on a normal start); it self-heals via AlternateScreen's own enter/clear/leave plus the clean
+        // Stop. Gated like the VT input source: a real interactive ANSI terminal with no caller-supplied console.
+        if (isAnsiTerminal && console is null && IsInteractiveTerminal() && !NonInteractiveEnvironment())
+        {
+            try { Console.Out.Write(TerminalSelfHealSeq); Console.Out.Flush(); } catch { /* best effort */ }
+        }
         // Enter the alternate screen FIRST — before ConsoleManager.Console is assigned (setting it runs Initialize,
         // which clears the screen) and before any rendering — so the clear and the whole session land on the alternate
         // buffer and the user's primary screen (their prompt/output) is saved intact and restored on exit. Gated to a
@@ -831,6 +843,10 @@ public static class UI
     private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
     private static AlternateScreen? altScreen;   // alternate-screen session (ANSI interactive only), restored on Stop
+    // Mouse (all encodings) + bracketed-paste + focus reporting OFF, reset SGR, show cursor. Emitted once at Start to
+    // clear terminal state a hard-killed previous run couldn't restore. See the self-heal note in Start.
+    private const string TerminalSelfHealSeq =
+        "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1015l\x1b[?1016l\x1b[?2004l\x1b[?1004l\x1b[0m\x1b[?25h";
     private static List<PosixSignalRegistration>? signalRegistrations;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     private static CancellationTokenSource cts = new CancellationTokenSource();

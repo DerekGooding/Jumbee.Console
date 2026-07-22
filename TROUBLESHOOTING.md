@@ -42,6 +42,20 @@ Mouse clicks, hover highlighting, bracketed paste, and focus reporting need VT i
 
 `anyMotion: true` turns on hover highlighting. Keyboard input works without any of this.
 
+## The terminal is broken after force-killing an app (stray characters, stuck full-screen)
+
+If a Jumbee app is **hard-killed** — Task Manager "End task", `kill -9`, or stopping it from a debugger — the shell may afterwards echo stray sequences as you move the mouse (mouse-tracking reports), or stay stuck showing the app's last screen. A hard kill runs no cleanup code at all — no `finally`, no exit handler, nothing — so the app never got to turn those modes off. This affects every full-screen terminal app, not just Jumbee; only a normal quit (Ctrl+Q) or a catchable exit restores the terminal.
+
+To recover:
+
+- **Easiest:** launch any Jumbee app again and quit it with **Ctrl+Q**. Its clean shutdown restores the terminal, and it also resets a clean baseline at startup — so simply relaunching clears the inherited state.
+- **Linux/macOS:** run `reset`.
+- **Windows PowerShell:** there's no `reset`; paste this to clear it:
+
+      $e=[char]27; [Console]::Out.Write("$e[?1000l$e[?1002l$e[?1003l$e[?1006l$e[?2004l$e[?1004l$e[0m$e[?25h$e[?1049l")
+
+To avoid the situation, quit with Ctrl+Q rather than force-killing (and if you launch from a debugger, prefer Ctrl+Q over the Stop button).
+
 ## Colours look wrong or washed out
 
 Colour depth is detected from the terminal. When a terminal only reports 16 colours, the 24-bit palette is downsampled. Use a terminal that advertises truecolor (and a `TERM` such as `xterm-256color`) for the full palette.
