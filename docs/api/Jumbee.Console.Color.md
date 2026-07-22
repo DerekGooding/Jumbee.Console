@@ -3221,6 +3221,24 @@ public static Color FromConsoleGUIColor(Color color)
 
  [Color](Jumbee.Console.Color.md)
 
+### <a id="Jumbee_Console_Color_FromHexString_System_String_"></a> FromHexString\(string\)
+
+Creates a <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref> from a hex string — <code>"#RRGGBB"</code> or <code>"RRGGBB"</code>, and the 3-digit
+    short form, with or without the leading <code>#</code>. Throws on a malformed string; use
+    <xref href="Jumbee.Console.Color.TryFromHexString(System.String%2cJumbee.Console.Color%40)" data-throw-if-not-resolved="false"></xref> to parse without throwing.
+
+```csharp
+public static Color FromHexString(string hex)
+```
+
+#### Parameters
+
+`hex` string
+
+#### Returns
+
+ [Color](Jumbee.Console.Color.md)
+
 ### <a id="Jumbee_Console_Color_FromSpectreColor_Spectre_Console_Color_"></a> FromSpectreColor\(Color\)
 
 Creates a <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref> from a <xref href="Spectre.Console.Color" data-throw-if-not-resolved="false"></xref>.
@@ -3283,6 +3301,20 @@ public Color Lighten(double amount)
 
  [Color](Jumbee.Console.Color.md)
 
+### <a id="Jumbee_Console_Color_ToConsoleColor"></a> ToConsoleColor\(\)
+
+This colour as the nearest <xref href="System.ConsoleColor" data-throw-if-not-resolved="false"></xref> — a lossy map onto the 16 console
+    colours, for the few APIs that take one (e.g. a plot's axis/label colours). Prefer the RGB colour elsewhere;
+    <xref href="Jumbee.Console.Color.FromSystemConsoleColor(System.ConsoleColor)" data-throw-if-not-resolved="false"></xref> is the exact inverse.
+
+```csharp
+public ConsoleColor ToConsoleColor()
+```
+
+#### Returns
+
+ ConsoleColor
+
 ### <a id="Jumbee_Console_Color_ToConsoleGUIColor_Spectre_Console_Color_"></a> ToConsoleGUIColor\(Color\)
 
 Converts a <xref href="Spectre.Console.Color" data-throw-if-not-resolved="false"></xref> to a ConsoleGUI colour, or <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> for the default colour.
@@ -3322,6 +3354,25 @@ public Color ToSpectreColor()
 #### Returns
 
  Color
+
+### <a id="Jumbee_Console_Color_TryFromHexString_System_String_Jumbee_Console_Color__"></a> TryFromHexString\(string, out Color\)
+
+Tries to create a <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref> from a hex string (see <xref href="Jumbee.Console.Color.FromHexString(System.String)" data-throw-if-not-resolved="false"></xref>), returning
+    <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a> instead of throwing when <code class="paramref">hex</code> is malformed.
+
+```csharp
+public static bool TryFromHexString(string hex, out Color color)
+```
+
+#### Parameters
+
+`hex` string
+
+`color` [Color](Jumbee.Console.Color.md)
+
+#### Returns
+
+ bool
 
 ## Operators
 

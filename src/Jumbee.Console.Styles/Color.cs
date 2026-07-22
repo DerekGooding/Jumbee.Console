@@ -53,6 +53,30 @@ public readonly partial struct Color : System.IEquatable<Color>
     /// <summary>Creates a <see cref="Color"/> from a <see cref="System.ConsoleColor"/>.</summary>
     public static Color FromSystemConsoleColor(System.ConsoleColor color) => SpectreColor.FromConsoleColor(color);
 
+    /// <summary>Creates a <see cref="Color"/> from a hex string — <c>"#RRGGBB"</c> or <c>"RRGGBB"</c>, and the 3-digit
+    /// short form, with or without the leading <c>#</c>. Throws on a malformed string; use
+    /// <see cref="TryFromHexString"/> to parse without throwing.</summary>
+    public static Color FromHexString(string hex) => FromSpectreColor(SpectreColor.FromHex(hex));
+
+    /// <summary>Tries to create a <see cref="Color"/> from a hex string (see <see cref="FromHexString"/>), returning
+    /// <see langword="false"/> instead of throwing when <paramref name="hex"/> is malformed.</summary>
+    public static bool TryFromHexString(string hex, out Color color)
+    {
+        if (SpectreColor.TryFromHex(hex, out var c))
+        {
+            color = FromSpectreColor(c);
+            return true;
+        }
+
+        color = default;
+        return false;
+    }
+
+    /// <summary>This colour as the nearest <see cref="System.ConsoleColor"/> — a lossy map onto the 16 console
+    /// colours, for the few APIs that take one (e.g. a plot's axis/label colours). Prefer the RGB colour elsewhere;
+    /// <see cref="FromSystemConsoleColor"/> is the exact inverse.</summary>
+    public System.ConsoleColor ToConsoleColor() => SpectreColor.ToConsoleColor(ToSpectreColor());
+
     /// <summary>A copy of this colour blended <paramref name="amount"/> (0..1) of the way toward white.</summary>
     public Color Lighten(double amount) => Lerp(this, White, amount);
 
