@@ -98,7 +98,7 @@ Auto-generated from the core libraries' XML-doc comments with [docfx](https://do
 - [TerminalInputEvent](Jumbee.Console.TerminalInputEvent.md) — Base type for the unified terminal input stream produced by `AnsiInputDecoder`: a single sequence of key / mouse / paste / focus events, replacing the keyboard-only `ConsoleKeyInfo` path.
 - [TextEditor](Jumbee.Console.TextEditor.md) — A text editor control with syntax highlighting for supported languages.
 - [TextInput](Jumbee.Console.TextInput.md) — A single-line text entry control: caret, selection (Shift+navigation), horizontal scrolling when the text exceeds the width, an optional muted placeholder shown while empty, and optional password masking.
-- [TextLabel](Jumbee.Console.TextLabel.md) — Displays a single-line text label with a defined horizontal or vertical orientation and foreground and background color.
+- [TextLabel](Jumbee.Console.TextLabel.md) — Displays a single-line text label with a defined horizontal or vertical orientation, foreground and background colour, and optional text decoration (e.g. bold, underline).
 - [TextPanel](Jumbee.Console.TextPanel.md) — Displays a block of multi-line Spectre `Markup` text — the counterpart to the single-line `TextLabel` and the append-only `Log`.
 - [TextPrompt](Jumbee.Console.TextPrompt.md) — A single-line text input that shows a prompt label and edits an inline entry with a terminal cursor.
 - [ToggleButton](Jumbee.Console.ToggleButton.md) — Shared base for the single-state toggle widgets (`Checkbox`, `RadioButton`, `Switch`).

@@ -5,6 +5,8 @@ using System.Linq;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
+using SCDecoration = Spectre.Console.Decoration;
+
 /// <summary>The layout direction of a <see cref="TextLabel"/>.</summary>
 public enum TextLabelOrientation
 {
@@ -15,23 +17,25 @@ public enum TextLabelOrientation
 }
 
 /// <summary>
-/// Displays a single-line text label with a defined horizontal or vertical orientation and foreground and background color.
+/// Displays a single-line text label with a defined horizontal or vertical orientation, foreground and background
+/// colour, and optional text decoration (e.g. bold, underline).
 /// </summary>
 public class TextLabel : Control
 {
     #region Constructors
-    /// <summary>Initializes a new <see cref="TextLabel"/> with the given <paramref name="orientation"/>, <paramref name="text"/>, and optional foreground/background colours.</summary>
+    /// <summary>Initializes a new <see cref="TextLabel"/> with the given <paramref name="orientation"/>, <paramref name="text"/>, optional foreground/background colours, and optional <paramref name="decoration"/>.</summary>
     // Colours are nullable and default to transparent (null): an unset foreground inherits the terminal default and
     // an unset background lets whatever is behind show through. Passing the non-nullable default(Color) here would
     // paint an opaque BLACK background — invisible on a black terminal, but it dims to near-black under an overlay
     // scrim (and blocks compositing), which is rarely what a plain label wants.
-    public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor = null, Color? bgcolor = null)
+    public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor = null, Color? bgcolor = null, SCDecoration decoration = SCDecoration.None)
     {
         Focusable = false;   // a passive display label: never a focus/tab target, never owns the cursor
         _orientation = orientation;
         _text = text;
         _fgcolor = fgcolor;
         _bgcolor = bgcolor;
+        _decoration = decoration;
         chars = new Cell[_text.Length];
         size = orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) :new Size(1, _text.Length);
         Resize(size);
@@ -51,6 +55,13 @@ public class TextLabel : Control
     {
         get => _bgcolor;
         set => SetAtomicProperty(ref _bgcolor, value);
+    }
+
+    /// <summary>Text decoration (e.g. <c>Bold</c>, <c>Underline</c>); <c>None</c> for plain text. Flags combine.</summary>
+    public SCDecoration Decoration
+    {
+        get => _decoration;
+        set => SetAtomicProperty(ref _decoration, value);
     }
 
     /// <summary>The label text. Setting it re-sizes the control when the length changes.</summary>
@@ -113,9 +124,11 @@ public class TextLabel : Control
     // We use a 1D buffer to render instead of the 2D consoleBuffer as it's more efficient to access.
     protected override void Render()
     {
+        // Spectre and ConsoleGUI Decoration share flag values; map None to null (no decoration) like the other controls.
+        Decoration? deco = _decoration == SCDecoration.None ? null : (Decoration)_decoration;
         for (int i = 0; i < _text.Length; i++)
         {
-            chars[i] = (Cell)new Character(_text[i], foreground: _fgcolor, background: _bgcolor);
+            chars[i] = (Cell)new Character(_text[i], foreground: _fgcolor, background: _bgcolor, decoration: deco);
         }
     }
 
@@ -135,6 +148,7 @@ public class TextLabel : Control
     private string _text = "";
     private Color? _fgcolor;
     private Color? _bgcolor;
+    private SCDecoration _decoration;
     private Size size;
     private Cell[] chars = [];
     #endregion

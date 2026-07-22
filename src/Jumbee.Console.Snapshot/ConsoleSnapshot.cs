@@ -85,6 +85,19 @@ public static class ConsoleSnapshot
     public static ConsoleBuffer RenderAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
         => RenderAfterCore(control, width, height, keys, routeGlobal);
 
+    /// <summary>As <see cref="RenderAfter(JControl, int, int, ConsoleKey[])"/> but for a whole layout, so a
+    /// key-driven multi-control screen (e.g. a header plus a plot) can be snapshotted as one unit. The keys go to
+    /// <paramref name="layout"/> itself.</summary>
+    public static ConsoleBuffer RenderAfter(ILayout layout, int width, int height, params ConsoleKey[] keys)
+        => RenderAfterCore(layout, width, height, keys.Select(k => Key(k)));
+
+    /// <summary>As <see cref="RenderAfter(JControl, int, int, IReadOnlyList{ConsoleKeyInfo}, bool)"/> but for a
+    /// whole layout. With <paramref name="routeGlobal"/> each key runs the global hotkey dispatch first — the usual
+    /// case for a layout, whose behaviour is driven by <see cref="UI.RegisterHotKey"/> rather than a single focused
+    /// child.</summary>
+    public static ConsoleBuffer RenderAfter(ILayout layout, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
+        => RenderAfterCore(layout, width, height, keys, routeGlobal);
+
     /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a key with optional modifiers. For letter and digit keys
     /// the <c>KeyChar</c> is filled in (lowercase, uppercase under Shift, the control char under Ctrl) so the result
     /// matches how a hotkey registered with <see cref="UI.RegisterHotKey"/> — or a real keystroke — is keyed. That
@@ -116,6 +129,13 @@ public static class ConsoleSnapshot
         Render(control, width, height);
         foreach (var key in keys) UI.SendInput(control, key, routeGlobal);
         return Render(control, width, height);
+    }
+
+    private static ConsoleBuffer RenderAfterCore(ILayout layout, int width, int height, IEnumerable<ConsoleKeyInfo> keys, bool routeGlobal = false)
+    {
+        Render(layout, width, height);
+        foreach (var key in keys) UI.SendInput(layout, key, routeGlobal);
+        return Render(layout, width, height);
     }
     #endregion
 
@@ -156,6 +176,16 @@ public static class ConsoleSnapshot
     /// <see cref="RenderAfter(JControl, int, int, IReadOnlyList{ConsoleKeyInfo}, bool)"/>).</summary>
     public static string ToTextAfter(JControl control, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
         => ToText(RenderAfter(control, width, height, keys, routeGlobal));
+
+    /// <summary>Renders a layout after sending the given keys and returns its text snapshot.</summary>
+    public static string ToTextAfter(ILayout layout, int width, int height, params ConsoleKey[] keys)
+        => ToText(RenderAfter(layout, width, height, keys));
+
+    /// <summary>Renders a layout after sending the given keys (with modifiers) and returns its text snapshot. Pass
+    /// <paramref name="routeGlobal"/> to run each key through the global hotkey dispatch first — the usual case for a
+    /// layout driven by <see cref="UI.RegisterHotKey"/>.</summary>
+    public static string ToTextAfter(ILayout layout, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
+        => ToText(RenderAfter(layout, width, height, keys, routeGlobal));
     #endregion
 
     #region Image snapshot

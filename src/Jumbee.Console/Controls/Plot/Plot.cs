@@ -17,6 +17,11 @@ using CColor = ConsoleGUI.Data.Color;
 /// <remarks>
 /// The plot fills its container and re-draws to fit whenever the control is resized; all configuration is replayed
 /// on each rebuild, so settings survive resizing.
+/// <para>For data that changes every frame (a live scope, a streaming chart), add the series ONCE with
+/// <see cref="AddLiveSeries"/> and feed it via the returned <see cref="PlotSeries"/> handle
+/// (<c>SetData</c>/<c>Push</c>) rather than rebuilding with <see cref="Clear"/> + <see cref="AddSeries"/> each frame —
+/// the live path mutates the data in place without re-allocating the plot, and it keeps your <c>Configure*</c> styling
+/// (which <see cref="Clear"/> would otherwise drop from the data list).</para>
 /// </remarks>
 public class Plot : Control
 {
@@ -43,7 +48,8 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a data series. <paramref name="xs"/> and <paramref name="ys"/> must be the same length.
+    /// Adds a line series — consecutive points joined by straight segments (use <see cref="AddScatter"/> for
+    /// unconnected markers). <paramref name="xs"/> and <paramref name="ys"/> must be the same length.
     /// </summary>
     /// <remarks>
     /// When <paramref name="pen"/> is left at its default a colour is taken from the control's palette (cycling by
@@ -62,7 +68,8 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a data series drawn with the given <paramref name="brush"/>.
+    /// Adds a line series (consecutive points joined by straight segments) drawn with the given
+    /// <paramref name="brush"/>. For unconnected markers use <see cref="AddScatter"/>.
     /// </summary>
     /// <remarks>
     /// The <paramref name="brush"/>'s sub-cell resolution — Braille 2×4, Quadrant 2×2, the rest 1×1 — sets how smooth
@@ -614,16 +621,40 @@ public class Plot : Control
         return this;
     }
 
-    /// <summary>Configures the axis (visibility, pen).</summary>
-    public Plot ConfigureAxis(Action<AxisSettings> configure) => Configure(p => configure(p.Axis));
+    /// <summary>Configures the axis lines. This styling is retained across <see cref="Clear"/>.</summary>
+    /// <remarks>The passed settings expose <c>IsVisible</c> (default <see langword="true"/>) and <c>Pen</c> (a
+    /// <c>LinePen</c> of brush + colour). Hide the axis with <c>ConfigureAxis(a =&gt; a.IsVisible = false)</c>.</remarks>
+    public Plot ConfigureAxis(Action<AxisSettings> configure) => ConfigureChrome(p => configure(p.Axis));
 
-    /// <summary>Configures the grid (visibility, pen).</summary>
-    public Plot ConfigureGrid(Action<GridSettings> configure) => Configure(p => configure(p.Grid));
+    /// <summary>Configures the background grid. This styling is retained across <see cref="Clear"/>.</summary>
+    /// <remarks>Settings expose <c>IsVisible</c> (default <see langword="true"/>, dashed dark-gray) and <c>Pen</c>.
+    /// Hide the grid with <c>ConfigureGrid(g =&gt; g.IsVisible = false)</c> — combine with
+    /// <c>ConfigureTicks(t =&gt; { t.IsVisible = false; t.Labels.IsVisible = false; })</c> for a bare, chrome-free chart
+    /// (e.g. an oscilloscope trace).</remarks>
+    public Plot ConfigureGrid(Action<GridSettings> configure) => ConfigureChrome(p => configure(p.Grid));
 
-    /// <summary>Configures the ticks and their labels (spacing, pen, format).</summary>
-    public Plot ConfigureTicks(Action<TickSettings> configure) => Configure(p => configure(p.Ticks));
+    /// <summary>Configures the axis ticks and their labels. This styling is retained across <see cref="Clear"/>.</summary>
+    /// <remarks>Two separate visibility flags: <c>IsVisible</c> (default <see langword="true"/>) draws the tick
+    /// <em>marks</em>, while <c>Labels.IsVisible</c> (default <see langword="true"/>) draws the numeric tick
+    /// <em>labels</em> — hiding one does not hide the other. Also exposed: <c>Pen</c>, per-axis
+    /// <c>DesiredXStep</c>/<c>DesiredYStep</c> spacing, <c>CustomXTicks</c>/<c>CustomYTicks</c> (see
+    /// <see cref="SetXTicks"/>), and <c>Labels</c> (<c>Color</c>, <c>Format</c>, <c>AttachToAxis</c>). Hide the marks
+    /// with <c>ConfigureTicks(t =&gt; t.IsVisible = false)</c> and the numbers with
+    /// <c>ConfigureTicks(t =&gt; t.Labels.IsVisible = false)</c>.</remarks>
+    public Plot ConfigureTicks(Action<TickSettings> configure) => ConfigureChrome(p => configure(p.Ticks));
 
-    /// <summary>Removes all series and configuration, leaving an empty plot.</summary>
+    // Records persistent axis/grid/tick styling. Unlike Configure/AddSeries (which land in the per-data _config list
+    // that Clear() empties), chrome is replayed on every rebuild AND survives Clear(), so a plot rebuilt or cleared to
+    // swap data each frame keeps how it's drawn — the fix for a per-frame Clear()+AddSeries loop silently dropping the
+    // configured chrome (e.g. a hidden grid reappearing on the first frame after setup).
+    private Plot ConfigureChrome(Action<CPlot> configure)
+    {
+        UI.Invoke(() => { _chrome.Add(configure); Rebuild(); });
+        return this;
+    }
+
+    /// <summary>Removes all series and data, leaving an empty plot. Axis/grid/tick styling set via the
+    /// <c>Configure*</c> methods is retained — clearing the data does not reset how the plot is drawn.</summary>
     public Plot Clear()
     {
         UI.Invoke(() => { _config.Clear(); _seriesCount = 0; Rebuild(); });
@@ -670,9 +701,10 @@ public class Plot : Control
 
     private PlotImage? BuildPlot(int width, int height)
     {
-        if (_config.Count == 0) return null;
+        if (_config.Count == 0 && _chrome.Count == 0) return null;
         var plot = new PlotImage(width, height, consoleBuffer) { Background = _background };
-        foreach (var apply in _config) apply(plot);
+        foreach (var apply in _chrome) apply(plot);    // persistent styling first (axis/grid/ticks)
+        foreach (var apply in _config) apply(plot);    // then per-data series/labels/ranges
         return plot;
     }
     #endregion
@@ -690,6 +722,8 @@ public class Plot : Control
     ];
 
     private readonly List<Action<CPlot>> _config = [];
+    // Persistent axis/grid/tick styling — replayed on every rebuild and NOT emptied by Clear() (see ConfigureChrome).
+    private readonly List<Action<CPlot>> _chrome = [];
     private PlotImage? _plot;
     private int _seriesCount;
     private int _builtWidth = -1;

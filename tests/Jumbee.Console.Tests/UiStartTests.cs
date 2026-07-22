@@ -112,7 +112,7 @@ public class UiStartTests
             control.IsFocused = true;
 
             run = UI.Start(
-                grid, width: 20, height: 5, paintInterval: 20,
+                grid, width: 20, height: 5, fps: 50,
                 console: new ConsoleBuffer { Size = new Size(20, 5) },
                 input: input);
 
@@ -149,7 +149,7 @@ public class UiStartTests
         try
         {
             // isAnsiTerminal: false routes rendering through IConsole.Write instead of emitting ANSI.
-            run = UI.Start(grid, width: 10, height: 3, paintInterval: 20, isAnsiTerminal: false, console: screen);
+            run = UI.Start(grid, width: 10, height: 3, fps: 50, isAnsiTerminal: false, console: screen);
 
             Assert.True(
                 WaitUntil(() => screen[0, 0].Content == 'X', 3000),
@@ -176,7 +176,7 @@ public class UiStartTests
 
         try
         {
-            run = UI.Start(grid, width: 10, height: 3, paintInterval: 20, isAnsiTerminal: false, console: screen);
+            run = UI.Start(grid, width: 10, height: 3, fps: 50, isAnsiTerminal: false, console: screen);
 
             Assert.True(WaitUntil(() => screen[0, 0].Content == 'Z', 3000), "software cursor cell should be rendered");
             // A steady block cursor renders the cell with fg/bg inverted (hardware cursor unused).
@@ -206,7 +206,7 @@ public class UiStartTests
         try
         {
             control.IsFocused = true;
-            run = UI.Start(grid, width: 20, height: 5, paintInterval: 20,
+            run = UI.Start(grid, width: 20, height: 5, fps: 50,
                 console: new ConsoleBuffer { Size = new Size(20, 5) }, input: input);
 
             input.Push(new PasteInputEvent("hello\nworld"));
@@ -237,7 +237,7 @@ public class UiStartTests
 
         try
         {
-            run = UI.Start(grid, width: 20, height: 8, paintInterval: 20,
+            run = UI.Start(grid, width: 20, height: 8, fps: 50,
                 console: new ConsoleBuffer { Size = new Size(20, 8) }, input: new FakeInputSource());
 
             // Start wraps a non-Overlay root in a UI-owned overlay, exposed as UI.Overlay.
@@ -282,7 +282,7 @@ public class UiStartTests
         {
             // Non-ANSI so rendering lands in `screen`, letting us wait for the tree to actually paint (so its cells
             // carry mouse listeners) before injecting the click.
-            run = UI.Start(grid, width: 24, height: 6, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            run = UI.Start(grid, width: 24, height: 6, fps: 50, isAnsiTerminal: false, console: screen, input: input);
             UI.Invoke(() => UI.SetFocus(tree));
             Assert.True(WaitUntil(() => screen[0, 0].Content == '▼', 3000), "tree should render before the click");
 
@@ -323,7 +323,7 @@ public class UiStartTests
 
         try
         {
-            run = UI.Start(grid, width: 24, height: 6, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            run = UI.Start(grid, width: 24, height: 6, fps: 50, isAnsiTerminal: false, console: screen, input: input);
             UI.Invoke(() => UI.SetFocus(list));
             Assert.True(WaitUntil(() => screen[0, 0].Content == 'A', 3000), "list should render before the click");
 
@@ -361,7 +361,7 @@ public class UiStartTests
         {
             // Non-ANSI so rendering lands in `screen`, and a persistent (not re-created-per-frame) layout — the very
             // conditions under which a self-resizing popup previously failed to re-lay-out when its submenu opened.
-            run = UI.Start(grid, width: 40, height: 14, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            run = UI.Start(grid, width: 40, height: 14, fps: 50, isAnsiTerminal: false, console: screen, input: input);
             UI.Invoke(() => menu.Show(1, 1));   // shows + focuses the menu in the ambient overlay
             Assert.True(WaitUntil(() => ScreenContains(screen, "Recent"), 3000), "the menu should render");
 
@@ -392,7 +392,7 @@ public class UiStartTests
         try
         {
             run = UI.Start(
-                grid, width: 20, height: 5, paintInterval: 20,
+                grid, width: 20, height: 5, fps: 50,
                 console: new ConsoleBuffer { Size = new Size(20, 5) },
                 input: new FakeInputSource());
 

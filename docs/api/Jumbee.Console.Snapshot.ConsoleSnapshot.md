@@ -165,6 +165,57 @@ public static ConsoleBuffer RenderAfter(Control control, int width, int height, 
 
  [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
 
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_ILayout_System_Int32_System_Int32_System_ConsoleKey___"></a> RenderAfter\(ILayout, int, int, params ConsoleKey\[\]\)
+
+As <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Console.Control%2cSystem.Int32%2cSystem.Int32%2cSystem.ConsoleKey%5b%5d)" data-throw-if-not-resolved="false"></xref> but for a whole layout, so a
+    key-driven multi-control screen (e.g. a header plus a plot) can be snapshotted as one unit. The keys go to
+    <code class="paramref">layout</code> itself.
+
+```csharp
+public static ConsoleBuffer RenderAfter(ILayout layout, int width, int height, params ConsoleKey[] keys)
+```
+
+#### Parameters
+
+`layout` [ILayout](Jumbee.Console.ILayout.md)
+
+`width` int
+
+`height` int
+
+`keys` ConsoleKey\[\]
+
+#### Returns
+
+ [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
+
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_RenderAfter_Jumbee_Console_ILayout_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__System_Boolean_"></a> RenderAfter\(ILayout, int, int, IReadOnlyList<ConsoleKeyInfo\>, bool\)
+
+As <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.RenderAfter(Jumbee.Console.Control%2cSystem.Int32%2cSystem.Int32%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.ConsoleKeyInfo%7d%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref> but for a
+    whole layout. With <code class="paramref">routeGlobal</code> each key runs the global hotkey dispatch first — the usual
+    case for a layout, whose behaviour is driven by <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref> rather than a single focused
+    child.
+
+```csharp
+public static ConsoleBuffer RenderAfter(ILayout layout, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
+```
+
+#### Parameters
+
+`layout` [ILayout](Jumbee.Console.ILayout.md)
+
+`width` int
+
+`height` int
+
+`keys` IReadOnlyList<ConsoleKeyInfo\>
+
+`routeGlobal` bool
+
+#### Returns
+
+ [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
+
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_SavePng_Jumbee_Console_ConsoleBuffer_System_String_Jumbee_Console_Snapshot_SnapshotImageOptions_"></a> SavePng\(ConsoleBuffer, string, SnapshotImageOptions?\)
 
 Renders a buffer to a PNG file.
@@ -373,6 +424,54 @@ public static string ToTextAfter(Control control, int width, int height, IReadOn
 #### Parameters
 
 `control` [Control](Jumbee.Console.Control.md)
+
+`width` int
+
+`height` int
+
+`keys` IReadOnlyList<ConsoleKeyInfo\>
+
+`routeGlobal` bool
+
+#### Returns
+
+ string
+
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToTextAfter_Jumbee_Console_ILayout_System_Int32_System_Int32_System_ConsoleKey___"></a> ToTextAfter\(ILayout, int, int, params ConsoleKey\[\]\)
+
+Renders a layout after sending the given keys and returns its text snapshot.
+
+```csharp
+public static string ToTextAfter(ILayout layout, int width, int height, params ConsoleKey[] keys)
+```
+
+#### Parameters
+
+`layout` [ILayout](Jumbee.Console.ILayout.md)
+
+`width` int
+
+`height` int
+
+`keys` ConsoleKey\[\]
+
+#### Returns
+
+ string
+
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToTextAfter_Jumbee_Console_ILayout_System_Int32_System_Int32_System_Collections_Generic_IReadOnlyList_System_ConsoleKeyInfo__System_Boolean_"></a> ToTextAfter\(ILayout, int, int, IReadOnlyList<ConsoleKeyInfo\>, bool\)
+
+Renders a layout after sending the given keys (with modifiers) and returns its text snapshot. Pass
+    <code class="paramref">routeGlobal</code> to run each key through the global hotkey dispatch first — the usual case for a
+    layout driven by <xref href="Jumbee.Console.UI.RegisterHotKey(System.ConsoleKeyInfo%2cSystem.Action)" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public static string ToTextAfter(ILayout layout, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
+```
+
+#### Parameters
+
+`layout` [ILayout](Jumbee.Console.ILayout.md)
 
 `width` int
 

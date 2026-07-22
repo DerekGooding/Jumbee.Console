@@ -3,7 +3,8 @@
 Namespace: [Jumbee.Console](Jumbee.Console.md)  
 Assembly: Jumbee.Console.dll  
 
-Displays a single-line text label with a defined horizontal or vertical orientation and foreground and background color.
+Displays a single-line text label with a defined horizontal or vertical orientation, foreground and background
+colour, and optional text decoration (e.g. bold, underline).
 
 ```csharp
 public class TextLabel : Control, IFocusable
@@ -127,12 +128,12 @@ Control ←
 
 ## Constructors
 
-### <a id="Jumbee_Console_TextLabel__ctor_Jumbee_Console_TextLabelOrientation_System_String_System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__"></a> TextLabel\(TextLabelOrientation, string, Color?, Color?\)
+### <a id="Jumbee_Console_TextLabel__ctor_Jumbee_Console_TextLabelOrientation_System_String_System_Nullable_Jumbee_Console_Color__System_Nullable_Jumbee_Console_Color__Spectre_Console_Decoration_"></a> TextLabel\(TextLabelOrientation, string, Color?, Color?, Decoration\)
 
-Initializes a new <xref href="Jumbee.Console.TextLabel" data-throw-if-not-resolved="false"></xref> with the given <code class="paramref">orientation</code>, <code class="paramref">text</code>, and optional foreground/background colours.
+Initializes a new <xref href="Jumbee.Console.TextLabel" data-throw-if-not-resolved="false"></xref> with the given <code class="paramref">orientation</code>, <code class="paramref">text</code>, optional foreground/background colours, and optional <code class="paramref">decoration</code>.
 
 ```csharp
-public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor = null, Color? bgcolor = null)
+public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor = null, Color? bgcolor = null, Decoration decoration = Decoration.None)
 ```
 
 #### Parameters
@@ -144,6 +145,8 @@ public TextLabel(TextLabelOrientation orientation, string text, Color? fgcolor =
 `fgcolor` [Color](Jumbee.Console.Color.md)?
 
 `bgcolor` [Color](Jumbee.Console.Color.md)?
+
+`decoration` Decoration
 
 ## Properties
 
@@ -158,6 +161,18 @@ public Color? BgColor { get; set; }
 #### Property Value
 
  [Color](Jumbee.Console.Color.md)?
+
+### <a id="Jumbee_Console_TextLabel_Decoration"></a> Decoration
+
+Text decoration (e.g. <code>Bold</code>, <code>Underline</code>); <code>None</code> for plain text. Flags combine.
+
+```csharp
+public Decoration Decoration { get; set; }
+```
+
+#### Property Value
+
+ Decoration
 
 ### <a id="Jumbee_Console_TextLabel_FgColor"></a> FgColor
 

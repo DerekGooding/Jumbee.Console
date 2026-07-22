@@ -88,6 +88,14 @@ public string FontFamily { get; set; }
 
  string
 
+#### Remarks
+
+The default (Consolas) has no Braille (U+2800–U+28FF) glyphs, so a PNG of Braille-drawn output — a
+    <code>Plot</code>/<code>Canvas</code> with the Braille brush/marker — renders those cells as missing-glyph boxes. To
+    snapshot Braille output visibly, set this to a Braille-covering font such as <code>"Cascadia Mono"</code> or
+    <code>"DejaVu Sans Mono"</code>. (Text snapshots via <code>ConsoleSnapshot.ToText</code> are unaffected — they capture the
+    raw glyphs, not a rasterised font.)
+
 ### <a id="Jumbee_Console_Snapshot_SnapshotImageOptions_FontSize"></a> FontSize
 
 Font size in points used to draw glyphs.

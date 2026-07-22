@@ -131,6 +131,12 @@ Control ←
 The plot fills its container and re-draws to fit whenever the control is resized; all configuration is replayed
 on each rebuild, so settings survive resizing.
 
+<p>For data that changes every frame (a live scope, a streaming chart), add the series ONCE with
+<xref href="Jumbee.Console.Plot.AddLiveSeries(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref> and feed it via the returned <xref href="Jumbee.Console.PlotSeries" data-throw-if-not-resolved="false"></xref> handle
+(<code>SetData</code>/<code>Push</code>) rather than rebuilding with <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref> + <xref href="Jumbee.Console.Plot.AddSeries(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cConsolePlot.Drawing.Tools.PointPen)" data-throw-if-not-resolved="false"></xref> each frame —
+the live path mutates the data in place without re-allocating the plot, and it keeps your <code>Configure*</code> styling
+(which <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref> would otherwise drop from the data list).</p>
+
 ## Constructors
 
 ### <a id="Jumbee_Console_Plot__ctor"></a> Plot\(\)
@@ -621,7 +627,8 @@ to the palette.
 
 ### <a id="Jumbee_Console_Plot_AddSeries_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__ConsolePlot_Drawing_Tools_PointPen_"></a> AddSeries\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PointPen\)
 
-Adds a data series. <code class="paramref">xs</code> and <code class="paramref">ys</code> must be the same length.
+Adds a line series — consecutive points joined by straight segments (use <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref> for
+unconnected markers). <code class="paramref">xs</code> and <code class="paramref">ys</code> must be the same length.
 
 ```csharp
 public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PointPen pen = default)
@@ -646,7 +653,8 @@ series index) and drawn with the Braille brush.
 
 ### <a id="Jumbee_Console_Plot_AddSeries_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__Jumbee_Console_PlotBrush_System_Nullable_Jumbee_Console_Color__"></a> AddSeries\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PlotBrush, Color?\)
 
-Adds a data series drawn with the given <code class="paramref">brush</code>.
+Adds a line series (consecutive points joined by straight segments) drawn with the given
+<code class="paramref">brush</code>. For unconnected markers use <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, Color? color = null)
@@ -754,7 +762,8 @@ public Plot AutoRangeY()
 
 ### <a id="Jumbee_Console_Plot_Clear"></a> Clear\(\)
 
-Removes all series and configuration, leaving an empty plot.
+Removes all series and data, leaving an empty plot. Axis/grid/tick styling set via the
+    <code>Configure*</code> methods is retained — clearing the data does not reset how the plot is drawn.
 
 ```csharp
 public Plot Clear()
@@ -782,7 +791,7 @@ public Plot Configure(Action<Plot> configure)
 
 ### <a id="Jumbee_Console_Plot_ConfigureAxis_System_Action_ConsolePlot_Plotting_AxisSettings__"></a> ConfigureAxis\(Action<AxisSettings\>\)
 
-Configures the axis (visibility, pen).
+Configures the axis lines. This styling is retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public Plot ConfigureAxis(Action<AxisSettings> configure)
@@ -796,9 +805,14 @@ public Plot ConfigureAxis(Action<AxisSettings> configure)
 
  [Plot](Jumbee.Console.Plot.md)
 
+#### Remarks
+
+The passed settings expose <code>IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) and <code>Pen</code> (a
+    <code>LinePen</code> of brush + colour). Hide the axis with <code>ConfigureAxis(a =&gt; a.IsVisible = false)</code>.
+
 ### <a id="Jumbee_Console_Plot_ConfigureGrid_System_Action_ConsolePlot_Plotting_GridSettings__"></a> ConfigureGrid\(Action<GridSettings\>\)
 
-Configures the grid (visibility, pen).
+Configures the background grid. This styling is retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public Plot ConfigureGrid(Action<GridSettings> configure)
@@ -812,9 +826,16 @@ public Plot ConfigureGrid(Action<GridSettings> configure)
 
  [Plot](Jumbee.Console.Plot.md)
 
+#### Remarks
+
+Settings expose <code>IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>, dashed dark-gray) and <code>Pen</code>.
+    Hide the grid with <code>ConfigureGrid(g =&gt; g.IsVisible = false)</code> — combine with
+    <code>ConfigureTicks(t =&gt; { t.IsVisible = false; t.Labels.IsVisible = false; })</code> for a bare, chrome-free chart
+    (e.g. an oscilloscope trace).
+
 ### <a id="Jumbee_Console_Plot_ConfigureTicks_System_Action_ConsolePlot_Plotting_TickSettings__"></a> ConfigureTicks\(Action<TickSettings\>\)
 
-Configures the ticks and their labels (spacing, pen, format).
+Configures the axis ticks and their labels. This styling is retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public Plot ConfigureTicks(Action<TickSettings> configure)
@@ -827,6 +848,16 @@ public Plot ConfigureTicks(Action<TickSettings> configure)
 #### Returns
 
  [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+Two separate visibility flags: <code>IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) draws the tick
+    <em>marks</em>, while <code>Labels.IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) draws the numeric tick
+    <em>labels</em> — hiding one does not hide the other. Also exposed: <code>Pen</code>, per-axis
+    <code>DesiredXStep</code>/<code>DesiredYStep</code> spacing, <code>CustomXTicks</code>/<code>CustomYTicks</code> (see
+    <xref href="Jumbee.Console.Plot.SetXTicks(System.Collections.Generic.IReadOnlyList%7bSystem.ValueTuple%7bSystem.Double%2cSystem.String%7d%7d)" data-throw-if-not-resolved="false"></xref>), and <code>Labels</code> (<code>Color</code>, <code>Format</code>, <code>AttachToAxis</code>). Hide the marks
+    with <code>ConfigureTicks(t =&gt; t.IsVisible = false)</code> and the numbers with
+    <code>ConfigureTicks(t =&gt; t.Labels.IsVisible = false)</code>.
 
 ### <a id="Jumbee_Console_Plot_Render"></a> Render\(\)
 

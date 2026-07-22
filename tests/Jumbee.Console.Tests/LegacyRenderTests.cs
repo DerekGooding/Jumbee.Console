@@ -121,7 +121,7 @@ public class LegacyRenderTests
         Task run;
         try
         {
-            run = UI.Start(grid, width: 10, height: 3, paintInterval: 20, isAnsiTerminal: false, console: console);
+            run = UI.Start(grid, width: 10, height: 3, fps: 50, isAnsiTerminal: false, console: console);
             Assert.True(WaitUntil(() => console.Inner[0, 0].Content == 'X', 3000), "coloured glyph should render");
             Assert.Equal(new ConsoleGUI.Data.Color(0, 255, 0), console.Inner[0, 0].Foreground);
             Assert.Equal(new ConsoleGUI.Data.Color(0, 0, 255), console.Inner[0, 0].Background);
@@ -140,7 +140,7 @@ public class LegacyRenderTests
         Task run;
         try
         {
-            run = UI.Start(grid, width: 20, height: 5, paintInterval: 15, isAnsiTerminal: false, console: console);
+            run = UI.Start(grid, width: 20, height: 5, fps: 66, isAnsiTerminal: false, console: console);
             Assert.True(WaitUntil(() => console.Inner[0, 0].Content == 'A', 3000), "initial content should render");
 
             console.ResetCounts();
@@ -164,7 +164,7 @@ public class LegacyRenderTests
         Task run;
         try
         {
-            run = UI.Start(grid, width: 20, height: 5, paintInterval: 15, isAnsiTerminal: false, console: console);
+            run = UI.Start(grid, width: 20, height: 5, fps: 66, isAnsiTerminal: false, console: console);
             Assert.True(WaitUntil(() => console.Inner[0, 0].Content == 'A', 3000), "initial content should render");
 
             console.ResetCounts();
@@ -195,7 +195,7 @@ public class LegacyRenderTests
         Task run;
         try
         {
-            run = UI.Start(grid, width: 10, height: 3, paintInterval: 15, isAnsiTerminal: false, console: screen);
+            run = UI.Start(grid, width: 10, height: 3, fps: 66, isAnsiTerminal: false, console: screen);
             Assert.True(WaitUntil(() => screen[0, 0].Content == 'Z', 3000), "cursor cell should render");
 
             // A blinking block cursor alternates: ON = inverted (fg/bg swapped), OFF = the plain glyph. Over more than

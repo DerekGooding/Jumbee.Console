@@ -24,7 +24,7 @@ public class FeedTests
 
     private static Task StartUi() => UI.Start(
         new VerticalStackPanel(new TextLabel(TextLabelOrientation.Horizontal, "x")),
-        40, 8, paintInterval: 10, isAnsiTerminal: true, console: new StubConsole(40, 8), input: new NoInput());
+        40, 8, fps: 100, isAnsiTerminal: true, console: new StubConsole(40, 8), input: new NoInput());
 
     private static bool WaitUntil(Func<bool> cond, int ms)
     {

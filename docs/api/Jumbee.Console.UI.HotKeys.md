@@ -295,3 +295,21 @@ public static ConsoleKeyInfo CtrlAlt(ConsoleKey key)
 
  ConsoleKeyInfo
 
+### <a id="Jumbee_Console_UI_HotKeys_Shift_System_ConsoleKey_"></a> Shift\(ConsoleKey\)
+
+Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> for <code class="paramref">key</code> with the Shift modifier — for
+    Shift+arrow / Shift+PageUp and similar non-letter combos (letter keys carry their uppercase char, matching
+    the input decoder). For a Shift+letter as a printable character, prefer <xref href="Jumbee.Console.UI.HotKeys.Char(System.Char)" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public static ConsoleKeyInfo Shift(ConsoleKey key)
+```
+
+#### Parameters
+
+`key` ConsoleKey
+
+#### Returns
+
+ ConsoleKeyInfo
+

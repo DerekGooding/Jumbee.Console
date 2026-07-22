@@ -31,7 +31,7 @@ public class ShutdownWithLiveFeedTests
         Task run;
         try
         {
-            run = UI.Start(new VerticalStackPanel(label), 40, 8, paintInterval: 15, isAnsiTerminal: true,
+            run = UI.Start(new VerticalStackPanel(label), 40, 8, fps: 66, isAnsiTerminal: true,
                 console: new StubConsole(40, 8), input: new NoInput());
 
             // A live feed like the dashboards use: post work onto the UI thread continuously from a background task.

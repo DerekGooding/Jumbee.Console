@@ -43,7 +43,7 @@ public class TimingMetricsTests
         Task run;
         try
         {
-            run = UI.Start(grid, width: 20, height: 5, paintInterval: 10, isAnsiTerminal: false, console: screen);
+            run = UI.Start(grid, width: 20, height: 5, fps: 100, isAnsiTerminal: false, console: screen);
 
             Assert.True(
                 WaitUntil(() => UI.AverageDrawTime > 0 && UI.AveragePaintTime > 0, 3000),

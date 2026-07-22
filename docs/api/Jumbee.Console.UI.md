@@ -645,29 +645,50 @@ no control supplies help. The dialog is shown on the UI-owned system overlay (se
 
 ### <a id="Jumbee_Console_UI_Start_Jumbee_Console_ILayout_System_Int32_System_Int32_System_Int32_System_Boolean_ConsoleGUI_Api_IConsole_Jumbee_Console_IInputSource_System_Boolean_"></a> Start\(ILayout, int, int, int, bool, IConsole?, IInputSource?, bool\)
 
-Initializes the console and starts the UI.
+Initializes the console and starts the UI, returning a task that completes when the UI stops.
 
 ```csharp
-public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null, bool useAlternateScreen = true)
+public static Task Start(ILayout layout, int width = 110, int height = 25, int fps = 10, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null, bool useAlternateScreen = true)
 ```
 
 #### Parameters
 
 `layout` [ILayout](Jumbee.Console.ILayout.md)
 
+The root layout to display.
+
 `width` int
+
+Initial console width in cells. On an ANSI terminal the real size is read and the physical window is never resized.
 
 `height` int
 
-`paintInterval` int
+Initial console height in cells.
+
+`fps` int
+
+Target repaint rate in frames per second (default 10 ≈ a 100 ms frame). It sets the UI
+    thread's per-frame interval to <code>1000 / fps</code> ms — the thread wakes at most once per interval to drain
+    input and repaint dirty regions. Raise it for smoother animation or live data (e.g. 30–60) at the cost of more
+    CPU; lower it to idle cheaper. A frame is skipped when nothing is dirty, so a higher <code class="paramref">fps</code>
+    only costs CPU while the UI is actually changing. Values ≤ 0 are treated as the slowest rate and the
+    interval is floored at 1 ms (~1000 fps max), so no setting can divide-by-zero or busy-loop the thread.
 
 `isAnsiTerminal` bool
 
+Emit ANSI escape sequences (<a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) vs. 16-colour System.Console output (<a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">false</a>).
+
 `console` IConsole?
+
+An explicit console sink; when <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> one is chosen from <code class="paramref">isAnsiTerminal</code>.
 
 `input` [IInputSource](Jumbee.Console.IInputSource.md)?
 
+An explicit input source; when <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> one is chosen for the terminal (see <xref href="Jumbee.Console.UI.DefaultInputSource(System.Boolean)" data-throw-if-not-resolved="false"></xref>).
+
 `useAlternateScreen` bool
+
+Run on the alternate screen buffer so the user's prior terminal contents are restored on exit.
 
 #### Returns
 

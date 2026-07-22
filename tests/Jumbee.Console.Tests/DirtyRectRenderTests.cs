@@ -179,7 +179,7 @@ public class DirtyRectRenderTests
 
             // A SplitPanel of two framed panes — the browser's actual layout shape. Both panes must appear on the
             // live loop's first frames, exactly as they do through the full-redraw snapshot path (Bisect above).
-            _ = UI.Start(TwoPaneSplit(), w, h, paintInterval: 15, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
+            _ = UI.Start(TwoPaneSplit(), w, h, fps: 66, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
             Thread.Sleep(250);                 // let several frames run
             await ConsoleManager.OutputIdle.ConfigureAwait(false);
         }
@@ -232,7 +232,7 @@ public class DirtyRectRenderTests
             var body = new TextLabel(TextLabelOrientation.Horizontal, "BODY");
             var root = new DockPanel(DockedControlPlacement.Bottom, ticker, body);
 
-            _ = UI.Start(root, w, h, paintInterval: 15, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
+            _ = UI.Start(root, w, h, fps: 66, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
             Thread.Sleep(400);                 // many frames of self-refresh
             await ConsoleManager.OutputIdle.ConfigureAwait(false);
 
@@ -288,7 +288,7 @@ public class DirtyRectRenderTests
 
             var host = new SwapHost();
             host.ShowText("OLDCONTENT");
-            _ = UI.Start(new VerticalStackPanel(host), w, h, paintInterval: 15, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
+            _ = UI.Start(new VerticalStackPanel(host), w, h, fps: 66, isAnsiTerminal: true, console: new TestConsole(w, h), input: new NoInput());
             // Parse the emitted ANSI into a screen — the per-cell diff re-emits only changed cells, so a swapped
             // string is not a contiguous substring of the raw byte stream; only the parsed grid is authoritative.
             bool OnScreen(string s) { var scr = new AnsiScreen(w, h); scr.Feed(Captured(capture)); return ConsoleSnapshot.ToText(scr.Buffer).Contains(s); }
@@ -336,7 +336,7 @@ public class DirtyRectRenderTests
         Task run;
         try
         {
-            run = UI.Start(new Grid([12], [22, 22], [[tree, host]]), 44, 12, paintInterval: 20, isAnsiTerminal: false, console: screen, input: input);
+            run = UI.Start(new Grid([12], [22, 22], [[tree, host]]), 44, 12, fps: 50, isAnsiTerminal: false, console: screen, input: input);
             UI.Invoke(() => UI.SetFocus(tree));
             Assert.True(WaitFor(() => ScreenHas(screen, "LEAFITEM") && ScreenHas(screen, "PANEOLD"), 3000), "tree + old pane should render");
 

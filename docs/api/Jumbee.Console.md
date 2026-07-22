@@ -452,7 +452,8 @@ exceeds the width, an optional muted placeholder shown while empty, and optional
 
  [TextLabel](Jumbee.Console.TextLabel.md)
 
-Displays a single-line text label with a defined horizontal or vertical orientation and foreground and background color.
+Displays a single-line text label with a defined horizontal or vertical orientation, foreground and background
+colour, and optional text decoration (e.g. bold, underline).
 
  [TextPanel](Jumbee.Console.TextPanel.md)
 

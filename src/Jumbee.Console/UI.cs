@@ -19,9 +19,22 @@ public static class UI
 {
     #region Methods
     /// <summary>
-    /// Initializes the console and starts the UI.
+    /// Initializes the console and starts the UI, returning a task that completes when the UI stops.
     /// </summary>
-    public static Task Start(ILayout layout, int width = 110, int height = 25, int paintInterval = 100, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null, bool useAlternateScreen = true)
+    /// <param name="layout">The root layout to display.</param>
+    /// <param name="width">Initial console width in cells. On an ANSI terminal the real size is read and the physical window is never resized.</param>
+    /// <param name="height">Initial console height in cells.</param>
+    /// <param name="fps">Target repaint rate in frames per second (default 10 ≈ a 100&#160;ms frame). It sets the UI
+    /// thread's per-frame interval to <c>1000 / fps</c>&#160;ms — the thread wakes at most once per interval to drain
+    /// input and repaint dirty regions. Raise it for smoother animation or live data (e.g. 30–60) at the cost of more
+    /// CPU; lower it to idle cheaper. A frame is skipped when nothing is dirty, so a higher <paramref name="fps"/>
+    /// only costs CPU while the UI is actually changing. Values &#8804;&#160;0 are treated as the slowest rate and the
+    /// interval is floored at 1&#160;ms (~1000&#160;fps max), so no setting can divide-by-zero or busy-loop the thread.</param>
+    /// <param name="isAnsiTerminal">Emit ANSI escape sequences (<see langword="true"/>) vs. 16-colour System.Console output (<see langword="false"/>).</param>
+    /// <param name="console">An explicit console sink; when <see langword="null"/> one is chosen from <paramref name="isAnsiTerminal"/>.</param>
+    /// <param name="input">An explicit input source; when <see langword="null"/> one is chosen for the terminal (see <see cref="DefaultInputSource"/>).</param>
+    /// <param name="useAlternateScreen">Run on the alternate screen buffer so the user's prior terminal contents are restored on exit.</param>
+    public static Task Start(ILayout layout, int width = 110, int height = 25, int fps = 10, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null, bool useAlternateScreen = true)
     {
         if (isRunning) return runCompletion.Task;
         ProcessMetrics.Start();
@@ -68,7 +81,9 @@ public static class UI
                 controls.Add(c);
             }               
         }
-        interval = paintInterval;
+        // Convert the target fps to the per-frame wait (ms). Clamp the divisor so fps <= 0 can't divide-by-zero, and
+        // floor at 1 ms so a very large fps can't collapse to a 0 ms busy-loop (the dispatcher's WaitOne(0) never blocks).
+        interval = Math.Max(1, 1000 / Math.Max(1, fps));
         cts = new CancellationTokenSource();
         cancellationToken = cts.Token;
         runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -924,6 +939,16 @@ public static class UI
         /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for <paramref name="key"/> with both Ctrl and Alt modifiers.</summary>
         public static ConsoleKeyInfo CtrlAlt(ConsoleKey key) =>
             new('\0', key, false, true, true);
+
+        /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for <paramref name="key"/> with the Shift modifier — for
+        /// Shift+arrow / Shift+PageUp and similar non-letter combos (letter keys carry their uppercase char, matching
+        /// the input decoder). For a Shift+letter as a printable character, prefer <see cref="Char(char)"/>.</summary>
+        public static ConsoleKeyInfo Shift(ConsoleKey key)
+        {
+            // Letter keys carry the uppercase char (ConsoleKey.A..Z are 'A'..'Z'); other keys use '\0'.
+            char keyChar = (key >= ConsoleKey.A && key <= ConsoleKey.Z) ? (char)key : '\0';
+            return new ConsoleKeyInfo(keyChar, key, true, false, false);
+        }
 
         /// <summary>Builds a <see cref="ConsoleKeyInfo"/> for a bare printable key — a letter, digit, punctuation,
         /// or space — so it can be registered as a global hotkey (e.g. <c>UI.RegisterHotKey(UI.HotKeys.Char('q'),

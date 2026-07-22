@@ -37,7 +37,7 @@ public class ConcurrencyTests
 
         try
         {
-            run = UI.Start(grid, width: 24, height: 10, paintInterval: 10,
+            run = UI.Start(grid, width: 24, height: 10, fps: 100,
                 console: new ConsoleBuffer { Size = new Size(24, 10) });
 
             var tasks = Enumerable.Range(0, threads).Select(t => Task.Run(() =>
@@ -76,7 +76,7 @@ public class ConcurrencyTests
 
         try
         {
-            run = UI.Start(grid, width: 24, height: 10, paintInterval: 10,
+            run = UI.Start(grid, width: 24, height: 10, fps: 100,
                 console: new ConsoleBuffer { Size = new Size(24, 10) });
 
             var tasks = Enumerable.Range(0, threads).Select(t => Task.Run(() =>
@@ -114,7 +114,7 @@ public class ConcurrencyTests
 
         try
         {
-            run = UI.Start(grid, width: 30, height: 10, paintInterval: 10,
+            run = UI.Start(grid, width: 30, height: 10, fps: 100,
                 console: new ConsoleBuffer { Size = new Size(30, 10) });
 
             var tasks = Enumerable.Range(0, threads).Select(t => Task.Run(() =>

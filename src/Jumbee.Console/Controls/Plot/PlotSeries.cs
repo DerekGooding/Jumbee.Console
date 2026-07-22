@@ -27,7 +27,10 @@ public sealed class PlotSeries
     #endregion
 
     #region Methods
-    /// <summary>Replaces the series data with the paired <paramref name="xs"/>/<paramref name="ys"/> (same length).</summary>
+    /// <summary>Replaces the series data with the paired <paramref name="xs"/>/<paramref name="ys"/> (same length).
+    /// Passing empty lists is valid and draws nothing — a live series can be emptied (equivalently, <see cref="Clear"/>)
+    /// and refilled without removing/re-adding it, so a series that appears only under some state (a trigger marker,
+    /// peaks) can be toggled by feeding it data or emptying it.</summary>
     public void SetData(IReadOnlyList<double> xs, IReadOnlyList<double> ys)
     {
         if (xs.Count != ys.Count)
