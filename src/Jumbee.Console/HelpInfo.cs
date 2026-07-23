@@ -17,8 +17,6 @@ public sealed record KeyHelp(string Keys, string Description);
 /// <paramref name="title"/> (defaults to the name) and <paramref name="text"/>.</remarks>
 public sealed class HelpInfo(string name, string? title = null, string? text = null)
 {
-
-
     #region Properties
 
     /// <summary>Identity for deduplication and for matching the focused control's tab. Required, non-empty.</summary>

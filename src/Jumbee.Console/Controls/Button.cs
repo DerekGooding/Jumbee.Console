@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
@@ -8,6 +7,7 @@ using Spectre.Console.Rendering;
 using TextStyle = Jumbee.Console.Style;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A focusable, clickable button that renders a fixed-width text label.
 /// </summary>

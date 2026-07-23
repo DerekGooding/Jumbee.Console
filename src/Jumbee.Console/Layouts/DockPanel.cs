@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>Which edge a <see cref="DockPanel"/> pins its docked control to.</summary>
 public enum DockedControlPlacement
 {

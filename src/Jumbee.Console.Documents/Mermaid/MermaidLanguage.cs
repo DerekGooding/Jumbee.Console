@@ -1,8 +1,8 @@
-
 using ColorCode;
 using ColorCode.Common;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> grammar for Mermaid diagram source, for syntax-highlighting a Mermaid document
 /// in a <see cref="CodeEditor"/> (<c>new CodeEditor(MermaidLanguage.Instance)</c>).

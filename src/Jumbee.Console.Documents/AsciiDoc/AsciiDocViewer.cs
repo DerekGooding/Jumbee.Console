@@ -1,10 +1,10 @@
-
 using AdocNet.Parser;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A read-only, scrollable AsciiDoc viewer.
 /// </summary>
@@ -23,8 +23,6 @@ namespace Jumbee.Console.Documents;
 /// <remarks>Initializes a new <see cref="AsciiDocViewer"/> showing <paramref name="asciiDoc"/>.</remarks>
 public class AsciiDocViewer(string asciiDoc = "") : Control
 {
-
-
     #region Properties
 
     /// <summary>The AsciiDoc source. Setting it re-renders (off the UI thread) and re-lays-out.</summary>
@@ -211,6 +209,7 @@ public class AsciiDocViewer(string asciiDoc = "") : Control
     // The rendered content is capped at this many rows — beyond the control's own ~1000-row size clamp nothing is
     // reachable anyway, so a taller document simply clips at the bottom.
     private const int MaxRows = 1024;
+
     private int _version;                       // bumped when the text/styles change, invalidating a cached render
 
     private ConsoleBuffer _content = new();     // the last completed render, blitted into consoleBuffer each paint

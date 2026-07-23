@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Attaches type-ahead suggestions to a <see cref="TextInput"/>.
 /// </summary>

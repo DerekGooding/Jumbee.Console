@@ -3,6 +3,7 @@ using System.Globalization;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Drawing;
+
 /// <summary>The point density of a <see cref="WorldMap"/> — how finely the coastlines are sampled.</summary>
 public enum MapResolution
 {
@@ -23,7 +24,6 @@ public enum MapResolution
 /// <param name="resolution">Point density (see <see cref="MapResolution"/>). Default <see cref="MapResolution.Low"/>.</param>
 public sealed class WorldMap(Color color, MapResolution resolution = MapResolution.Low) : IShape
 {
-
     /// <summary>Colour of the map points.</summary>
     public Color Color { get; } = color;
 

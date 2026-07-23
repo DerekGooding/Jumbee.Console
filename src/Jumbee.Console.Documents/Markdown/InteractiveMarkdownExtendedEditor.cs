@@ -1,7 +1,7 @@
-
 using NTokenizers.Extensions.Spectre.Console.Styles;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A live, split-pane Markdown editor whose preview renders embedded <c>```mermaid</c> code blocks as diagrams — the
 /// interactive complement to <see cref="MarkdownExtendedViewer"/>.
@@ -20,8 +20,6 @@ public class InteractiveMarkdownExtendedEditor(string markdown = "", SplitOrient
     int splitPosition = 48) : InteractiveSourceEditor(new CodeEditor(MarkdownWithMermaidLanguage.Instance) { Text = markdown ?? "" },
         new MarkdownExtendedViewer(markdown ?? ""), " Markdown ", " Preview ", markdown ?? "", orientation, splitPosition)
 {
-
-
     #region Properties
 
     /// <summary>The preview pane rendering the live Markdown (with embedded mermaid diagrams).</summary>

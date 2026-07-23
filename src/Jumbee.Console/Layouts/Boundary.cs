@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// A single-child layout that pins its child's size.
 /// </summary>

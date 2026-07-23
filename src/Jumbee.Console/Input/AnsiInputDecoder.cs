@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A streaming state machine that turns a raw terminal input char stream into <see cref="TerminalInputEvent"/>s:
 /// printable text, control/navigation keys (CSI/SS3), SGR (1006) mouse reports, bracketed paste (DEC 2004), and

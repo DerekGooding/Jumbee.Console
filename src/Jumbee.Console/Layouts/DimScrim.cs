@@ -1,10 +1,10 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A modal scrim that shows the layer beneath it, dimmed.
 /// </summary>

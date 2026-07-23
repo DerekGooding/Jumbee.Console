@@ -1,4 +1,5 @@
 namespace Jumbee.Console.Snapshot;
+
 /// <summary>
 /// Options controlling how a <see cref="ConsoleBuffer"/> is rendered to a PNG image.
 /// </summary>

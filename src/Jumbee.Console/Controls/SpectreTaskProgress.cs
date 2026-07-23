@@ -1,7 +1,7 @@
-﻿
-using Spectre.Console;
+﻿using Spectre.Console;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A Spectre.Console Progress widget.
 /// </summary>

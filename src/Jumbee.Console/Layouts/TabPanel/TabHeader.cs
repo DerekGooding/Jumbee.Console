@@ -1,10 +1,10 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A single clickable tab label in a <see cref="TabPanel"/>'s tab bar.
 /// </summary>
@@ -55,7 +55,8 @@ public class TabHeader : RenderableControl
     internal void SetIndex(int index) => Index = index;
 
     /// <summary><see langword="false"/> for a disabled tab: drawn dimmed, not focusable, ignores clicks/keys.</summary>
-    public bool IsEnabled { get; set { Focusable = value; SetAtomicProperty(ref field, value); } } = true;
+    public bool IsEnabled
+    { get; set { Focusable = value; SetAtomicProperty(ref field, value); } } = true;
 
     /// <summary>The tab label.</summary>
     public string Text

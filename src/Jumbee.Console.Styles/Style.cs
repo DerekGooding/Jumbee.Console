@@ -1,9 +1,9 @@
-﻿
-using SCDecoration = Spectre.Console.Decoration;
+﻿using SCDecoration = Spectre.Console.Decoration;
 using SCStyle = Spectre.Console.Style;
 using SystemDrawingColor = System.Drawing.Color;
 
 namespace Jumbee.Console;
+
 /// <summary>Horizontal alignment of text within its available width.</summary>
 public enum Justify
 {
@@ -63,7 +63,6 @@ public enum CursorStyle
 /// <remarks>Wraps an existing Spectre.Console <see cref="SCStyle"/>.</remarks>
 public readonly struct Style(SCStyle spectreConsoleStyle) : IEquatable<Style>
 {
-
     #region Constructors
 
     /// <summary>Parses a style from a Spectre markup style string (e.g. <c>"bold red on blue"</c>).</summary>

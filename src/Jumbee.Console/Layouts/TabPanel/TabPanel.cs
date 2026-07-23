@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>Which edge a <see cref="TabPanel"/> docks its tab bar on.</summary>
 public enum TabBarDock
 {
@@ -95,12 +96,14 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// <summary>When <see langword="true"/>, every tab shows a clickable close (✕) glyph (on the active/hovered
     /// tab) and clicking it raises the cancelable <see cref="TabCloseRequested"/>. Default <see langword="false"/>.</summary>
     /// <remarks>Applies to existing and future tabs.</remarks>
-    public bool ClosableTabs { get; set { field = value; foreach (var t in _tabs) t.Header.Closable = value; } }
+    public bool ClosableTabs
+    { get; set { field = value; foreach (var t in _tabs) t.Header.Closable = value; } }
 
     /// <summary>When <see langword="true"/>, a "+" button is shown at the end of the bar; clicking it raises
     /// <see cref="NewTabRequested"/>. Default <see langword="false"/>.</summary>
     /// <remarks>The button is mouse-only (not part of keyboard tab traversal).</remarks>
-    public bool ShowAddButton { get; set { if (field == value) return; field = value; UI.Invoke(RebuildBar); } }
+    public bool ShowAddButton
+    { get; set { if (field == value) return; field = value; UI.Invoke(RebuildBar); } }
 
     /// <summary>The "+" button instance once <see cref="ShowAddButton"/> has built it, else <see langword="null"/>.
     /// Exposed for testing (click it to exercise <see cref="NewTabRequested"/>).</summary>

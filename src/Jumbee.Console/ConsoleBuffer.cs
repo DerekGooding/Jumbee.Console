@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A ConsoleGUI.IConsole implementation that writes to a buffer.
 /// </summary>

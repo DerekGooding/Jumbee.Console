@@ -1,4 +1,3 @@
-
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;

@@ -1,7 +1,7 @@
-
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Wraps an existing Spectre.Console <see cref="IRenderable"/> control for use with ConsoleGUI control and layout types.
 /// </summary>
@@ -15,8 +15,6 @@ namespace Jumbee.Console;
 /// <remarks>Initializes a new <see cref="SpectreControl{T}"/> wrapping the given Spectre.Console <paramref name="content"/>.</remarks>
 public class SpectreControl<T>(T content) : RenderableControl() where T : IRenderable
 {
-
-
     #region Properties
 
     /// <summary>The wrapped Spectre.Console renderable; setting it requests a re-render.</summary>
@@ -59,5 +57,4 @@ public class SpectreControl<T>(T content) : RenderableControl() where T : IRende
     protected override bool RendersInteractiveState => false;
 
     #endregion Methods
-
 }

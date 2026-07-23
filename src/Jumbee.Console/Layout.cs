@@ -1,11 +1,11 @@
-﻿
-using ConsoleGUI;
+﻿using ConsoleGUI;
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using Spectre.Console.Interop;
 
 namespace Jumbee.Console;
+
 /// <summary>Common interface for Jumbee.Console layout classes: a 2-D grid of focusable cells over a ConsoleGUI control, with focus navigation and input routing.</summary>
 public interface ILayout : IFocusable, IDrawingContextListener
 {
@@ -138,8 +138,6 @@ public interface ILayout : IFocusable, IDrawingContextListener
 /// <remarks>Initializes a new <see cref="Layout{T}"/> wrapping the given ConsoleGUI <paramref name="control"/>.</remarks>
 public abstract class Layout<T>(T control) : ILayout where T : CControl, IDrawingContextListener
 {
-
-
     #region Indexers
 
     /// <summary>Gets the focusable at the given grid cell.</summary>

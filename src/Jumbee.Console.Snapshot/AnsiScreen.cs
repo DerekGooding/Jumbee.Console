@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Snapshot;
+
 /// <summary>
 /// A small VT/ANSI screen model that parses the subset of escape sequences <c>ConsoleManager</c> emits and
 /// maintains a cell grid, exactly as a terminal would.

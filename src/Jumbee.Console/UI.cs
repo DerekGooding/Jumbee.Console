@@ -1,4 +1,3 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Api;
 using ConsoleGUI.Input;
@@ -7,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Manages th overall UI and provides a paint event for controls to subscribe to.
 /// </summary>

@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A single-line text entry control: caret, selection (Shift+navigation), horizontal scrolling when the text
 /// exceeds the width, an optional muted placeholder shown while empty, and optional password masking.

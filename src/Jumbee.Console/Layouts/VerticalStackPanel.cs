@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>A layout that arranges its child controls in a single vertical column.</summary>
 public class VerticalStackPanel : Layout<ConsoleGUI.Controls.VerticalStackPanel>
 {

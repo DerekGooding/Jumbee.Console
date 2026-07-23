@@ -1,15 +1,13 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 
 namespace Jumbee.Console;
+
 /// <summary>A single-line text input that shows a prompt label and edits an inline entry with a terminal cursor.</summary>
 /// <remarks>Initializes a new <see cref="TextPrompt"/> with the given <paramref name="prompt"/> label; <paramref name="showCursor"/> and <paramref name="blinkCursor"/> control the terminal cursor.</remarks>
 public class TextPrompt(string prompt, bool showCursor = true, bool blinkCursor = false) : Prompt()
 {
-
-
     #region Events
 
     /// <summary>Raised when the entry is committed (Enter), carrying the current input text.</summary>
@@ -209,6 +207,6 @@ public class TextPrompt(string prompt, bool showCursor = true, bool blinkCursor 
     private bool newInput;
     private int _caretPosition = 0;
     private Position inputStart = default;
-    #endregion Fields
 
+    #endregion Fields
 }

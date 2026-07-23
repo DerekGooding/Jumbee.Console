@@ -1,9 +1,9 @@
-
 using Spectre.Console.Rendering;
 using System.Diagnostics;
 using S = Spectre.Console;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A translucent "glass" HUD showing live UI telemetry — frame draw/paint times (µs), CPU, working set, allocation
 /// rate and, the headline for a no-lock design, monitor lock contentions — floating over the app.

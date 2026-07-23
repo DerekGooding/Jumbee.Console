@@ -1,10 +1,10 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Space;
 using System.Text;
 using Vezel.Cathode.Text.Control;
 
 namespace Jumbee.Console.Snapshot;
+
 /// <summary>
 /// A stateful counterpart to <see cref="AnsiConsoleSnapshot"/> for testing the <em>live</em> render — used to
 /// reproduce diff/cursor or async-ordering bugs that only appear across frames (e.g. press → release).

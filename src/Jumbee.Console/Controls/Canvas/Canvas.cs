@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Jumbee.Console.Drawing;
@@ -9,6 +8,7 @@ using Character = ConsoleGUI.Data.Character;
 using Decoration = ConsoleGUI.Data.Decoration;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,
 /// <see cref="Circle"/>, <see cref="Points"/>, <see cref="FilledLine"/>) in an arbitrary coordinate system, rendered
@@ -653,6 +653,7 @@ public class Canvas : Control
 
     // Interactive pan/zoom state. ZoomFactorPerNotch > 1: a wheel-down notch grows the window (zoom out).
     private const double ZoomFactorPerNotch = 1.1;
+
     private bool _dragging;
     private Position _lastDrag;
     private int _builtWidth = -1;

@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Space;
 using NTokenizers.Extensions.Spectre.Console.Styles;
 using System.Text;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A <see cref="MarkdownViewer"/> that renders fenced <c>```mermaid</c> code blocks as diagrams (flowchart, sequence,
 /// class, ER, state) instead of showing their source.
@@ -20,8 +20,6 @@ namespace Jumbee.Console.Documents;
 /// <remarks>Initializes a new <see cref="MarkdownExtendedViewer"/> showing <paramref name="markdown"/>.</remarks>
 public class MarkdownExtendedViewer(string markdown = "") : MarkdownViewer(markdown)
 {
-
-
     #region Properties
 
     /// <summary>Colours / scale for embedded mermaid diagrams. Defaults to <see cref="MermaidStyles.Default"/>.</summary>
@@ -158,5 +156,4 @@ public class MarkdownExtendedViewer(string markdown = "") : MarkdownViewer(markd
         lang.Trim().ToLowerInvariant() is "mermaid" or "mmd";
 
     #endregion Methods
-
 }

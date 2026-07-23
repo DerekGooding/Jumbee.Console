@@ -1,10 +1,10 @@
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using System.Text;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// Adapts a <see cref="CellCanvas"/> to Spectre.Console's <see cref="IRenderable"/>: each row is emitted as
 /// foreground-coloured <see cref="Segment"/>s (consecutive same-colour cells merged into one segment) followed by a
@@ -14,8 +14,6 @@ namespace Jumbee.Console.Documents;
 /// </summary>
 internal sealed class CellCanvasRenderable(CellCanvas canvas) : IRenderable
 {
-
-
     #region Methods
 
     public Measurement Measure(RenderOptions options, int maxWidth)

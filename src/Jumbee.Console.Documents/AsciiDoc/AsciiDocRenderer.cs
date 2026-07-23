@@ -1,4 +1,3 @@
-
 using AdocNet.Ast;
 using ColorCode;
 using RazorConsole.Core.Rendering.Syntax;
@@ -7,6 +6,7 @@ using Spectre.Console.Rendering;
 using System.Text;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// Traverses an AsciiDoc <see cref="DocumentNode"/> and composes a tree of Spectre.Console
 /// <see cref="IRenderable"/>s (headings as rules, code/example/admonition blocks as panels, AsciiDoc tables as
@@ -15,8 +15,6 @@ namespace Jumbee.Console.Documents;
 /// </summary>
 internal sealed class AsciiDocRenderer(AsciiDocStyles styles)
 {
-
-
     #region Methods
 
     /// <summary>Builds a single renderable for the whole document (title rule + stacked, blank-separated blocks).</summary>

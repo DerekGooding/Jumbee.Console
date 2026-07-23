@@ -56,7 +56,6 @@ public enum TitleColorStyle
 /// <remarks>Initializes a new <see cref="TitleStyle"/> with the given position, border style, and color style.</remarks>
 public readonly struct TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal) : IEquatable<TitleStyle>
 {
-
     /// <summary>The title's border and alignment position.</summary>
     public TitlePos Pos { get; init; } = pos;
 

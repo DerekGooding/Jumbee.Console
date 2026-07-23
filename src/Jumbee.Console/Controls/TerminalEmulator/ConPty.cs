@@ -1,9 +1,9 @@
-
 using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A pseudo-console (ConPTY) session: launches a process attached to a Windows pseudo console and exposes its
 /// stdin/stdout as streams.

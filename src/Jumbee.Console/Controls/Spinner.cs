@@ -1,7 +1,7 @@
-﻿
-using Spectre.Console;
+﻿using Spectre.Console;
 
 namespace Jumbee.Console;
+
 /// <summary>An animated spinner glyph with an optional label, cycling through a <see cref="Spectre.Console.Spinner"/>'s frames.</summary>
 public class Spinner : AnimatedControl
 {

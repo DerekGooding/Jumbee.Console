@@ -1,9 +1,9 @@
-
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// An <see cref="IInputSource"/> that puts the terminal into VT input mode and enables mouse, bracketed-paste, and
 /// focus reporting, then reads the raw stdin byte stream, decodes it (UTF-8) and runs it through

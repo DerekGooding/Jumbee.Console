@@ -1,10 +1,10 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using CColor = ConsoleGUI.Data.Color;
 using CPlot = ConsolePlot.Plot;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A <see cref="ConsolePlot.Plot"/> whose <see cref="Render"/> blits the rendered image into a
 /// <see cref="ConsoleBuffer"/> instead of writing ANSI to <see cref="System.Console"/>, so the Jumbee
@@ -12,8 +12,6 @@ namespace Jumbee.Console;
 /// </summary>
 internal sealed class PlotImage(int width, int height, ConsoleBuffer buffer) : CPlot(width, height)
 {
-
-
     #region Properties
 
     /// <summary>Background colour written behind every cell, or <see langword="null"/> for transparent.</summary>

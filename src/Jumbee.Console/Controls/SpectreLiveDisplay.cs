@@ -1,8 +1,8 @@
-﻿
-using Spectre.Console;
+﻿using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A Spectre.Console LiveDisplay widget.
 /// </summary>

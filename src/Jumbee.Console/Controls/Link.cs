@@ -1,10 +1,10 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 using System.Diagnostics;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A focusable, clickable text link. Activating it (a mouse click, or Enter/Space while focused) opens
 /// <see cref="Url"/> with the system default handler and raises <see cref="Activated"/>.

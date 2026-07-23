@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// Tracks which theme-derived properties a caller has explicitly overridden, keyed by property name, so a
 /// runtime theme switch (an <c>ApplyTheme</c>) can re-apply theme defaults <em>only</em> to the properties the

@@ -1,15 +1,13 @@
-﻿
-using ConsoleGUIColor = ConsoleGUI.Data.Color;
+﻿using ConsoleGUIColor = ConsoleGUI.Data.Color;
 using SpectreColor = Spectre.Console.Color;
 using SystemDrawingColor = System.Drawing.Color;
 
 namespace Jumbee.Console;
+
 /// <summary>An RGB colour. Value type: two colours are equal when their channels are.</summary>
 /// <remarks>Initializes a new <see cref="Color"/> from red, green, and blue channel values.</remarks>
 public readonly partial struct Color(byte r, byte g, byte b) : IEquatable<Color>
 {
-
-
     #region Properties
 
     // Computed on demand (not stored) so Color stays a 3-byte value instead of carrying a ~24-byte

@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -13,6 +12,7 @@ using VtNetCore.XTermParser;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A control that runs a child process in a pseudo-console (<see cref="ConPty"/>), parses its ANSI output with
 /// VtNetCore, and paints the emulated screen into the control's cell area. Input routed to the focused control is

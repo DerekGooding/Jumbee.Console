@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// Switches the terminal to the alternate screen buffer (DEC private mode 1049) for the duration of a full-screen UI
 /// session, so the app's frames never touch the primary screen or its scrollback. <see cref="Dispose"/> resets the

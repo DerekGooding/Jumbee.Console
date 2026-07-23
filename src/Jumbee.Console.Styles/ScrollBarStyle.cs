@@ -9,8 +9,6 @@ namespace Jumbee.Console;
 /// <remarks>Initializes a new <see cref="ScrollBarStyle"/> from the thumb, track, and end-arrow styles.</remarks>
 public readonly struct ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow) : IEquatable<ScrollBarStyle>
 {
-
-
     #region Properties
 
     /// <summary>Style for the thumb (the draggable handle).</summary>

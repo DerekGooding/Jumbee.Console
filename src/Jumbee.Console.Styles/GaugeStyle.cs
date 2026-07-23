@@ -9,8 +9,6 @@ namespace Jumbee.Console;
 /// <remarks>Initializes a new <see cref="GaugeStyle"/> from the fill, track, and text styles.</remarks>
 public readonly struct GaugeStyle(Style fill, Style track, Style text) : IEquatable<GaugeStyle>
 {
-
-
     #region Properties
 
     /// <summary>The filled portion of the bar (its foreground colour fills the band).</summary>

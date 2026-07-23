@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
@@ -6,6 +5,7 @@ using Spectre.Console.Interop;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Displays a flat list of items and allows user input navigation and selection.
 /// </summary>

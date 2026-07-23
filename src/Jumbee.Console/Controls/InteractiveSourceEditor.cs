@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// Base for live, split-pane source editors: a <see cref="CodeEditor"/> in one pane and a read-only preview control in
 /// the other, wired so the preview re-renders as the source is edited. A draggable <see cref="SplitPanel"/> divider
@@ -130,7 +131,9 @@ public abstract class InteractiveSourceEditor : CompositeControl
         .WithKey("↑ / ↓, PgUp / PgDn", "Scroll the focused pane");
 
     #endregion Methods
+
     #region Fields
+
     private string _lastSynced;
     private bool _syncQueued;   // a coalesced preview sync is posted for the next frame (see ScheduleSync)
 

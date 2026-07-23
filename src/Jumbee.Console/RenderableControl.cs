@@ -1,8 +1,8 @@
-﻿
-using Spectre.Console.Rendering;
+﻿using Spectre.Console.Rendering;
 using System.Diagnostics;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A control that implements Spectre.Console.IRenderable
 /// </summary>

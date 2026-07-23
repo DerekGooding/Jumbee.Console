@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// The draggable divider between a <see cref="SplitPanel"/>'s two panes.
 /// </summary>

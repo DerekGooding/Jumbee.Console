@@ -17,8 +17,6 @@ public class InteractiveMermaidEditor(string mermaid = "", SplitOrientation orie
     int splitPosition = 40) : InteractiveSourceEditor(new CodeEditor(MermaidLanguage.Instance) { Text = mermaid ?? "" }, new MermaidViewer(mermaid ?? ""),
         " Mermaid ", " Diagram ", mermaid ?? "", orientation, splitPosition)
 {
-
-
     #region Properties
 
     /// <summary>The preview pane rendering the live diagram.</summary>

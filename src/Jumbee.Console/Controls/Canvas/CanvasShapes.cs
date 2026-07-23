@@ -1,6 +1,7 @@
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Drawing;
+
 /// <summary>
 /// A shape that can be drawn on a <see cref="Jumbee.Console.Canvas"/> via <see cref="Jumbee.Console.Canvas.Add"/>.
 /// </summary>
@@ -18,15 +19,18 @@ public interface IShape
 /// <remarks>Initializes a new <see cref="Line"/> from (<paramref name="x1"/>, <paramref name="y1"/>) to (<paramref name="x2"/>, <paramref name="y2"/>) in the given colour.</remarks>
 public sealed class Line(double x1, double y1, double x2, double y2, Color color) : IShape
 {
-
     /// <summary>X coordinate of the start point.</summary>
     public double X1 { get; } = x1;
+
     /// <summary>Y coordinate of the start point.</summary>
     public double Y1 { get; } = y1;
+
     /// <summary>X coordinate of the end point.</summary>
     public double X2 { get; } = x2;
+
     /// <summary>Y coordinate of the end point.</summary>
     public double Y2 { get; } = y2;
+
     /// <summary>Colour of the line.</summary>
     public Color Color { get; } = color;
 
@@ -48,17 +52,21 @@ public sealed class Line(double x1, double y1, double x2, double y2, Color color
 /// <remarks>Initializes a new <see cref="FilledLine"/> from (<paramref name="x1"/>, <paramref name="y1"/>) to (<paramref name="x2"/>, <paramref name="y2"/>), filled down to <paramref name="fillToY"/>, in the given colour.</remarks>
 public sealed class FilledLine(double x1, double y1, double x2, double y2, double fillToY, Color color) : IShape
 {
-
     /// <summary>X coordinate of the start point.</summary>
     public double X1 { get; } = x1;
+
     /// <summary>Y coordinate of the start point.</summary>
     public double Y1 { get; } = y1;
+
     /// <summary>X coordinate of the end point.</summary>
     public double X2 { get; } = x2;
+
     /// <summary>Y coordinate of the end point.</summary>
     public double Y2 { get; } = y2;
+
     /// <summary>Y coordinate the fill extends to from each line point.</summary>
     public double FillToY { get; } = fillToY;
+
     /// <summary>Colour of the line and its fill.</summary>
     public Color Color { get; } = color;
 
@@ -90,15 +98,18 @@ public sealed class FilledLine(double x1, double y1, double x2, double y2, doubl
 /// <remarks>Initializes a new <see cref="Rectangle"/> at bottom-left corner (<paramref name="x"/>, <paramref name="y"/>) with the given size and colour.</remarks>
 public sealed class Rectangle(double x, double y, double width, double height, Color color) : IShape
 {
-
     /// <summary>X coordinate of the bottom-left corner.</summary>
     public double X { get; } = x;
+
     /// <summary>Y coordinate of the bottom-left corner.</summary>
     public double Y { get; } = y;
+
     /// <summary>Width of the rectangle.</summary>
     public double Width { get; } = width;
+
     /// <summary>Height of the rectangle.</summary>
     public double Height { get; } = height;
+
     /// <summary>Colour of the outline.</summary>
     public Color Color { get; } = color;
 
@@ -119,7 +130,6 @@ public sealed class Rectangle(double x, double y, double width, double height, C
 /// <remarks>Initializes a new <see cref="Points"/> scatter from the given coordinates and colour.</remarks>
 public sealed class Points(IReadOnlyList<(double X, double Y)> coords, Color color) : IShape
 {
-
     /// <summary>The point coordinates in canvas space.</summary>
     public IReadOnlyList<(double X, double Y)> Coords { get; } = coords;
 
@@ -139,13 +149,15 @@ public sealed class Points(IReadOnlyList<(double X, double Y)> coords, Color col
 /// <remarks>Initializes a new <see cref="Circle"/> centred at (<paramref name="x"/>, <paramref name="y"/>) with the given radius and colour.</remarks>
 public sealed class Circle(double x, double y, double radius, Color color) : IShape
 {
-
     /// <summary>X coordinate of the centre.</summary>
     public double X { get; } = x;
+
     /// <summary>Y coordinate of the centre.</summary>
     public double Y { get; } = y;
+
     /// <summary>Radius of the circle.</summary>
     public double Radius { get; } = radius;
+
     /// <summary>Colour of the outline.</summary>
     public Color Color { get; } = color;
 

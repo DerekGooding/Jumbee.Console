@@ -1,10 +1,10 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using NTokenizers.Extensions.Spectre.Console;
 using NTokenizers.Extensions.Spectre.Console.Styles;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A read-only, scrollable Markdown viewer. Renders CommonMark — headings, bold/italic, block-quotes, ordered and
 /// unordered lists, links, syntax-highlighted fenced code blocks, and box-drawn tables — via NTokenizers'
@@ -19,8 +19,6 @@ namespace Jumbee.Console;
 /// <remarks>Initializes a <see cref="MarkdownViewer"/> with the given Markdown source.</remarks>
 public class MarkdownViewer(string markdown = "") : Control
 {
-
-
     #region Properties
 
     /// <summary>The Markdown source. Setting it re-renders (off the UI thread) and re-lays-out.</summary>
@@ -237,6 +235,7 @@ public class MarkdownViewer(string markdown = "") : Control
     // reachable anyway, so a taller document simply clips at the bottom.
     /// <summary>The maximum number of rows the rendered document is capped at.</summary>
     protected const int MaxRows = 1024;
+
     private int _version;                       // bumped when the text/styles change, invalidating a cached render
 
     // Ping-pong pair: _content is the front buffer blitted into consoleBuffer each paint (read on the UI thread);

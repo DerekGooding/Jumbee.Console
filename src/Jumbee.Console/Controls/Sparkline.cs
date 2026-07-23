@@ -1,7 +1,7 @@
-
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A compact, single-row chart that draws a series of numeric values as block bars (one cell per value),
 /// scaling each value's height against the series maximum.

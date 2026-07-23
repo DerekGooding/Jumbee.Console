@@ -1,7 +1,7 @@
-
 using Spectre.Console.Rendering;
 
 namespace Spectre.Console.Interop;
+
 internal static class SegmentExtensions
 {
     /// <summary>

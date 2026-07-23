@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Shared base for the vertical, navigable toggle lists (<see cref="RadioSet"/>, <see cref="SelectionList"/>).
 /// </summary>

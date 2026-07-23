@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Mermaider;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A read-only, scrollable viewer for Mermaid <c>flowchart</c>/<c>graph</c> and <c>stateDiagram</c> diagrams.
 /// </summary>
@@ -21,8 +21,6 @@ namespace Jumbee.Console.Documents;
 /// <remarks>Initializes a new <see cref="MermaidViewer"/> showing <paramref name="mermaid"/>.</remarks>
 public class MermaidViewer(string mermaid = "") : Control
 {
-
-
     #region Properties
 
     /// <summary>The Mermaid source. Setting it re-parses/re-renders (off the UI thread) and re-lays-out.</summary>

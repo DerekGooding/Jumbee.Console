@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// A handle to a running background feed started by <see cref="Control.Feed(Action, int)"/> and its overloads.
 /// Cancel it to stop the feed; await <see cref="Completion"/> (or <see cref="StopAsync"/>) to know the in-flight tick

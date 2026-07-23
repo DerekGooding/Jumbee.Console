@@ -18,8 +18,6 @@ public class InteractiveAsciiDocEditor(string asciiDoc = "", SplitOrientation or
     int splitPosition = 48) : InteractiveSourceEditor(new CodeEditor(AsciiDocLanguage.Instance) { Text = asciiDoc ?? "" }, new AsciiDocViewer(asciiDoc ?? ""),
         " AsciiDoc ", " Preview ", asciiDoc ?? "", orientation, splitPosition)
 {
-
-
     #region Properties
 
     /// <summary>The preview pane rendering the live AsciiDoc.</summary>

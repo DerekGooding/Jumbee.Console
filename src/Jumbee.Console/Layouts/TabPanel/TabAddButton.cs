@@ -1,9 +1,9 @@
-
 using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// The "+" new-tab button appended to a <see cref="TabPanel"/>'s bar when <see cref="TabPanel.ShowAddButton"/> is set.
 /// </summary>

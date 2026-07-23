@@ -1,10 +1,10 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A horizontal bar of top-level menu titles (e.g. <c>File  Edit  View</c>).
 /// </summary>

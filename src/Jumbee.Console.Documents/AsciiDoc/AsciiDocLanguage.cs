@@ -1,8 +1,8 @@
-
 using ColorCode;
 using ColorCode.Common;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> grammar for AsciiDoc source, for syntax-highlighting an AsciiDoc document in a
 /// <see cref="CodeEditor"/> (<c>new CodeEditor(AsciiDocLanguage.Instance)</c>).

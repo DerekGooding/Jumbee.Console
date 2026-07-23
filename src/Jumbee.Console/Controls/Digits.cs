@@ -1,7 +1,7 @@
-
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Renders text using large three-row "seven-segment" glyphs, for clocks, counters and headline figures.
 /// </summary>

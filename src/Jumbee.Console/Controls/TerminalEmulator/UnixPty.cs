@@ -1,10 +1,10 @@
-
 using Microsoft.Win32.SafeHandles;
 using System.Collections;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A Unix pseudo terminal (Linux/macOS) session.
 /// </summary>

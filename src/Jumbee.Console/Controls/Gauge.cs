@@ -1,9 +1,9 @@
-
 using Spectre.Console.Rendering;
 using SColor = Spectre.Console.Color;
 using SStyle = Spectre.Console.Style;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A single-row horizontal progress bar: the track is filled proportional to <see cref="Value"/> / <see cref="Max"/>,
 /// optionally followed by the percentage and the raw value — e.g. <c>████████░░░░  34.5% (126)</c>. For dashboards

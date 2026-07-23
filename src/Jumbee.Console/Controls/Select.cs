@@ -1,10 +1,10 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>Where a <see cref="Select"/>'s dropdown opens relative to the control.</summary>
 public enum SelectPopupPosition
 {

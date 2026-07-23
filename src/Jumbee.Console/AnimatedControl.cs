@@ -1,4 +1,5 @@
 ﻿namespace Jumbee.Console;
+
 /// <summary>Base class for a control that advances through frames on a timer, repainting each frame while running.</summary>
 public abstract class AnimatedControl : Control
 {

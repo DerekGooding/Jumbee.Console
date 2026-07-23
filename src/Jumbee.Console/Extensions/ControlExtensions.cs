@@ -1,8 +1,8 @@
-﻿
-using ConsoleGUI.Common;
+﻿using ConsoleGUI.Common;
 using ConsoleGUI.Space;
 
 namespace Jumbee.Console;
+
 /// <summary>Fluent extension helpers for configuring controls, frames, and geometry values.</summary>
 public static class ControlExtensions
 {

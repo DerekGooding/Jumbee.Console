@@ -1,4 +1,3 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
@@ -7,6 +6,7 @@ using System.Text;
 using JControl = Jumbee.Console.Control;
 
 namespace Jumbee.Console.Snapshot;
+
 /// <summary>
 /// Drives the <em>real</em> <see cref="ConsoleManager"/> ANSI render path headlessly, captures the emitted escape
 /// sequences via <see cref="ConsoleManager.AnsiOutput"/>, and parses them back into an <see cref="AnsiScreen"/>.

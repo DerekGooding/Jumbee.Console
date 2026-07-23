@@ -1,8 +1,8 @@
-
 using Jumbee.Console.Documents.Mermaid;
 using Mermaider;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// Parses Mermaid source and rasterizes it to a <see cref="CellCanvas"/>, routing by diagram type. Shared by
 /// <see cref="MermaidViewer"/> (which blits the canvas to its own buffer) and <see cref="AsciiDocRenderer"/> (which

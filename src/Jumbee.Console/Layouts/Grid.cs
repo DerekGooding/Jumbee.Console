@@ -1,4 +1,5 @@
 ﻿namespace Jumbee.Console;
+
 /// <summary>
 ///  A grid layout with controls arranged in rows and columns.
 /// </summary>
@@ -63,5 +64,4 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
     public override IFocusable this[int row, int column] => (IFocusable)control.GetChild(column, row);
 
     #endregion Methods
-
 }

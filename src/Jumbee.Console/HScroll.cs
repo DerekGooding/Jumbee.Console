@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// An opt-in horizontal-scroll offset for controls that render a fixed-width buffer wider than their viewport and
 /// window it in <c>Blit</c> (the <see cref="ControlFrame"/> only scrolls vertically).

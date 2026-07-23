@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>How a <see cref="SplitPanel"/> arranges its two panes.</summary>
 public enum SplitOrientation
 {
@@ -131,12 +132,12 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
             return cross != 0
                 ? throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(row) : nameof(column))
                 : index switch
-            {
-                0 => First,
-                1 => Divider,
-                2 => Second,
-                _ => throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(column) : nameof(row))
-            };
+                {
+                    0 => First,
+                    1 => Divider,
+                    2 => Second,
+                    _ => throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(column) : nameof(row))
+                };
         }
     }
 

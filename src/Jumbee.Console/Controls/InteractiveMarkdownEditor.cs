@@ -1,7 +1,7 @@
-
 using NTokenizers.Extensions.Spectre.Console.Styles;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A live, split-pane Markdown editor for the terminal — the TUI equivalent of a web Markdown editor. The left pane
 /// is a <see cref="CodeEditor"/> with Markdown syntax highlighting; the right pane is a <see cref="MarkdownViewer"/>

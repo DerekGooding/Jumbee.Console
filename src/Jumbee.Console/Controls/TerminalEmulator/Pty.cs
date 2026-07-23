@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// Factory that opens an <see cref="IPty"/> using the right backend for the current OS: the Windows pseudo console
 /// (<see cref="ConPty"/>) or a Unix pseudo terminal (<see cref="UnixPty"/>).

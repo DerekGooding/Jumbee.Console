@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -6,6 +5,7 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// An append-only, scrolling log of Spectre <see cref="IRenderable"/> entries — markup strings, tables, rules,
 /// etc. — that always shows the most recent entries that fit (a "tail" view). Each entry is a renderable, so log

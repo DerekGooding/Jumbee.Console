@@ -1,7 +1,7 @@
-
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>Preset colour schemes for a <see cref="Badge"/>, resolved from the active theme.</summary>
 public enum BadgeVariant
 {

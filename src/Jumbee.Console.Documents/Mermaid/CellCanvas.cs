@@ -1,8 +1,8 @@
-
 using ConsoleGUI.Space;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// A fixed-size grid of styled characters with box-drawing primitives, used to rasterize a laid-out Mermaid diagram.
 /// Line cells accumulate a direction bitmask (up/down/left/right) so crossings and bends resolve to the correct

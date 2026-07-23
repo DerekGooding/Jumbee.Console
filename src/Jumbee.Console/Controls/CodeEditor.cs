@@ -1,7 +1,7 @@
-
 using ColorCode;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A composite control pairing a <see cref="TextEditor"/> with a <see cref="LineNumberGutter"/> docked to its left.
 /// </summary>
@@ -146,6 +146,7 @@ public class CodeEditor : CompositeControl
     }
 
     #endregion Methods
+
     #region Fields
 
     // Cached snapshot of what the gutter currently reflects (wrapped row count + caret's visual row), so

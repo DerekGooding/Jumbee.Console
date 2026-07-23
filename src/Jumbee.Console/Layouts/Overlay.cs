@@ -1,4 +1,3 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Space;
 using CBox = ConsoleGUI.Controls.Box;
@@ -6,6 +5,7 @@ using CMargin = ConsoleGUI.Controls.Margin;
 using COverlay = ConsoleGUI.Controls.Overlay;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A layered layout: a persistent <see cref="Bottom"/> layer with an optional floating popup composited on top
 /// (wraps ConsoleGUI's <see cref="COverlay"/>).

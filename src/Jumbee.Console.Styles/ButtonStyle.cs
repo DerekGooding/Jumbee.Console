@@ -29,8 +29,6 @@ public readonly struct ButtonStyle(Style normal, Style hover, Style press,
     int width = 0,
     int minWidth = 0) : IEquatable<ButtonStyle>
 {
-
-
     #region Properties
 
     /// <summary>Fill (foreground text colour + background) at rest.</summary>

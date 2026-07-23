@@ -1,8 +1,8 @@
-
 using Mermaider.Models;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Documents;
+
 /// <summary>
 /// Rasterizes a Mermaider <see cref="PositionedErDiagram"/> to a <see cref="CellCanvas"/>: relationships (polylines,
 /// dashed when non-identifying, with cardinality labels at each end) first, then entity tables (name header + typed
@@ -10,8 +10,6 @@ namespace Jumbee.Console.Documents;
 /// </summary>
 internal sealed class MermaidErRenderer(MermaidStyles styles)
 {
-
-
     #region Methods
 
     public CellCanvas Render(PositionedErDiagram diagram)

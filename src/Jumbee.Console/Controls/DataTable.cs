@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -7,6 +6,7 @@ using Spectre.Console.Rendering;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// An interactive data grid.
 /// </summary>
@@ -20,8 +20,6 @@ namespace Jumbee.Console;
 /// <remarks>Initializes a new <see cref="DataTable"/> with the given column headers.</remarks>
 public class DataTable(params string[] columns) : Control
 {
-
-
     #region Events
 
     /// <summary>Raised when the selected row changes; the argument is the new row index (or -1 when empty).</summary>

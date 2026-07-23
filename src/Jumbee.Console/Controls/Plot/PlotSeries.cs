@@ -1,6 +1,7 @@
 using CPlot = ConsolePlot.Plot;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A live, updatable series in a <see cref="Plot"/>. Returned by <see cref="Plot.AddLiveSeries"/> (line),
 /// <see cref="Plot.AddLiveScatter"/> (markers) or <see cref="Plot.AddLiveBars"/>; hold onto it and feed data as it

@@ -1,4 +1,5 @@
 namespace Jumbee.Console;
+
 /// <summary>
 /// A vertical list of independently-checkable options (multi-select).
 /// </summary>

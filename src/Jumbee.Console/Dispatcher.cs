@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Owns a single UI thread and a serialized work queue. UI state mutation and rendering are intended to
 /// run on this thread; other threads marshal work onto it via <see cref="Post"/>, <see cref="Invoke"/>,
@@ -191,11 +192,13 @@ public sealed class Dispatcher
 
         if (CheckAccess())
         {
-            try {
+            try
+            {
                 await func();
                 return;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 await Task.FromException(ex);
                 return;
             }

@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using Spectre.Console;
@@ -7,6 +6,7 @@ using Spectre.Console.Rendering;
 using System.Text;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// An implementation of Spectre.Console.IAnsiConsole that writes to a ConsoleBuffer.
 /// </summary>
@@ -384,31 +384,35 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
 
 internal class AnsiConsoleBufferCursor(AnsiConsoleBuffer parent) : IAnsiConsoleCursor
 {
-
-
     #region Properties
 
     internal bool IsVisible { get; private set; }
 
     /// <summary>The cursor shape/blink, emitted by the renderer as DECSCUSR. Re-applies live if visible.</summary>
-    public CursorStyle Style { get; set
+    public CursorStyle Style
+    {
+        get; set
         {
             if (field != value)
             {
                 field = value;
                 if (IsVisible) { HideCursor(); ShowCursor(); }
             }
-        } } = CursorStyle.Default;
+        }
+    } = CursorStyle.Default;
 
     /// <summary>Cursor colour (OSC 12), or <see langword="null"/> for the terminal default. Re-applies live if visible.</summary>
-    public Color? Color { get; set
+    public Color? Color
+    {
+        get; set
         {
             if (!Nullable.Equals(field, value))
             {
                 field = value;
                 if (IsVisible) { HideCursor(); ShowCursor(); }
             }
-        } }
+        }
+    }
 
     #endregion Properties
 

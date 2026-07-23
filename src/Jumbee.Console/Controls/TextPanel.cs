@@ -1,8 +1,8 @@
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// Displays a block of multi-line Spectre <see cref="Markup"/> text — the counterpart to the single-line
 /// <see cref="TextLabel"/> and the append-only <see cref="Log"/>.

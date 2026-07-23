@@ -1,7 +1,7 @@
-
 using Spectre.Console;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// The input area of an agent/chat CLI (Claude Code, Gemini CLI): a prompt glyph on the left that turns into an
 /// animated <em>busy</em> spinner while an operation runs, and a single-line <see cref="TextInput"/> filling the
@@ -123,7 +123,9 @@ public class ChatPrompt : CompositeControl
         .WithKey("Enter", "Submit");
 
     #endregion Methods
+
     #region Fields
+
     private readonly PromptGutter _gutter;
 
     #endregion Fields

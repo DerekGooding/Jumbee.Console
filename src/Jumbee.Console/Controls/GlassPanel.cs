@@ -1,4 +1,3 @@
-
 using ConsoleGUI;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;

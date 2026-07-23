@@ -1,6 +1,7 @@
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Drawing;
+
 /// <summary>
 /// Converts canvas (world) coordinates to grid dot coordinates and paints them, for use by <see cref="IShape"/>
 /// implementations. The origin of the canvas coordinate system is the bottom-left corner (unlike the terminal's
@@ -8,7 +9,6 @@ namespace Jumbee.Console.Drawing;
 /// </summary>
 internal sealed class Painter(CanvasContext context)
 {
-
     /// <summary>The canvas coordinate bounds — (x: [left, right], y: [bottom, top]).</summary>
     public ((double Min, double Max) X, (double Min, double Max) Y) Bounds => (_context.XBounds, _context.YBounds);
 

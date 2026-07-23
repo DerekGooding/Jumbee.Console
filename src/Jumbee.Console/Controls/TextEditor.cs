@@ -1,5 +1,4 @@
-﻿
-using ColorCode;
+﻿using ColorCode;
 using ConsoleGUI.Input;
 using NTokenizers.Extensions.Spectre.Console;
 using RazorConsole.Core.Rendering.Syntax;
@@ -7,6 +6,7 @@ using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace Jumbee.Console;
+
 /// <summary>
 /// A source language for syntax highlighting, shared by the text/code controls (e.g. <see cref="TextEditor"/>,
 /// <see cref="CodeEditor"/>). <see cref="None"/> renders plain, unhighlighted text.

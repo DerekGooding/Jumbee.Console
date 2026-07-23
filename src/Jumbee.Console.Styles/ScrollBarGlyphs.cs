@@ -33,8 +33,6 @@ public enum ScrollBarMode
 /// <remarks>Builds a <see cref="ScrollBarMode.Classic"/> glyph set (explicit glyphs imply the classic bar).</remarks>
 public readonly struct ScrollBarGlyphs(string thumb, string track, string upArrow, string downArrow) : IEquatable<ScrollBarGlyphs>
 {
-
-
     #region Properties
 
     /// <summary>Which bar to render (smooth sub-cell block bar, or the classic three-part bar). Defaults to

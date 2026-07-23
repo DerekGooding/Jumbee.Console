@@ -1,4 +1,3 @@
-
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
