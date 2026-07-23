@@ -8,9 +8,9 @@ using ConsolePlot.Plotting;
 using CPlot = ConsolePlot.Plot;
 
 /// <summary>
-/// A live, updatable series in a <see cref="Plot"/>. Returned by <see cref="Plot.AddLiveSeries"/> /
-/// <see cref="Plot.AddLiveBars"/>; hold onto it and feed data as it arrives with <see cref="SetData"/>,
-/// <see cref="SetValues"/>, <see cref="Push"/> or <see cref="Clear"/>.
+/// A live, updatable series in a <see cref="Plot"/>. Returned by <see cref="Plot.AddLiveSeries"/> (line),
+/// <see cref="Plot.AddLiveScatter"/> (markers) or <see cref="Plot.AddLiveBars"/>; hold onto it and feed data as it
+/// arrives with <see cref="SetData"/>, <see cref="SetValues"/>, <see cref="Push"/> or <see cref="Clear"/>.
 /// </summary>
 /// <remarks>
 /// Every update is marshalled onto the UI thread and re-draws the plot, so the methods are safe to call from any

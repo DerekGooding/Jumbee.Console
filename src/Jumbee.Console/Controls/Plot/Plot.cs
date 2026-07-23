@@ -54,6 +54,9 @@ public class Plot : Control
     /// <remarks>
     /// When <paramref name="pen"/> is left at its default a colour is taken from the control's palette (cycling by
     /// series index) and drawn with the Braille brush.
+    /// <para>For dense or high-frequency data (e.g. an audio waveform) prefer <see cref="AddScatter"/>: a line
+    /// rasterizes a segment between every consecutive pair of points, which is markedly more expensive than plotting
+    /// points independently.</para>
     /// </remarks>
     public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PointPen pen = default)
     {
@@ -75,6 +78,7 @@ public class Plot : Control
     /// The <paramref name="brush"/>'s sub-cell resolution — Braille 2×4, Quadrant 2×2, the rest 1×1 — sets how smooth
     /// the line looks. When <paramref name="color"/> is <see langword="null"/> a colour is taken from the control's
     /// palette, cycling by series index.
+    /// <para>For dense or high-frequency data prefer <see cref="AddScatter"/> — see the note there.</para>
     /// </remarks>
     public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush, Color? color = null)
     {
@@ -92,6 +96,10 @@ public class Plot : Control
     /// <remarks>
     /// The <paramref name="brush"/> sets the marker (and its sub-cell resolution); <paramref name="color"/> defaults
     /// to the palette.
+    /// <para>Scatter is also markedly cheaper to draw than a line series (<see cref="AddSeries(IReadOnlyCollection{double}, IReadOnlyCollection{double}, PointPen)"/>)
+    /// for dense or high-frequency data such as an audio waveform: a line rasterizes a segment between every
+    /// consecutive pair of points, whereas scatter plots each point on its own. When the point count is high and the
+    /// connecting lines add little, prefer scatter for a large drawing-cost win.</para>
     /// </remarks>
     public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<double> ys, PlotBrush brush = PlotBrush.Braille, Color? color = null)
     {
@@ -551,16 +559,37 @@ public class Plot : Control
     }
 
     /// <summary>
-    /// Adds a live line/scatter series and returns a <see cref="PlotSeries"/> handle to feed it data as it arrives
-    /// (<see cref="PlotSeries.SetData"/>/<see cref="PlotSeries.Push"/>).
+    /// Adds a live <b>line</b> series (consecutive points joined) and returns a <see cref="PlotSeries"/> handle to
+    /// feed it data as it arrives (<see cref="PlotSeries.SetData"/>/<see cref="PlotSeries.Push"/>). For unconnected
+    /// markers use <see cref="AddLiveScatter"/>.
     /// </summary>
     /// <remarks>
-    /// <paramref name="color"/> defaults to the palette; <paramref name="brush"/> sets the sub-cell marker. Starts empty.
+    /// <paramref name="color"/> defaults to the palette; <paramref name="brush"/>'s sub-cell resolution (Braille 2×4,
+    /// Quadrant 2×2, the rest 1×1) sets how smooth the line looks. Starts empty. For dense or high-frequency data
+    /// (e.g. an audio waveform) prefer <see cref="AddLiveScatter"/> — see the drawing-cost note on <see cref="AddScatter"/>.
     /// </remarks>
     public PlotSeries AddLiveSeries(Color? color = null, PlotBrush brush = PlotBrush.Braille)
     {
         var pen = new PointPen(BrushFor(brush), (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
         var handle = new PlotSeries(this, (cplot, xs, ys) => cplot.AddSeries(xs, ys, pen));
+        RegisterLive(handle);
+        return handle;
+    }
+
+    /// <summary>
+    /// Adds a live <b>scatter</b> series (points drawn as markers, no connecting lines) and returns a
+    /// <see cref="PlotSeries"/> handle to feed it data as it arrives. The scatter counterpart of
+    /// <see cref="AddLiveSeries"/>, so live streaming data and the cheaper marker draw compose.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="color"/> defaults to the palette; <paramref name="brush"/> sets the marker (and its sub-cell
+    /// resolution). Starts empty. Markers are markedly cheaper to draw than a line for dense/high-frequency data —
+    /// see the note on <see cref="AddScatter"/>.
+    /// </remarks>
+    public PlotSeries AddLiveScatter(Color? color = null, PlotBrush brush = PlotBrush.Braille)
+    {
+        var pen = new PointPen(BrushFor(brush), (CColor?)color ?? Palette[_seriesCount % Palette.Length]);
+        var handle = new PlotSeries(this, (cplot, xs, ys) => cplot.AddScatter(xs, ys, pen));
         RegisterLive(handle);
         return handle;
     }
@@ -622,8 +651,11 @@ public class Plot : Control
     }
 
     /// <summary>Configures the axis lines and their captions. This styling is retained across <see cref="Clear"/>.</summary>
-    /// <remarks>The passed settings expose <c>IsVisible</c> (default <see langword="true"/>) and <c>Pen</c> (a
-    /// <c>LinePen</c> of brush + colour), plus optional <c>XTitle</c>/<c>YTitle</c> captions (with <c>TitleColor</c>).
+    /// <remarks>For the common cases prefer the Jumbee-colour convenience methods <see cref="SetAxisColor"/> and
+    /// <see cref="SetAxisTitles"/> — this raw overload exposes ConsolePlot's <see cref="System.ConsoleColor"/> surface.
+    /// The passed settings expose <c>IsVisible</c> (default <see langword="true"/>) and <c>Pen</c> — an
+    /// immutable pen taking a full-RGB colour, so recolour with <c>a.Pen = new LinePen(a.Pen.Brush, (Color)colour)</c>.
+    /// Also optional <c>XTitle</c>/<c>YTitle</c> captions (with <c>TitleColor</c>, a full-RGB colour).
     /// The captions are <b>screen-anchored</b> — <c>YTitle</c> is pinned to the top-left, <c>XTitle</c> to the
     /// bottom-right — so they stay put when the axes rescale, unlike a data-anchored <see cref="AddLabel"/>. Hide the
     /// axis with <c>ConfigureAxis(a =&gt; a.IsVisible = false)</c>; label it with
@@ -646,6 +678,39 @@ public class Plot : Control
     /// with <c>ConfigureTicks(t =&gt; t.IsVisible = false)</c> and the numbers with
     /// <c>ConfigureTicks(t =&gt; t.Labels.IsVisible = false)</c>.</remarks>
     public Plot ConfigureTicks(Action<TickSettings> configure) => ConfigureChrome(p => configure(p.Ticks));
+
+    /// <summary>Sets the screen-anchored axis captions and (optionally) their colour, in <see cref="Color"/>s — a
+    /// convenience over <see cref="ConfigureAxis"/> that takes a Jumbee colour instead of a <see cref="System.ConsoleColor"/>.
+    /// A <see langword="null"/> title is left unchanged; pass an <b>empty string</b> to clear a previously-set caption.
+    /// Retained across <see cref="Clear"/>, so set it once at setup rather than per frame.</summary>
+    /// <remarks><c>YTitle</c> pins to the top-left, <c>XTitle</c> to the bottom-right (see <see cref="ConfigureAxis"/>).
+    /// Colours map onto the 16 console colours (see <see cref="Color.ToConsoleColor"/>); an exact console colour is loss-free.</remarks>
+    public Plot SetAxisTitles(string? xTitle = null, string? yTitle = null, Color? titleColor = null) =>
+        ConfigureChrome(p =>
+        {
+            if (xTitle is not null) p.Axis.XTitle = xTitle;
+            if (yTitle is not null) p.Axis.YTitle = yTitle;
+            if (titleColor is { } c) p.Axis.TitleColor = (CColor)c;
+        });
+
+    /// <summary>Recolours the axis lines, in a full-RGB <see cref="Color"/> (keeping the current brush) — a
+    /// convenience that hides ConsolePlot's immutable pen. Retained across <see cref="Clear"/>.</summary>
+    public Plot SetAxisColor(Color color) =>
+        ConfigureChrome(p => p.Axis.Pen = new LinePen(p.Axis.Pen.Brush, (CColor)color));
+
+    /// <summary>Recolours the background grid lines, in a full-RGB <see cref="Color"/> (keeping the current brush).
+    /// Retained across <see cref="Clear"/>.</summary>
+    public Plot SetGridColor(Color color) =>
+        ConfigureChrome(p => p.Grid.Pen = new LinePen(p.Grid.Pen.Brush, (CColor)color));
+
+    /// <summary>Recolours the tick marks and, when <paramref name="labelColor"/> is given, the numeric tick labels —
+    /// in full-RGB <see cref="Color"/>s (keeping the tick brush). Retained across <see cref="Clear"/>.</summary>
+    public Plot SetTickColor(Color color, Color? labelColor = null) =>
+        ConfigureChrome(p =>
+        {
+            p.Ticks.Pen = new LinePen(p.Ticks.Pen.Brush, (CColor)color);
+            if (labelColor is { } lc) p.Ticks.Labels.Color = (CColor)lc;
+        });
 
     // Records persistent axis/grid/tick styling. Unlike Configure/AddSeries (which land in the per-data _config list
     // that Clear() empties), chrome is replayed on every rebuild AND survives Clear(), so a plot rebuilt or cleared to

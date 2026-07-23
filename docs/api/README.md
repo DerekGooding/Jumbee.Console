@@ -38,6 +38,7 @@ Auto-generated from the core libraries' XML-doc comments with [docfx](https://do
 - [Dispatcher](Jumbee.Console.Dispatcher.md) — Owns a single UI thread and a serialized work queue. UI state mutation and rendering are intended to run on this thread; other threads marshal work onto it via `Post`, `Invoke`, or `InvokeAsync`.
 - [DockPanel](Jumbee.Console.DockPanel.md) — A two-child layout that pins one control to an edge and fills the remaining space with the other.
 - [DocumentClosingEventArgs](Jumbee.Console.DocumentClosingEventArgs.md) — Arguments for `DocumentClosing`. Set `Cancel` to keep the document open (e.g. after confirming unsaved changes).
+- [FeedHandle](Jumbee.Console.FeedHandle.md) — A handle to a running background feed started by Control.Feed(Action, int) and its overloads. Cancel it to stop the feed; await `Completion` (or `StopAsync`) to know the in-flight tick has finished — for safely disposing a resource the feed's producer reads.
 - [FocusInputEvent](Jumbee.Console.FocusInputEvent.md) — Terminal focus gained/lost (DEC mode 1004).
 - [Footer](Jumbee.Console.Footer.md) — A one-row key-hints bar (e.g. `^j Send ^t Method ^c Quit f1 Help`), filling the available width.
 - [Gauge](Jumbee.Console.Gauge.md) — A single-row horizontal progress bar: the track is filled proportional to `Value` / `Max`, optionally followed by the percentage and the raw value — e.g. `████████░░░░ 34.5% (126)`. For dashboards (year/day progress, a deployment %, a capacity meter).
@@ -67,7 +68,7 @@ Auto-generated from the core libraries' XML-doc comments with [docfx](https://do
 - [PasteInputEvent](Jumbee.Console.PasteInputEvent.md) — A bracketed-paste payload, delivered as one event so it is never re-interpreted as keystrokes.
 - [PerfHud](Jumbee.Console.PerfHud.md) — A translucent "glass" HUD showing live UI telemetry — frame draw/paint times (µs), CPU, working set, allocation rate and, the headline for a no-lock design, monitor lock contentions — floating over the app.
 - [Plot](Jumbee.Console.Plot.md) — A line/scatter chart backed by the ConsolePlot library, rendered into the control's buffer. Add data with `AddSeries` and tune the axes/grid/ticks with the `Configure*` methods.
-- [PlotSeries](Jumbee.Console.PlotSeries.md) — A live, updatable series in a `Plot`. Returned by `AddLiveSeries` / `AddLiveBars`; hold onto it and feed data as it arrives with `SetData`, `SetValues`, `Push` or `Clear`.
+- [PlotSeries](Jumbee.Console.PlotSeries.md) — A live, updatable series in a `Plot`. Returned by `AddLiveSeries` (line), `AddLiveScatter` (markers) or `AddLiveBars`; hold onto it and feed data as it arrives with `SetData`, `SetValues`, `Push` or `Clear`.
 - [ProcessMetrics](Jumbee.Console.ProcessMetrics.md) — Collects live process/runtime performance metrics for the perf HUD by reading the runtime APIs the `System.Runtime` meter wraps (`GC`, `Environment`, `ThreadPool`, `Monitor`) directly — no `MeterListener`, so there is nothing to sample-schedule and no observable-instrument staleness.
 - [Prompt](Jumbee.Console.Prompt.md) — Base class for controls that prompt the user for input.
 - [Pty](Jumbee.Console.Pty.md) — Factory that opens an `IPty` using the right backend for the current OS: the Windows pseudo console (`ConPty`) or a Unix pseudo terminal (`UnixPty`).

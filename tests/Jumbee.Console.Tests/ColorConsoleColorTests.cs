@@ -22,4 +22,20 @@ public class ColorConsoleColorTests
     {
         Assert.Equal(c, Color.FromSystemConsoleColor(c).ToConsoleColor());
     }
+
+    // Regression: ToConsoleColor previously delegated to Spectre's ToConsoleColor, which runs a LINQ palette query
+    // that allocates on every call — heavy when a render hot path converts a colour per frame (the scope-tui axis
+    // colours did exactly this). The reimplementation is a direct nearest-of-16 scan and must not allocate.
+    [Fact]
+    public void ToConsoleColor_DoesNotAllocate()
+    {
+        var c = new Color(0x33, 0x99, 0xE0);   // a non-exact RGB (exercises the nearest-match path)
+        for (var i = 0; i < 200; i++) _ = c.ToConsoleColor();   // warm up JIT + the one-time static palette build
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 20_000; i++) _ = c.ToConsoleColor();
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated == 0, $"ToConsoleColor allocated {allocated} bytes over 20k calls (expected 0)");
+    }
 }

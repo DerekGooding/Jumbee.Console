@@ -140,15 +140,32 @@ public static class ConsoleSnapshot
     #endregion
 
     #region Text snapshot
-    /// <summary>Converts a buffer to a plain-text snapshot (glyphs only, one line per row). Colour and text
-    /// decoration are NOT captured, so state distinguished only by colour (e.g. a dimmed "read" row) is invisible to
-    /// a text assertion — use <c>ToImage</c>/<c>SavePng</c> for colour, or render a visible glyph marker to assert on
-    /// with text.</summary>
+    /// <summary>Converts a buffer to a plain-text snapshot: one <c>\n</c>-terminated line per row, each row
+    /// <b>right-trimmed of trailing spaces</b> (so snapshots are stable regardless of right-padding). Because rows are
+    /// trimmed, a flat <c>index → (index % width, index / width)</c> back-mapping to buffer coordinates is wrong — use
+    /// <see cref="ToLines(ConsoleBuffer)"/> to index by row, or <see cref="GlyphAt"/> for a specific cell. Colour and
+    /// text decoration are NOT captured, so state distinguished only by colour (e.g. a dimmed "read" row) is invisible
+    /// to a text assertion — use <see cref="ForegroundAt"/>/<see cref="BackgroundAt"/>, or <c>ToImage</c>/<c>SavePng</c>.</summary>
     public static string ToText(ConsoleBuffer buffer)
     {
         var sb = new StringBuilder();
+        foreach (var line in ToLines(buffer)) sb.Append(line).Append('\n');
+        return sb.ToString();
+    }
+
+    /// <summary>The buffer as one right-trimmed string per row — the safe way to index a text snapshot by row
+    /// (<see cref="ToText(ConsoleBuffer)"/> is exactly these joined by, and terminated with, <c>\n</c>). Because rows
+    /// are right-trimmed of trailing spaces, a flat <c>index → (index % width, index / width)</c> mapping is wrong;
+    /// index the row here, then the column within it. Colour and decoration are not captured — use
+    /// <see cref="GlyphAt"/>/<see cref="ForegroundAt"/>/<see cref="BackgroundAt"/> for per-cell checks that need no
+    /// row arithmetic at all.</summary>
+    public static string[] ToLines(ConsoleBuffer buffer)
+    {
+        var lines = new string[buffer.Size.Height];
+        var sb = new StringBuilder();
         for (var y = 0; y < buffer.Size.Height; y++)
         {
+            sb.Clear();
             for (var x = 0; x < buffer.Size.Width; x++)
             {
                 var ch = buffer[x, y].Content;
@@ -156,9 +173,9 @@ public static class ConsoleSnapshot
             }
             // Trim trailing spaces so snapshots are stable regardless of right-padding.
             while (sb.Length > 0 && sb[^1] == ' ') sb.Length--;
-            sb.Append('\n');
+            lines[y] = sb.ToString();
         }
-        return sb.ToString();
+        return lines;
     }
 
     /// <summary>Renders a control and returns its text snapshot.</summary>
@@ -186,6 +203,27 @@ public static class ConsoleSnapshot
     /// layout driven by <see cref="UI.RegisterHotKey"/>.</summary>
     public static string ToTextAfter(ILayout layout, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
         => ToText(RenderAfter(layout, width, height, keys, routeGlobal));
+    #endregion
+
+    #region Colour readback
+    /// <summary>The glyph rendered at (<paramref name="x"/>, <paramref name="y"/>), or a space for an empty cell —
+    /// the per-cell counterpart of <see cref="ForegroundAt"/>/<see cref="BackgroundAt"/>. Read a cell's glyph and
+    /// colour together this way instead of mapping a <see cref="ToText(ConsoleBuffer)"/> index back to coordinates
+    /// (rows are right-trimmed, so that mapping is error-prone).</summary>
+    public static char GlyphAt(ConsoleBuffer buffer, int x, int y) =>
+        buffer[x, y].Content is { } c && c != '\0' ? c : ' ';
+
+    /// <summary>The foreground colour of the rendered cell at (<paramref name="x"/>, <paramref name="y"/>) as a
+    /// <see cref="Jumbee.Console.Color"/>, or <see langword="null"/> for the terminal default — for asserting a
+    /// rendered colour in a test without reaching into the buffer's internal cell type. Text snapshots
+    /// (<see cref="ToText(ConsoleBuffer)"/>) drop colour, so this is how you check it without a PNG.</summary>
+    public static Jumbee.Console.Color? ForegroundAt(ConsoleBuffer buffer, int x, int y) =>
+        buffer[x, y].Foreground is { } c ? Jumbee.Console.Color.FromConsoleGUIColor(c) : null;
+
+    /// <summary>The background colour of the rendered cell at (<paramref name="x"/>, <paramref name="y"/>), or
+    /// <see langword="null"/> for transparent/default. See <see cref="ForegroundAt"/>.</summary>
+    public static Jumbee.Console.Color? BackgroundAt(ConsoleBuffer buffer, int x, int y) =>
+        buffer[x, y].Background is { } c ? Jumbee.Console.Color.FromConsoleGUIColor(c) : null;
     #endregion
 
     #region Image snapshot

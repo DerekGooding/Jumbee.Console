@@ -3315,6 +3315,11 @@ public ConsoleColor ToConsoleColor()
 
  ConsoleColor
 
+#### Remarks
+
+Allocation-free: a direct nearest-of-16 scan. (Spectre's own <code>Color.ToConsoleColor</code> runs a LINQ
+    palette query that allocates on every call — measurable when a hot path converts per frame.)
+
 ### <a id="Jumbee_Console_Color_ToConsoleGUIColor_Spectre_Console_Color_"></a> ToConsoleGUIColor\(Color\)
 
 Converts a <xref href="Spectre.Console.Color" data-throw-if-not-resolved="false"></xref> to a ConsoleGUI colour, or <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> for the default colour.

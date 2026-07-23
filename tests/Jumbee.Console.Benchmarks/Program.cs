@@ -12,4 +12,13 @@ if (args.Length >= 1 && args[0] == "--diag")
     return;
 }
 
+// Scope render split + ANSI bytes/frame (the terminal-load number BDN can't show):
+//   dotnet run -c Release --project tests/Jumbee.Console.Benchmarks -- --scope            (overshoot = shipped app)
+//   dotnet run -c Release --project tests/Jumbee.Console.Benchmarks -- --scope fitted
+if (args.Length >= 1 && args[0] == "--scope")
+{
+    Jumbee.Console.Benchmarks.ScopeRenderDiagnostics.Diagnose(args.Length > 1 ? args[1] : null);
+    return;
+}
+
 BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args);

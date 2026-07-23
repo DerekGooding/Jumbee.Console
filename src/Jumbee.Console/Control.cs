@@ -565,9 +565,12 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// computation) whose result should update the control — only the cheap <paramref name="apply"/> touches the UI
     /// thread, so the frame isn't blocked. Cancellation and disposal behave as in <see cref="Feed(Action, TimeSpan, Action{Exception})"/>.
     /// <para/>If <paramref name="produce"/> throws, the feed stops and — when <paramref name="onError"/> is supplied —
-    /// the exception is marshaled to it on the UI thread (so it can surface the failure as visible state); without
-    /// <paramref name="onError"/> the throw silently ends the feed. A throw in <paramref name="apply"/> is not caught
-    /// here (it runs on the UI thread via <see cref="UI.Post"/>).
+    /// the exception is marshaled to it via <see cref="UI.Post"/> (so it runs on the UI thread and can surface the
+    /// failure as visible state); without <paramref name="onError"/> the throw silently ends the feed. A throw in
+    /// <paramref name="apply"/> is not caught here (it also runs on the UI thread via <see cref="UI.Post"/>). Because
+    /// the callback is posted, it is delivered only while a <see cref="UI.Start"/> loop is running to drain the queue —
+    /// a headless test must run a real UI loop to observe it (<c>ConsoleSnapshot</c>/<c>UI.PaintFrame</c> paint without
+    /// draining posted work).
     /// </remarks>
     protected FeedHandle Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval, Action<Exception>? onError = null) =>
         StartFeed(interval, () => { var result = produce(); UI.Post(() => apply(result)); }, onError);

@@ -3,9 +3,9 @@
 Namespace: [Jumbee.Console](Jumbee.Console.md)  
 Assembly: Jumbee.Console.dll  
 
-A live, updatable series in a <xref href="Jumbee.Console.Plot" data-throw-if-not-resolved="false"></xref>. Returned by <xref href="Jumbee.Console.Plot.AddLiveSeries(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref> /
-<xref href="Jumbee.Console.Plot.AddLiveBars(System.Nullable%7bJumbee.Console.Color%7d%2cSystem.Double%2cSystem.Double)" data-throw-if-not-resolved="false"></xref>; hold onto it and feed data as it arrives with <xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>,
-<xref href="Jumbee.Console.PlotSeries.SetValues(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>, <xref href="Jumbee.Console.PlotSeries.Push(System.Double%2cSystem.Double%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref> or <xref href="Jumbee.Console.PlotSeries.Clear" data-throw-if-not-resolved="false"></xref>.
+A live, updatable series in a <xref href="Jumbee.Console.Plot" data-throw-if-not-resolved="false"></xref>. Returned by <xref href="Jumbee.Console.Plot.AddLiveSeries(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref> (line),
+<xref href="Jumbee.Console.Plot.AddLiveScatter(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref> (markers) or <xref href="Jumbee.Console.Plot.AddLiveBars(System.Nullable%7bJumbee.Console.Color%7d%2cSystem.Double%2cSystem.Double)" data-throw-if-not-resolved="false"></xref>; hold onto it and feed data as it
+arrives with <xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>, <xref href="Jumbee.Console.PlotSeries.SetValues(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>, <xref href="Jumbee.Console.PlotSeries.Push(System.Double%2cSystem.Double%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref> or <xref href="Jumbee.Console.PlotSeries.Clear" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public sealed class PlotSeries

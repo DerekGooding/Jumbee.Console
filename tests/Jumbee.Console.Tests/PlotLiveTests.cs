@@ -114,6 +114,94 @@ public class PlotLiveTests
     }
 
     [Fact]
+    public void LiveScatter_DrawsUnconnectedMarkers_NotAConnectedLine()
+    {
+        // Same sparse, widely-spaced points fed to a live line vs a live scatter. A line rasterizes the segments
+        // between points (filling many intermediate cells); scatter marks only the points — so it fills strictly
+        // fewer braille cells. This is what lets the no-rebuild live path also render markers (round-8 gap fix).
+        double[] xs = [0, 1, 2, 3, 4];
+        double[] ys = [0, 9, 1, 8, 2];
+
+        var lp = new Plot();
+        lp.ConfigureGrid(g => g.IsVisible = false);
+        lp.AddLiveSeries(new CColor(120, 200, 255)).SetData(xs, ys);
+        int lineCells = BrailleCount(Render(lp));
+
+        var sp = new Plot();
+        sp.ConfigureGrid(g => g.IsVisible = false);
+        sp.AddLiveScatter(new CColor(120, 200, 255)).SetData(xs, ys);
+        int scatterCells = BrailleCount(Render(sp));
+
+        Assert.True(scatterCells > 0, "a live scatter should draw markers");
+        Assert.True(scatterCells < lineCells,
+            $"scatter ({scatterCells} cells) should fill fewer cells than the connected line ({lineCells})");
+    }
+
+    private static int BrailleCount(string s) => s.Count(c => c is >= '⠀' and <= '⣿');
+
+    [Fact]
+    public void ChromeColours_RenderTrueColour_NotSnappedTo16()
+    {
+        // An arbitrary RGB that is NOT one of the 16 console colours. Before ConsolePlot's chrome went full-RGB this
+        // was downsampled (nearest-of-16) when set on the axis/grid/tick pens and captions; now it must survive exactly.
+        var rgb = new Color(30, 144, 255);   // DodgerBlue — not a console colour
+        var plot = new Plot();
+        plot.SetAxisColor(rgb);
+        plot.SetGridColor(rgb);
+        plot.SetTickColor(rgb, rgb);
+        plot.SetAxisTitles("t", "a", rgb);
+        plot.AddLiveSeries(Color.Yellow).SetData([0, 1, 2, 3], [0, 5, 2, 8]);
+
+        var buffer = ConsoleSnapshot.Render(plot, 44, 16);
+
+        // The only source of this exact RGB is the chrome (the series is yellow), so an exact match anywhere proves
+        // the axis/grid/tick/title colour reached the buffer without a 16-colour approximation.
+        bool exact = false;
+        for (int y = 0; y < 16 && !exact; y++)
+            for (int x = 0; x < 44 && !exact; x++)
+                if (ConsoleSnapshot.ForegroundAt(buffer, x, y) == rgb) exact = true;
+        Assert.True(exact, "axis/grid/tick/title chrome should render the exact RGB, not a 16-colour approximation");
+    }
+
+    [Fact]
+    public void AxisColorSetters_ApplyInJumbeeColour_AndSurviveClear()
+    {
+        // The Jumbee-colour setters (no ConsoleColor / immutable-LinePen dance) route to retained chrome, so a
+        // Clear()+re-add of the data must not drop the captions or their colour.
+        var plot = new Plot();
+        plot.ConfigureGrid(g => g.IsVisible = false);
+        plot.SetAxisTitles("time", "amp", Color.Aqua);   // Aqua == cyan
+        plot.SetAxisColor(Color.Aqua);
+        var s = plot.AddLiveSeries(Color.Yellow);
+        s.SetData([0, 1, 2, 3], [0, 5, 2, 8]);
+
+        var buffer = ConsoleSnapshot.Render(plot, 44, 16);
+        var text = ConsoleSnapshot.ToText(buffer);
+        Assert.Contains("time", text);   // XTitle bottom-right
+        Assert.Contains("amp", text);    // YTitle top-left
+
+        // Assert the 'amp' caption rendered cyan-ish via the colour-readback API (not a PNG). Exact RGB depends on
+        // the 16-colour render path, so check the channel signature (low R, high G+B) rather than an exact match.
+        var lines = text.Split('\n');
+        bool cyanish = false;
+        for (int y = 0; y < lines.Length && !cyanish; y++)
+        {
+            int x = lines[y].IndexOf("amp", StringComparison.Ordinal);
+            if (x >= 0 && ConsoleSnapshot.ForegroundAt(buffer, x, y) is { } c)
+                cyanish = c.R < 128 && c.G > 128 && c.B > 128;
+        }
+        Assert.True(cyanish, "the 'amp' caption should render cyan-ish");
+
+        // Clear the data and re-add — the retained chrome (titles + colour) must persist.
+        plot.Clear();
+        s = plot.AddLiveSeries(Color.Yellow);
+        s.SetData([0, 1, 2, 3], [1, 2, 3, 4]);
+        var after = ConsoleSnapshot.ToText(plot, 44, 16);
+        Assert.Contains("time", after);
+        Assert.Contains("amp", after);
+    }
+
+    [Fact]
     public void LiveSeries_SetData_ThenClear()
     {
         var plot = new Plot();

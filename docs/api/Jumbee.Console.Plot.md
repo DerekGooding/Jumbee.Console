@@ -575,10 +575,37 @@ public PlotSeries AddLiveBars(Color? color = null, double baseline = 0, double w
 Feed it with <xref href="Jumbee.Console.PlotSeries.SetValues(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref> (bars at x = 1, 2, 3, …) or <xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>.
 <code class="paramref">color</code> defaults to the palette. Starts empty.
 
+### <a id="Jumbee_Console_Plot_AddLiveScatter_System_Nullable_Jumbee_Console_Color__Jumbee_Console_PlotBrush_"></a> AddLiveScatter\(Color?, PlotBrush\)
+
+Adds a live <b>scatter</b> series (points drawn as markers, no connecting lines) and returns a
+<xref href="Jumbee.Console.PlotSeries" data-throw-if-not-resolved="false"></xref> handle to feed it data as it arrives. The scatter counterpart of
+<xref href="Jumbee.Console.Plot.AddLiveSeries(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref>, so live streaming data and the cheaper marker draw compose.
+
+```csharp
+public PlotSeries AddLiveScatter(Color? color = null, PlotBrush brush = PlotBrush.Braille)
+```
+
+#### Parameters
+
+`color` [Color](Jumbee.Console.Color.md)?
+
+`brush` [PlotBrush](Jumbee.Console.PlotBrush.md)
+
+#### Returns
+
+ [PlotSeries](Jumbee.Console.PlotSeries.md)
+
+#### Remarks
+
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">brush</code> sets the marker (and its sub-cell
+resolution). Starts empty. Markers are markedly cheaper to draw than a line for dense/high-frequency data —
+see the note on <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref>.
+
 ### <a id="Jumbee_Console_Plot_AddLiveSeries_System_Nullable_Jumbee_Console_Color__Jumbee_Console_PlotBrush_"></a> AddLiveSeries\(Color?, PlotBrush\)
 
-Adds a live line/scatter series and returns a <xref href="Jumbee.Console.PlotSeries" data-throw-if-not-resolved="false"></xref> handle to feed it data as it arrives
-(<xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.PlotSeries.Push(System.Double%2cSystem.Double%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>).
+Adds a live <b>line</b> series (consecutive points joined) and returns a <xref href="Jumbee.Console.PlotSeries" data-throw-if-not-resolved="false"></xref> handle to
+feed it data as it arrives (<xref href="Jumbee.Console.PlotSeries.SetData(System.Collections.Generic.IReadOnlyList%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyList%7bSystem.Double%7d)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.PlotSeries.Push(System.Double%2cSystem.Double%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>). For unconnected
+markers use <xref href="Jumbee.Console.Plot.AddLiveScatter(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref>.
 
 ```csharp
 public PlotSeries AddLiveSeries(Color? color = null, PlotBrush brush = PlotBrush.Braille)
@@ -596,7 +623,9 @@ public PlotSeries AddLiveSeries(Color? color = null, PlotBrush brush = PlotBrush
 
 #### Remarks
 
-<code class="paramref">color</code> defaults to the palette; <code class="paramref">brush</code> sets the sub-cell marker. Starts empty.
+<code class="paramref">color</code> defaults to the palette; <code class="paramref">brush</code>'s sub-cell resolution (Braille 2×4,
+Quadrant 2×2, the rest 1×1) sets how smooth the line looks. Starts empty. For dense or high-frequency data
+(e.g. an audio waveform) prefer <xref href="Jumbee.Console.Plot.AddLiveScatter(System.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotBrush)" data-throw-if-not-resolved="false"></xref> — see the drawing-cost note on <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref>.
 
 ### <a id="Jumbee_Console_Plot_AddScatter_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__Jumbee_Console_PlotBrush_System_Nullable_Jumbee_Console_Color__"></a> AddScatter\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PlotBrush, Color?\)
 
@@ -625,6 +654,11 @@ public Plot AddScatter(IReadOnlyCollection<double> xs, IReadOnlyCollection<doubl
 The <code class="paramref">brush</code> sets the marker (and its sub-cell resolution); <code class="paramref">color</code> defaults
 to the palette.
 
+<p>Scatter is also markedly cheaper to draw than a line series (<xref href="Jumbee.Console.Plot.AddSeries(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cConsolePlot.Drawing.Tools.PointPen)" data-throw-if-not-resolved="false"></xref>)
+for dense or high-frequency data such as an audio waveform: a line rasterizes a segment between every
+consecutive pair of points, whereas scatter plots each point on its own. When the point count is high and the
+connecting lines add little, prefer scatter for a large drawing-cost win.</p>
+
 ### <a id="Jumbee_Console_Plot_AddSeries_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__ConsolePlot_Drawing_Tools_PointPen_"></a> AddSeries\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PointPen\)
 
 Adds a line series — consecutive points joined by straight segments (use <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref> for
@@ -650,6 +684,10 @@ public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double
 
 When <code class="paramref">pen</code> is left at its default a colour is taken from the control's palette (cycling by
 series index) and drawn with the Braille brush.
+
+<p>For dense or high-frequency data (e.g. an audio waveform) prefer <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref>: a line
+rasterizes a segment between every consecutive pair of points, which is markedly more expensive than plotting
+points independently.</p>
 
 ### <a id="Jumbee_Console_Plot_AddSeries_System_Collections_Generic_IReadOnlyCollection_System_Double__System_Collections_Generic_IReadOnlyCollection_System_Double__Jumbee_Console_PlotBrush_System_Nullable_Jumbee_Console_Color__"></a> AddSeries\(IReadOnlyCollection<double\>, IReadOnlyCollection<double\>, PlotBrush, Color?\)
 
@@ -679,6 +717,8 @@ public Plot AddSeries(IReadOnlyCollection<double> xs, IReadOnlyCollection<double
 The <code class="paramref">brush</code>'s sub-cell resolution — Braille 2×4, Quadrant 2×2, the rest 1×1 — sets how smooth
 the line looks. When <code class="paramref">color</code> is <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> a colour is taken from the control's
 palette, cycling by series index.
+
+<p>For dense or high-frequency data prefer <xref href="Jumbee.Console.Plot.AddScatter(System.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cSystem.Collections.Generic.IReadOnlyCollection%7bSystem.Double%7d%2cJumbee.Console.PlotBrush%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref> — see the note there.</p>
 
 ### <a id="Jumbee_Console_Plot_AddStackedBars_System_Collections_Generic_IReadOnlyList_System_Double__System_Collections_Generic_IReadOnlyList_System_Collections_Generic_IReadOnlyList_System_Double___System_Collections_Generic_IReadOnlyList_Jumbee_Console_Color__System_Double_System_Double_"></a> AddStackedBars\(IReadOnlyList<double\>, IReadOnlyList<IReadOnlyList<double\>\>, IReadOnlyList<Color\>?, double, double\)
 
@@ -807,8 +847,11 @@ public Plot ConfigureAxis(Action<AxisSettings> configure)
 
 #### Remarks
 
-The passed settings expose <code>IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) and <code>Pen</code> (a
-    <code>LinePen</code> of brush + colour), plus optional <code>XTitle</code>/<code>YTitle</code> captions (with <code>TitleColor</code>).
+For the common cases prefer the Jumbee-colour convenience methods <xref href="Jumbee.Console.Plot.SetAxisColor(Jumbee.Console.Color)" data-throw-if-not-resolved="false"></xref> and
+    <xref href="Jumbee.Console.Plot.SetAxisTitles(System.String%2cSystem.String%2cSystem.Nullable%7bJumbee.Console.Color%7d)" data-throw-if-not-resolved="false"></xref> — this raw overload exposes ConsolePlot's <xref href="System.ConsoleColor" data-throw-if-not-resolved="false"></xref> surface.
+    The passed settings expose <code>IsVisible</code> (default <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/bool">true</a>) and <code>Pen</code> — an
+    immutable pen taking a full-RGB colour, so recolour with <code>a.Pen = new LinePen(a.Pen.Brush, (Color)colour)</code>.
+    Also optional <code>XTitle</code>/<code>YTitle</code> captions (with <code>TitleColor</code>, a full-RGB colour).
     The captions are <b>screen-anchored</b> — <code>YTitle</code> is pinned to the top-left, <code>XTitle</code> to the
     bottom-right — so they stay put when the axes rescale, unlike a data-anchored <xref href="Jumbee.Console.Plot.AddLabel(System.Double%2cSystem.Double%2cSystem.String%2cSystem.Nullable%7bJumbee.Console.Color%7d%2cSystem.Nullable%7bJumbee.Console.Color%7d%2cJumbee.Console.PlotLabelAlign%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>. Hide the
     axis with <code>ConfigureAxis(a =&gt; a.IsVisible = false)</code>; label it with
@@ -870,6 +913,87 @@ Rebuilds the underlying chart when needed and blits it to the buffer.
 ```csharp
 protected override void Render()
 ```
+
+### <a id="Jumbee_Console_Plot_SetAxisColor_Jumbee_Console_Color_"></a> SetAxisColor\(Color\)
+
+Recolours the axis lines, in a full-RGB <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref> (keeping the current brush) — a
+    convenience that hides ConsolePlot's immutable pen. Retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Plot SetAxisColor(Color color)
+```
+
+#### Parameters
+
+`color` [Color](Jumbee.Console.Color.md)
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_SetAxisTitles_System_String_System_String_System_Nullable_Jumbee_Console_Color__"></a> SetAxisTitles\(string?, string?, Color?\)
+
+Sets the screen-anchored axis captions and (optionally) their colour, in <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref>s — a
+    convenience over <xref href="Jumbee.Console.Plot.ConfigureAxis(System.Action%7bConsolePlot.Plotting.AxisSettings%7d)" data-throw-if-not-resolved="false"></xref> that takes a Jumbee colour instead of a <xref href="System.ConsoleColor" data-throw-if-not-resolved="false"></xref>.
+    A <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> title is left unchanged; pass an <b>empty string</b> to clear a previously-set caption.
+    Retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>, so set it once at setup rather than per frame.
+
+```csharp
+public Plot SetAxisTitles(string? xTitle = null, string? yTitle = null, Color? titleColor = null)
+```
+
+#### Parameters
+
+`xTitle` string?
+
+`yTitle` string?
+
+`titleColor` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+#### Remarks
+
+<code>YTitle</code> pins to the top-left, <code>XTitle</code> to the bottom-right (see <xref href="Jumbee.Console.Plot.ConfigureAxis(System.Action%7bConsolePlot.Plotting.AxisSettings%7d)" data-throw-if-not-resolved="false"></xref>).
+    Colours map onto the 16 console colours (see <xref href="Jumbee.Console.Color.ToConsoleColor" data-throw-if-not-resolved="false"></xref>); an exact console colour is loss-free.
+
+### <a id="Jumbee_Console_Plot_SetGridColor_Jumbee_Console_Color_"></a> SetGridColor\(Color\)
+
+Recolours the background grid lines, in a full-RGB <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref> (keeping the current brush).
+    Retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Plot SetGridColor(Color color)
+```
+
+#### Parameters
+
+`color` [Color](Jumbee.Console.Color.md)
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
+
+### <a id="Jumbee_Console_Plot_SetTickColor_Jumbee_Console_Color_System_Nullable_Jumbee_Console_Color__"></a> SetTickColor\(Color, Color?\)
+
+Recolours the tick marks and, when <code class="paramref">labelColor</code> is given, the numeric tick labels —
+    in full-RGB <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref>s (keeping the tick brush). Retained across <xref href="Jumbee.Console.Plot.Clear" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public Plot SetTickColor(Color color, Color? labelColor = null)
+```
+
+#### Parameters
+
+`color` [Color](Jumbee.Console.Color.md)
+
+`labelColor` [Color](Jumbee.Console.Color.md)?
+
+#### Returns
+
+ [Plot](Jumbee.Console.Plot.md)
 
 ### <a id="Jumbee_Console_Plot_SetXRange_System_Double_System_Double_"></a> SetXRange\(double, double\)
 

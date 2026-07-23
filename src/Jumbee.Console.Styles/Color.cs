@@ -75,7 +75,25 @@ public readonly partial struct Color : System.IEquatable<Color>
     /// <summary>This colour as the nearest <see cref="System.ConsoleColor"/> — a lossy map onto the 16 console
     /// colours, for the few APIs that take one (e.g. a plot's axis/label colours). Prefer the RGB colour elsewhere;
     /// <see cref="FromSystemConsoleColor"/> is the exact inverse.</summary>
-    public System.ConsoleColor ToConsoleColor() => SpectreColor.ToConsoleColor(ToSpectreColor());
+    /// <remarks>Allocation-free: a direct nearest-of-16 scan. (Spectre's own <c>Color.ToConsoleColor</c> runs a LINQ
+    /// palette query that allocates on every call — measurable when a hot path converts per frame.)</remarks>
+    public System.ConsoleColor ToConsoleColor()
+    {
+        // Nearest of the 16 console colours by squared RGB distance. The palette is Spectre's own RGB for each
+        // ConsoleColor, so an exact console colour (the common case) matches at distance 0 — making this the exact
+        // inverse of FromSystemConsoleColor, and no worse than Spectre's closest-match for anything else.
+        int best = 0;
+        int bestDist = int.MaxValue;
+        for (int i = 0; i < 16; i++)
+        {
+            var (pr, pg, pb) = ConsolePalette[i];
+            int dr = R - pr, dg = G - pg, db = B - pb;
+            int d = dr * dr + dg * dg + db * db;
+            if (d < bestDist) { bestDist = d; best = i; }
+        }
+
+        return (System.ConsoleColor)best;
+    }
 
     /// <summary>A copy of this colour blended <paramref name="amount"/> (0..1) of the way toward white.</summary>
     public Color Lighten(double amount) => Lerp(this, White, amount);
@@ -139,6 +157,21 @@ public readonly partial struct Color : System.IEquatable<Color>
     public readonly byte G;
     /// <summary>The blue channel value.</summary>
     public readonly byte B;
+
+    // The 16 console colours' RGB, indexed by ConsoleColor value — Spectre's own mapping, so ToConsoleColor's
+    // nearest-match is the exact inverse of FromSystemConsoleColor. Built once (allocation-free lookups thereafter).
+    private static readonly (byte R, byte G, byte B)[] ConsolePalette = BuildConsolePalette();
+    private static (byte, byte, byte)[] BuildConsolePalette()
+    {
+        var p = new (byte, byte, byte)[16];
+        for (int i = 0; i < 16; i++)
+        {
+            var c = SpectreColor.FromConsoleColor((System.ConsoleColor)i);
+            p[i] = (c.R, c.G, c.B);
+        }
+
+        return p;
+    }
 
     // The following color names are imported from the Spectre.Console definitions.
 

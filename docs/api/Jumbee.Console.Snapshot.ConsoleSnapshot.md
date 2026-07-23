@@ -17,6 +17,73 @@ object ←
 
 ## Methods
 
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_BackgroundAt_Jumbee_Console_ConsoleBuffer_System_Int32_System_Int32_"></a> BackgroundAt\(ConsoleBuffer, int, int\)
+
+The background colour of the rendered cell at (<code class="paramref">x</code>, <code class="paramref">y</code>), or
+    <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> for transparent/default. See <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ForegroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>.
+
+```csharp
+public static Color? BackgroundAt(ConsoleBuffer buffer, int x, int y)
+```
+
+#### Parameters
+
+`buffer` [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
+
+`x` int
+
+`y` int
+
+#### Returns
+
+ [Color](Jumbee.Console.Color.md)?
+
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ForegroundAt_Jumbee_Console_ConsoleBuffer_System_Int32_System_Int32_"></a> ForegroundAt\(ConsoleBuffer, int, int\)
+
+The foreground colour of the rendered cell at (<code class="paramref">x</code>, <code class="paramref">y</code>) as a
+    <xref href="Jumbee.Console.Color" data-throw-if-not-resolved="false"></xref>, or <a href="https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/null">null</a> for the terminal default — for asserting a
+    rendered colour in a test without reaching into the buffer's internal cell type. Text snapshots
+    (<xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ToText(Jumbee.Console.ConsoleBuffer)" data-throw-if-not-resolved="false"></xref>) drop colour, so this is how you check it without a PNG.
+
+```csharp
+public static Color? ForegroundAt(ConsoleBuffer buffer, int x, int y)
+```
+
+#### Parameters
+
+`buffer` [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
+
+`x` int
+
+`y` int
+
+#### Returns
+
+ [Color](Jumbee.Console.Color.md)?
+
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_GlyphAt_Jumbee_Console_ConsoleBuffer_System_Int32_System_Int32_"></a> GlyphAt\(ConsoleBuffer, int, int\)
+
+The glyph rendered at (<code class="paramref">x</code>, <code class="paramref">y</code>), or a space for an empty cell —
+    the per-cell counterpart of <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ForegroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.BackgroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>. Read a cell's glyph and
+    colour together this way instead of mapping a <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ToText(Jumbee.Console.ConsoleBuffer)" data-throw-if-not-resolved="false"></xref> index back to coordinates
+    (rows are right-trimmed, so that mapping is error-prone).
+
+```csharp
+public static char GlyphAt(ConsoleBuffer buffer, int x, int y)
+```
+
+#### Parameters
+
+`buffer` [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
+
+`x` int
+
+`y` int
+
+#### Returns
+
+ char
+
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_Key_System_ConsoleKey_System_Boolean_System_Boolean_System_Boolean_"></a> Key\(ConsoleKey, bool, bool, bool\)
 
 Builds a <xref href="System.ConsoleKeyInfo" data-throw-if-not-resolved="false"></xref> for a key with optional modifiers. For letter and digit keys
@@ -330,12 +397,35 @@ public static Image<Rgba32> ToImage(ConsoleBuffer buffer, SnapshotImageOptions? 
 
  Image<Rgba32\>
 
+### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToLines_Jumbee_Console_ConsoleBuffer_"></a> ToLines\(ConsoleBuffer\)
+
+The buffer as one right-trimmed string per row — the safe way to index a text snapshot by row
+    (<xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ToText(Jumbee.Console.ConsoleBuffer)" data-throw-if-not-resolved="false"></xref> is exactly these joined by, and terminated with, <code>\n</code>). Because rows
+    are right-trimmed of trailing spaces, a flat <code>index → (index % width, index / width)</code> mapping is wrong;
+    index the row here, then the column within it. Colour and decoration are not captured — use
+    <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.GlyphAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ForegroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.BackgroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref> for per-cell checks that need no
+    row arithmetic at all.
+
+```csharp
+public static string[] ToLines(ConsoleBuffer buffer)
+```
+
+#### Parameters
+
+`buffer` [ConsoleBuffer](Jumbee.Console.ConsoleBuffer.md)
+
+#### Returns
+
+ string\[\]
+
 ### <a id="Jumbee_Console_Snapshot_ConsoleSnapshot_ToText_Jumbee_Console_ConsoleBuffer_"></a> ToText\(ConsoleBuffer\)
 
-Converts a buffer to a plain-text snapshot (glyphs only, one line per row). Colour and text
-    decoration are NOT captured, so state distinguished only by colour (e.g. a dimmed "read" row) is invisible to
-    a text assertion — use <code>ToImage</code>/<code>SavePng</code> for colour, or render a visible glyph marker to assert on
-    with text.
+Converts a buffer to a plain-text snapshot: one <code>\n</code>-terminated line per row, each row
+    <b>right-trimmed of trailing spaces</b> (so snapshots are stable regardless of right-padding). Because rows are
+    trimmed, a flat <code>index → (index % width, index / width)</code> back-mapping to buffer coordinates is wrong — use
+    <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ToLines(Jumbee.Console.ConsoleBuffer)" data-throw-if-not-resolved="false"></xref> to index by row, or <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.GlyphAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref> for a specific cell. Colour and
+    text decoration are NOT captured, so state distinguished only by colour (e.g. a dimmed "read" row) is invisible
+    to a text assertion — use <xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.ForegroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>/<xref href="Jumbee.Console.Snapshot.ConsoleSnapshot.BackgroundAt(Jumbee.Console.ConsoleBuffer%2cSystem.Int32%2cSystem.Int32)" data-throw-if-not-resolved="false"></xref>, or <code>ToImage</code>/<code>SavePng</code>.
 
 ```csharp
 public static string ToText(ConsoleBuffer buffer)

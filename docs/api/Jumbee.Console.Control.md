@@ -665,9 +665,12 @@ protected FeedHandle Feed<T>(Func<T> produce, Action<T> apply, TimeSpan interval
 
     <p></p>
 If <code class="paramref">produce</code> throws, the feed stops and — when <code class="paramref">onError</code> is supplied —
-    the exception is marshaled to it on the UI thread (so it can surface the failure as visible state); without
-    <code class="paramref">onError</code> the throw silently ends the feed. A throw in <code class="paramref">apply</code> is not caught
-    here (it runs on the UI thread via <xref href="Jumbee.Console.UI.Post(System.Action)" data-throw-if-not-resolved="false"></xref>).
+    the exception is marshaled to it via <xref href="Jumbee.Console.UI.Post(System.Action)" data-throw-if-not-resolved="false"></xref> (so it runs on the UI thread and can surface the
+    failure as visible state); without <code class="paramref">onError</code> the throw silently ends the feed. A throw in
+    <code class="paramref">apply</code> is not caught here (it also runs on the UI thread via <xref href="Jumbee.Console.UI.Post(System.Action)" data-throw-if-not-resolved="false"></xref>). Because
+    the callback is posted, it is delivered only while a <xref href="Jumbee.Console.UI.Start(Jumbee.Console.ILayout%2cSystem.Int32%2cSystem.Int32%2cSystem.Int32%2cSystem.Boolean%2cConsoleGUI.Api.IConsole%2cJumbee.Console.IInputSource%2cSystem.Boolean)" data-throw-if-not-resolved="false"></xref> loop is running to drain the queue —
+    a headless test must run a real UI loop to observe it (<code>ConsoleSnapshot</code>/<code>UI.PaintFrame</code> paint without
+    draining posted work).
 
 ### <a id="Jumbee_Console_Control_Feed__1_System_Func___0__System_Action___0__System_Int32_System_Action_System_Exception__"></a> Feed<T\>\(Func<T\>, Action<T\>, int, Action<Exception\>?\)
 

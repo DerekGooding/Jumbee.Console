@@ -157,7 +157,7 @@ internal sealed class TaskListView : RenderableControl
     #region Fields
     private readonly List<AgentStep> _steps = new();
     private readonly IReadOnlyList<string> _spinnerFrames;
-    private readonly CancellationTokenSource _animation;
+    private readonly FeedHandle _animation;
     private string _title;
     private int _frame;
     private Style _titleStyle;
