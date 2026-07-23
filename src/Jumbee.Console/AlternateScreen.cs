@@ -23,8 +23,8 @@ internal sealed class AlternateScreen : IDisposable
 
     private AlternateScreen()
     {
-        Console.Out.Write(EnterSeq);
-        Console.Out.Flush();
+        System.Console.Out.Write(EnterSeq);
+        System.Console.Out.Flush();
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
     }
 
@@ -35,7 +35,7 @@ internal sealed class AlternateScreen : IDisposable
         if (_disposed) return;
         _disposed = true;
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-        try { Console.Out.Write(LeaveSeq); Console.Out.Flush(); }
+        try { System.Console.Out.Write(LeaveSeq); System.Console.Out.Flush(); }
         catch { /* best effort */ }
     }
 

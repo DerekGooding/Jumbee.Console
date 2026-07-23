@@ -51,7 +51,7 @@ internal sealed class CellCanvasRenderable : IRenderable
     }
 
     private static Style StyleFor(CColor? color) =>
-        color is { } c ? new Style(foreground: new Color(c.Red, c.Green, c.Blue)) : Style.Plain;
+        color is { } c ? new Style(new Spectre.Console.Color(c.Red, c.Green, c.Blue)) : Style.Plain;
 
     private static bool SameColor(CColor? a, CColor? b)
     {

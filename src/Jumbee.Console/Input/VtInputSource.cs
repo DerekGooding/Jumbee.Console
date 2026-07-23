@@ -43,7 +43,7 @@ public sealed class VtInputSource : IInputSource, IDisposable
         // raw, byte-at-a-time interactive input on Unix. ownsHandle:false: TerminalInputMode owns/closes the fd.
         _stdin = (!OperatingSystem.IsWindows() && _mode.InputFd >= 0)
             ? new FileStream(new SafeFileHandle(new IntPtr(_mode.InputFd), ownsHandle: false), FileAccess.Read)
-            : Console.OpenStandardInput();
+            : System.Console.OpenStandardInput();
         Log($"start win={OperatingSystem.IsWindows()} fd={_mode.InputFd} owns={_mode.OwnsInputFd} raw={_mode.RawModeApplied} stream={_stdin.GetType().Name}");
         _reader = new Thread(ReaderLoop) { IsBackground = true, Name = "Jumbee.VtInput" };
         _reader.Start();
@@ -204,8 +204,8 @@ internal sealed class TerminalInputMode : IDisposable
             }
         }
 
-        Console.Out.Write(enableSeq);
-        Console.Out.Flush();
+        System.Console.Out.Write(enableSeq);
+        System.Console.Out.Flush();
 
         // Safety net: restore the terminal even on an abrupt exit (e.g. Ctrl+C ends the process before Stop runs),
         // otherwise it is left in mouse-reporting mode.
@@ -220,7 +220,7 @@ internal sealed class TerminalInputMode : IDisposable
         _disposed = true;
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
-        try { Console.Out.Write(_disableSeq); Console.Out.Flush(); }
+        try { System.Console.Out.Write(_disableSeq); System.Console.Out.Flush(); }
         catch { /* best effort */ }
 
         if (_modeChanged) SetConsoleMode(_stdinHandle, _originalMode);

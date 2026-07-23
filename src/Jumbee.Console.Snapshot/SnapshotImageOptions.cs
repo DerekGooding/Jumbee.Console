@@ -25,10 +25,10 @@ public sealed class SnapshotImageOptions
     public int Padding { get; set; } = 8;
 
     /// <summary>Foreground color used when a cell has no explicit foreground.</summary>
-    public Color DefaultForeground { get; set; } = Color.FromRgb(204, 204, 204);
+    public SixLabors.ImageSharp.Color DefaultForeground { get; set; } = SixLabors.ImageSharp.Color.FromRgb(204, 204, 204);
 
     /// <summary>Background color used for the canvas and cells with no explicit background.</summary>
-    public Color DefaultBackground { get; set; } = Color.FromRgb(12, 12, 12);
+    public SixLabors.ImageSharp.Color DefaultBackground { get; set; } = SixLabors.ImageSharp.Color.FromRgb(12, 12, 12);
 
     /// <summary>Fallback monospace font families tried in order when <see cref="FontFamily"/> is not found.</summary>
     public IReadOnlyList<string> FallbackFontFamilies { get; set; } =

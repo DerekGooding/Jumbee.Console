@@ -28,7 +28,7 @@ internal sealed class AsciiDocRenderer
     {
         var blocks = new List<IRenderable>();
         if (!string.IsNullOrEmpty(document.Title))
-            blocks.Add(new Rule(Wrap(_s.Title, Esc(document.Title))) { Justification = Justify.Left });
+            blocks.Add(new Rule(Wrap(_s.Title, Esc(document.Title))) { Justification = Spectre.Console.Justify.Left });
         blocks.AddRange(RenderBlocks(document.Children.OfType<BlockNode>()));
         return Stack(blocks, spaced: true);
     }
@@ -58,8 +58,8 @@ internal sealed class AsciiDocRenderer
         AdmonitionNode n => RenderAdmonition(n),
         DescriptionListNode n => RenderDescriptionList(n),
         TocNode n => RenderToc(n),
-        ThematicBreakNode => new Rule { Style = Style.Parse(_s.PanelBorder) },
-        PageBreakNode => new Rule { Style = Style.Parse(_s.PanelBorder) },
+        ThematicBreakNode => new Rule { Style = Spectre.Console.Style.Parse(_s.PanelBorder) },
+        PageBreakNode => new Rule { Style = Spectre.Console.Style.Parse(_s.PanelBorder) },
         _ => null,   // video, audio, index, bibliography — skipped in v1
     };
 
@@ -69,7 +69,7 @@ internal sealed class AsciiDocRenderer
         var level = System.Math.Clamp(section.Level, 1, _s.Headings.Length - 1);
         var style = _s.Headings[level];
         IRenderable heading = section.Level <= 1
-            ? new Rule(Wrap(style, title)) { Justification = Justify.Left }
+            ? new Rule(Wrap(style, title)) { Justification = Spectre.Console.Justify.Left }
             : new Markup(Wrap(style, title));
 
         var items = new List<IRenderable> { heading };
@@ -155,7 +155,7 @@ internal sealed class AsciiDocRenderer
                         return new Panel(diagram)
                         {
                             Border = BoxBorder.Rounded,
-                            BorderStyle = Style.Parse(_s.PanelBorder),
+                            BorderStyle = Spectre.Console.Style.Parse(_s.PanelBorder),
                             Header = new PanelHeader(" mermaid "),
                             Expand = false,
                         };
@@ -164,7 +164,7 @@ internal sealed class AsciiDocRenderer
                     var panel = new Panel(CodeContent(block.Content ?? string.Empty, block.Language))
                     {
                         Border = BoxBorder.Rounded,
-                        BorderStyle = Style.Parse(_s.PanelBorder),
+                        BorderStyle = Spectre.Console.Style.Parse(_s.PanelBorder),
                         Expand = true,
                     };
                     var header = block.Language ?? block.Title
@@ -196,7 +196,7 @@ internal sealed class AsciiDocRenderer
                     var panel = new Panel(new Rows(RenderBlocks(block.Children.OfType<BlockNode>())))
                     {
                         Border = BoxBorder.Rounded,
-                        BorderStyle = Style.Parse(_s.PanelBorder),
+                        BorderStyle = Spectre.Console.Style.Parse(_s.PanelBorder),
                         Expand = true,
                     };
                     var header = block.Title ?? (block.BlockKind == DelimitedBlockKind.Sidebar ? "SIDEBAR" : null);
@@ -230,7 +230,7 @@ internal sealed class AsciiDocRenderer
         return new Panel(body)
         {
             Border = BoxBorder.Rounded,
-            BorderStyle = Style.Parse(color),
+            BorderStyle = Spectre.Console.Style.Parse(color),
             Header = new PanelHeader($" {glyph} {Esc(header)} "),
             Expand = true,
         };
@@ -254,7 +254,7 @@ internal sealed class AsciiDocRenderer
     private IRenderable RenderToc(TocNode toc)
     {
         if (toc.Entries.Count == 0) return Blank;
-        var tree = new Tree(Wrap(_s.Headings[1], Esc("Table of Contents"))) { Guide = TreeGuide.Line };
+        var tree = new Spectre.Console.Tree(Wrap(_s.Headings[1], Esc("Table of Contents"))) { Guide = Spectre.Console.TreeGuide.Line };
         foreach (var entry in toc.Entries) AddTocEntry(tree, entry);
         return tree;
     }
@@ -280,7 +280,7 @@ internal sealed class AsciiDocRenderer
     private IRenderable CodeContent(string code, string? language)
     {
         if (ColorCodeLanguage(language) is not { } ccLang)
-            return new Text(code, Style.Parse(_s.Code));
+            return new Text(code, Spectre.Console.Style.Parse(_s.Code));
         try
         {
             _highlighter ??= new SpectreMarkupFormatter();
@@ -289,7 +289,7 @@ internal sealed class AsciiDocRenderer
         }
         catch
         {
-            return new Text(code, Style.Parse(_s.Code));
+            return new Text(code, Spectre.Console.Style.Parse(_s.Code));
         }
     }
 

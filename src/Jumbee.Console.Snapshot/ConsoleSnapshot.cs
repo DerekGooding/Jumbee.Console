@@ -338,15 +338,15 @@ public static class ConsoleSnapshot
 
     #region Helpers
 
-    private static Color ToColor(CColor c) => Color.FromRgb(c.Red, c.Green, c.Blue);
+    private static SixLabors.ImageSharp.Color ToColor(CColor c) => SixLabors.ImageSharp.Color.FromRgb(c.Red, c.Green, c.Blue);
 
     /// <summary>Linearly blends <paramref name="a"/> toward <paramref name="b"/> by <paramref name="t"/> (0..1).</summary>
-    private static Color Blend(Color a, Color b, float t)
+    private static SixLabors.ImageSharp.Color Blend(SixLabors.ImageSharp.Color a, SixLabors.ImageSharp.Color b, float t)
     {
         var pa = a.ToPixel<Rgba32>();
         var pb = b.ToPixel<Rgba32>();
         static byte Lerp(byte x, byte y, float t) => (byte)Math.Clamp(x + (y - x) * t, 0, 255);
-        return Color.FromRgb(Lerp(pa.R, pb.R, t), Lerp(pa.G, pb.G, t), Lerp(pa.B, pb.B, t));
+        return SixLabors.ImageSharp.Color.FromRgb(Lerp(pa.R, pb.R, t), Lerp(pa.G, pb.G, t), Lerp(pa.B, pb.B, t));
     }
 
     private static FontStyle MapFontStyle(Decoration decoration)

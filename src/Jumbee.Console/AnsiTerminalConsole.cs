@@ -2,7 +2,6 @@
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-using System;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -42,9 +41,9 @@ internal sealed class AnsiTerminalConsole : IConsole
         // untouched); the renderer then repaints every cell, so no separate clear is needed for correctness.
         // Set UTF-8 only if it isn't already: setting Console.OutputEncoding recreates the Console.Out stream, and
         // Initialize runs on every resize — no need to churn the stream (or clobber a wrapping writer) each time.
-        try { if (Console.OutputEncoding.CodePage != 65001) Console.OutputEncoding = System.Text.Encoding.UTF8; }
+        try { if (System.Console.OutputEncoding.CodePage != 65001) System.Console.OutputEncoding = System.Text.Encoding.UTF8; }
         catch { /* not a real console (redirected) */ }
-        try { Console.Out.Write("\x1b[?25l\x1b[2J\x1b[H"); Console.Out.Flush(); } catch { /* best effort */ }
+        try { System.Console.Out.Write("\x1b[?25l\x1b[2J\x1b[H"); System.Console.Out.Flush(); } catch { /* best effort */ }
     }
 
     public void OnRefresh() => _inner.OnRefresh();

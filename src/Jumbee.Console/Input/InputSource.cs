@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console;
 /// <summary>
 /// Supplies <see cref="TerminalInputEvent"/>s (keys, mouse, paste, focus) to the UI input loop.
@@ -32,9 +29,9 @@ public sealed class ConsoleInputSource : IInputSource
     {
         try
         {
-            if (Console.KeyAvailable)
+            if (System.Console.KeyAvailable)
             {
-                evt = KeyInputEvent.From(Console.ReadKey(intercept: true));
+                evt = KeyInputEvent.From(System.Console.ReadKey(intercept: true));
                 return true;
             }
         }

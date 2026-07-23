@@ -54,7 +54,7 @@ public static class UI
         // enable correctly lands last. Keyboard-only apps (also input == null) still get the heal.
         if (isAnsiTerminal && console is null && input is null && IsInteractiveTerminal() && !NonInteractiveEnvironment())
         {
-            try { Console.Out.Write(TerminalSelfHealSeq); Console.Out.Flush(); } catch { /* best effort */ }
+            try { System.Console.Out.Write(TerminalSelfHealSeq); System.Console.Out.Flush(); } catch { /* best effort */ }
         }
         // Enter the alternate screen FIRST — before ConsoleManager.Console is assigned (setting it runs Initialize,
         // which clears the screen) and before any rendering — so the clear and the whole session land on the alternate
@@ -156,7 +156,7 @@ public static class UI
     /// <see cref="VtInputSource"/> when no <c>input</c> is supplied.</remarks>
     public static bool IsInteractiveTerminal()
     {
-        try { return !Console.IsInputRedirected && !Console.IsOutputRedirected; }
+        try { return !System.Console.IsInputRedirected && !System.Console.IsOutputRedirected; }
         catch { return false; }
     }
 
