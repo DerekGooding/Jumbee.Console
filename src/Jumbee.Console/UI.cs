@@ -12,6 +12,8 @@ namespace Jumbee.Console;
 /// </summary>
 public static class UI
 {
+    private static CancellationTokenSource cts = new();
+
     #region Methods
 
     /// <summary>
@@ -858,7 +860,7 @@ public static class UI
 
     private static List<PosixSignalRegistration>? signalRegistrations;
     private static TaskCompletionSource runCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private static CancellationTokenSource cts = new();
+
     private static int interval = 100;
     private static volatile bool needsDraw = true;
     private static ILayout? layout;
