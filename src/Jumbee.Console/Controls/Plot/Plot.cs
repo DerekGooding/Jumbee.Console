@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsolePlot.Drawing.Tools;
 using ConsolePlot.Plotting;
@@ -8,6 +7,7 @@ using System.Linq;
 using CColor = ConsoleGUI.Data.Color;
 using CPlot = ConsolePlot.Plot;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A line/scatter chart backed by the ConsolePlot library, rendered into the control's buffer. Add data with
 /// <see cref="AddSeries"/> and tune the axes/grid/ticks with the <c>Configure*</c> methods.

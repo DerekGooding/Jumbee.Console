@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Drawing;
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +6,7 @@ using System.IO;
 
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console.Drawing;
 /// <summary>The point density of a <see cref="WorldMap"/> — how finely the coastlines are sampled.</summary>
 public enum MapResolution
 {

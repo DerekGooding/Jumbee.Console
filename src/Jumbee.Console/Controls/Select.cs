@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI;
 using ConsoleGUI.Input;
@@ -8,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>Where a <see cref="Select"/>'s dropdown opens relative to the control.</summary>
 public enum SelectPopupPosition
 {

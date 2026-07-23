@@ -1,7 +1,7 @@
-namespace Jumbee.Console.Drawing;
 
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console.Drawing;
 /// <summary>
 /// A single painted cell of a <see cref="Layer"/>. The three properties are independent: when layers are composited,
 /// each is taken from the top-most layer that supplies it, so (for example) a <see cref="CanvasMarker.Block"/> layer

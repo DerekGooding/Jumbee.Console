@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Documents;
 
 using ConsoleGUI.Space;
 using NTokenizers.Extensions.Spectre.Console.Styles;
@@ -6,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// A <see cref="MarkdownViewer"/> that renders fenced <c>```mermaid</c> code blocks as diagrams (flowchart, sequence,
 /// class, ER, state) instead of showing their source.

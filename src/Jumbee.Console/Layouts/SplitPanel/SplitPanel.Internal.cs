@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI;
 
+namespace Jumbee.Console;
 /// <summary>
 /// The visual scaffold behind <see cref="SplitPanel"/>: two nested ConsoleGUI <see cref="DockPanel"/>s laying out
 /// <c>[first | divider | second]</c> along the split axis.

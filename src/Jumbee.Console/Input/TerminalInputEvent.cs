@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Keyboard/mouse modifier flags decoded from the input stream.
 /// </summary>

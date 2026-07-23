@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
@@ -9,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console;
 #if GLOBE_TEXTURE_TOOL
 // Only needed to compile the EarthTextureBaker below (opt-in — the runtime library takes no image-decoder dependency).
 using SixLabors.ImageSharp;

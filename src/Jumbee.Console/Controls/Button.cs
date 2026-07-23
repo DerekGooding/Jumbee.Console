@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -10,6 +9,7 @@ using System.Collections.Generic;
 // the text type so the property name doesn't shadow it inside this file.
 using TextStyle = Jumbee.Console.Style;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A focusable, clickable button that renders a fixed-width text label.
 /// </summary>

@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
@@ -10,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console;
 /// <summary>
 /// An interactive data grid.
 /// </summary>

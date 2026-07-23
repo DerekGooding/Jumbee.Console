@@ -1,10 +1,10 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using System;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A Spectre.Console LiveDisplay widget.
 /// </summary>

@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
@@ -13,6 +12,7 @@ using System;
 using CBorderPlacement = ConsoleGUI.Data.BorderPlacement;
 using SpectreBoxBorder = Spectre.Console.BoxBorder;
 
+namespace Jumbee.Console;
 // BorderStyle, TitlePos, TitleBorderStyle, TitleColorStyle, TitleStyle and BorderPlacement live in the
 // Jumbee.Console.Styles project; a frame composes its defaults from the active themes (see ctor).
 

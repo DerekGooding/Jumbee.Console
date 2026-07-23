@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Documents;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -6,6 +5,7 @@ using Mermaider;
 using System;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// A read-only, scrollable viewer for Mermaid <c>flowchart</c>/<c>graph</c> and <c>stateDiagram</c> diagrams.
 /// </summary>

@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Snapshot;
 
 using ConsoleGUI;
 using ConsoleGUI.Common;
@@ -15,6 +14,7 @@ using Color = SixLabors.ImageSharp.Color;
 using JControl = Jumbee.Console.Control;
 using Size = ConsoleGUI.Space.Size;
 
+namespace Jumbee.Console.Snapshot;
 /// <summary>
 /// Renders Jumbee.Console controls headlessly (without a real terminal) to a <see cref="ConsoleBuffer"/>,
 /// and converts that buffer to a text or PNG snapshot. Intended for tests and visual verification.

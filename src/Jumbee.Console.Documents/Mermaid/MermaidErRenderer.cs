@@ -1,10 +1,10 @@
-namespace Jumbee.Console.Documents;
 
 using Mermaider.Models;
 using System;
 using System.Collections.Generic;
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// Rasterizes a Mermaider <see cref="PositionedErDiagram"/> to a <see cref="CellCanvas"/>: relationships (polylines,
 /// dashed when non-identifying, with cardinality labels at each end) first, then entity tables (name header + typed

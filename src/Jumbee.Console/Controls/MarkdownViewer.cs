@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -7,6 +6,7 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 using System;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A read-only, scrollable Markdown viewer. Renders CommonMark — headings, bold/italic, block-quotes, ordered and
 /// unordered lists, links, syntax-highlighted fenced code blocks, and box-drawn tables — via NTokenizers'

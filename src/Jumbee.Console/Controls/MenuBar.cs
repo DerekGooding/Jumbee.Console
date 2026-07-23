@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI;
 using ConsoleGUI.Input;
@@ -7,6 +6,7 @@ using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A horizontal bar of top-level menu titles (e.g. <c>File  Edit  View</c>).
 /// </summary>

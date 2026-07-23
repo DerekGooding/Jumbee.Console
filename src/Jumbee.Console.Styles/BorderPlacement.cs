@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Which edges of a control frame's border are drawn.
 /// </summary>

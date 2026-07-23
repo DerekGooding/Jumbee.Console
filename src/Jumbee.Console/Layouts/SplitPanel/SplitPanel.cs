@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System;
 
+namespace Jumbee.Console;
 /// <summary>How a <see cref="SplitPanel"/> arranges its two panes.</summary>
 public enum SplitOrientation
 {

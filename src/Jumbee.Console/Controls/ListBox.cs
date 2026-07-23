@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -10,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Displays a flat list of items and allows user input navigation and selection.
 /// </summary>

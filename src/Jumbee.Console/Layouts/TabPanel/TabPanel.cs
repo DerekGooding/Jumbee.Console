@@ -1,8 +1,8 @@
-namespace Jumbee.Console;
 
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>Which edge a <see cref="TabPanel"/> docks its tab bar on.</summary>
 public enum TabBarDock
 {

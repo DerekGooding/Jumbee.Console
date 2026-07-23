@@ -1,10 +1,10 @@
-namespace Spectre.Console.Interop;
 
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Spectre.Console.Interop;
 internal static class SegmentExtensions
 {
     /// <summary>

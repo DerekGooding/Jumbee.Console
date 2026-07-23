@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Documents;
 
 using AdocNet.Ast;
 using ColorCode;
@@ -9,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// Traverses an AsciiDoc <see cref="DocumentNode"/> and composes a tree of Spectre.Console
 /// <see cref="IRenderable"/>s (headings as rules, code/example/admonition blocks as panels, AsciiDoc tables as

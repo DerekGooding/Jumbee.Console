@@ -1,10 +1,10 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// The <see cref="IConsole"/> used by the ANSI render path. The terminal size is <b>read</b> from the live terminal,
 /// but the setter deliberately does <b>not</b> manipulate it — unlike <see cref="StandardConsole"/>, whose

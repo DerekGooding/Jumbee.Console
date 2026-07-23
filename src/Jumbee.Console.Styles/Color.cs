@@ -1,9 +1,9 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using ConsoleGUIColor = ConsoleGUI.Data.Color;
 using SpectreColor = Spectre.Console.Color;
 using SystemDrawingColor = System.Drawing.Color;
 
+namespace Jumbee.Console;
 /// <summary>An RGB colour. Value type: two colours are equal when their channels are.</summary>
 public readonly partial struct Color : System.IEquatable<Color>
 {

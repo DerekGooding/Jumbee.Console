@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Renders text using large three-row "seven-segment" glyphs, for clocks, counters and headline figures.
 /// </summary>

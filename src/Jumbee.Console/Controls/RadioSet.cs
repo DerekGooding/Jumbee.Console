@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A vertical group of mutually-exclusive radio options, exactly one selected at a time.
 /// </summary>

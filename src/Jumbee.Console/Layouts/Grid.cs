@@ -1,8 +1,8 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using System;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>
 ///  A grid layout with controls arranged in rows and columns.
 /// </summary>

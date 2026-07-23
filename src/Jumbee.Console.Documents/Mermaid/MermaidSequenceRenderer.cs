@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Documents;
 
 using Mermaider.Models;
 using System;
@@ -6,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// Lays out and renders a parsed Mermaid <see cref="SequenceDiagram"/> directly in cell space (Mermaider has no
 /// public sequence layout, and sequence layout is simple): actor boxes across the top, dashed lifelines down, and

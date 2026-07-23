@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using Spectre.Console;
 
+namespace Jumbee.Console;
 /// <summary>
 /// The glyphs controls use for state indicators.
 /// </summary>

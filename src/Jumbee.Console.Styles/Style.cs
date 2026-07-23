@@ -1,9 +1,9 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using SCDecoration = Spectre.Console.Decoration;
 using SCStyle = Spectre.Console.Style;
 using SystemDrawingColor = System.Drawing.Color;
 
+namespace Jumbee.Console;
 /// <summary>Horizontal alignment of text within its available width.</summary>
 public enum Justify
 {

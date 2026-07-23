@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>A single key-binding hint shown in a <see cref="Footer"/>: the key chord and what it does.</summary>
 public readonly record struct FooterHint(string Key, string Label);
 

@@ -1,7 +1,7 @@
-namespace Jumbee.Console.Drawing;
 
 using System;
 
+namespace Jumbee.Console.Drawing;
 /// <summary>
 /// Selects the glyph set (and thus the sub-cell resolution) a <see cref="Jumbee.Console.Canvas"/> draws its shapes
 /// with. The default is <see cref="Braille"/>.

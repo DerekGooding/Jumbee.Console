@@ -1,9 +1,9 @@
-namespace Jumbee.Console.Documents;
 
 using ColorCode;
 using ColorCode.Common;
 using System.Collections.Generic;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> that highlights Markdown <em>and</em> the contents of embedded
 /// <c>```mermaid</c> fenced blocks (using the <see cref="MermaidLanguage"/> grammar) — for editing Markdown that

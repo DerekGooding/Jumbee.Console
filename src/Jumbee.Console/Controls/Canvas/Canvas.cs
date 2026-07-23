@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -11,6 +10,7 @@ using CColor = ConsoleGUI.Data.Color;
 using Character = ConsoleGUI.Data.Character;
 using Decoration = ConsoleGUI.Data.Decoration;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,
 /// <see cref="Circle"/>, <see cref="Points"/>, <see cref="FilledLine"/>) in an arbitrary coordinate system, rendered

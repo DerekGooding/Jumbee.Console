@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Base for live, split-pane source editors: a <see cref="CodeEditor"/> in one pane and a read-only preview control in
 /// the other, wired so the preview re-renders as the source is edited. A draggable <see cref="SplitPanel"/> divider

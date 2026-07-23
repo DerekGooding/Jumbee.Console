@@ -1,10 +1,10 @@
-namespace Jumbee.Console;
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using System.Collections.Generic;
 using System.Threading;
 
+namespace Jumbee.Console;
 public partial class Tree
 {
     /// <summary>

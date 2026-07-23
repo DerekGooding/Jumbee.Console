@@ -1,4 +1,3 @@
-namespace Jumbee.Console.Documents;
 
 using AdocNet.Parser;
 using ConsoleGUI.Input;
@@ -7,6 +6,7 @@ using Spectre.Console.Rendering;
 using System;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// A read-only, scrollable AsciiDoc viewer.
 /// </summary>

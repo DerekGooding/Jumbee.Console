@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A tabbed group of <see cref="CodeEditor"/>s — a VS-Code-style editor area. Each open document is a closable tab
 /// (click the ✕ on the active/hovered tab), and a "+" button at the end of the bar opens a new document.

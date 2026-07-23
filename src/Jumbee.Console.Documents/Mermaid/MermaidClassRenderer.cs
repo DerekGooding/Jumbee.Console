@@ -1,10 +1,10 @@
-namespace Jumbee.Console.Documents;
 
 using Mermaider.Models;
 using System;
 using System.Collections.Generic;
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console.Documents;
 /// <summary>
 /// Rasterizes a Mermaider <see cref="PositionedClassDiagram"/> to a <see cref="CellCanvas"/>: relationships
 /// (polylines with UML end-markers — inheritance/realization triangles, composition/aggregation diamonds,

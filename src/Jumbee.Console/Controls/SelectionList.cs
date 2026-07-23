@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A vertical list of independently-checkable options (multi-select).
 /// </summary>

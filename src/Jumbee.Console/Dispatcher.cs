@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using System;
 using System.Collections.Concurrent;
@@ -6,6 +5,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Owns a single UI thread and a serialized work queue. UI state mutation and rendering are intended to
 /// run on this thread; other threads marshal work onto it via <see cref="Post"/>, <see cref="Invoke"/>,

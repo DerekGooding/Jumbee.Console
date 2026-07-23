@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Wraps an existing Spectre.Console <see cref="IRenderable"/> control for use with ConsoleGUI control and layout types.
 /// </summary>

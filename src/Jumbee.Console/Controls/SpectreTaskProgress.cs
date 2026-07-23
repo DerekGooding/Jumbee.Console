@@ -1,9 +1,9 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using Spectre.Console;
 using System;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A Spectre.Console Progress widget.
 /// </summary>

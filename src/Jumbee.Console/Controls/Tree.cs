@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -10,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CircularTreeException = Spectre.Console.Interop.CircularTreeException;
 
+namespace Jumbee.Console;
 /// <summary>The line style used to draw the connecting guide lines of a <see cref="Tree"/>.</summary>
 public enum TreeGuide
 {

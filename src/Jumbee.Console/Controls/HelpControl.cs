@@ -1,10 +1,10 @@
-namespace Jumbee.Console;
 
 using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
+namespace Jumbee.Console;
 /// <summary>
 /// The global help dialog: a fixed-size modal composite showing one tab per <see cref="HelpInfo"/> (built by
 /// <see cref="UI.ShowHelp"/> from every control's <see cref="Control.GetHelpInfo"/>), with a Close button.

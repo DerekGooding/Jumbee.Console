@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
@@ -9,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+namespace Jumbee.Console;
 /// <summary>The predefined button set a <see cref="Dialog"/> shows along its bottom edge.</summary>
 public enum DialogButtons
 {

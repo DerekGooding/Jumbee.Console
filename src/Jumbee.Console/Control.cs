@@ -1,5 +1,4 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
@@ -9,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Base class for all Jumbee.Console controls.
 /// </summary>

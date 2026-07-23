@@ -1,10 +1,10 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A control that implements Spectre.Console.IRenderable
 /// </summary>

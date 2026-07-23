@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI;
 using ConsoleGUI.Api;
@@ -12,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Manages th overall UI and provides a paint event for controls to subscribe to.
 /// </summary>

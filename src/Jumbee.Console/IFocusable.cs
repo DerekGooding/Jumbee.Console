@@ -1,7 +1,7 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using ConsoleGUI;
 
+namespace Jumbee.Console;
 /// <summary>Handler for the <see cref="IFocusable.OnFocus"/> and <see cref="IFocusable.OnLostFocus"/> events.</summary>
 public delegate void FocusableEventHandler();
 

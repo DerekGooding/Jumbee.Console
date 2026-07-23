@@ -1,10 +1,10 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 using System;
 
+namespace Jumbee.Console;
 /// <summary>A single-line text input that shows a prompt label and edits an inline entry with a terminal cursor.</summary>
 public class TextPrompt : Prompt
 {

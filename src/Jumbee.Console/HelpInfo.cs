@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>One keystroke (or chord) and what it does, listed in a control's <see cref="HelpInfo"/>.</summary>
 /// <param name="Keys">The key(s) as displayed, e.g. <c>"Ctrl+N"</c> or <c>"↑/↓"</c>.</param>
 /// <param name="Description">What the key does.</param>

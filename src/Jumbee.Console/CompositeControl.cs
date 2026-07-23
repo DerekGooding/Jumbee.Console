@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
@@ -7,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Base class for <em>composite</em> controls: a <see cref="Control"/> that owns and lays out several child
 /// controls and presents them as a single control. It is a real <see cref="Control"/> (so it has its own

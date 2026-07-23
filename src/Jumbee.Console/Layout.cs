@@ -1,5 +1,4 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using ConsoleGUI;
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
@@ -8,6 +7,7 @@ using Spectre.Console.Interop;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>Common interface for Jumbee.Console layout classes: a 2-D grid of focusable cells over a ConsoleGUI control, with focus navigation and input routing.</summary>
 public interface ILayout : IFocusable, IDrawingContextListener
 {

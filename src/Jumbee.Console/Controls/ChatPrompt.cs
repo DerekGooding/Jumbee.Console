@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using Spectre.Console;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>
 /// The input area of an agent/chat CLI (Claude Code, Gemini CLI): a prompt glyph on the left that turns into an
 /// animated <em>busy</em> spinner while an operation runs, and a single-line <see cref="TextInput"/> filling the

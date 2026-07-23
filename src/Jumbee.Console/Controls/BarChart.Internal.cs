@@ -1,11 +1,11 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 
+namespace Jumbee.Console;
 public partial class BarChart
 {
     /// <summary>A single labelled, coloured item in a <see cref="BarChart"/>.</summary>

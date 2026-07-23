@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using Microsoft.Win32.SafeHandles;
 using System;
@@ -9,6 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A Unix pseudo terminal (Linux/macOS) session.
 /// </summary>

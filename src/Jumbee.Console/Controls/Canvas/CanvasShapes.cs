@@ -1,10 +1,10 @@
-namespace Jumbee.Console.Drawing;
 
 using System;
 using System.Collections.Generic;
 
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console.Drawing;
 /// <summary>
 /// A shape that can be drawn on a <see cref="Jumbee.Console.Canvas"/> via <see cref="Jumbee.Console.Canvas.Add"/>.
 /// </summary>

@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>
 /// The visual scaffold behind <see cref="TabPanel"/>: a ConsoleGUI <see cref="ConsoleGUI.Controls.DockPanel"/> that
 /// docks a thin tab bar (a horizontal or vertical stack of <see cref="TabHeader"/> cells) on one edge and fills the

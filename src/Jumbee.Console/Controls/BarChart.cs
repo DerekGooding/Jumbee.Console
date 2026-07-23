@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -8,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A bar chart.
 /// </summary>

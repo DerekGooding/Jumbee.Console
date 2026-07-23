@@ -1,7 +1,7 @@
-namespace Jumbee.Console;
 
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Supplies <see cref="TerminalInputEvent"/>s (keys, mouse, paste, focus) to the UI input loop.
 /// </summary>

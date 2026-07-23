@@ -1,8 +1,8 @@
-namespace Jumbee.Console;
 
 using System;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>A layout that arranges its child controls in a single horizontal row.</summary>
 public class HorizontalStackPanel : Layout<ConsoleGUI.Controls.HorizontalStackPanel>
 {

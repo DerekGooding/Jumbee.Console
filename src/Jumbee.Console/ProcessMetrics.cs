@@ -1,10 +1,10 @@
-namespace Jumbee.Console;
 
 using System;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 
+namespace Jumbee.Console;
 /// <summary>
 /// Collects live process/runtime performance metrics for the perf HUD by reading the runtime APIs the
 /// <c>System.Runtime</c> meter wraps (<see cref="GC"/>, <see cref="Environment"/>, <see cref="ThreadPool"/>,

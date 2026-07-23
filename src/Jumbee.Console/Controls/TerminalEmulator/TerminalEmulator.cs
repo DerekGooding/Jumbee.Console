@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
@@ -17,6 +16,7 @@ using VtNetCore.XTermParser;
 // cells, so alias the cell colour type (the alias can't be named Color — that clashes with the namespace member).
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A control that runs a child process in a pseudo-console (<see cref="ConPty"/>), parses its ANSI output with
 /// VtNetCore, and paints the emulated screen into the control's cell area. Input routed to the focused control is

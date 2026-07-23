@@ -1,10 +1,10 @@
-﻿namespace Jumbee.Console;
-
+﻿
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
 using SCDecoration = Spectre.Console.Decoration;
 
+namespace Jumbee.Console;
 /// <summary>The layout direction of a <see cref="TextLabel"/>.</summary>
 public enum TextLabelOrientation
 {

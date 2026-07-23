@@ -1,10 +1,10 @@
-namespace Jumbee.Console;
 
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A compact, single-row chart that draws a series of numeric values as block bars (one cell per value),
 /// scaling each value's height against the series maximum.

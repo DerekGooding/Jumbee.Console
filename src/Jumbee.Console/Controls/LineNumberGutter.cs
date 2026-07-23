@@ -1,9 +1,9 @@
-namespace Jumbee.Console;
 
 using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A narrow, non-interactive column of right-aligned line numbers, highlighting the active row. Intended as an
 /// adornment inside a composite (e.g. <see cref="CodeEditor"/>); width auto-grows with the digit count.

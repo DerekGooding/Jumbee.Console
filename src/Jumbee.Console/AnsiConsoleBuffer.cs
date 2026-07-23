@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
@@ -12,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+namespace Jumbee.Console;
 /// <summary>
 /// An implementation of Spectre.Console.IAnsiConsole that writes to a ConsoleBuffer.
 /// </summary>

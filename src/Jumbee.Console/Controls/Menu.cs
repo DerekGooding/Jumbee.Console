@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
@@ -7,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Jumbee.Console;
 /// <summary>
 /// One entry in a <see cref="ContextMenu"/>: a label, an optional right-aligned shortcut hint, an action invoked
 /// when chosen, an enabled flag, and an optional <see cref="Submenu"/>. Use <see cref="Separator"/> for a

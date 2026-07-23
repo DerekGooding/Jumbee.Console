@@ -1,4 +1,3 @@
-namespace Jumbee.Console;
 
 using Spectre.Console;
 using System;
@@ -6,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using CColor = ConsoleGUI.Data.Color;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A live multi-series time chart with a legend — a streaming line <see cref="Plot"/> on the left and a per-series
 /// stat readout (name + current / delta / max / min) on the right, in the style of a monitoring "run chart".

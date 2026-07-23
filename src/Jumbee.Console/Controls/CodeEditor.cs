@@ -1,8 +1,8 @@
-namespace Jumbee.Console;
 
 using ColorCode;
 using System;
 
+namespace Jumbee.Console;
 /// <summary>
 /// A composite control pairing a <see cref="TextEditor"/> with a <see cref="LineNumberGutter"/> docked to its left.
 /// </summary>

@@ -1,8 +1,8 @@
-namespace Jumbee.Console;
 
 using SCDecoration = Spectre.Console.Decoration;
 using SCStyle = Spectre.Console.Style;
 
+namespace Jumbee.Console;
 /// <summary>
 /// How a navigable control (e.g. <see cref="IStyleTheme"/> consumers like ListBox, Tree, TabPanel) renders its
 /// selected/active item.
