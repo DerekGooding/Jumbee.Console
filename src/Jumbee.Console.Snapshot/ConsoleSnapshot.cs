@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System.Text;
 using CColor = ConsoleGUI.Data.Color;
-using Color = SixLabors.ImageSharp.Color;
 using JControl = Jumbee.Console.Control;
 using Size = ConsoleGUI.Space.Size;
 

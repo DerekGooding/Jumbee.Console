@@ -1,8 +1,6 @@
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using System.Text;
 using CColor = ConsoleGUI.Data.Color;
 

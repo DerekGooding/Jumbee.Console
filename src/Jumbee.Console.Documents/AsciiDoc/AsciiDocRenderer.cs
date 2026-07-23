@@ -4,8 +4,6 @@ using ColorCode;
 using RazorConsole.Core.Rendering.Syntax;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace Jumbee.Console.Documents;

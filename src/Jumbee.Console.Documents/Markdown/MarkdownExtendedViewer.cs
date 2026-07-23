@@ -1,8 +1,6 @@
 
 using ConsoleGUI.Space;
 using NTokenizers.Extensions.Spectre.Console.Styles;
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Jumbee.Console.Documents;

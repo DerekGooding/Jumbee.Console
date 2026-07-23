@@ -1,7 +1,6 @@
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-using System;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Snapshot;

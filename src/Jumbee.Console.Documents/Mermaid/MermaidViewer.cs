@@ -2,8 +2,6 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Mermaider;
-using System;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console.Documents;
 /// <summary>

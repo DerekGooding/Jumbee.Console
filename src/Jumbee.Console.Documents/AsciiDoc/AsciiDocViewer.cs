@@ -3,8 +3,6 @@ using AdocNet.Parser;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console.Documents;
 /// <summary>

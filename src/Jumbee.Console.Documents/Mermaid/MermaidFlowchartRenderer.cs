@@ -1,7 +1,5 @@
 
 using Mermaider.Models;
-using System;
-using System.Collections.Generic;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Documents;

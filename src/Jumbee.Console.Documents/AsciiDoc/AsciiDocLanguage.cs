@@ -1,7 +1,6 @@
 
 using ColorCode;
 using ColorCode.Common;
-using System.Collections.Generic;
 
 namespace Jumbee.Console.Documents;
 /// <summary>
