@@ -1,29 +1,32 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Data;
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
-using ConsoleGUI.Data;
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
-
-using Spectre.Console.Rendering;
 
 /// <summary>The predefined button set a <see cref="Dialog"/> shows along its bottom edge.</summary>
 public enum DialogButtons
 {
     /// <summary>No buttons.</summary>
     None,
+
     /// <summary>A single OK button.</summary>
     Ok,
+
     /// <summary>OK and Cancel buttons.</summary>
     OkCancel,
+
     /// <summary>Yes and No buttons.</summary>
     YesNo,
+
     /// <summary>Yes, No and Cancel buttons.</summary>
     YesNoCancel,
+
     /// <summary>A single Close button.</summary>
     Close,
 }
@@ -33,14 +36,19 @@ public enum DialogResult
 {
     /// <summary>Not yet dismissed.</summary>
     None,
+
     /// <summary>Dismissed with OK.</summary>
     Ok,
+
     /// <summary>Dismissed with Cancel.</summary>
     Cancel,
+
     /// <summary>Dismissed with Yes.</summary>
     Yes,
+
     /// <summary>Dismissed with No.</summary>
     No,
+
     /// <summary>Dismissed with Close.</summary>
     Close,
 }
@@ -62,6 +70,7 @@ public enum DialogResult
 public class Dialog : CompositeControl
 {
     #region Constructors
+
     /// <summary>A dialog hosting a custom <paramref name="content"/> control, with the given button set.</summary>
     public Dialog(string title, Control content, DialogButtons buttons = DialogButtons.OkCancel)
         : this(title, content, content.Focusable, buttons) { }
@@ -105,17 +114,21 @@ public class Dialog : CompositeControl
         this.WithRoundedBorder().WithTitle(title, new TitleStyle(TitlePos.TopCenter, TitleBorderStyle.Inline, TitleColorStyle.Normal));
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The result the dialog was dismissed with (<see cref="DialogResult.None"/> until dismissed).</summary>
     public DialogResult Result { get; private set; }
 
     /// <summary>The focus target while the dialog is open: the current stop (custom content or the button bar).</summary>
     protected override Control? FocusChild => _current ?? _bar ?? _content;
-    #endregion
+
+    #endregion Properties
 
     #region Indexers
+
     // Composite every interior cell onto the opaque surface background: a modal must not let the dimmed layer behind
     // bleed through transparent gaps (a short custom control, inter-child spacing, a glyph with no background). Keeps
     // the cell's glyph/foreground/decoration/cursor and its mouse listener; only fills an absent background.
@@ -129,15 +142,19 @@ public class Dialog : CompositeControl
             return new Cell(cell.Character.WithBackground(bg), cell.MouseListener);
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Events
+
     /// <summary>Raised once when the dialog is dismissed, with the chosen result (Escape / lost focus = the cancel
     /// result for the button set).</summary>
     public event EventHandler<DialogResult>? Completed;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <summary>Shows the dialog modally over the ambient <see cref="UI.Overlay"/>.</summary>
     public void Show() => Show(UI.Overlay ?? throw new InvalidOperationException(
         "No ambient UI.Overlay is available. Call UI.Start first, or use Show(overlay)."));
@@ -282,9 +299,11 @@ public class Dialog : CompositeControl
         DialogButtons.Ok => DialogResult.Ok,
         _ => DialogResult.None,
     };
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     internal const int DefaultContentWidth = 44;
     private const int DefaultCustomHeight = 10;   // initial guess; corrected to the content's natural height on layout
     private const int MaxCustomHeight = 30;
@@ -301,7 +320,8 @@ public class Dialog : CompositeControl
     private bool _completed;
     private bool _wired;
     private bool _sized;   // custom-content dialog has been shrunk to its content height (one-shot)
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>The wrapped, opaque text body of a message <see cref="Dialog"/>. Non-focusable; each row is padded to
@@ -309,6 +329,7 @@ public class Dialog : CompositeControl
 internal sealed class DialogText : RenderableControl
 {
     #region Constructors
+
     public DialogText(string message, int width)
     {
         Focusable = false;
@@ -317,14 +338,18 @@ internal sealed class DialogText : RenderableControl
         Width = width;
         Height = PreferredHeight;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The height this text wants: a leading blank row plus one row per wrapped line.</summary>
     public int PreferredHeight => Math.Max(1, _lines.Length + 1);
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     protected override bool RendersInteractiveState => false;
 
     protected override void ApplyTheme()
@@ -369,13 +394,16 @@ internal sealed class DialogText : RenderableControl
             yield return line.ToString();
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly string[] _lines;
     private Style _textStyle;
     private Style _surface;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>The button row of a <see cref="Dialog"/>: a single self-drawn, focusable control that lays out its
@@ -384,18 +412,23 @@ internal sealed class DialogText : RenderableControl
 internal sealed class DialogButtonBar : RenderableControl
 {
     #region Constructors
+
     public DialogButtonBar((string Label, DialogResult Result)[] spec)
     {
         _spec = spec;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     public event Action<DialogResult>? Activated;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     public override bool HandlesInput => true;
     protected override bool WantsMouse => true;
     protected override bool RendersOwnFocus => true;   // highlights the active button
@@ -404,9 +437,11 @@ internal sealed class DialogButtonBar : RenderableControl
         .WithKey("← / →", "Move between buttons")
         .WithKey("Enter / Space", "Activate")
         .WithKey("Esc", "Cancel");
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     protected override int IntrinsicHeight() => 2;   // a blank spacer row + the button row
 
     protected override void ApplyTheme()
@@ -476,23 +511,28 @@ internal sealed class DialogButtonBar : RenderableControl
         if (width - col > 0) yield return new Segment(new string(' ', width - col), surface);
         _bounds = bounds;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly (string Label, DialogResult Result)[] _spec;
     private int _focused;
     private (int Start, int End)[] _bounds = [];
     private Style _active;
     private Style _inactive;
     private Style _surface;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>A <see cref="VerticalStackPanel"/> that lets its owner tunnel input (e.g. a <see cref="Dialog"/>'s
 /// Tab focus-cycling) before it routes to the focused child.</summary>
 internal sealed class InterceptStack : VerticalStackPanel
 {
-    public InterceptStack(params IFocusable[] children) : base(children) { }
+    public InterceptStack(params IFocusable[] children) : base(children)
+    {
+    }
 
     public Func<UI.InputEventArgs, bool>? Interceptor { get; set; }
 

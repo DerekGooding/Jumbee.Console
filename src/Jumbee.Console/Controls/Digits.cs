@@ -1,9 +1,8 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// Renders text using large three-row "seven-segment" glyphs, for clocks, counters and headline figures.
@@ -15,6 +14,7 @@ using Spectre.Console.Rendering;
 public class Digits : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Digits"/> displaying the given text in large glyphs.</summary>
     public Digits(string text = "")
     {
@@ -24,9 +24,11 @@ public class Digits : RenderableControl
         Width = _text.Length * GlyphWidth;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The text to render in large glyphs. Setting it re-sizes the control.</summary>
     public string Text
     {
@@ -36,9 +38,11 @@ public class Digits : RenderableControl
 
     /// <summary>The glyph style. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
     public Style DigitStyle { get => _digitStyle; set => SetAtomicProperty(ref _digitStyle, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyTheme()
     {
@@ -71,9 +75,11 @@ public class Digits : RenderableControl
             if (row < GlyphRows - 1) yield return Segment.LineBreak;
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int GlyphRows = 3;
     private const int GlyphWidth = 3;
     private const string Blank = "   ";
@@ -101,5 +107,6 @@ public class Digits : RenderableControl
         ['-'] = ["   ", " _ ", "   "],
         ['+'] = ["   ", "|_|", " | "],
     };
-    #endregion
+
+    #endregion Fields
 }

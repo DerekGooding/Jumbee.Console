@@ -1,10 +1,9 @@
 ﻿namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// A control that implements Spectre.Console.IRenderable
@@ -12,9 +11,10 @@ using Spectre.Console.Rendering;
 public abstract class RenderableControl : Control, IRenderable
 {
     /// <summary>Initializes a new <see cref="RenderableControl"/>.</summary>
-    public RenderableControl() : base() {}
-    
+    public RenderableControl() : base() { }
+
     #region Methods
+
     Measurement IRenderable.Measure(RenderOptions options, int maxWidth) => this.Measure(options, Math.Min(maxWidth, ActualWidth));
 
     IEnumerable<Segment> IRenderable.Render(RenderOptions options, int maxWidth) => this.Render(options, maxWidth);
@@ -74,7 +74,7 @@ public abstract class RenderableControl : Control, IRenderable
 
             // Determine Spectre.Console control measurement
             var measurement = this.Measure(options, width);
-            
+
             // Resize the ConsoleGUI control — but only when the size actually changed. Initialize is re-run for every
             // control on any size-limit change (and repeatedly during layout convergence); ConsoleGUI's Resize
             // unconditionally sets a full dirty rect and propagates an Update to the parent, so an unguarded call
@@ -88,12 +88,12 @@ public abstract class RenderableControl : Control, IRenderable
             // Update buffer size
             consoleBuffer.Size = Size;
 
-            Invalidate();        
+            Invalidate();
         });
     }
 
     /// <summary>Renders the control's content to the console buffer.</summary>
-    protected sealed override void Render()
+    protected override sealed void Render()
     {
         // Retained-mode fast path: re-run the Spectre pipeline only when the content (or size/theme) actually
         // changed. Interactive-state-only repaints (hover/focus on a content-only control) leave _contentDirty
@@ -109,11 +109,14 @@ public abstract class RenderableControl : Control, IRenderable
         // Spectre will look at the Profile.Width which comes from the IConsole.Size (BufferConsole.Size)
         ansiConsole.Write(this);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     // True when the wrapped renderable must be re-rendered into consoleBuffer on the next paint. Set by Invalidate
     // (content/size/theme changes); cleared after a render. Starts true so the first paint renders.
     private bool _contentDirty = true;
-    #endregion
+
+    #endregion Fields
 }

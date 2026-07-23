@@ -1,17 +1,13 @@
 ﻿namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using RazorConsole.Core;
-
+using ColorCode;
 using ConsoleGUI.Input;
 using NTokenizers.Extensions.Spectre.Console;
+using RazorConsole.Core.Rendering.Syntax;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using RazorConsole.Core.Rendering.Syntax;
-using ColorCode;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// A source language for syntax highlighting, shared by the text/code controls (e.g. <see cref="TextEditor"/>,
@@ -21,40 +17,58 @@ public enum Language
 {
     /// <summary>No highlighting; plain text.</summary>
     None,
+
     /// <summary>Markdown.</summary>
     Markdown,
+
     /// <summary>JSON.</summary>
     Json,
+
     /// <summary>HTML.</summary>
     Html,
+
     /// <summary>CSS.</summary>
     Css,
+
     /// <summary>C#.</summary>
     CSharp,
+
     /// <summary>SQL.</summary>
     Sql,
+
     /// <summary>TypeScript.</summary>
     TypeScript,
+
     /// <summary>XML.</summary>
     Xml,
+
     /// <summary>YAML.</summary>
     Yaml,
+
     /// <summary>TOML.</summary>
     Toml,
+
     /// <summary>C.</summary>
     C,
+
     /// <summary>C++.</summary>
     Cpp,
+
     /// <summary>Go.</summary>
     Go,
+
     /// <summary>Java.</summary>
     Java,
+
     /// <summary>Kotlin.</summary>
     Kotlin,
+
     /// <summary>Python.</summary>
     Python,
+
     /// <summary>Rust.</summary>
     Rust,
+
     /// <summary>Swift.</summary>
     Swift
 }
@@ -65,6 +79,7 @@ public enum Language
 public class TextEditor : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="TextEditor"/> highlighted for the given <paramref name="language"/>, with optional caret display and blink.</summary>
     public TextEditor(Language language = Language.None, bool showCursor = true, bool blinkCursor = false) : base()
     {
@@ -82,11 +97,14 @@ public class TextEditor : Control
     public TextEditor(ILanguage customLanguage, bool showCursor = true, bool blinkCursor = false)
         : this(Language.None, showCursor, blinkCursor)
         => _ccLang = customLanguage ?? throw new ArgumentNullException(nameof(customLanguage));
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
+
     /// <summary>Reports <see langword="true"/>: the caret indicates focus, so no default focus tint is drawn.</summary>
     protected override bool RendersOwnFocus => true;   // the caret/cursor shows focus
 
@@ -99,6 +117,7 @@ public class TextEditor : Control
         get => _showCursor;
         set => SetAtomicProperty(ref _showCursor, value);
     }
+
     /// <summary>Whether the caret blinks.</summary>
     public bool BlinkCursor
     {
@@ -228,16 +247,20 @@ public class TextEditor : Control
         }
         return labels;
     }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised after the text or caret position changes (typing, paste, delete, navigation, or setting
     /// <see cref="Text"/>).</summary>
     /// <remarks>Composites use it to keep adornments — e.g. a line-number gutter — in sync.</remarks>
     public event EventHandler? Changed;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyTheme() =>
         _selectionBg = UI.StyleTheme.Selection.BackgroundColor?.ToConsoleGUIColor();
@@ -353,36 +376,43 @@ public class TextEditor : Control
                 else { ExtendOrClear(shift); if (caretPosition > 0) caretPosition--; }
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.RightArrow:
                 if (!shift && hadSelection) { caretPosition = selEnd; ClearSelection(); }
                 else { ExtendOrClear(shift); if (caretPosition < input.Length) caretPosition++; }
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.UpArrow:
                 ExtendOrClear(shift);
                 MoveCaretVertically(-1);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.DownArrow:
                 ExtendOrClear(shift);
                 MoveCaretVertically(1);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.PageUp:
                 ExtendOrClear(shift);
                 MoveCaretVertically(-(Frame?.ViewportSize.Height ?? 10));
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.PageDown:
                 ExtendOrClear(shift);
                 MoveCaretVertically(Frame?.ViewportSize.Height ?? 10);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Home:
                 ExtendOrClear(shift);
                 MoveCaretHome();
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.End:
                 ExtendOrClear(shift);
                 MoveCaretEnd();
@@ -396,6 +426,7 @@ public class TextEditor : Control
                 else break;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Delete:
                 if (ReadOnly) break;
                 if (HasSelection) DeleteSelection();
@@ -403,6 +434,7 @@ public class TextEditor : Control
                 else break;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Enter:
                 if (ReadOnly) break;
                 if (HasSelection) DeleteSelection();
@@ -410,6 +442,7 @@ public class TextEditor : Control
                 newInput = true;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Tab:
                 // Plain Tab now reaches the editor (focus traversal moved to Ctrl+arrows), so indent with it.
                 // Insert spaces rather than a literal '\t' so the wrap/caret column math stays simple and exact.
@@ -421,6 +454,7 @@ public class TextEditor : Control
                 newInput = true;
                 inputEvent.Handled = true;
                 break;
+
             default:
                 if (!ReadOnly && !char.IsControl(key.KeyChar))
                 {
@@ -618,11 +652,11 @@ public class TextEditor : Control
         if (_desiredColumn < 0) _desiredColumn = currentX;
         caretPosition = CaretIndexAt(currentY + direction, _desiredColumn);
     }
-    
+
     private void MoveCaretHome()
     {
         int i = caretPosition;
-        while (i > 0 && input[i-1] != '\n')
+        while (i > 0 && input[i - 1] != '\n')
         {
             i--;
         }
@@ -631,10 +665,10 @@ public class TextEditor : Control
 
     private void MoveCaretEnd()
     {
-         while (caretPosition < input.Length && input[caretPosition] != '\n')
-         {
-             caretPosition++;
-         }
+        while (caretPosition < input.Length && input[caretPosition] != '\n')
+        {
+            caretPosition++;
+        }
     }
 
     private void AutoScroll()
@@ -736,37 +770,45 @@ public class TextEditor : Control
         _cachedText = text;
         return _cachedSegments;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private Language _language;
     private bool _showCursor;
     private bool _blinkCursor;
     private string input = string.Empty;
     private bool newInput;
     private int caretPosition = 0;
+
     // The visual column a vertical (Up/Down) move aims for, preserved across a run of them; -1 = recompute from
     // the caret's current column on the next vertical move. Reset by any horizontal move or edit.
     private int _desiredColumn = -1;
+
     // Selection anchor index (-1 = no selection); the selection is [min(anchor,caret), max(anchor,caret)).
     private int _selAnchor = -1;
+
     // True when the selection range changed without a text change (a Shift-move, or a cleared selection), so Render
     // rebuilds the buffer to repaint/clear the highlight even though newInput is false.
     private bool _selectionDirty;
+
     // The selection highlight background (captured from the theme in ApplyTheme), or null if the theme sets none.
     private ConsoleGUI.Data.Color? _selectionBg;
 
     // Test instrumentation: number of actual BuildVisualRows computations (cache misses). Used by tests to guard the
     // wrap-memoization against layout-convergence re-measurement blowups.
     internal int visualRowsBuilt;
+
     // Memoized wrap layout, keyed by (text reference, wrap width) — see BuildVisualRows.
     private List<(int start, int end)>? _cachedRows;
+
     private string? _cachedRowsText;
     private int _cachedRowsWidth = -1;
 
-    SpectreSegmentFormatter ccFormatter = new SpectreSegmentFormatter();
-    SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
-    SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0,   };
+    private SpectreSegmentFormatter ccFormatter = new SpectreSegmentFormatter();
+    private SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
+    private SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0, };
 
     // The resolved ColorCode grammar for this editor (a built-in mapped from _language, or a custom ILanguage passed
     // to the constructor), or null for languages that use a non-ColorCode writer or render plain. Fixed at construction.
@@ -776,6 +818,8 @@ public class TextEditor : Control
     // implicitly: a real edit reassigns `input` (a new string reference), so it misses this cache and re-parses. The
     // grammar and syntax theme are fixed at construction, so colours can't go stale.
     private List<Segment>? _cachedSegments;
+
     private string? _cachedText;
-    #endregion
+
+    #endregion Fields
 }

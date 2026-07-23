@@ -1,11 +1,9 @@
 ﻿namespace Jumbee.Console;
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using System;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A Spectre.Console LiveDisplay widget.
@@ -13,6 +11,7 @@ using Spectre.Console.Rendering;
 public class SpectreLiveDisplay : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="SpectreLiveDisplay"/> around the <paramref name="target"/> renderable it live-refreshes.</summary>
     public SpectreLiveDisplay(IRenderable target)
     {
@@ -22,16 +21,21 @@ public class SpectreLiveDisplay : Control
         this.target = target;
         display = ansiConsole.Live(target);
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Fields
+
     /// <summary>The wrapped Spectre <see cref="LiveDisplay"/> driving the refresh loop.</summary>
     protected readonly LiveDisplay display;
+
     /// <summary>The renderable being live-displayed.</summary>
     protected IRenderable target;
-    #endregion
+
+    #endregion Fields
 
     #region Methods
+
     /// <summary>Runs <paramref name="action"/> on a background thread with a live-refreshing display context.</summary>
     public Task Start(Action<LiveDisplayContext> action) => Task.Run(() => display.Start(action));
 
@@ -43,11 +47,13 @@ public class SpectreLiveDisplay : Control
 
     // LiveDisplay will update console buffer
     /// <summary>No-op: the wrapped <see cref="LiveDisplay"/> writes to the buffer from its own refresh loop.</summary>
-    protected override void Render() {}
+    protected override void Render()
+    { }
 
     // Control is assumed to always require painting
     /// <summary>No-op: the live display is treated as always needing a repaint.</summary>
-    protected override void Validate() {}
-    #endregion
+    protected override void Validate()
+    { }
 
+    #endregion Methods
 }

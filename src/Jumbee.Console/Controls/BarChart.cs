@@ -1,13 +1,12 @@
 namespace Jumbee.Console;
 
+using Spectre.Console;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-
-using Spectre.Console;
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// A bar chart.
@@ -16,6 +15,7 @@ using Spectre.Console.Rendering;
 public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="BarChart"/> with the given orientation and initial items.</summary>
     public BarChart(ChartOrientation orientation, params (string label, double value, Color color)[] items)
     {
@@ -31,10 +31,12 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     }
 
     /// <summary>Initializes a new horizontal <see cref="BarChart"/> with the given initial items.</summary>
-    public BarChart(params (string label, double value, Color color)[] items) : this(ChartOrientation.Horizontal, items) {}
-    #endregion
+    public BarChart(params (string label, double value, Color color)[] items) : this(ChartOrientation.Horizontal, items) { }
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The chart's items.</summary>
     public ICollection<BarChartItem> Data => data.Values;
 
@@ -87,6 +89,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     }
 
     private bool _showValues = true;
+
     /// <summary>Whether each bar's value is shown alongside it. Defaults to <see langword="true"/>.</summary>
     public bool ShowValues
     {
@@ -105,6 +108,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     public CultureInfo? Culture { get; set; }
 
     private double? _maxValue;
+
     /// <summary>The axis maximum, or <see langword="null"/> to derive it from the largest item value. Never negative.</summary>
     public double? MaxValue
     {
@@ -146,9 +150,11 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             }
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Indexers
+
     /// <summary>Sets the values of the items matching the given labels (counts must match).</summary>
     public double[] this[params string[] labels]
     {
@@ -173,9 +179,11 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             });
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     /// <summary>Requests a redraw of the chart.</summary>
     public void Update() => Invalidate();
 
@@ -445,29 +453,38 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         grid.Width = width;
         return ((IRenderable)grid).Render(options, width);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     /// <summary>The last-assigned item index; incremented atomically to key new items.</summary>
     protected int itemIndex = -1;
+
     /// <summary>The glyph used to draw filled vertical bars.</summary>
     protected char VerticalUnicodeBar { get; set; } = '█';
+
     /// <summary>The glyph used to draw bars in ASCII (non-Unicode) mode.</summary>
     protected char AsciiBar { get; set; } = '-';
+
     /// <summary>The glyph used to draw filled horizontal bars.</summary>
     protected static char HorizontalUnicodeBar { get; set; } = '█';
+
     /// <summary>The chart items keyed by their index.</summary>
     protected readonly Dictionary<int, BarChartItem> data = new();
 
     /// <summary>The grid holding the bar renderables.</summary>
     protected Spectre.Console.Grid _grid = new();
+
     /// <summary>The optional outer grid stacking the label above <see cref="_grid"/>, or <see langword="null"/> when there is no label.</summary>
     protected Spectre.Console.Grid? _containerGrid = new();
+
     /// <summary>The bar renderables in render order.</summary>
     protected List<IBarControl> _bars = new();
 
     // Set when a structural change (items, orientation, value display, label) needs the grid rebuilt; consumed
     // on the UI thread in Render. Volatile so a write from a background-thread setter is seen by the UI thread.
     private volatile bool _structureDirty;
-    #endregion
+
+    #endregion Fields
 }

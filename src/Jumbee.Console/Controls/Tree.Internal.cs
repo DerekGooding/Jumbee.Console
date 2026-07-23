@@ -1,12 +1,9 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
-using Spectre.Console.Rendering;
 using Spectre.Console;
+using Spectre.Console.Rendering;
+using System.Collections.Generic;
+using System.Threading;
 
 public partial class Tree
 {
@@ -17,6 +14,7 @@ public partial class Tree
     public class TreeNode
     {
         #region Constructors
+
         /// <summary>
         /// Initializes a new <see cref="TreeNode"/> instance.
         /// </summary>
@@ -34,10 +32,14 @@ public partial class Tree
             Text = text;
         }
 
-        internal TreeNode(Tree tree, uint index, string label, TreeNode? parent = null) : this(tree, index, new Markup(label), parent) {}
-        #endregion
+        internal TreeNode(Tree tree, uint index, string label, TreeNode? parent = null) : this(tree, index, new Markup(label), parent)
+        {
+        }
+
+        #endregion Constructors
 
         #region Properties
+
         /// <summary>The tree this node belongs to.</summary>
         public Tree Tree { get; protected set; }
 
@@ -159,14 +161,18 @@ public partial class Tree
         internal IRenderable Renderable => Label;
 
         internal ICollection<TreeNode> Nodes => _children.Values;
-        #endregion
+
+        #endregion Properties
 
         #region Indexers
+
         /// <summary>Gets the child node with the given index, or <see langword="null"/> if none.</summary>
         public TreeNode? this[uint id] => _children.TryGetValue(id, out var node) ? node : null;
-        #endregion
+
+        #endregion Indexers
 
         #region Methods
+
         /// <summary>Adds a child node with the given renderable label (and optional plain text) and returns it.</summary>
         public TreeNode AddChild(IRenderable label, string? text = null)
         {
@@ -227,18 +233,23 @@ public partial class Tree
         {
             if (!IsRemoved) Tree.Update();
         }
-        #endregion
+
+        #endregion Methods
 
         #region Fields
+
         private Dictionary<uint, TreeNode> _children = new();
         private uint childIndex = 0;
         private bool _selected;
         private bool _expanded = true;
+
         // Cached result of Segment.SplitLines(Label.Render(options, width)) for the node's UNFOLDED render, reused
         // across selection/hover/navigation repaints (which re-render the whole tree but don't change this node's
         // label). Keyed on the width it was produced at; invalidated when Label changes. See Tree.Render.
         internal List<SegmentLine>? _cachedLabelLines;
+
         internal int _cachedLabelWidth = -1;
-        #endregion
+
+        #endregion Fields
     }
 }

@@ -1,10 +1,9 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// A compact, single-row chart that draws a series of numeric values as block bars (one cell per value),
@@ -15,6 +14,7 @@ using Spectre.Console.Rendering;
 public class Sparkline : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Sparkline"/> with the given series <paramref name="values"/> (one cell per value).</summary>
     public Sparkline(params double[] values)
     {
@@ -24,9 +24,11 @@ public class Sparkline : RenderableControl
         Width = _values.Length;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The series values. Setting it re-sizes the control to one cell per value.</summary>
     public double[] Values
     {
@@ -64,9 +66,11 @@ public class Sparkline : RenderableControl
         get => _bars;
         set => SetAtomicProperty(ref _bars, string.IsNullOrEmpty(value) ? BlockBars : value);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyTheme()
     {
@@ -107,9 +111,11 @@ public class Sparkline : RenderableControl
         level = Math.Clamp(level, 1, _bars.Length);
         return _bars[level - 1];
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     /// <summary>The default eighth-block ramp <c>▁▂▃▄▅▆▇█</c> (needs block-element font coverage).</summary>
     public const string BlockBars = "▁▂▃▄▅▆▇█";
 
@@ -120,5 +126,6 @@ public class Sparkline : RenderableControl
     private double? _max;
     private Style _barStyle;
     private string _bars = BlockBars;
-    #endregion
+
+    #endregion Fields
 }

@@ -22,6 +22,7 @@ namespace Jumbee.Console;
 public interface IStyleTheme
 {
     #region Text
+
     /// <summary>Primary body/label text.</summary>
     Style Text => Style.Grey93;
 
@@ -33,9 +34,11 @@ public interface IStyleTheme
 
     /// <summary>Disabled text/controls.</summary>
     Style TextDisabled => Style.Grey42 | Style.Dim;
-    #endregion
+
+    #endregion Text
 
     #region Structural
+
     /// <summary>A panel/container fill.</summary>
     Style Surface => Style.Bg(new Color(30, 30, 38));
 
@@ -50,9 +53,11 @@ public interface IStyleTheme
     /// <remarks>Distinct from <see cref="TitleStyle"/>, which controls the title's placement, border, and
     /// Normal/Reverse colouring.</remarks>
     Style TitleText => Style.Grey85;
-    #endregion
+
+    #endregion Structural
 
     #region Interactive states
+
     /// <summary>A selected/highlighted row (foreground + background).</summary>
     Style Selection => Style.White | Style.Bg(new Color(40, 50, 80));
 
@@ -95,9 +100,11 @@ public interface IStyleTheme
 
     /// <summary>A secondary action surface while pressed/active.</summary>
     Style SecondaryActive => Style.White | Style.Bg(new Color(100, 100, 115));
-    #endregion
+
+    #endregion Interactive states
 
     #region Buttons
+
     /// <summary>The default style for a primary <c>Button</c> (its per-state fills, border mode, and width).</summary>
     /// <remarks>Composed from the <see cref="Primary"/> family so a theme that recolours those gets a matching
     /// button for free. Flat by default; a button can opt into <see cref="ButtonShape.Modern"/> for the raised
@@ -107,32 +114,43 @@ public interface IStyleTheme
     /// <summary>The default style for a secondary <c>Button</c>.</summary>
     /// <remarks>Composed from the <see cref="Secondary"/> family.</remarks>
     ButtonStyle SecondaryButton => new(Secondary, SecondaryHover, SecondaryActive, minWidth: 16);
-    #endregion
+
+    #endregion Buttons
 
     #region Status
+
     /// <summary>The style for success messages and indicators.</summary>
     Style Success => Style.Green1;
+
     /// <summary>The style for warning messages and indicators.</summary>
     Style Warning => Style.Yellow1;
+
     /// <summary>The style for error messages and indicators.</summary>
     Style Error => Style.Red1;
+
     /// <summary>The style for informational messages and indicators.</summary>
     Style Info => Style.SkyBlue1;
-    #endregion
+
+    #endregion Status
 
     #region Scrollbar
+
     /// <summary>The per-part colours/decoration a control frame's vertical scrollbar uses (glyphs come from
     /// <see cref="IGlyphTheme.ScrollBar"/>). Defaults to <see cref="ScrollBarStyle.Default"/>.</summary>
     ScrollBarStyle ScrollBar => ScrollBarStyle.Default;
-    #endregion
+
+    #endregion Scrollbar
 
     #region Gauge
+
     /// <summary>The fill/track/text colours a <c>Gauge</c> uses. Defaults to
     /// <see cref="GaugeStyle.Default"/>.</summary>
     GaugeStyle Gauge => GaugeStyle.Default;
-    #endregion
+
+    #endregion Gauge
 
     #region Frame
+
     /// <summary>The default border shape for a control frame when none is specified. Defaults to <see cref="BorderStyle.None"/>.</summary>
     BorderStyle FrameBorder => BorderStyle.None;
 
@@ -147,9 +165,11 @@ public interface IStyleTheme
     /// <summary>The default title style for a control frame — its position, border placement, and Normal/Reverse
     /// colouring, in one value. Defaults to <see cref="TitleStyle.Default"/>.</summary>
     TitleStyle TitleStyle => TitleStyle.Default;
-    #endregion
+
+    #endregion Frame
 
     #region Overlay
+
     /// <summary>The tint a modal overlay scrim blends the layer beneath it toward. Defaults to a near-black.</summary>
     /// <remarks>Only its background colour is used. Paired with <see cref="ScrimDim"/>.</remarks>
     Style Scrim => Style.Bg(new Color(10, 10, 15));
@@ -157,7 +177,8 @@ public interface IStyleTheme
     /// <summary>How strongly a modal scrim dims the layer beneath it: 0 = fully see-through, 1 = a solid
     /// <see cref="Scrim"/> fill. Defaults to 0.6.</summary>
     float ScrimDim => 0.6f;
-    #endregion
+
+    #endregion Overlay
 }
 
 /// <summary>The built-in style theme: every token uses <see cref="IStyleTheme"/>'s default values.</summary>

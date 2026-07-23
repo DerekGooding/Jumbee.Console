@@ -1,19 +1,20 @@
 ﻿namespace Jumbee.Console;
 
-using System;
-using System.Linq;
-
 using Spectre.Console;
+using System.Linq;
 
 /// <summary>An animated spinner glyph with an optional label, cycling through a <see cref="Spectre.Console.Spinner"/>'s frames.</summary>
 public class Spinner : AnimatedControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Spinner"/> using the default spinner style.</summary>
     public Spinner() => Focusable = false;   // a passive display control: never a focus/tab target
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The spinner animation (frame set and interval) to cycle through.</summary>
     public Spectre.Console.Spinner SpinnerType
     {
@@ -50,23 +51,28 @@ public class Spinner : AnimatedControl
             spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Renders the current animation frame (glyph plus label).</summary>
-    protected sealed override void Render()
+    protected override sealed void Render()
     {
-        ansiConsole.Clear(true);        
-        ansiConsole.Markup(spinnerFramesMarkup[frameIndex % spinnerFrames.Length]);        
+        ansiConsole.Clear(true);
+        ansiConsole.Markup(spinnerFramesMarkup[frameIndex % spinnerFrames.Length]);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private Spectre.Console.Spinner _spinner = Spectre.Console.Spinner.Known.Default;
     private Style _style = Style.Plain;
     private string styleMarkup = Style.Plain;
     private string[] spinnerFrames = Spectre.Console.Spinner.Known.Default.Frames.Select(Markup.Escape).ToArray();
     private string[] spinnerFramesMarkup = Spectre.Console.Spinner.Known.Default.Frames.Select(f => $"[{Style.Plain}]{f}[/]").ToArray();
     private string _text = string.Empty;
-    #endregion
+
+    #endregion Fields
 }

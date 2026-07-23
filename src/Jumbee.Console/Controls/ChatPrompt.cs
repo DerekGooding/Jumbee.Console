@@ -1,12 +1,8 @@
 namespace Jumbee.Console;
 
+using Spectre.Console;
 using System;
 using System.Collections.Generic;
-
-using ConsoleGUI.Data;
-using ConsoleGUI.Space;
-
-using Spectre.Console;
 
 /// <summary>
 /// The input area of an agent/chat CLI (Claude Code, Gemini CLI): a prompt glyph on the left that turns into an
@@ -22,6 +18,7 @@ using Spectre.Console;
 public class ChatPrompt : CompositeControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="ChatPrompt"/> with an optional <paramref name="placeholder"/> hint.</summary>
     public ChatPrompt(string placeholder = "")
     {
@@ -34,9 +31,11 @@ public class ChatPrompt : CompositeControl
 
         SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _input));
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The wrapped text field (focus it to type; the composite delegates focus here).</summary>
     public TextInput Input => _input;
 
@@ -93,17 +92,21 @@ public class ChatPrompt : CompositeControl
         get => _gutter.Busy;
         set => UI.Invoke(() => _gutter.Busy = value);   // toggles multi-field animation state on the UI thread
     }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised when Enter is pressed. The argument is the submitted <see cref="Text"/>.</summary>
     public event EventHandler<string>? Submitted;
 
     /// <summary>Raised whenever the text changes.</summary>
     public event EventHandler? Changed;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <summary>Attaches type-ahead suggestions from a fixed candidate list (returns the <see cref="Autocomplete"/>
     /// for further tuning, e.g. <see cref="Autocomplete.MaxRows"/>).</summary>
     public Autocomplete WithSuggestions(params string[] candidates) => new(_input, candidates);
@@ -120,12 +123,15 @@ public class ChatPrompt : CompositeControl
         "A prompt for entering a message or command, with an optional busy spinner and type-ahead.")
         .WithKey("Arrows", "Move the caret")
         .WithKey("Enter", "Submit");
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly TextInput _input;
     private readonly PromptGutter _gutter;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -138,6 +144,7 @@ public class ChatPrompt : CompositeControl
 internal sealed class PromptGutter : Control
 {
     #region Constructors
+
     public PromptGutter()
     {
         Focusable = false;
@@ -146,9 +153,11 @@ internal sealed class PromptGutter : Control
         _width = _prompt.Length + 1;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     public string Prompt
     {
         get => _prompt;
@@ -188,10 +197,13 @@ internal sealed class PromptGutter : Control
             Invalidate();
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     protected override int IntrinsicWidth() => _width;   // glyph + trailing space
+
     protected override int IntrinsicHeight() => 1;
 
     protected override void ApplyTheme()
@@ -231,9 +243,11 @@ internal sealed class PromptGutter : Control
         if (glyph.Length == 0) return;
         ansiConsole.Markup($"[{_styleMarkup}]{Markup.Escape(glyph)}[/]");
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _prompt = "❯";
     private int _width;
     private Spectre.Console.Spinner _spinner = Spectre.Console.Spinner.Known.Dots;
@@ -245,5 +259,6 @@ internal sealed class PromptGutter : Control
     private long _accumulated;
     private Style _style;
     private string _styleMarkup = string.Empty;
-    #endregion
+
+    #endregion Fields
 }

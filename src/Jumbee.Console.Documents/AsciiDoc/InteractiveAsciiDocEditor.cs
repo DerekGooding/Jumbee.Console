@@ -13,6 +13,7 @@ namespace Jumbee.Console.Documents;
 public class InteractiveAsciiDocEditor : InteractiveSourceEditor
 {
     #region Constructors
+
     /// <param name="asciiDoc">Initial document source (both panes start in sync).</param>
     /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
     /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
@@ -20,10 +21,13 @@ public class InteractiveAsciiDocEditor : InteractiveSourceEditor
     public InteractiveAsciiDocEditor(string asciiDoc = "", SplitOrientation orientation = SplitOrientation.Horizontal,
         int splitPosition = 48)
         : base(new CodeEditor(AsciiDocLanguage.Instance) { Text = asciiDoc ?? "" }, new AsciiDocViewer(asciiDoc ?? ""),
-            " AsciiDoc ", " Preview ", asciiDoc ?? "", orientation, splitPosition) { }
-    #endregion
+            " AsciiDoc ", " Preview ", asciiDoc ?? "", orientation, splitPosition)
+    { }
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The preview pane rendering the live AsciiDoc.</summary>
     public AsciiDocViewer Preview => (AsciiDocViewer)PreviewControl;
 
@@ -33,9 +37,11 @@ public class InteractiveAsciiDocEditor : InteractiveSourceEditor
         get => Preview.Styles;
         set => Preview.Styles = value;
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Pushes the edited <paramref name="text"/> into the preview pane's <see cref="AsciiDocViewer.AsciiDoc"/>.</summary>
     protected override void ApplyPreviewText(string text) => Preview.AsciiDoc = text;
 
@@ -47,5 +53,6 @@ public class InteractiveAsciiDocEditor : InteractiveSourceEditor
         .WithKey("Ctrl+← / Ctrl+→", "Move focus between the panes")
         .WithKey("Drag divider", "Resize the panes")
         .WithKey("↑ / ↓, PgUp / PgDn", "Scroll the focused pane");
-    #endregion
+
+    #endregion Methods
 }

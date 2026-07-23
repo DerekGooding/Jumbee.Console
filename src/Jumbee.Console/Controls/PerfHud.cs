@@ -1,10 +1,8 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Diagnostics;
-
-using Spectre.Console.Rendering;
-
 using S = Spectre.Console;
 
 /// <summary>
@@ -22,6 +20,7 @@ using S = Spectre.Console;
 public sealed class PerfHud : GlassPanel
 {
     #region Constructors
+
     /// <param name="tint">Glass colour the app beneath is tinted toward.</param>
     /// <param name="factor">Blend strength (0 = clear, 1 = opaque tint).</param>
     /// <param name="frosted">Frost the app beneath to a colour blur (clean readout, content shows as soft smudges)
@@ -32,9 +31,11 @@ public sealed class PerfHud : GlassPanel
         Refresh();
         UI.Paint += OnHudPaint;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Floats the HUD in the top-right corner of the current UI, <paramref name="margin"/> cells in from
     /// the edges.</summary>
     public void ShowTopRight(int margin = 1, Overlay? overlay = null)
@@ -82,7 +83,7 @@ public sealed class PerfHud : GlassPanel
         double exc = m.ExceptionsPerSecond;
         long locks = m.LockContentions;
 
-        var g = new S.Grid();       
+        var g = new S.Grid();
         g.AddColumn(new S.GridColumn { Padding = new S.Padding(0, 0, 2, 0) });
         g.AddColumn();
         // Each metric on one row: the AVERAGE (the typical/steady value) in bright ink, then the PEAK — the worst
@@ -129,12 +130,15 @@ public sealed class PerfHud : GlassPanel
         UI.Paint -= OnHudPaint;
         base.Dispose();
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int HudWidth = 34;
     private const int HudHeight = 11;
     private const long RefreshMs = 250;
     private readonly Stopwatch _refresh = Stopwatch.StartNew();
-    #endregion
+
+    #endregion Fields
 }

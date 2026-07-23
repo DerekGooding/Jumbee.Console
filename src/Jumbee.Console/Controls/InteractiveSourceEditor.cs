@@ -17,6 +17,7 @@ using System;
 public abstract class InteractiveSourceEditor : CompositeControl
 {
     #region Constructors
+
     /// <param name="editor">The source editor (already constructed with its language and initial text).</param>
     /// <param name="preview">The preview control; already holding <paramref name="initialText"/> so both panes start in sync.</param>
     /// <param name="editorTitle">Frame title for the editor pane.</param>
@@ -56,15 +57,19 @@ public abstract class InteractiveSourceEditor : CompositeControl
 
         SetContent(_split);
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised (on the UI thread, coalesced per frame) after the document text actually changes — not for
     /// caret-only movement. Carries the new text.</summary>
     public event Action<string>? TextChanged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>The editor pane (focus <c>Editor.Editor</c> to type; wrapped in its own titled frame).</summary>
     public CodeEditor Editor => _editor;
 
@@ -80,9 +85,11 @@ public abstract class InteractiveSourceEditor : CompositeControl
         get => _editor.Text;
         set => UI.Invoke(() => { _editor.Text = value; });   // raises Changed -> ScheduleSync -> preview
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Push the editor's current <paramref name="text"/> into the preview control (e.g.
     /// <c>preview.Markdown = text</c>). Called on the UI thread, coalesced per frame, only when the text changed.</summary>
     protected abstract void ApplyPreviewText(string text);
@@ -124,13 +131,16 @@ public abstract class InteractiveSourceEditor : CompositeControl
         .WithKey("Ctrl+← / Ctrl+→", "Move focus between the panes")
         .WithKey("Drag divider", "Resize the panes")
         .WithKey("↑ / ↓, PgUp / PgDn", "Scroll the focused pane");
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly CodeEditor _editor;
     private readonly Control _previewControl;
     private readonly SplitPanel _split;
     private string _lastSynced;
     private bool _syncQueued;   // a coalesced preview sync is posted for the next frame (see ScheduleSync)
-    #endregion
+
+    #endregion Fields
 }

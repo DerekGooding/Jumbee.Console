@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// A horizontal bar of top-level menu titles (e.g. <c>File  Edit  View</c>).
@@ -21,25 +19,35 @@ using Spectre.Console.Rendering;
 public class MenuBar : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes an empty <see cref="MenuBar"/>.</summary>
-    public MenuBar() { }
-    #endregion
+    public MenuBar()
+    { }
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when an item in any of the bar's menus is chosen.</summary>
     public event EventHandler<MenuItem>? ItemActivated;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <inheritdoc/>
     public override bool HandlesInput => true;
+
     /// <inheritdoc/>
     protected override bool WantsMouse => true;
+
     /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;   // highlights the active menu item
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Adds a top-level menu with the given title and items. Returns this for chaining.</summary>
     public MenuBar Add(string title, params MenuItem[] items)
     {
@@ -50,6 +58,7 @@ public class MenuBar : RenderableControl
 
     /// <inheritdoc/>
     protected override int IntrinsicHeight() => 1;
+
     /// <inheritdoc/>
     protected override int IntrinsicWidth() => 0;   // fill the width; titles sit at the left
 
@@ -162,13 +171,16 @@ public class MenuBar : RenderableControl
             used += label.Length;
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly List<(string Title, MenuItem[] Items)> _menus = new();
     private int _active;
     private int _openIndex = -1;
     private int _originX;
     private int _originY;
-    #endregion
+
+    #endregion Fields
 }

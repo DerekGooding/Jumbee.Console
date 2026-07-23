@@ -1,12 +1,10 @@
 namespace Jumbee.Console.Snapshot;
 
+using ConsoleGUI;
+using ConsoleGUI.Space;
 using System;
 using System.Text;
 using System.Threading.Tasks;
-
-using ConsoleGUI;
-using ConsoleGUI.Space;
-
 using Vezel.Cathode.Text.Control;
 
 /// <summary>
@@ -21,6 +19,7 @@ using Vezel.Cathode.Text.Control;
 public sealed class AnsiConsoleSession : IDisposable
 {
     #region Constructors
+
     private AnsiConsoleSession(int width, int height)
     {
         _prevOutput = ConsoleManager.AnsiOutput;
@@ -35,14 +34,18 @@ public sealed class AnsiConsoleSession : IDisposable
             return Task.Run(() => { lock (_capture) _capture.Append(s); });
         };
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The accumulated screen after every frame folded in so far.</summary>
     public AnsiScreen Screen { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Sets up the console for <paramref name="content"/> and folds in the initial frame.</summary>
     public static async Task<AnsiConsoleSession> StartAsync(IControl content, int width, int height)
     {
@@ -79,11 +82,14 @@ public sealed class AnsiConsoleSession : IDisposable
         ConsoleManager.AnsiOutput = _prevOutput;
         ConsoleManager.AnsiEnabled = _prevAnsi;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly StringBuilder _capture = new();
     private readonly Func<AnsiControlSequenceBuilder, Task> _prevOutput;
     private readonly bool _prevAnsi;
-    #endregion
+
+    #endregion Fields
 }

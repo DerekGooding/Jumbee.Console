@@ -89,6 +89,7 @@ public static class ControlExtensions
         control.Frame = frame;
         return control;
     }
+
     /// <summary>Creates or updates the control's <see cref="ControlFrame"/> from the supplied border, margin, colour,
     /// and title options (only supplied arguments are applied) and returns the control.</summary>
     public static T WithFrame<T>(this T control, BorderStyle? borderStyle = null, Offset? margin = null, Color? fgColor = null, Color? bgColor = null, string? title = null, Color? borderFgColor = null, Color? borderBgColor = null, BorderPlacement? borderPlacement = null, BorderStyle? focusedBorderStyle = null) where T : Control

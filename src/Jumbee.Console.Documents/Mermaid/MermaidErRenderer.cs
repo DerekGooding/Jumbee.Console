@@ -1,10 +1,8 @@
 namespace Jumbee.Console.Documents;
 
+using Mermaider.Models;
 using System;
 using System.Collections.Generic;
-
-using Mermaider.Models;
-
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -15,10 +13,13 @@ using CColor = ConsoleGUI.Data.Color;
 internal sealed class MermaidErRenderer
 {
     #region Constructors
+
     public MermaidErRenderer(MermaidStyles styles) => _s = styles;
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     public CellCanvas Render(PositionedErDiagram diagram)
     {
         _xDiv = _s.ScaleX <= 0 ? 9.0 : _s.ScaleX;
@@ -137,12 +138,16 @@ internal sealed class MermaidErRenderer
     }
 
     private int CX(double px) => (int)Math.Round(px / _xDiv) + 1;
+
     private int CY(double px) => (int)Math.Round(px / _yDiv) + 1;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly MermaidStyles _s;
     private double _xDiv = 9.0;
     private double _yDiv = 14.0;
-    #endregion
+
+    #endregion Fields
 }

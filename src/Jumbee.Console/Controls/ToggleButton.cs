@@ -1,12 +1,10 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Shared base for the single-state toggle widgets (<see cref="Checkbox"/>, <see cref="RadioButton"/>,
@@ -29,6 +27,7 @@ using Spectre.Console.Rendering;
 public abstract class ToggleButton : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="ToggleButton"/> with the given label <paramref name="text"/>.</summary>
     protected ToggleButton(string text)
     {
@@ -37,14 +36,18 @@ public abstract class ToggleButton : RenderableControl
         // Styles + glyphs are captured by ApplyTheme, which the subclass calls from its constructor (and which
         // re-runs on a runtime theme switch). Width is set there via SetGlyphs once the themed glyphs are known.
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised with the new state whenever <see cref="IsChecked"/> changes.</summary>
     public event EventHandler<bool>? Changed;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
 
@@ -73,9 +76,11 @@ public abstract class ToggleButton : RenderableControl
 
     /// <summary>Style merged across the row while hovered (typically a background). Defaults to <see cref="IStyleTheme.Hover"/>.</summary>
     public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Flips the state (the same path as a click). Overridden by <see cref="RadioButton"/> to latch on.</summary>
     public virtual void Toggle() => IsChecked = !IsChecked;
 
@@ -136,9 +141,11 @@ public abstract class ToggleButton : RenderableControl
     }
 
     private void RefreshWidth() => Width = _indicatorWidth + (_text.Length > 0 ? _text.Length + 1 : 0);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private bool _isChecked;
     private string _text;
     private string _on = "";
@@ -148,5 +155,6 @@ public abstract class ToggleButton : RenderableControl
     private Style _accentStyle;
     private Style _mutedStyle;
     private Style _hoverStyle;
-    #endregion
+
+    #endregion Fields
 }

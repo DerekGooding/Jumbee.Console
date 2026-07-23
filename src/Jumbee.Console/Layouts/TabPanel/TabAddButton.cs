@@ -1,12 +1,10 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Space;
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// The "+" new-tab button appended to a <see cref="TabPanel"/>'s bar when <see cref="TabPanel.ShowAddButton"/> is set.
@@ -20,26 +18,34 @@ using Spectre.Console.Rendering;
 internal sealed class TabAddButton : RenderableControl
 {
     #region Constructors
+
     internal TabAddButton()
     {
         ApplyTheme();
         Height = 1;
         Width = _glyph.GetCellWidth() + 2;   // a space of padding either side
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when the button is clicked or activated with Enter/Space.</summary>
     public event EventHandler? Clicked;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     // Tag the button's cells with a mouse listener, so it receives hover/click as well as keyboard focus.
     protected override bool WantsMouse => true;
+
     protected override bool RendersOwnFocus => true;   // underlines on focus
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     protected override void ApplyTheme()
     {
         _glyph = UI.GlyphTheme.TabAdd;
@@ -63,11 +69,14 @@ internal sealed class TabAddButton : RenderableControl
     // (InterceptInput), because the button is not in the panel's logical rows, so Layout routing never dispatches
     // input to it directly.
     internal void Activate() => Clicked?.Invoke(this, EventArgs.Empty);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _glyph = "";
     private Style _style;
     private Style _hoverStyle;
-    #endregion
+
+    #endregion Fields
 }

@@ -27,14 +27,19 @@ public sealed class MermaidStyles
 
     /// <summary>Node label text colour.</summary>
     public Color NodeLabel { get; init; } = Color.Grey93;
+
     /// <summary>Edge / connector line colour.</summary>
     public Color Edge { get; init; } = Color.Grey62;
+
     /// <summary>Edge arrowhead colour.</summary>
     public Color Arrow { get; init; } = Color.Aquamarine1;
+
     /// <summary>Edge label text colour.</summary>
     public Color EdgeLabel { get; init; } = Color.Gold1;
+
     /// <summary>Border colour of subgraphs / groups.</summary>
     public Color GroupBorder { get; init; } = Color.Grey42;
+
     /// <summary>Label text colour of subgraphs / groups.</summary>
     public Color GroupLabel { get; init; } = Color.Grey70;
 

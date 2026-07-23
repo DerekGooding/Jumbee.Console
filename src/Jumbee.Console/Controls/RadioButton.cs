@@ -12,15 +12,18 @@ namespace Jumbee.Console;
 public class RadioButton : ToggleButton
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="RadioButton"/> with the given label <paramref name="text"/> and initial <paramref name="isChecked"/> state.</summary>
     public RadioButton(string text = "", bool isChecked = false) : base(text)
     {
         ApplyTheme();
         IsChecked = isChecked;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Latches the button on (a click never turns a radio button off).</summary>
     public override void Toggle() => IsChecked = true;
 
@@ -30,5 +33,6 @@ public class RadioButton : ToggleButton
         base.ApplyTheme();
         SetGlyphs(UI.GlyphTheme.RadioSelected, UI.GlyphTheme.RadioUnselected);
     }
-    #endregion
+
+    #endregion Methods
 }

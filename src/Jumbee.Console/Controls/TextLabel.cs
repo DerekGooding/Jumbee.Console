@@ -1,7 +1,5 @@
 ﻿namespace Jumbee.Console;
 
-using System.Linq;
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 
@@ -12,6 +10,7 @@ public enum TextLabelOrientation
 {
     /// <summary>Text runs left-to-right across a single row.</summary>
     Horizontal,
+
     /// <summary>Text runs top-to-bottom down a single column.</summary>
     Vertical
 }
@@ -23,6 +22,7 @@ public enum TextLabelOrientation
 public class TextLabel : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="TextLabel"/> with the given <paramref name="orientation"/>, <paramref name="text"/>, optional foreground/background colours, and optional <paramref name="decoration"/>.</summary>
     // Colours are nullable and default to transparent (null): an unset foreground inherits the terminal default and
     // an unset background lets whatever is behind show through. Passing the non-nullable default(Color) here would
@@ -37,12 +37,14 @@ public class TextLabel : Control
         _bgcolor = bgcolor;
         _decoration = decoration;
         chars = new Cell[_text.Length];
-        size = orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) :new Size(1, _text.Length);
+        size = orientation == TextLabelOrientation.Horizontal ? new Size(_text.Length, 1) : new Size(1, _text.Length);
         Resize(size);
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Foreground colour, or <see langword="null"/> for the terminal default.</summary>
     public Color? FgColor
     {
@@ -81,9 +83,11 @@ public class TextLabel : Control
             }
         });
     }
-    #endregion
+
+    #endregion Properties
 
     #region Indexers
+
     /// <summary>The rendered cell at <paramref name="position"/>, or an empty cell outside the text.</summary>
     public override Cell this[Position position]
     {
@@ -117,9 +121,11 @@ public class TextLabel : Control
             }
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     /// <summary>Renders each character into the label's cell buffer with the configured colours.</summary>
     // We use a 1D buffer to render instead of the 2D consoleBuffer as it's more efficient to access.
     protected override void Render()
@@ -141,9 +147,10 @@ public class TextLabel : Control
     /// <summary>1 for a horizontal label (fixed one row tall), otherwise 0 (fills along the text axis).</summary>
     protected override int IntrinsicHeight() => _orientation == TextLabelOrientation.Horizontal ? 1 : 0;
 
-    #endregion
+    #endregion Methods
 
     #region Fields
+
     private TextLabelOrientation _orientation;
     private string _text = "";
     private Color? _fgcolor;
@@ -151,5 +158,6 @@ public class TextLabel : Control
     private SCDecoration _decoration;
     private Size size;
     private Cell[] chars = [];
-    #endregion
+
+    #endregion Fields
 }

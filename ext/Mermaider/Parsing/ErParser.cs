@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
 using Mermaider;
 using Mermaider.Models;
+using System.Text.RegularExpressions;
 
 namespace Jumbee.Console.Documents.Mermaid;
 
@@ -8,186 +8,186 @@ namespace Jumbee.Console.Documents.Mermaid;
 // compiled Regex, namespace changed, internal MultilineUtils replaced with the local helper.
 internal static class ErParser
 {
-	private const int TimeoutMs = 2000;
-	private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
+    private const int TimeoutMs = 2000;
+    private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(TimeoutMs);
 
-	private static readonly Regex EntityBlockPattern = new(@"^(\S+?)(?:\[(?:""([^""]+)""|([^\]]+))\])?\s*\{$", RegexOptions.Compiled, Timeout);
-	private static readonly Regex AttributePattern = new(@"^(\S+)\s+(\S+)(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
-	private static readonly Regex CommentPattern = new(@"""([^""]*)""", RegexOptions.Compiled, Timeout);
-	private static readonly Regex RelationshipPattern = new(@"^(\S+)\s+([|o}{]+(?:--|\.\.)[|o}{]+)\s+(\S+)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
-	private static readonly Regex CardinalitySplitPattern = new(@"^([|o}{]+)(--|\.\.)([|o}{]+)$", RegexOptions.Compiled, Timeout);
-	private static readonly Regex DirectionPattern = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
+    private static readonly Regex EntityBlockPattern = new(@"^(\S+?)(?:\[(?:""([^""]+)""|([^\]]+))\])?\s*\{$", RegexOptions.Compiled, Timeout);
+    private static readonly Regex AttributePattern = new(@"^(\S+)\s+(\S+)(?:\s+(.+))?$", RegexOptions.Compiled, Timeout);
+    private static readonly Regex CommentPattern = new(@"""([^""]*)""", RegexOptions.Compiled, Timeout);
+    private static readonly Regex RelationshipPattern = new(@"^(\S+)\s+([|o}{]+(?:--|\.\.)[|o}{]+)\s+(\S+)(?:\s*:\s*(.+))?$", RegexOptions.Compiled, Timeout);
+    private static readonly Regex CardinalitySplitPattern = new(@"^([|o}{]+)(--|\.\.)([|o}{]+)$", RegexOptions.Compiled, Timeout);
+    private static readonly Regex DirectionPattern = new(@"^direction\s+(TD|TB|LR|BT|RL)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled, Timeout);
 
-	internal static ErDiagram Parse(string[] lines)
-	{
-		try
-		{
-			return ParseCore(lines);
-		}
-		catch (RegexMatchTimeoutException ex)
-		{
-			throw new MermaidParseException(
-				$"Parsing timed out after {ex.MatchTimeout.TotalSeconds}s — input may contain pathological patterns.",
-				ex);
-		}
-	}
+    internal static ErDiagram Parse(string[] lines)
+    {
+        try
+        {
+            return ParseCore(lines);
+        }
+        catch (RegexMatchTimeoutException ex)
+        {
+            throw new MermaidParseException(
+                $"Parsing timed out after {ex.MatchTimeout.TotalSeconds}s — input may contain pathological patterns.",
+                ex);
+        }
+    }
 
-	private static ErDiagram ParseCore(string[] lines)
-	{
-		var entityMap = new Dictionary<string, (ErEntity Entity, List<ErAttributeInfo> Attrs)>();
-		var relationships = new List<ErRelationship>();
-		Direction? direction = null;
-		ErEntity? currentEntity = null;
-		List<ErAttributeInfo>? currentAttrs = null;
+    private static ErDiagram ParseCore(string[] lines)
+    {
+        var entityMap = new Dictionary<string, (ErEntity Entity, List<ErAttributeInfo> Attrs)>();
+        var relationships = new List<ErRelationship>();
+        Direction? direction = null;
+        ErEntity? currentEntity = null;
+        List<ErAttributeInfo>? currentAttrs = null;
 
-		for (var i = 1; i < lines.Length; i++)
-		{
-			var line = lines[i];
+        for (var i = 1; i < lines.Length; i++)
+        {
+            var line = lines[i];
 
-			if (currentEntity == null)
-			{
-				var dirMatch = DirectionPattern.Match(line);
-				if (dirMatch.Success)
-				{
-					direction = Enum.Parse<Direction>(dirMatch.Groups[1].Value.ToUpperInvariant());
-					continue;
-				}
-			}
+            if (currentEntity == null)
+            {
+                var dirMatch = DirectionPattern.Match(line);
+                if (dirMatch.Success)
+                {
+                    direction = Enum.Parse<Direction>(dirMatch.Groups[1].Value.ToUpperInvariant());
+                    continue;
+                }
+            }
 
-			if (currentEntity != null)
-			{
-				if (line == "}")
-				{
-					currentEntity = null;
-					currentAttrs = null;
-					continue;
-				}
+            if (currentEntity != null)
+            {
+                if (line == "}")
+                {
+                    currentEntity = null;
+                    currentAttrs = null;
+                    continue;
+                }
 
-				var attr = ParseAttribute(line);
-				if (attr != null)
-					currentAttrs!.Add(attr);
-				continue;
-			}
+                var attr = ParseAttribute(line);
+                if (attr != null)
+                    currentAttrs!.Add(attr);
+                continue;
+            }
 
-			var entityMatch = EntityBlockPattern.Match(line);
-			if (entityMatch.Success)
-			{
-				var id = entityMatch.Groups[1].Value;
-				var alias = entityMatch.Groups[2].Success ? entityMatch.Groups[2].Value
-					: entityMatch.Groups[3].Success ? entityMatch.Groups[3].Value
-					: null;
-				var (entity, attrs) = EnsureEntity(entityMap, id);
-				if (alias != null)
-				{
-					entity = entity with { Label = alias };
-					entityMap[id] = (entity, attrs);
-				}
-				currentEntity = entity;
-				currentAttrs = attrs;
-				continue;
-			}
+            var entityMatch = EntityBlockPattern.Match(line);
+            if (entityMatch.Success)
+            {
+                var id = entityMatch.Groups[1].Value;
+                var alias = entityMatch.Groups[2].Success ? entityMatch.Groups[2].Value
+                    : entityMatch.Groups[3].Success ? entityMatch.Groups[3].Value
+                    : null;
+                var (entity, attrs) = EnsureEntity(entityMap, id);
+                if (alias != null)
+                {
+                    entity = entity with { Label = alias };
+                    entityMap[id] = (entity, attrs);
+                }
+                currentEntity = entity;
+                currentAttrs = attrs;
+                continue;
+            }
 
-			var rel = ParseRelationshipLine(line);
-			if (rel != null)
-			{
-				_ = EnsureEntity(entityMap, rel.Entity1);
-				_ = EnsureEntity(entityMap, rel.Entity2);
-				relationships.Add(rel);
-			}
-		}
+            var rel = ParseRelationshipLine(line);
+            if (rel != null)
+            {
+                _ = EnsureEntity(entityMap, rel.Entity1);
+                _ = EnsureEntity(entityMap, rel.Entity2);
+                relationships.Add(rel);
+            }
+        }
 
-		var entities = entityMap.Values
-			.Select(v => v.Entity with { Attributes = v.Attrs })
-			.ToList();
+        var entities = entityMap.Values
+            .Select(v => v.Entity with { Attributes = v.Attrs })
+            .ToList();
 
-		return new ErDiagram { Entities = entities, Relationships = relationships, Direction = direction };
-	}
+        return new ErDiagram { Entities = entities, Relationships = relationships, Direction = direction };
+    }
 
-	private static (ErEntity Entity, List<ErAttributeInfo> Attrs) EnsureEntity(
-		Dictionary<string, (ErEntity Entity, List<ErAttributeInfo> Attrs)> entityMap,
-		string id)
-	{
-		if (entityMap.TryGetValue(id, out var existing))
-			return existing;
+    private static (ErEntity Entity, List<ErAttributeInfo> Attrs) EnsureEntity(
+        Dictionary<string, (ErEntity Entity, List<ErAttributeInfo> Attrs)> entityMap,
+        string id)
+    {
+        if (entityMap.TryGetValue(id, out var existing))
+            return existing;
 
-		var entity = new ErEntity { Id = id, Label = id, Attributes = [] };
-		var attrs = new List<ErAttributeInfo>();
-		entityMap[id] = (entity, attrs);
-		return (entity, attrs);
-	}
+        var entity = new ErEntity { Id = id, Label = id, Attributes = [] };
+        var attrs = new List<ErAttributeInfo>();
+        entityMap[id] = (entity, attrs);
+        return (entity, attrs);
+    }
 
-	private static ErAttributeInfo? ParseAttribute(string line)
-	{
-		var match = AttributePattern.Match(line);
-		if (!match.Success)
-			return null;
+    private static ErAttributeInfo? ParseAttribute(string line)
+    {
+        var match = AttributePattern.Match(line);
+        if (!match.Success)
+            return null;
 
-		var type = match.Groups[1].Value;
-		var name = match.Groups[2].Value;
-		var rest = match.Groups[3].Success ? match.Groups[3].Value.Trim() : "";
+        var type = match.Groups[1].Value;
+        var name = match.Groups[2].Value;
+        var rest = match.Groups[3].Success ? match.Groups[3].Value.Trim() : "";
 
-		var keys = new List<ErKeyType>();
-		string? comment = null;
+        var keys = new List<ErKeyType>();
+        string? comment = null;
 
-		var commentMatch = CommentPattern.Match(rest);
-		if (commentMatch.Success)
-			comment = MultilineUtils.NormalizeBrTags(commentMatch.Groups[1].Value);
+        var commentMatch = CommentPattern.Match(rest);
+        if (commentMatch.Success)
+            comment = MultilineUtils.NormalizeBrTags(commentMatch.Groups[1].Value);
 
-		var restWithoutComment = CommentPattern.Replace(rest, "").Trim();
-		foreach (var part in restWithoutComment.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-		{
-			var upper = part.ToUpperInvariant();
-			if (upper is "PK")
-				keys.Add(ErKeyType.PK);
-			else if (upper is "FK")
-				keys.Add(ErKeyType.FK);
-			else if (upper is "UK")
-				keys.Add(ErKeyType.UK);
-		}
+        var restWithoutComment = CommentPattern.Replace(rest, "").Trim();
+        foreach (var part in restWithoutComment.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var upper = part.ToUpperInvariant();
+            if (upper is "PK")
+                keys.Add(ErKeyType.PK);
+            else if (upper is "FK")
+                keys.Add(ErKeyType.FK);
+            else if (upper is "UK")
+                keys.Add(ErKeyType.UK);
+        }
 
-		return new ErAttributeInfo(type, name, keys, comment);
-	}
+        return new ErAttributeInfo(type, name, keys, comment);
+    }
 
-	private static ErRelationship? ParseRelationshipLine(string line)
-	{
-		var match = RelationshipPattern.Match(line);
-		if (!match.Success)
-			return null;
+    private static ErRelationship? ParseRelationshipLine(string line)
+    {
+        var match = RelationshipPattern.Match(line);
+        if (!match.Success)
+            return null;
 
-		var entity1 = match.Groups[1].Value;
-		var cardinalityStr = match.Groups[2].Value;
-		var entity2 = match.Groups[3].Value;
-		var rawLabel = match.Groups[4].Success ? match.Groups[4].Value.Trim().Trim('"', '\'') : "";
-		var label = rawLabel.Length > 0 ? MultilineUtils.NormalizeBrTags(rawLabel) : "";
+        var entity1 = match.Groups[1].Value;
+        var cardinalityStr = match.Groups[2].Value;
+        var entity2 = match.Groups[3].Value;
+        var rawLabel = match.Groups[4].Success ? match.Groups[4].Value.Trim().Trim('"', '\'') : "";
+        var label = rawLabel.Length > 0 ? MultilineUtils.NormalizeBrTags(rawLabel) : "";
 
-		var lineMatch = CardinalitySplitPattern.Match(cardinalityStr);
-		if (!lineMatch.Success)
-			return null;
+        var lineMatch = CardinalitySplitPattern.Match(cardinalityStr);
+        if (!lineMatch.Success)
+            return null;
 
-		var leftStr = lineMatch.Groups[1].Value;
-		var lineStyle = lineMatch.Groups[2].Value;
-		var rightStr = lineMatch.Groups[3].Value;
+        var leftStr = lineMatch.Groups[1].Value;
+        var lineStyle = lineMatch.Groups[2].Value;
+        var rightStr = lineMatch.Groups[3].Value;
 
-		var cardinality1 = ParseCardinality(leftStr);
-		var cardinality2 = ParseCardinality(rightStr);
-		if (cardinality1 == null || cardinality2 == null)
-			return null;
+        var cardinality1 = ParseCardinality(leftStr);
+        var cardinality2 = ParseCardinality(rightStr);
+        if (cardinality1 == null || cardinality2 == null)
+            return null;
 
-		return new ErRelationship(entity1, entity2, cardinality1.Value, cardinality2.Value, label, lineStyle == "--");
-	}
+        return new ErRelationship(entity1, entity2, cardinality1.Value, cardinality2.Value, label, lineStyle == "--");
+    }
 
-	private static ErCardinality? ParseCardinality(string str)
-	{
-		var normalized = str.Replace('}', '{');
-		var sorted = new string(normalized.OrderBy(c => c).ToArray());
+    private static ErCardinality? ParseCardinality(string str)
+    {
+        var normalized = str.Replace('}', '{');
+        var sorted = new string(normalized.OrderBy(c => c).ToArray());
 
-		return sorted switch
-		{
-			"||" => ErCardinality.One,
-			"o|" => ErCardinality.ZeroOne,
-			"{|" => ErCardinality.Many,
-			"o{" => ErCardinality.ZeroMany,
-			_ => null,
-		};
-	}
+        return sorted switch
+        {
+            "||" => ErCardinality.One,
+            "o|" => ErCardinality.ZeroOne,
+            "{|" => ErCardinality.Many,
+            "o{" => ErCardinality.ZeroMany,
+            _ => null,
+        };
+    }
 }

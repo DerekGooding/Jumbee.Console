@@ -1,11 +1,9 @@
 namespace Jumbee.Console.Documents;
 
+using Mermaider.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Mermaider.Models;
-
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -17,10 +15,13 @@ using CColor = ConsoleGUI.Data.Color;
 internal sealed class MermaidSequenceRenderer
 {
     #region Constructors
+
     public MermaidSequenceRenderer(MermaidStyles styles) => _s = styles;
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     public CellCanvas Render(SequenceDiagram diagram)
     {
         var actors = diagram.Actors.ToList();
@@ -309,9 +310,11 @@ internal sealed class MermaidSequenceRenderer
         if (s.Length <= maxW) return s;
         return maxW == 1 ? "…" : string.Concat(s.AsSpan(0, maxW - 1), "…");
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int ActorBoxH = 3;
     private const int LeftMargin = 2;
     private const int RightMargin = 2;
@@ -323,9 +326,11 @@ internal sealed class MermaidSequenceRenderer
     private readonly MermaidStyles _s;
     private int[] _cx = null!;         // per-render actor centre X (assigned at the top of Render)
     private List<Bar> _bars = null!;   // per-render activation bars (assigned at the top of Render)
-    #endregion
+
+    #endregion Fields
 
     #region Types
+
     private sealed class Bar
     {
         public int Actor;
@@ -333,5 +338,6 @@ internal sealed class MermaidSequenceRenderer
         public int Y0;
         public int Y1;
     }
-    #endregion
+
+    #endregion Types
 }

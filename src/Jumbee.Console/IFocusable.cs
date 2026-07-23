@@ -1,7 +1,6 @@
 ﻿namespace Jumbee.Console;
 
 using ConsoleGUI;
-using ConsoleGUI.Input;
 
 /// <summary>Handler for the <see cref="IFocusable.OnFocus"/> and <see cref="IFocusable.OnLostFocus"/> events.</summary>
 public delegate void FocusableEventHandler();
@@ -37,7 +36,7 @@ public interface IFocusable : IControl
     void OnInput(UI.InputEventArgs inputEventArgs);
 
     /// <summary>Delivers a bracketed-paste payload as a single unit. Default no-op; overridden by text controls.</summary>
-    void OnPaste(string text) {}
+    void OnPaste(string text) { }
 
     /// <summary>The focusable control if this one is focusable and currently focused, otherwise <see langword="null"/>.</summary>
     IFocusable? FocusedControl => Focusable && IsFocused ? FocusableControl : null;

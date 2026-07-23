@@ -1,10 +1,9 @@
 namespace Jumbee.Console;
 
-using System;
-
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
+using System;
 
 /// <summary>
 /// A ConsoleGUI.IConsole implementation that writes to a buffer.
@@ -12,6 +11,7 @@ using ConsoleGUI.Space;
 public class ConsoleBuffer : IConsole
 {
     #region Properties
+
     /// <summary>The logical size of the buffer; setting it resizes the backing cell arrays.</summary>
     public Size Size
     {
@@ -23,19 +23,24 @@ public class ConsoleBuffer : IConsole
             field = value;
         }
     }
+
     /// <summary>Always <see langword="false"/>; input is handled by the input listeners, not this buffer.</summary>
     public bool KeyAvailable => false;
-    #endregion
+
+    #endregion Properties
 
     #region Indexers
+
     /// <summary>Gets the cell at <paramref name="position"/>.</summary>
     public Cell this[Position position] => buffer[position.Y][position.X];
 
     /// <summary>Gets the cell at column <paramref name="x"/>, row <paramref name="y"/>.</summary>
     public Cell this[int x, int y] => buffer[y][x];
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     /// <summary>
     /// Fill buffer with empty/transparent cells.
     /// </summary>
@@ -50,7 +55,8 @@ public class ConsoleBuffer : IConsole
     }
 
     /// <summary>No-op; the buffer is composited by the renderer rather than refreshing itself.</summary>
-    public void OnRefresh() { }
+    public void OnRefresh()
+    { }
 
     /// <summary>
     /// Sets the console buffer cell character.
@@ -58,8 +64,7 @@ public class ConsoleBuffer : IConsole
     /// <param name="position"></param>
     /// <param name="character"></param>
     public void Write(Position position, in Character character) => buffer[position.Y][position.X] = new Cell(character);
-        
-    
+
     /// <summary>
     /// Sets the console buffer cell character.
     /// </summary>
@@ -75,7 +80,7 @@ public class ConsoleBuffer : IConsole
     /// </summary>
     /// <returns></returns>
     public ConsoleKeyInfo ReadKey() => throw new NotImplementedException();
-    
+
     /// <summary>Converts a linear cell <paramref name="distance"/> (row-major) into an (x, y) <see cref="Position"/>.</summary>
     public Position GetPosition(int distance)
     {
@@ -150,11 +155,15 @@ public class ConsoleBuffer : IConsole
     // one-cell change. 64 halves the bucket-boundary crossings of a drag sweep versus 32, for a little more slack
     // (<=63 cells per row) — a good trade since the churn, not the retained size, was the cost.
     private const int CapacityChunk = 64;
+
     private static int RoundUpCapacity(int n) => n <= 0 ? 0 : (n + CapacityChunk - 1) & ~(CapacityChunk - 1);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private static readonly Cell emptyCell = new Cell(' ');
     private Cell[][] buffer = [];
-    #endregion
+
+    #endregion Fields
 }

@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Threading.Tasks;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using NTokenizers.Extensions.Spectre.Console;
 using NTokenizers.Extensions.Spectre.Console.Styles;
+using System;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A read-only, scrollable Markdown viewer. Renders CommonMark — headings, bold/italic, block-quotes, ordered and
@@ -23,11 +21,14 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 public class MarkdownViewer : Control
 {
     #region Constructors
+
     /// <summary>Initializes a <see cref="MarkdownViewer"/> with the given Markdown source.</summary>
     public MarkdownViewer(string markdown = "") => _markdown = markdown ?? "";
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The Markdown source. Setting it re-renders (off the UI thread) and re-lays-out.</summary>
     public string Markdown
     {
@@ -51,9 +52,11 @@ public class MarkdownViewer : Control
 
     /// <inheritdoc/>
     public override bool HandlesInput => true;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     // A viewer paints its own content; don't overlay the themed focus tint over the whole document.
     protected override bool RendersOwnFocus => true;
@@ -169,7 +172,8 @@ public class MarkdownViewer : Control
 
     /// <summary>Discards the cached render so the next layout re-renders — for a subclass that adds render inputs
     /// (e.g. diagram styles) beyond <see cref="Markdown"/>/<see cref="Styles"/>. Call on the UI thread.</summary>
-    protected void InvalidateContent() { _version++; Initialize(); }
+    protected void InvalidateContent()
+    { _version++; Initialize(); }
 
     // Renders the markdown into the reusable `target` buffer at `width` and returns its measured content height. The
     // caller owns `target` and reuses it across renders (see Publish), so this resizes it in place rather than
@@ -230,9 +234,11 @@ public class MarkdownViewer : Control
         foreach (var c in text) if (c == '\n') n++;
         return n;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     // The rendered content is capped at this many rows — beyond the control's own ~1000-row size clamp nothing is
     // reachable anyway, so a taller document simply clips at the bottom.
     /// <summary>The maximum number of rows the rendered document is capped at.</summary>
@@ -247,10 +253,12 @@ public class MarkdownViewer : Control
     // these across renders keeps ConsoleBuffer's capacity-retention alive, so a render no longer allocates a fresh
     // Cell[][] every call.
     private ConsoleBuffer _content = new();
+
     private ConsoleBuffer _back = new();
     private int _contentHeight;
     private int _renderedWidth = -1;            // (width, version) the cached _content was rendered for
     private int _renderedVersion = -1;
     private bool _rendering;                     // true while the single background render is in flight
-    #endregion
+
+    #endregion Fields
 }

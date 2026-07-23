@@ -1,9 +1,8 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
-
-using Spectre.Console.Rendering;
 
 /// <summary>A single key-binding hint shown in a <see cref="Footer"/>: the key chord and what it does.</summary>
 public readonly record struct FooterHint(string Key, string Label);
@@ -18,6 +17,7 @@ public readonly record struct FooterHint(string Key, string Label);
 public class Footer : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Footer"/> with the given key-binding hints.</summary>
     public Footer(params FooterHint[] hints)
     {
@@ -25,9 +25,11 @@ public class Footer : RenderableControl
         if (hints is { Length: > 0 }) _hints.AddRange(hints);
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Spaces between adjacent hints. Defaults to 2.</summary>
     public int Gap
     {
@@ -40,9 +42,11 @@ public class Footer : RenderableControl
 
     /// <summary>Style of the label text. Defaults to <see cref="IStyleTheme.Text"/>.</summary>
     public Style LabelStyle { get => _labelStyle; set => SetAtomicProperty(ref _labelStyle, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Replaces the hints shown.</summary>
     public void SetHints(params FooterHint[] hints) => UI.Invoke(() =>
     {
@@ -70,6 +74,7 @@ public class Footer : RenderableControl
 
     /// <inheritdoc/>
     protected override int IntrinsicHeight() => 1;
+
     /// <inheritdoc/>
     protected override int IntrinsicWidth() => 0;   // fill the width
 
@@ -97,12 +102,15 @@ public class Footer : RenderableControl
             used += cost;
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly List<FooterHint> _hints = new();
     private int _gap = 2;
     private Style _keyStyle;
     private Style _labelStyle;
-    #endregion
+
+    #endregion Fields
 }

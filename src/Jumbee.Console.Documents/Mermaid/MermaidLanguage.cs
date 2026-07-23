@@ -1,9 +1,8 @@
 namespace Jumbee.Console.Documents;
 
-using System.Collections.Generic;
-
 using ColorCode;
 using ColorCode.Common;
+using System.Collections.Generic;
 
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> grammar for Mermaid diagram source, for syntax-highlighting a Mermaid document
@@ -23,23 +22,32 @@ using ColorCode.Common;
 public sealed class MermaidLanguage : ILanguage
 {
     #region Singleton
+
     /// <summary>The shared grammar instance (ColorCode caches the compiled grammar by <see cref="Id"/>).</summary>
     public static readonly MermaidLanguage Instance = new();
 
-    private MermaidLanguage() { }
-    #endregion
+    private MermaidLanguage()
+    { }
+
+    #endregion Singleton
 
     #region ILanguage
+
     /// <summary>The ColorCode language id (<c>"mermaid"</c>).</summary>
     public string Id => "mermaid";
+
     /// <summary>The display name.</summary>
     public string Name => "Mermaid";
+
     /// <summary>The CSS class name used for HTML output.</summary>
     public string CssClassName => "mermaid";
+
     /// <summary>First-line detection pattern (unused; <see langword="null"/>).</summary>
     public string FirstLinePattern => null!;
+
     /// <summary>Returns <see langword="true"/> when <paramref name="lang"/> is a known alias (<c>mermaid</c>/<c>mmd</c>).</summary>
     public bool HasAlias(string lang) => lang is "mermaid" or "mmd";
+
     /// <inheritdoc/>
     public override string ToString() => Name;
 
@@ -73,10 +81,13 @@ public sealed class MermaidLanguage : ILanguage
         // Numbers (autonumber start/step, pie/quadrant/radar values).
         Rule(@"\b(\d+(?:\.\d+)?)\b", ScopeName.Number),
     };
-    #endregion
+
+    #endregion ILanguage
 
     #region Helpers
+
     private static LanguageRule Rule(string pattern, string scope) =>
         new(pattern, new Dictionary<int, string> { { 1, scope } });
-    #endregion
+
+    #endregion Helpers
 }

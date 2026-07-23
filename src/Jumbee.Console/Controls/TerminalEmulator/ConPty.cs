@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
-
-using Microsoft.Win32.SafeHandles;
 
 /// <summary>
 /// A pseudo-console (ConPTY) session: launches a process attached to a Windows pseudo console and exposes its
@@ -20,6 +18,7 @@ using Microsoft.Win32.SafeHandles;
 public sealed class ConPty : IPty
 {
     #region Constructors
+
     private ConPty(IntPtr handle, Stream input, Stream output, SafeProcessHandle process)
     {
         _handle = handle;
@@ -27,22 +26,28 @@ public sealed class ConPty : IPty
         Output = output;
         _process = process;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Write here to send input (keystrokes/bytes) to the child process.</summary>
     public Stream Input { get; }
 
     /// <summary>Read here to receive the child process's terminal output (the ANSI stream).</summary>
     public Stream Output { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised (on a thread-pool thread) when the child process exits.</summary>
     public event Action? Exited;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <summary>Launches <paramref name="commandLine"/> in a new pseudo console of the given size, optionally in
     /// <paramref name="workingDirectory"/> (null inherits the host process's directory).</summary>
     public static ConPty Start(string commandLine, short columns, short rows, string? workingDirectory = null)
@@ -135,9 +140,11 @@ public sealed class ConPty : IPty
         if (!CreatePipe(out read, out write, IntPtr.Zero, 0))
             throw new Win32Exception(Marshal.GetLastWin32Error(), "CreatePipe failed");
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private IntPtr _handle;
     private readonly SafeProcessHandle _process;
 
@@ -145,9 +152,11 @@ public sealed class ConPty : IPty
     private const int STARTF_USESTDHANDLES = 0x00000100;
     private static readonly IntPtr PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
     private const uint INFINITE = 0xFFFFFFFF;
-    #endregion
+
+    #endregion Fields
 
     #region Native
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CreatePipe(out SafeFileHandle hReadPipe, out SafeFileHandle hWritePipe, IntPtr lpPipeAttributes, int nSize);
 
@@ -179,13 +188,16 @@ public sealed class ConPty : IPty
     private static extern uint WaitForSingleObject(SafeProcessHandle hHandle, uint dwMilliseconds);
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct COORD { public short X; public short Y; }
+    private struct COORD
+    { public short X; public short Y; }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_INFORMATION { public IntPtr hProcess; public IntPtr hThread; public int dwProcessId; public int dwThreadId; }
+    private struct PROCESS_INFORMATION
+    { public IntPtr hProcess; public IntPtr hThread; public int dwProcessId; public int dwThreadId; }
 
     [StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Unicode)]
-    private struct STARTUPINFOEX { public STARTUPINFO StartupInfo; public IntPtr lpAttributeList; }
+    private struct STARTUPINFOEX
+    { public STARTUPINFO StartupInfo; public IntPtr lpAttributeList; }
 
     // Blittable layout (IntPtr for the reserved/desktop/title strings) so marshalling STARTUPINFOEX by ref hands
     // the native side a stable pointer with the attribute list intact — mirrors Microsoft's vs-pty.net.
@@ -200,5 +212,6 @@ public sealed class ConPty : IPty
         public short wShowWindow, cbReserved2;
         public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
     }
-    #endregion
+
+    #endregion Native
 }

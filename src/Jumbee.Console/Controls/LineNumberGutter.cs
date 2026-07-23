@@ -1,9 +1,8 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// A narrow, non-interactive column of right-aligned line numbers, highlighting the active row. Intended as an
@@ -17,6 +16,7 @@ using Spectre.Console.Rendering;
 public class LineNumberGutter : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a <see cref="LineNumberGutter"/>.</summary>
     public LineNumberGutter()
     {
@@ -24,9 +24,11 @@ public class LineNumberGutter : RenderableControl
         Width = DigitsWidth();
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The total number of lines to number. The control widens as the digit count grows.</summary>
     public int LineCount
     {
@@ -60,9 +62,11 @@ public class LineNumberGutter : RenderableControl
 
     /// <summary>Style of the active line number. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
     public Style ActiveStyle { get => _activeStyle; set => SetAtomicProperty(ref _activeStyle, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyTheme()
     {
@@ -113,14 +117,17 @@ public class LineNumberGutter : RenderableControl
     }
 
     private int DigitsWidth() => Math.Max(MinDigits, _lineCount.ToString().Length) + 1;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int MinDigits = 2;
     private int _lineCount = 1;
     private int _activeLine;
     private Func<(IReadOnlyList<int> labels, int activeRow)>? _rowsProvider;
     private Style _numberStyle;
     private Style _activeStyle;
-    #endregion
+
+    #endregion Fields
 }

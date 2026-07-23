@@ -1,11 +1,8 @@
 ﻿namespace Jumbee.Console;
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 using Spectre.Console;
-using Spectre.Console.Rendering;
+using System;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A Spectre.Console Progress widget.
@@ -13,6 +10,7 @@ using Spectre.Console.Rendering;
 public class SpectreTaskProgress : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="SpectreTaskProgress"/> whose progress refreshes onto the UI thread.</summary>
     public SpectreTaskProgress()
     {
@@ -21,16 +19,21 @@ public class SpectreTaskProgress : Control
         ansiConsole.marshal = true;
         progress = new Progress(ansiConsole);
     }
-    #endregion
+
+    #endregion Constructors
 
     /// <summary><see langword="false"/>: a passive progress display that takes no keyboard input.</summary>
     public override bool HandlesInput => false;
+
     #region Fields
+
     /// <summary>The wrapped Spectre <see cref="Progress"/> driving the tasks and refresh loop.</summary>
     protected readonly Progress progress;
-    #endregion
+
+    #endregion Fields
 
     #region Methods
+
     /// <summary>Runs <paramref name="action"/> on a background thread with a progress context to drive the tasks.</summary>
     public Task Start(Action<ProgressContext> action) => Task.Run(() => progress.Start(action));
 
@@ -51,11 +54,13 @@ public class SpectreTaskProgress : Control
 
     // Progress control will update console buffer
     /// <summary>No-op: the wrapped <see cref="Progress"/> writes to the buffer from its own refresh loop.</summary>
-    protected override void Render() {}
+    protected override void Render()
+    { }
 
     // Control is assumed to always require painting
     /// <summary>No-op: the progress display is treated as always needing a repaint.</summary>
-    protected override void Validate() {}
-    #endregion
+    protected override void Validate()
+    { }
 
+    #endregion Methods
 }

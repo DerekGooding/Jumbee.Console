@@ -1,11 +1,9 @@
 namespace Jumbee.Console;
 
+using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Text;
-
-using Spectre.Console;
-
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -21,6 +19,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class RunChart : CompositeControl
 {
     #region Constructors
+
     /// <summary>Initializes a new empty <see cref="RunChart"/> (a streaming <see cref="Plot"/> with a docked legend).</summary>
     public RunChart()
     {
@@ -30,9 +29,11 @@ public class RunChart : CompositeControl
         // Plot fills the left; the fixed-width legend docks on the right.
         SetContent(new DockPanel(DockedControlPlacement.Right, _legend, _plot));
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Numeric format for the legend's stat values (default <c>"0.##"</c>).</summary>
     public string ValueFormat
     {
@@ -45,9 +46,11 @@ public class RunChart : CompositeControl
     protected internal override bool FillsFrameViewport => true;
 
     internal int Window => _window;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Adds a series drawn in <paramref name="color"/> and returns a handle to feed it. Starts empty.</summary>
     public RunSeries AddSeries(string name, Color color)
     {
@@ -57,10 +60,12 @@ public class RunChart : CompositeControl
     }
 
     /// <summary>Pins the vertical axis to a fixed range so streaming moves only the data, not the axis.</summary>
-    public RunChart SetYRange(double min, double max) { _plot.SetYRange(min, max); return this; }
+    public RunChart SetYRange(double min, double max)
+    { _plot.SetYRange(min, max); return this; }
 
     /// <summary>Restores auto-scaling of the vertical axis to the data.</summary>
-    public RunChart AutoRangeY() { _plot.AutoRangeY(); return this; }
+    public RunChart AutoRangeY()
+    { _plot.AutoRangeY(); return this; }
 
     /// <summary>Sets the strip width — how many recent points are shown before the oldest scrolls off (default 60).</summary>
     public RunChart SetXWindow(int points)
@@ -117,9 +122,11 @@ public class RunChart : CompositeControl
         else
             sb.Append(v.ToString(_format));
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int LegendWidth = 22;
     private readonly Plot _plot;
     private readonly TextPanel _legend;
@@ -128,7 +135,8 @@ public class RunChart : CompositeControl
     private bool _legendDirty;
     private int _window = 60;
     private string _format = "0.##";
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -139,6 +147,7 @@ public class RunChart : CompositeControl
 public sealed class RunSeries
 {
     #region Constructors
+
     internal RunSeries(RunChart chart, string name, CColor color, PlotSeries plot)
     {
         _chart = chart;
@@ -146,18 +155,22 @@ public sealed class RunSeries
         Name = name;
         Color = color;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     internal string Name { get; }
     internal CColor Color { get; }
     internal double Current { get; private set; }
     internal double Delta { get; private set; }
     internal double Max { get; private set; } = double.PositiveInfinity;   // sentinels until the first push
     internal double Min { get; private set; } = double.NegativeInfinity;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Appends <paramref name="value"/>: scrolls it into the strip chart and updates cur/dlt/max/min.</summary>
     public void Push(double value) => UI.Invoke(() =>
     {
@@ -169,11 +182,14 @@ public sealed class RunSeries
         _plot.Scroll(value, _chart.Window);   // fixed strip positions 0..window-1
         _chart.InvalidateLegend();
     });
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly RunChart _chart;
     private readonly PlotSeries _plot;
     private bool _has;
-    #endregion
+
+    #endregion Fields
 }

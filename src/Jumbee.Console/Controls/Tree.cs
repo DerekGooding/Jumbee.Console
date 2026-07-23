@@ -1,16 +1,13 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-
-using Spectre.Console;
-using Spectre.Console.Rendering;
-using Spectre.Console.Interop;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
+using Spectre.Console;
+using Spectre.Console.Interop;
+using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using CircularTreeException = Spectre.Console.Interop.CircularTreeException;
 
 /// <summary>The line style used to draw the connecting guide lines of a <see cref="Tree"/>.</summary>
@@ -18,12 +15,16 @@ public enum TreeGuide
 {
     /// <summary>ASCII guide lines (<c>|</c>, <c>+</c>, <c>-</c>) for terminals without Unicode support.</summary>
     Ascii,
+
     /// <summary>Single box-drawing guide lines.</summary>
     Line,
+
     /// <summary>Heavy (bold) box-drawing guide lines.</summary>
     BoldLine,
+
     /// <summary>Double box-drawing guide lines.</summary>
     DoubleLine,
+
     /// <summary>No connector lines — hierarchy is shown by indentation (and any node glyphs) alone. Useful for a
     /// clean, icon-driven tree.</summary>
     None
@@ -38,6 +39,7 @@ public enum TreeGuide
 public partial class Tree : RenderableControl
 {
     #region Constructors
+
     /// <summary>
     /// Create a tree with a root label.
     /// </summary>
@@ -63,14 +65,16 @@ public partial class Tree : RenderableControl
     /// <param name="guide">The connector-line glyph set (defaults to <see cref="TreeGuide.Line"/>).</param>
     /// <param name="guideStyle">The style of the connector lines (defaults to <see cref="Style.Plain"/>).</param>
     /// <param name="expanded">Whether the root starts expanded.</param>
-    public Tree(string rootText, TreeGuide? guide = null, Style ? guideStyle = null, bool expanded = true) :
-        this(new Markup(rootText), guide, guideStyle, expanded) 
+    public Tree(string rootText, TreeGuide? guide = null, Style? guideStyle = null, bool expanded = true) :
+        this(new Markup(rootText), guide, guideStyle, expanded)
     {
         _root.Text = rootText;
     }
-    #endregion
-    
+
+    #endregion Constructors
+
     #region Properties
+
     /// <summary>The root node of the tree.</summary>
     public TreeNode Root => _root;
 
@@ -82,6 +86,7 @@ public partial class Tree : RenderableControl
         get => _style;
         set => SetAtomicProperty(ref _style, value);
     }
+
     /// <summary>
     /// Gets or sets the tree guide lines.
     /// </summary>
@@ -101,7 +106,6 @@ public partial class Tree : RenderableControl
     }
 
     internal ICollection<TreeNode> Nodes => _root.Children;
-
 
     /// <summary>Foreground of the selected node. Defaults to the theme's <see cref="IStyleTheme.Selection"/>.</summary>
     public Color? SelectedForegroundColor
@@ -180,9 +184,10 @@ public partial class Tree : RenderableControl
     /// <inheritdoc/>
     protected override bool WantsMouse => true;   // click to select/toggle, hover to highlight
 
-    #endregion
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised when a leaf node (one with no children) is activated — double-clicked, or Enter/Space pressed
     /// while it is selected. Parent nodes toggle expansion instead of raising this.</summary>
     public event EventHandler<TreeNode>? NodeActivated;
@@ -198,14 +203,18 @@ public partial class Tree : RenderableControl
     /// <remarks>Use it to tailor the menu to the node, or read <see cref="SelectedNode"/> from the menu's own item
     /// handlers.</remarks>
     public event EventHandler<TreeNode>? ContextMenuOpening;
-    #endregion
+
+    #endregion Events
 
     #region Indexers
+
     /// <summary>Gets the direct child of the root node at <paramref name="index"/>, or <see langword="null"/> if none.</summary>
     public TreeNode? this[uint index] => _root[index];
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     /// <inheritdoc/>
     // Default the selected-node colours from the theme so a bare Tree shows a visible selection (re-applied on a
     // runtime theme switch; explicit SelectedForeground/BackgroundColor overrides are left alone).
@@ -254,22 +263,27 @@ public partial class Tree : RenderableControl
                 NavigateTree(1);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.UpArrow:
                 NavigateTree(-1);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Home:
                 SelectVisibleIndex(0);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.End:
                 SelectVisibleIndex(int.MaxValue);
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.PageUp:
                 SelectVisibleIndex(CurrentVisibleIndex() - TreePage());
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.PageDown:
                 SelectVisibleIndex(CurrentVisibleIndex() + TreePage());
                 inputEvent.Handled = true;
@@ -284,6 +298,7 @@ public partial class Tree : RenderableControl
                 }
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.LeftArrow:
                 if (SelectedNode is { } l)
                 {
@@ -292,6 +307,7 @@ public partial class Tree : RenderableControl
                 }
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Enter:
             case ConsoleKey.Spacebar:
                 // A parent toggles; a leaf activates.
@@ -474,7 +490,7 @@ public partial class Tree : RenderableControl
             }
 
             var prefix = levels.GetRange(1, levels.Count - 1);   // a per-node mutable copy of the guide prefix (no LINQ iterator)
-            
+
             // The gutter icon drawn before the label: a disclosure glyph for a parent (expanded/collapsed), or the
             // leaf glyph for a childless node. Each node may override the tree-wide glyph and colour for whichever it
             // shows — LeafGlyph/LeafGlyphColor for a leaf, ExpandedGlyph/CollapsedGlyph/DisclosureGlyphColor for a
@@ -591,7 +607,7 @@ public partial class Tree : RenderableControl
 
         return result;
     }
-    
+
     /// <summary>Maps a Jumbee <see cref="TreeGuide"/> to the corresponding Spectre.Console tree guide.</summary>
     protected static Spectre.Console.TreeGuide GetSpectreConsoleTreeGuide(TreeGuide guide) => guide switch
     {
@@ -600,7 +616,7 @@ public partial class Tree : RenderableControl
         TreeGuide.BoldLine => Spectre.Console.TreeGuide.BoldLine,
         TreeGuide.DoubleLine => Spectre.Console.TreeGuide.DoubleLine,
         _ => Spectre.Console.TreeGuide.Line,
-    };  
+    };
 
     private Segment GetGuide(RenderOptions options, TreeGuidePart part)
     {
@@ -721,21 +737,29 @@ public partial class Tree : RenderableControl
             }
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     /// <summary>The renderable used as the root node's label.</summary>
     public IRenderable _rootLabel;
+
     /// <summary>Backing field for <see cref="Root"/>.</summary>
     public TreeNode _root;
+
     /// <summary>Backing field for <see cref="Style"/>.</summary>
     protected Style _style;
+
     /// <summary>Backing field for <see cref="Guide"/>.</summary>
     protected TreeGuide _guide;
+
     /// <summary>The Spectre.Console guide derived from <see cref="_guide"/>, used when rendering guide lines.</summary>
     protected Spectre.Console.TreeGuide scguide;
+
     /// <summary>Backing field for <see cref="Expanded"/>.</summary>
     protected bool _expanded;
+
     private Color? _selectedForegroundColor;
     private Color? _selectedBackgroundColor;
     private SelectionStyle _selectionStyle;
@@ -748,9 +772,11 @@ public partial class Tree : RenderableControl
     private bool _hoverHighlighting;
     private TreeNode? _hoveredNode;
     private TreeNode? _lastSelection;   // last node reported by SelectionChanged, so we only raise on an actual change
+
     // Content row -> (owning node, is that node's first/glyph row) for the last render. Lets the mouse handlers map a
     // clicked row to the correct node when labels wrap onto multiple rows. Written in Render, read in the mouse
     // handlers — both on the UI thread.
     private readonly List<(TreeNode node, bool first)> _rowMap = new();
-    #endregion
+
+    #endregion Fields
 }

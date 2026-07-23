@@ -1,8 +1,7 @@
 namespace Jumbee.Console;
 
-using System;
-
 using ColorCode;
+using System;
 
 /// <summary>
 /// A composite control pairing a <see cref="TextEditor"/> with a <see cref="LineNumberGutter"/> docked to its left.
@@ -20,6 +19,7 @@ using ColorCode;
 public class CodeEditor : CompositeControl
 {
     #region Constructors
+
     /// <summary>Creates a code editor highlighted for the given built-in <see cref="Language"/>.</summary>
     public CodeEditor(Language language = Language.None) : this(new TextEditor(language)) { }
 
@@ -48,9 +48,11 @@ public class CodeEditor : CompositeControl
         SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _editor));
         _gutter.LineCount = _editor.LineCount;   // initial sync; thereafter OnEditorChanged keeps it in step
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The wrapped text editor (focus this to type; e.g. <c>UI.SetFocus(codeEditor.Editor)</c>).</summary>
     public TextEditor Editor => _editor;
 
@@ -75,9 +77,11 @@ public class CodeEditor : CompositeControl
             _editor.CaretIndex = 0;     // open at the top, like a file editor, not at the end of the text
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     // Our content height is the editor's wrapped row count at the editor's width (our width minus the gutter), so a
     // surrounding frame sizes us to content and its scrollbar/scroll-range are accurate.
     /// <inheritdoc/>
@@ -141,15 +145,20 @@ public class CodeEditor : CompositeControl
         if (caretRow < top) Frame.Top = caretRow;
         else if (caretRow >= top + viewport) Frame.Top = caretRow - viewport + 1;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly TextEditor _editor;
     private readonly LineNumberGutter _gutter;
+
     // Cached snapshot of what the gutter currently reflects (wrapped row count + caret's visual row), so
     // OnEditorChanged can skip the gutter repaint and the content re-measure when an edit changes neither — e.g.
     // typing within a line. -1 = nothing measured yet (forces the first sync). Re-baselined on each (re)layout.
     private int _lastActiveRow = -1;
+
     private int _lastRowCount = -1;
-    #endregion
+
+    #endregion Fields
 }

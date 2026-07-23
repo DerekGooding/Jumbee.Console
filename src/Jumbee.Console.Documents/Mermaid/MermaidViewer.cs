@@ -1,15 +1,10 @@
 namespace Jumbee.Console.Documents;
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Mermaider;
-
-using Jumbee.Console.Documents.Mermaid;
+using System;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A read-only, scrollable viewer for Mermaid <c>flowchart</c>/<c>graph</c> and <c>stateDiagram</c> diagrams.
@@ -28,11 +23,14 @@ using Jumbee.Console.Documents.Mermaid;
 public class MermaidViewer : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="MermaidViewer"/> showing <paramref name="mermaid"/>.</summary>
     public MermaidViewer(string mermaid = "") => _mermaid = mermaid ?? "";
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The Mermaid source. Setting it re-parses/re-renders (off the UI thread) and re-lays-out.</summary>
     public string Mermaid
     {
@@ -57,9 +55,11 @@ public class MermaidViewer : Control
 
     /// <summary>Always <see langword="true"/> — the viewer handles scroll/pan keys.</summary>
     public override bool HandlesInput => true;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;
 
@@ -206,9 +206,11 @@ public class MermaidViewer : Control
         foreach (var c in _mermaid) if (c == '\n') n++;
         return Math.Clamp(n * 3, 3, MaxRows);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int MaxRows = 1024;
     private const int HScrollStep = 3;   // columns panned per ← / → press
 
@@ -221,5 +223,6 @@ public class MermaidViewer : Control
     private int _contentHeight;
     private int _renderedVersion = -1;
     private int _renderingVersion = -1;
-    #endregion
+
+    #endregion Fields
 }

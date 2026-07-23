@@ -1,12 +1,11 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Base class for <em>composite</em> controls: a <see cref="Control"/> that owns and lays out several child
@@ -30,14 +29,17 @@ using ConsoleGUI.Space;
 public abstract class CompositeControl : Control, IDrawingContextListener
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="CompositeControl"/> with no content; the subclass calls <see cref="SetContent"/> after building its children.</summary>
     protected CompositeControl() : base() { }
 
     /// <summary>Initializes a new <see cref="CompositeControl"/> with the given <paramref name="content"/> layout arranging its children.</summary>
     protected CompositeControl(ILayout content) : base() => SetContent(content);
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The internal layout arranging the child controls (set via <see cref="SetContent"/>).</summary>
     protected ILayout? Content => _content;
 
@@ -82,9 +84,11 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     /// (cycling within it) instead of reaching the focused child. Off by default: Tab belongs to the focused control
     /// (a <see cref="TextEditor"/> indents with it). Turn it on for a form — several fields the user tabs between.</summary>
     protected virtual bool TabNavigatesChildren => false;
-    #endregion
+
+    #endregion Properties
 
     #region Indexers
+
     /// <summary>Gets the composited <see cref="Cell"/> at <paramref name="position"/> — a child's cell (keeping its mouse listener) where a child covers it, otherwise the composite's own surface.</summary>
     public override Cell this[Position position]
     {
@@ -104,9 +108,11 @@ public abstract class CompositeControl : Control, IDrawingContextListener
             return emptyCell;
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     /// <summary>
     /// Sets the internal layout that arranges the children.
     /// </summary>
@@ -204,7 +210,8 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     // Children render themselves into their own buffers; the composite paints nothing by default. Subclasses may
     // override to draw a background/chrome behind the children (the indexer composites children over the buffer).
     /// <summary>Renders the composite's own surface; the default draws nothing (children render themselves). Override to paint a background or chrome behind the children.</summary>
-    protected override void Render() { }
+    protected override void Render()
+    { }
 
     // Runs on the UI thread after Control.Initialize has resized the composite (Control subscribes this to its
     // OnInitialization event). Size the internal layout to fill the composite's current area.
@@ -232,15 +239,20 @@ public abstract class CompositeControl : Control, IDrawingContextListener
         if (!ReferenceEquals(_contentContext, DrawingContext.Dummy)) _contentContext.Dispose();
         base.Dispose();
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private ILayout? _content;
     private DrawingContext _contentContext = DrawingContext.Dummy;
+
     // The focusable descendants claimed in SetContent, in layout order — the focus stops. The first is the default
     // FocusChild (e.g. a CodeEditor's editor).
     private readonly List<Control> _focusables = [];
+
     // The child focus was last requested for (clicked, or tabbed to); overrides the default FocusChild.
     private Control? _focusChild;
-    #endregion
+
+    #endregion Fields
 }

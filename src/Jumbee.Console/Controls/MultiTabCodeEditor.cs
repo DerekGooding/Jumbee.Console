@@ -15,6 +15,7 @@ using System.Linq;
 public class MultiTabCodeEditor : CompositeControl
 {
     #region Constructors
+
     /// <summary>Initializes an empty editor group whose new documents default to <paramref name="defaultLanguage"/>.</summary>
     public MultiTabCodeEditor(Language defaultLanguage = Language.None)
     {
@@ -26,9 +27,11 @@ public class MultiTabCodeEditor : CompositeControl
         _panel.SelectionChanged += _ => ActiveDocumentChanged?.Invoke(ActiveEditor);
         SetContent(_panel);
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised after a document is opened (its editor + tab exist and it is selected).</summary>
     public event Action<CodeEditor>? DocumentOpened;
 
@@ -41,9 +44,11 @@ public class MultiTabCodeEditor : CompositeControl
 
     /// <summary>Raised after the active document changes (its editor, or <see langword="null"/> when none remain).</summary>
     public event Action<CodeEditor?>? ActiveDocumentChanged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>The underlying tab panel (for styling or advanced tab operations).</summary>
     public TabPanel Tabs => _panel;
 
@@ -69,9 +74,11 @@ public class MultiTabCodeEditor : CompositeControl
     /// <summary>Overlay to host the confirm-on-close dialog on. Defaults to the ambient <see cref="UI.Overlay"/>;
     /// set explicitly to host it elsewhere (also used by tests to avoid mutating the global overlay).</summary>
     internal Overlay? DialogOverlay { get; set; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Opens a document in a new tab and selects it. Returns the created editor. Set
     /// <paramref name="closable"/> to <see langword="false"/> to pin it (no ✕).</summary>
     public CodeEditor OpenDocument(string name, string text = "", Language? language = null, bool closable = true)
@@ -102,7 +109,8 @@ public class MultiTabCodeEditor : CompositeControl
     }
 
     /// <summary>Closes the active document (if any).</summary>
-    public void CloseActiveDocument() { if (ActiveEditor is { } e) CloseDocument(e); }
+    public void CloseActiveDocument()
+    { if (ActiveEditor is { } e) CloseDocument(e); }
 
     /// <summary>Closes every document immediately, without the <see cref="DocumentClosing"/> veto or confirm prompt
     /// (each still raises <see cref="DocumentClosed"/>).</summary>
@@ -201,18 +209,23 @@ public class MultiTabCodeEditor : CompositeControl
         .WithKey("Alt+← / Alt+→", "Switch tab")
         .WithKey("Click ✕", "Close tab")
         .WithKey("Click +", "New tab");
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly TabPanel _panel;
     private readonly Language _defaultLanguage;
     private int _untitled;
+
     // Dirty tracking: the set of editors whose text differs from their baseline, and the baseline ("saved") text
     // per editor. Auto-updated on edit; cleared when a tab is removed.
     private readonly HashSet<CodeEditor> _dirty = new();
+
     private readonly Dictionary<CodeEditor, string> _baseline = new();
     private const string DirtyMark = "● ";
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>Arguments for <see cref="MultiTabCodeEditor.DocumentClosing"/>. Set <see cref="Cancel"/> to keep the

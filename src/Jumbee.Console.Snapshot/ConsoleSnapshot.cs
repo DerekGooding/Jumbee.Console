@@ -1,22 +1,19 @@
 namespace Jumbee.Console.Snapshot;
 
-using System.Text;
-
 using ConsoleGUI;
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-
+using System.Text;
 using CColor = ConsoleGUI.Data.Color;
 using Color = SixLabors.ImageSharp.Color;
-using Size = ConsoleGUI.Space.Size;
 using JControl = Jumbee.Console.Control;
+using Size = ConsoleGUI.Space.Size;
 
 /// <summary>
 /// Renders Jumbee.Console controls headlessly (without a real terminal) to a <see cref="ConsoleBuffer"/>,
@@ -25,6 +22,7 @@ using JControl = Jumbee.Console.Control;
 public static class ConsoleSnapshot
 {
     #region Render (headless compose)
+
     /// <summary>
     /// Composes a control tree into a <see cref="ConsoleBuffer"/> at the given size, without a real console.
     /// </summary>
@@ -137,9 +135,11 @@ public static class ConsoleSnapshot
         foreach (var key in keys) UI.SendInput(layout, key, routeGlobal);
         return Render(layout, width, height);
     }
-    #endregion
+
+    #endregion Render (headless compose)
 
     #region Text snapshot
+
     /// <summary>Converts a buffer to a plain-text snapshot: one <c>\n</c>-terminated line per row, each row
     /// <b>right-trimmed of trailing spaces</b> (so snapshots are stable regardless of right-padding). Because rows are
     /// trimmed, a flat <c>index → (index % width, index / width)</c> back-mapping to buffer coordinates is wrong — use
@@ -203,9 +203,11 @@ public static class ConsoleSnapshot
     /// layout driven by <see cref="UI.RegisterHotKey"/>.</summary>
     public static string ToTextAfter(ILayout layout, int width, int height, IReadOnlyList<ConsoleKeyInfo> keys, bool routeGlobal = false)
         => ToText(RenderAfter(layout, width, height, keys, routeGlobal));
-    #endregion
+
+    #endregion Text snapshot
 
     #region Colour readback
+
     /// <summary>The glyph rendered at (<paramref name="x"/>, <paramref name="y"/>), or a space for an empty cell —
     /// the per-cell counterpart of <see cref="ForegroundAt"/>/<see cref="BackgroundAt"/>. Read a cell's glyph and
     /// colour together this way instead of mapping a <see cref="ToText(ConsoleBuffer)"/> index back to coordinates
@@ -224,9 +226,11 @@ public static class ConsoleSnapshot
     /// <see langword="null"/> for transparent/default. See <see cref="ForegroundAt"/>.</summary>
     public static Jumbee.Console.Color? BackgroundAt(ConsoleBuffer buffer, int x, int y) =>
         buffer[x, y].Background is { } c ? Jumbee.Console.Color.FromConsoleGUIColor(c) : null;
-    #endregion
+
+    #endregion Colour readback
 
     #region Image snapshot
+
     /// <summary>Renders a buffer to an image, drawing each cell's glyph and colors.</summary>
     public static Image<Rgba32> ToImage(ConsoleBuffer buffer, SnapshotImageOptions? options = null)
     {
@@ -330,9 +334,11 @@ public static class ConsoleSnapshot
     /// <summary>Renders a control after sending the given keys (with modifiers) and saves it to a PNG file.</summary>
     public static void SavePngAfter(JControl control, int width, int height, string path, IReadOnlyList<ConsoleKeyInfo> keys)
         => SavePng(RenderAfter(control, width, height, keys), path);
-    #endregion
+
+    #endregion Image snapshot
 
     #region Helpers
+
     private static Color ToColor(CColor c) => Color.FromRgb(c.Red, c.Green, c.Blue);
 
     /// <summary>Linearly blends <paramref name="a"/> toward <paramref name="b"/> by <paramref name="t"/> (0..1).</summary>
@@ -408,8 +414,13 @@ public static class ConsoleSnapshot
     private sealed class NoopListener : IDrawingContextListener
     {
         public static readonly NoopListener Instance = new();
-        public void OnRedraw(DrawingContext drawingContext) { }
-        public void OnUpdate(DrawingContext drawingContext, Rect rect) { }
+
+        public void OnRedraw(DrawingContext drawingContext)
+        { }
+
+        public void OnUpdate(DrawingContext drawingContext, Rect rect)
+        { }
     }
-    #endregion
+
+    #endregion Helpers
 }

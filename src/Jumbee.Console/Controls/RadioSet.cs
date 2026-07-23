@@ -12,16 +12,21 @@ using System;
 public class RadioSet : ToggleList
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="RadioSet"/> with the given <paramref name="options"/>.</summary>
     public RadioSet(params string[] options) : base(options) => ApplyTheme();
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when the selected option changes, with its index.</summary>
     public event EventHandler<int>? SelectionChanged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>The index of the selected option, or -1 when nothing is selected. Setting it raises <see cref="SelectionChanged"/>.</summary>
     public int SelectedIndex
     {
@@ -40,9 +45,11 @@ public class RadioSet : ToggleList
     /// <summary>The selected option text, or <see langword="null"/> when nothing is selected.</summary>
     public string? SelectedValue =>
         _selectedIndex >= 0 && _selectedIndex < _options.Count ? _options[_selectedIndex] : null;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override bool IsChecked(int index) => index == _selectedIndex;
 
@@ -55,9 +62,12 @@ public class RadioSet : ToggleList
         base.ApplyTheme();
         SetGlyphs(UI.GlyphTheme.RadioSelected, UI.GlyphTheme.RadioUnselected);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private int _selectedIndex = -1;
-    #endregion
+
+    #endregion Fields
 }

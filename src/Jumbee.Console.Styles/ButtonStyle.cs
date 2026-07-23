@@ -23,6 +23,7 @@ public enum ButtonShape
 public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="ButtonStyle"/> from the per-state fills, shape, bevel colours, bold flag, and width constraints.</summary>
     public ButtonStyle(Style normal, Style hover, Style press,
         ButtonShape shape = ButtonShape.Flat,
@@ -42,9 +43,11 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
         Width = width;
         MinWidth = minWidth;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Fill (foreground text colour + background) at rest.</summary>
     public Style Normal { get; init; }
 
@@ -77,9 +80,11 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
 
     /// <summary><see langword="true"/> for the 3-row raised <see cref="ButtonShape.Modern"/> shape.</summary>
     public bool IsModern => Shape == ButtonShape.Modern;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Returns a copy with a fixed outer <paramref name="width"/> (0 = size to the label).</summary>
     public ButtonStyle WithWidth(int width) => this with { Width = width };
 
@@ -127,9 +132,11 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
 
     /// <summary>Inequality operator.</summary>
     public static bool operator !=(ButtonStyle a, ButtonStyle b) => !a.Equals(b);
-    #endregion
+
+    #endregion Methods
 
     #region Presets
+
     /// <summary>A primary action button: white text on a blue fill (flat by default; use
     /// <see cref="ButtonShape.Modern"/> for the raised look).</summary>
     public static ButtonStyle Primary { get; } = new(
@@ -144,5 +151,6 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
         hover: Style.White | Style.Bg(new Color(75, 75, 88)),
         press: Style.White | Style.Bg(new Color(100, 100, 115)),
         minWidth: 16);
-    #endregion
+
+    #endregion Presets
 }

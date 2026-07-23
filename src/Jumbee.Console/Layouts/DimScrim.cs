@@ -24,6 +24,7 @@ using ConsoleGUI.Space;
 internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListener
 {
     #region Constructors
+
     public DimScrim(IControl below, IControl popup, Color tint, float factor)
     {
         _below = below;
@@ -31,9 +32,11 @@ internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListe
         _factor = factor;
         _popupContext = new DrawingContext(this, popup);
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Indexers
+
     public override Cell this[Position position]
     {
         get
@@ -55,9 +58,11 @@ internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListe
             return Dim(position);
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     private Cell Dim(in Position position)
     {
         // Read the layer below directly (it is positioned at the origin, aligned with this scrim); guard its extent.
@@ -86,12 +91,15 @@ internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListe
     void IDrawingContextListener.OnRedraw(DrawingContext drawingContext) => Initialize();
 
     void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect) => Update(rect);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly IControl _below;
     private readonly DrawingContext _popupContext;
     private readonly Color _tint;
     private readonly float _factor;
-    #endregion
+
+    #endregion Fields
 }

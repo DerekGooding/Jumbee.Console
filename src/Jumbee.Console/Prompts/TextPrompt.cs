@@ -1,15 +1,15 @@
 namespace Jumbee.Console;
 
-using System;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
+using System;
 
 /// <summary>A single-line text input that shows a prompt label and edits an inline entry with a terminal cursor.</summary>
 public class TextPrompt : Prompt
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="TextPrompt"/> with the given <paramref name="prompt"/> label; <paramref name="showCursor"/> and <paramref name="blinkCursor"/> control the terminal cursor.</summary>
     public TextPrompt(string prompt, bool showCursor = true, bool blinkCursor = false) : base()
     {
@@ -17,14 +17,18 @@ public class TextPrompt : Prompt
         this._showCursor = showCursor;
         this._blinkCursor = blinkCursor;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when the entry is committed (Enter), carrying the current input text.</summary>
     public event EventHandler<string>? Committed;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary><see langword="true"/>: the prompt handles keyboard input to edit its entry.</summary>
     public override bool HandlesInput => true;
 
@@ -37,15 +41,15 @@ public class TextPrompt : Prompt
             _prompt = string.IsNullOrEmpty(value) ? "" : value + " ";
             Invalidate();
         }
-
     }
-    
+
     /// <summary>When <see langword="true"/>, the terminal cursor is shown at the caret while focused.</summary>
     public bool ShowCursor
     {
         get => _showCursor;
         set => SetAtomicProperty(ref _showCursor, value);
     }
+
     /// <summary>When <see langword="true"/>, the shown cursor blinks (DECSCUSR blinking block).</summary>
     public bool BlinkCursor
     {
@@ -87,9 +91,11 @@ public class TextPrompt : Prompt
             RenderCursor();
         }
     }
-    #endregion
 
-    #region Methods       
+    #endregion Properties
+
+    #region Methods
+
     /// <inheritdoc/>
     protected override void Control_OnInitialization()
     {
@@ -102,7 +108,7 @@ public class TextPrompt : Prompt
         if (newInput)
         {
             RenderPrompt();
-            ansiConsole.Write(Markup.Escape(input));          
+            ansiConsole.Write(Markup.Escape(input));
             newInput = false;
         }
         RenderCursor();
@@ -144,8 +150,9 @@ public class TextPrompt : Prompt
                 {
                     --CursorX;
                 }
-                inputEvent.Handled = true; 
+                inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.RightArrow:
                 c = _caretPosition;
                 _caretPosition = Math.Min(input.Length, _caretPosition + 1);
@@ -155,22 +162,26 @@ public class TextPrompt : Prompt
                 }
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Home:
                 _caretPosition = 0;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.End:
                 _caretPosition = input.Length;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Backspace:
                 if (_caretPosition > 0)
                 {
                     input = input.Remove(--_caretPosition, 1);
-                    newInput = true;    
+                    newInput = true;
                     inputEvent.Handled = true;
                 }
                 break;
+
             case ConsoleKey.Delete:
                 if (_caretPosition < input.Length)
                 {
@@ -180,10 +191,12 @@ public class TextPrompt : Prompt
                     inputEvent.Handled = true;
                 }
                 break;
+
             case ConsoleKey.Enter:
                 AttemptCommit();
                 inputEvent.Handled = true;
                 break;
+
             default:
                 if (!char.IsControl(inputEvent.Key.KeyChar))
                 {
@@ -200,13 +213,14 @@ public class TextPrompt : Prompt
     protected bool IsValidCursorPosition => CursorX < Size.Width && CursorY < Size.Height;
 
     private void AttemptCommit()
-    {                      
-
+    {
         Committed?.Invoke(this, input);
-    }    
-    #endregion
+    }
+
+    #endregion Methods
 
     #region Fields
+
     private string _prompt;
     private bool _showCursor;
     private bool _blinkCursor;
@@ -214,7 +228,6 @@ public class TextPrompt : Prompt
     private bool newInput;
     private int _caretPosition = 0;
     private Position inputStart = default;
-    #endregion    
+    #endregion Fields
+
 }
-
-

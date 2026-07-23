@@ -1,15 +1,14 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+using Spectre.Console;
+using Spectre.Console.Interop;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
-using Spectre.Console;
-using Spectre.Console.Rendering;
-using Spectre.Console.Interop;
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
 
 /// <summary>
 /// Displays a flat list of items and allows user input navigation and selection.
@@ -17,6 +16,7 @@ using ConsoleGUI.Space;
 public partial class ListBox : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes an empty <see cref="ListBox"/>.</summary>
     public ListBox() => ApplyTheme();
 
@@ -27,9 +27,10 @@ public partial class ListBox : RenderableControl
     /// <see cref="List{T}"/>, a LINQ query, or individual strings).</summary>
     public ListBox(params IEnumerable<string> items) : this() => AddItems(items);
 
-    #endregion
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The items currently in the list.</summary>
     public ICollection<ListBoxItem> Items => _items.Values;
 
@@ -99,23 +100,30 @@ public partial class ListBox : RenderableControl
 
     /// <inheritdoc/>
     public override bool HandlesInput => true;
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised when the highlighted index changes (navigation or selection).</summary>
     public event EventHandler<int>? SelectionChanged;
+
     /// <summary>Raised when an item is committed (Enter or click).</summary>
     public event EventHandler<ListBoxItem>? Committed;
+
     /// <summary>Raised when the list is cancelled (Escape).</summary>
     public event EventHandler? Cancelled;
+
     /// <summary>Raised just before <see cref="ContextMenu"/> is shown for a right-clicked row, with that item (now
     /// the selected one).</summary>
     /// <remarks>Use it to tailor the menu, or read <see cref="SelectedItem"/> from the menu's own item handlers.
     /// Only fires when <see cref="ContextMenu"/> is set.</remarks>
     public event EventHandler<ListBoxItem>? ContextMenuOpening;
-    #endregion
 
-    #region Methods        
+    #endregion Events
+
+    #region Methods
+
     // Item creation (and the atomic index) happens on the calling thread so AddItem can return immediately;
     // the dictionary mutation is marshaled to the UI thread (inline when already there) so reads during
     // rendering never see a concurrent write.
@@ -299,30 +307,37 @@ public partial class ListBox : RenderableControl
                 SelectedIndex = (_selectionIndex - 1 + count) % count;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.DownArrow when count > 0:
                 SelectedIndex = (_selectionIndex + 1) % count;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Home when count > 0:
                 SelectedIndex = 0;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.End when count > 0:
                 SelectedIndex = count - 1;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.PageUp when count > 0:
                 SelectedIndex = _selectionIndex - Page();
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.PageDown when count > 0:
                 SelectedIndex = _selectionIndex + Page();
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Enter when count > 0:
                 Commit();
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Escape:
                 Cancelled?.Invoke(this, EventArgs.Empty);
                 inputEvent.Handled = true;
@@ -464,9 +479,11 @@ public partial class ListBox : RenderableControl
         var rows = new Rows(renderables);
         return ((IRenderable)rows).Render(options, LayoutWidth);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Types
+
     /// <summary>
     /// Wraps a <see cref="ListBoxItem"/>'s <see cref="IRenderable"/> content so a selected row is highlighted the way
     /// <see cref="Tree"/> highlights a selected <see cref="IRenderable"/> node: the selection style is overlaid on
@@ -542,9 +559,11 @@ public partial class ListBox : RenderableControl
             return result;
         }
     }
-    #endregion
+
+    #endregion Types
 
     #region Fields
+
     private readonly Dictionary<int, ListBoxItem> _items = new();
     private int _itemIndex = 0;
     private int _selectionIndex = 0;
@@ -553,14 +572,18 @@ public partial class ListBox : RenderableControl
     private SelectionStyle _selectionStyle;
     private string _selectionCaret = "";
     private bool _highlightFullWidth;
+
     // Cached per-item row layout (see EnsureLayout): cumulative row offsets, recomputed when the item set/content
     // (_itemsVersion) changes. Item heights are width-independent, so the layout doesn't depend on the control width.
     private int[] _offsets = [0];
+
     private int _layoutVersion = -1;
     private int _itemsVersion;
+
     // The fixed wide width items are measured and rendered at, so heights are width-independent (see MeasureHeight).
     // Matches Control.CalculateSize's 1000-cell clamp — the widest a control is ever laid out — so nothing visible is
     // ever lost to the cap; wider content simply clips to the viewport.
     private const int LayoutWidth = 1000;
-    #endregion
+
+    #endregion Fields
 }

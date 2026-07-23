@@ -19,6 +19,7 @@ public sealed record KeyHelp(string Keys, string Description);
 public sealed class HelpInfo
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="HelpInfo"/> with the given <paramref name="name"/>, and optional
     /// <paramref name="title"/> (defaults to the name) and <paramref name="text"/>.</summary>
     public HelpInfo(string name, string? title = null, string? text = null)
@@ -27,9 +28,11 @@ public sealed class HelpInfo
         Title = title ?? name;
         Text = text ?? "";
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Identity for deduplication and for matching the focused control's tab. Required, non-empty.</summary>
     public string Name { get; set; }
 
@@ -46,14 +49,17 @@ public sealed class HelpInfo
     /// <summary>When <see langword="true"/>, the author has already woven the keys into <see cref="Text"/>, so the
     /// dialog does not append a separate "Keys" section. Defaults to <see langword="false"/> (separate section).</summary>
     public bool KeysInline { get; set; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Fluent helper to add a key binding (returns this).</summary>
     public HelpInfo WithKey(string keys, string description)
     {
         Keys.Add(new KeyHelp(keys, description));
         return this;
     }
-    #endregion
+
+    #endregion Methods
 }

@@ -2,8 +2,6 @@ namespace Jumbee.Console.Documents;
 
 using NTokenizers.Extensions.Spectre.Console.Styles;
 
-using Jumbee.Console.Documents.Mermaid;
-
 /// <summary>
 /// A live, split-pane Markdown editor whose preview renders embedded <c>```mermaid</c> code blocks as diagrams — the
 /// interactive complement to <see cref="MarkdownExtendedViewer"/>.
@@ -17,6 +15,7 @@ using Jumbee.Console.Documents.Mermaid;
 public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
 {
     #region Constructors
+
     /// <param name="markdown">Initial document text (both panes start in sync).</param>
     /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
     /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
@@ -24,10 +23,13 @@ public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
     public InteractiveMarkdownExtendedEditor(string markdown = "", SplitOrientation orientation = SplitOrientation.Horizontal,
         int splitPosition = 48)
         : base(new CodeEditor(MarkdownWithMermaidLanguage.Instance) { Text = markdown ?? "" },
-            new MarkdownExtendedViewer(markdown ?? ""), " Markdown ", " Preview ", markdown ?? "", orientation, splitPosition) { }
-    #endregion
+            new MarkdownExtendedViewer(markdown ?? ""), " Markdown ", " Preview ", markdown ?? "", orientation, splitPosition)
+    { }
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The preview pane rendering the live Markdown (with embedded mermaid diagrams).</summary>
     public MarkdownExtendedViewer Preview => (MarkdownExtendedViewer)PreviewControl;
 
@@ -44,9 +46,11 @@ public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
         get => Preview.DiagramStyles;
         set => Preview.DiagramStyles = value;
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Pushes the edited <paramref name="text"/> into the preview pane's <see cref="MarkdownViewer.Markdown"/>.</summary>
     protected override void ApplyPreviewText(string text) => Preview.Markdown = text;
 
@@ -58,5 +62,6 @@ public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
         .WithKey("Ctrl+← / Ctrl+→", "Move focus between the panes")
         .WithKey("Drag divider", "Resize the panes")
         .WithKey("↑ / ↓, PgUp / PgDn", "Scroll the focused pane");
-    #endregion
+
+    #endregion Methods
 }

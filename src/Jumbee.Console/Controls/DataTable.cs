@@ -1,16 +1,13 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -26,29 +23,36 @@ using CColor = ConsoleGUI.Data.Color;
 public class DataTable : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="DataTable"/> with the given column headers.</summary>
     public DataTable(params string[] columns)
     {
         _columns = columns?.ToList() ?? new List<string>();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when the selected row changes; the argument is the new row index (or -1 when empty).</summary>
     public event EventHandler<int>? SelectionChanged;
 
     /// <summary>Raised when the selected row is activated (Enter / double-click); the argument is the row index.</summary>
     public event EventHandler<int>? RowActivated;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <inheritdoc/>
     public override bool HandlesInput => true;
+
     /// <inheritdoc/>
     protected override bool WantsMouse => true;
 
     /// <summary>The column headers.</summary>
     public IReadOnlyList<string> Columns => _columns;
+
     /// <summary>The number of data rows.</summary>
     public int RowCount => _rows.Count;
 
@@ -61,9 +65,11 @@ public class DataTable : Control
 
     /// <summary>The selected row's cells, or <see langword="null"/> when there are no rows.</summary>
     public string[]? SelectedRow => _rows.Count == 0 ? null : _rows[Math.Clamp(_selected, 0, _rows.Count - 1)];
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Appends a column with the given header.</summary>
     public void AddColumn(string header)
     {
@@ -119,6 +125,7 @@ public class DataTable : Control
             case ConsoleKey.Enter:
                 if (_rows.Count > 0) RowActivated?.Invoke(this, _selected);
                 break;
+
             default: return;
         }
         inputEvent.Handled = true;
@@ -308,10 +315,12 @@ public class DataTable : Control
 
     // Non-data chrome rows (top border + header + header separator + bottom border). Measured from a ONE-row probe
     // — a header-only table omits the header separator that appears once there is data, so it would mislead.
-    private int ChromeTotal() { Measure(); return _chromeTotal; }
+    private int ChromeTotal()
+    { Measure(); return _chromeTotal; }
 
     // Rows drawn above the first data row (everything except the bottom border).
-    private int ChromeTop() { Measure(); return _chromeTop; }
+    private int ChromeTop()
+    { Measure(); return _chromeTop; }
 
     private void Measure()
     {
@@ -340,9 +349,11 @@ public class DataTable : Control
 
     // The columns the table draws into: the control width minus the reserved scrollbar column.
     private int ContentWidth => Math.Max(1, ActualWidth - ScrollbarWidth);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int ScrollbarWidth = 1;
     private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, ConsoleGUI.Data.Decoration.None);
     private static readonly Character ScrollTrack = new('░', new CColor(0x44, 0x44, 0x44), null, ConsoleGUI.Data.Decoration.None);
@@ -356,5 +367,6 @@ public class DataTable : Control
     private int _chromeTotal = -1;   // -1 = not yet measured (re-measured when columns or width change)
     private int _chromeTop = -1;
     private int _measuredWidth = -1;
-    #endregion
+
+    #endregion Fields
 }

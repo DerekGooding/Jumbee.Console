@@ -1,10 +1,9 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Displays a block of multi-line Spectre <see cref="Markup"/> text — the counterpart to the single-line
@@ -18,24 +17,29 @@ using Spectre.Console.Rendering;
 public class TextPanel : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="TextPanel"/> displaying the given Spectre <paramref name="markup"/>.</summary>
     public TextPanel(string markup = "")
     {
         Focusable = false;   // a passive display control: never a focus/tab target
         _markup = markup ?? "";
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The Spectre markup to display (may contain newlines). Setting it re-measures the content height.</summary>
     public string Markup
     {
         get => _markup;
         set => SetAtomicProperty(ref _markup, value ?? "", updatesLayout: true);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Escapes markup control characters so arbitrary text can be shown verbatim (Spectre's
     /// <c>Markup.Escape</c>).</summary>
     public static string Escape(string text) => Spectre.Console.Markup.Escape(text ?? "");
@@ -64,9 +68,12 @@ public class TextPanel : RenderableControl
     }
 
     private IRenderable Build() => new Markup(_markup);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _markup;
-    #endregion
+
+    #endregion Fields
 }

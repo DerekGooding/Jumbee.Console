@@ -25,6 +25,7 @@ internal readonly struct LayerCell
 internal sealed class Layer
 {
     public Layer(LayerCell[] contents) => Contents = contents;
+
     public LayerCell[] Contents { get; }
 }
 
@@ -37,10 +38,13 @@ internal interface IGrid
 {
     /// <summary>The grid resolution in dots — not necessarily the cell dimensions (braille = 2×4 dots per cell).</summary>
     (double X, double Y) Resolution { get; }
+
     /// <summary>Paints the dot at (<paramref name="x"/>, <paramref name="y"/>). Out-of-range dots are ignored, never thrown.</summary>
     void Paint(int x, int y, CColor color);
+
     /// <summary>Snapshots the current dots as a layer to be composited.</summary>
     Layer Save();
+
     /// <summary>Clears all dots back to the initial (blank) state.</summary>
     void Reset();
 }

@@ -1,17 +1,13 @@
 namespace Jumbee.Console.Documents;
 
+using AdocNet.Ast;
+using ColorCode;
+using RazorConsole.Core.Rendering.Syntax;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
-using AdocNet.Ast;
-
-using ColorCode;
-
-using RazorConsole.Core.Rendering.Syntax;
-
-using Spectre.Console;
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// Traverses an AsciiDoc <see cref="DocumentNode"/> and composes a tree of Spectre.Console
@@ -22,10 +18,13 @@ using Spectre.Console.Rendering;
 internal sealed class AsciiDocRenderer
 {
     #region Constructors
+
     public AsciiDocRenderer(AsciiDocStyles styles) => _s = styles;
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Builds a single renderable for the whole document (title rule + stacked, blank-separated blocks).</summary>
     public IRenderable Render(DocumentNode document)
     {
@@ -52,18 +51,18 @@ internal sealed class AsciiDocRenderer
 
     private IRenderable? RenderBlock(BlockNode node) => node switch
     {
-        SectionNode n         => RenderSection(n),
-        ParagraphNode n       => new Markup(InlineMarkup(n.Inlines)),
-        ListNode n            => RenderList(n),
-        TableNode n           => RenderTable(n),
-        DelimitedBlockNode n  => RenderDelimitedBlock(n),
-        BlockImageNode n      => RenderBlockImage(n),
-        AdmonitionNode n      => RenderAdmonition(n),
+        SectionNode n => RenderSection(n),
+        ParagraphNode n => new Markup(InlineMarkup(n.Inlines)),
+        ListNode n => RenderList(n),
+        TableNode n => RenderTable(n),
+        DelimitedBlockNode n => RenderDelimitedBlock(n),
+        BlockImageNode n => RenderBlockImage(n),
+        AdmonitionNode n => RenderAdmonition(n),
         DescriptionListNode n => RenderDescriptionList(n),
-        TocNode n             => RenderToc(n),
-        ThematicBreakNode     => new Rule { Style = Style.Parse(_s.PanelBorder) },
-        PageBreakNode         => new Rule { Style = Style.Parse(_s.PanelBorder) },
-        _                     => null,   // video, audio, index, bibliography — skipped in v1
+        TocNode n => RenderToc(n),
+        ThematicBreakNode => new Rule { Style = Style.Parse(_s.PanelBorder) },
+        PageBreakNode => new Rule { Style = Style.Parse(_s.PanelBorder) },
+        _ => null,   // video, audio, index, bibliography — skipped in v1
     };
 
     private IRenderable RenderSection(SectionNode section)
@@ -150,62 +149,62 @@ internal sealed class AsciiDocRenderer
             case DelimitedBlockKind.Source:
             case DelimitedBlockKind.Listing:
             case DelimitedBlockKind.Literal:
-            {
-                // A `[source,mermaid]` block renders the diagram itself, not its text — parse+rasterize it and drop
-                // the cell grid into the panel via the CellCanvas→IRenderable adapter.
-                if (IsMermaid(block.Language) && RenderMermaid(block.Content ?? string.Empty) is { } diagram)
                 {
-                    return new Panel(diagram)
+                    // A `[source,mermaid]` block renders the diagram itself, not its text — parse+rasterize it and drop
+                    // the cell grid into the panel via the CellCanvas→IRenderable adapter.
+                    if (IsMermaid(block.Language) && RenderMermaid(block.Content ?? string.Empty) is { } diagram)
+                    {
+                        return new Panel(diagram)
+                        {
+                            Border = BoxBorder.Rounded,
+                            BorderStyle = Style.Parse(_s.PanelBorder),
+                            Header = new PanelHeader(" mermaid "),
+                            Expand = false,
+                        };
+                    }
+
+                    var panel = new Panel(CodeContent(block.Content ?? string.Empty, block.Language))
                     {
                         Border = BoxBorder.Rounded,
                         BorderStyle = Style.Parse(_s.PanelBorder),
-                        Header = new PanelHeader(" mermaid "),
-                        Expand = false,
+                        Expand = true,
                     };
+                    var header = block.Language ?? block.Title
+                        ?? (block.BlockKind == DelimitedBlockKind.Literal ? null : "source");
+                    if (header is not null) panel.Header = new PanelHeader($" {Esc(header)} ");
+                    return panel;
                 }
-
-                var panel = new Panel(CodeContent(block.Content ?? string.Empty, block.Language))
-                {
-                    Border = BoxBorder.Rounded,
-                    BorderStyle = Style.Parse(_s.PanelBorder),
-                    Expand = true,
-                };
-                var header = block.Language ?? block.Title
-                    ?? (block.BlockKind == DelimitedBlockKind.Literal ? null : "source");
-                if (header is not null) panel.Header = new PanelHeader($" {Esc(header)} ");
-                return panel;
-            }
 
             case DelimitedBlockKind.Quote:
             case DelimitedBlockKind.Verse:
-            {
-                IRenderable body = block.Content is not null
-                    ? new Markup(Wrap(_s.Quote, Esc(block.Content)))   // Esc preserves embedded newlines
-                    : new Rows(RenderBlocks(block.Children.OfType<BlockNode>()));
-                var lines = new List<IRenderable> { body };
-                if (block.Attribution is not null)
                 {
-                    var attr = block.CitationSource is not null
-                        ? $"— {block.Attribution}, {block.CitationSource}"
-                        : $"— {block.Attribution}";
-                    lines.Add(new Markup(Wrap(_s.Attribution, Esc(attr))));
+                    IRenderable body = block.Content is not null
+                        ? new Markup(Wrap(_s.Quote, Esc(block.Content)))   // Esc preserves embedded newlines
+                        : new Rows(RenderBlocks(block.Children.OfType<BlockNode>()));
+                    var lines = new List<IRenderable> { body };
+                    if (block.Attribution is not null)
+                    {
+                        var attr = block.CitationSource is not null
+                            ? $"— {block.Attribution}, {block.CitationSource}"
+                            : $"— {block.Attribution}";
+                        lines.Add(new Markup(Wrap(_s.Attribution, Esc(attr))));
+                    }
+                    return new Padder(new Rows(lines), new Padding(2, 0, 0, 0));
                 }
-                return new Padder(new Rows(lines), new Padding(2, 0, 0, 0));
-            }
 
             case DelimitedBlockKind.Example:
             case DelimitedBlockKind.Sidebar:
-            {
-                var panel = new Panel(new Rows(RenderBlocks(block.Children.OfType<BlockNode>())))
                 {
-                    Border = BoxBorder.Rounded,
-                    BorderStyle = Style.Parse(_s.PanelBorder),
-                    Expand = true,
-                };
-                var header = block.Title ?? (block.BlockKind == DelimitedBlockKind.Sidebar ? "SIDEBAR" : null);
-                if (header is not null) panel.Header = new PanelHeader($" {Esc(header)} ");
-                return panel;
-            }
+                    var panel = new Panel(new Rows(RenderBlocks(block.Children.OfType<BlockNode>())))
+                    {
+                        Border = BoxBorder.Rounded,
+                        BorderStyle = Style.Parse(_s.PanelBorder),
+                        Expand = true,
+                    };
+                    var header = block.Title ?? (block.BlockKind == DelimitedBlockKind.Sidebar ? "SIDEBAR" : null);
+                    if (header is not null) panel.Header = new PanelHeader($" {Esc(header)} ");
+                    return panel;
+                }
 
             default:   // Open, Passthrough
                 return block.Content is not null
@@ -299,17 +298,17 @@ internal sealed class AsciiDocRenderer
     // Maps an AsciiDoc source language token to a ColorCode grammar, or null to render the block unhighlighted.
     private static ILanguage? ColorCodeLanguage(string? language) => language?.Trim().ToLowerInvariant() switch
     {
-        "csharp" or "c#" or "cs" or "dotnet"   => Languages.CSharp,
-        "java"                                  => Languages.Java,
-        "python" or "py"                        => Languages.Python,
+        "csharp" or "c#" or "cs" or "dotnet" => Languages.CSharp,
+        "java" => Languages.Java,
+        "python" or "py" => Languages.Python,
         "javascript" or "js" or "typescript" or "ts" => Languages.Typescript,
-        "xml"                                   => Languages.Xml,
-        "html" or "xhtml"                       => Languages.Html,
-        "css"                                   => Languages.Css,
-        "sql"                                   => Languages.Sql,
-        "cpp" or "c++" or "cxx"                 => Languages.Cpp,
-        "markdown" or "md"                      => Languages.Markdown,
-        _                                       => null,
+        "xml" => Languages.Xml,
+        "html" or "xhtml" => Languages.Html,
+        "css" => Languages.Css,
+        "sql" => Languages.Sql,
+        "cpp" or "c++" or "cxx" => Languages.Cpp,
+        "markdown" or "md" => Languages.Markdown,
+        _ => null,
     };
 
     // ── Inline markup ────────────────────────────────────────────────────
@@ -330,22 +329,22 @@ internal sealed class AsciiDocRenderer
     {
         switch (node)
         {
-            case TextInlineNode n:        sb.Append(Esc(n.Value)); break;
-            case StrongInlineNode n:      AppendStyled(sb, _s.Strong, n.Children); break;
-            case EmphasisInlineNode n:    AppendStyled(sb, _s.Emphasis, n.Children); break;
-            case MonospaceInlineNode n:   AppendStyled(sb, _s.Monospace, n.Children); break;
-            case HighlightInlineNode n:   AppendStyled(sb, _s.Highlight, n.Children); break;
+            case TextInlineNode n: sb.Append(Esc(n.Value)); break;
+            case StrongInlineNode n: AppendStyled(sb, _s.Strong, n.Children); break;
+            case EmphasisInlineNode n: AppendStyled(sb, _s.Emphasis, n.Children); break;
+            case MonospaceInlineNode n: AppendStyled(sb, _s.Monospace, n.Children); break;
+            case HighlightInlineNode n: AppendStyled(sb, _s.Highlight, n.Children); break;
             case SuperscriptInlineNode n: sb.Append(Esc("^" + n.Content)); break;
-            case SubscriptInlineNode n:   sb.Append(Esc("~" + n.Content)); break;
+            case SubscriptInlineNode n: sb.Append(Esc("~" + n.Content)); break;
             case PassthroughInlineNode n: sb.Append(Esc(n.Content)); break;
-            case LinkInlineNode n:        sb.Append(Wrap(_s.Link, Esc(n.Url))); break;
-            case InlineLinkMacroNode n:   sb.Append(Wrap(_s.Link, Esc(string.IsNullOrEmpty(n.Label) ? n.Url : n.Label))); break;
+            case LinkInlineNode n: sb.Append(Wrap(_s.Link, Esc(n.Url))); break;
+            case InlineLinkMacroNode n: sb.Append(Wrap(_s.Link, Esc(string.IsNullOrEmpty(n.Label) ? n.Url : n.Label))); break;
             case CrossReferenceInlineNode n: sb.Append(Wrap(_s.CrossReference, Esc(n.Label ?? n.Target))); break;
-            case InlineImageNode n:       sb.Append(Wrap(_s.CrossReference, Esc($"[image: {(string.IsNullOrEmpty(n.Alt) ? n.Target : n.Alt)}]"))); break;
-            case InlineMacroNode n:       sb.Append(Esc(n.Content)); break;
-            case FootnoteInlineNode:      sb.Append(Wrap(_s.CrossReference, Esc("[*]"))); break;
-            case InlineAnchorNode:        break;   // invisible target
-            default:                      break;   // unknown inline — emit nothing
+            case InlineImageNode n: sb.Append(Wrap(_s.CrossReference, Esc($"[image: {(string.IsNullOrEmpty(n.Alt) ? n.Target : n.Alt)}]"))); break;
+            case InlineMacroNode n: sb.Append(Esc(n.Content)); break;
+            case FootnoteInlineNode: sb.Append(Wrap(_s.CrossReference, Esc("[*]"))); break;
+            case InlineAnchorNode: break;   // invisible target
+            default: break;   // unknown inline — emit nothing
         }
     }
 
@@ -360,11 +359,11 @@ internal sealed class AsciiDocRenderer
     // ── Helpers ──────────────────────────────────────────────────────────
     private (string color, string glyph) AdmonitionAccent(string type) => type.ToUpperInvariant() switch
     {
-        "TIP"       => (_s.AdmonitionTip, "✓"),        // ✓
+        "TIP" => (_s.AdmonitionTip, "✓"),        // ✓
         "IMPORTANT" => (_s.AdmonitionImportant, "❕"),  // ❕
-        "WARNING"   => (_s.AdmonitionWarning, "⚠"),    // ⚠
-        "CAUTION"   => (_s.AdmonitionCaution, "⚡"),    // ⚡
-        _           => (_s.AdmonitionNote, "ℹ"),       // ℹ
+        "WARNING" => (_s.AdmonitionWarning, "⚠"),    // ⚠
+        "CAUTION" => (_s.AdmonitionCaution, "⚡"),    // ⚡
+        _ => (_s.AdmonitionNote, "ℹ"),       // ℹ
     };
 
     private static string Esc(string? s) => Markup.Escape(s ?? string.Empty);
@@ -385,17 +384,22 @@ internal sealed class AsciiDocRenderer
         }
         return new Rows(joined);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     // A one-cell renderable that occupies a single (visually blank) row — Rows drops zero-segment children.
     private static readonly IRenderable Blank = new Text(" ");
+
     private readonly AsciiDocStyles _s;
 
     // Syntax highlighter for source blocks, created lazily (only if the document has a recognised code block). Each
     // AsciiDocRenderer is single-use on one thread, so the non-thread-safe formatter/theme are safe as instance state.
     private SpectreMarkupFormatter? _highlighter;
+
     private SyntaxTheme? _syntaxTheme;
     private readonly SyntaxOptions _syntaxOptions = new() { TabWidth = 4 };
-    #endregion
+
+    #endregion Fields
 }

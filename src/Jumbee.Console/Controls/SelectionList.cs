@@ -14,25 +14,32 @@ using System.Linq;
 public class SelectionList : ToggleList
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="SelectionList"/> with the given <paramref name="options"/>.</summary>
     public SelectionList(params string[] options) : base(options) => ApplyTheme();
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when an option's checked state changes, with its index.</summary>
     public event EventHandler<int>? SelectionChanged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>The indices of the checked options, in ascending order.</summary>
     public IReadOnlyList<int> SelectedIndices => _checked.OrderBy(i => i).ToList();
 
     /// <summary>The text of the checked options, in option order.</summary>
     public IReadOnlyList<string> SelectedValues =>
         Enumerable.Range(0, _options.Count).Where(_checked.Contains).Select(i => _options[i]).ToList();
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Sets the checked state of an option, raising <see cref="SelectionChanged"/> when it changes.</summary>
     public void SetChecked(int index, bool isChecked)
     {
@@ -58,9 +65,12 @@ public class SelectionList : ToggleList
         base.ApplyTheme();
         SetGlyphs(UI.GlyphTheme.CheckboxChecked, UI.GlyphTheme.CheckboxUnchecked);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly HashSet<int> _checked = new();
-    #endregion
+
+    #endregion Fields
 }

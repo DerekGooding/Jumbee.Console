@@ -1,10 +1,8 @@
 namespace Jumbee.Console.Snapshot;
 
-using System;
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-
+using System;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -26,6 +24,7 @@ using CColor = ConsoleGUI.Data.Color;
 public sealed class AnsiScreen
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="AnsiScreen"/> with a blank <paramref name="width"/>×<paramref name="height"/> cell grid.</summary>
     public AnsiScreen(int width, int height)
     {
@@ -34,9 +33,11 @@ public sealed class AnsiScreen
         Buffer = new ConsoleBuffer { Size = new Size(width, height) };
         Buffer.Initialize();   // blank (space) cells
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The parsed screen image. Reuse <see cref="ConsoleSnapshot.ToText(ConsoleBuffer)"/> to read it.</summary>
     public ConsoleBuffer Buffer { get; }
 
@@ -45,9 +46,11 @@ public sealed class AnsiScreen
 
     /// <summary>The cursor position (0-based) as last set by a CUP move.</summary>
     public Position CursorPosition => new(_col, _row);
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Parses <paramref name="ansi"/> and applies it to the screen (cumulative across calls).</summary>
     public void Feed(string ansi)
     {
@@ -110,13 +113,15 @@ public sealed class AnsiScreen
                 _row = Math.Max(0, line - 1);
                 _col = Math.Max(0, column - 1);
                 break;
+
             case 'm':
                 ApplySgr(param);
                 break;
+
             case 'h' or 'l':
                 if (param == "?25") CursorVisible = final == 'h';
                 break;
-            // DECSCUSR ('q') and anything else: not modelled.
+                // DECSCUSR ('q') and anything else: not modelled.
         }
     }
 
@@ -152,6 +157,7 @@ public sealed class AnsiScreen
                     _fg = new CColor((byte)ParseInt(parts[k + 2], 0), (byte)ParseInt(parts[k + 3], 0), (byte)ParseInt(parts[k + 4], 0));
                     k += 4;
                     break;
+
                 case 48 when k + 4 < parts.Length && ParseInt(parts[k + 1], -1) == 2:
                     _bg = new CColor((byte)ParseInt(parts[k + 2], 0), (byte)ParseInt(parts[k + 3], 0), (byte)ParseInt(parts[k + 4], 0));
                     k += 4;
@@ -176,9 +182,11 @@ public sealed class AnsiScreen
 
     private static int ParseInt(string s, int fallback) =>
         int.TryParse(s, out var v) ? v : fallback;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const char Esc = '\x1b';
     private readonly int _width;
     private readonly int _height;
@@ -187,5 +195,6 @@ public sealed class AnsiScreen
     private CColor? _fg;
     private CColor? _bg;
     private Decoration _deco = Decoration.None;
-    #endregion
+
+    #endregion Fields
 }

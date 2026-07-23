@@ -1,7 +1,6 @@
 namespace Jumbee.Console;
 
 using ConsoleGUI;
-using ConsoleGUI.Controls;
 
 /// <summary>
 /// The visual scaffold behind <see cref="SplitPanel"/>: two nested ConsoleGUI <see cref="DockPanel"/>s laying out
@@ -16,6 +15,7 @@ using ConsoleGUI.Controls;
 public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
 {
     #region Constructors
+
     internal SplitPanelDockPanel(SplitOrientation orientation, IControl first, IControl second, int firstExtent)
     {
         Orientation = orientation;
@@ -38,14 +38,18 @@ public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
         DockedControl = _firstBoundary;
         FillingControl = inner;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     internal SplitDivider Divider { get; }
     internal SplitOrientation Orientation { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     internal void SetFirstExtent(int extent)
     {
         // Use Width/Height (single re-layout) rather than setting Min+Max separately (two cascades) — this is called
@@ -53,9 +57,12 @@ public sealed class SplitPanelDockPanel : ConsoleGUI.Controls.DockPanel
         if (Orientation == SplitOrientation.Horizontal) _firstBoundary.Width = extent;
         else _firstBoundary.Height = extent;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly ConsoleGUI.Controls.Boundary _firstBoundary;
-    #endregion
+
+    #endregion Fields
 }

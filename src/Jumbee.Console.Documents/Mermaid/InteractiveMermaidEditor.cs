@@ -1,7 +1,5 @@
 namespace Jumbee.Console.Documents;
 
-using Jumbee.Console.Documents.Mermaid;
-
 /// <summary>
 /// A live, split-pane Mermaid editor for the terminal: the left pane is a <see cref="CodeEditor"/> with Mermaid syntax
 /// highlighting (see <see cref="MermaidLanguage"/>); the right pane is a <see cref="MermaidViewer"/> that re-renders
@@ -14,6 +12,7 @@ using Jumbee.Console.Documents.Mermaid;
 public class InteractiveMermaidEditor : InteractiveSourceEditor
 {
     #region Constructors
+
     /// <param name="mermaid">Initial diagram source (both panes start in sync).</param>
     /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
     /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
@@ -21,10 +20,13 @@ public class InteractiveMermaidEditor : InteractiveSourceEditor
     public InteractiveMermaidEditor(string mermaid = "", SplitOrientation orientation = SplitOrientation.Horizontal,
         int splitPosition = 40)
         : base(new CodeEditor(MermaidLanguage.Instance) { Text = mermaid ?? "" }, new MermaidViewer(mermaid ?? ""),
-            " Mermaid ", " Diagram ", mermaid ?? "", orientation, splitPosition) { }
-    #endregion
+            " Mermaid ", " Diagram ", mermaid ?? "", orientation, splitPosition)
+    { }
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The preview pane rendering the live diagram.</summary>
     public MermaidViewer Preview => (MermaidViewer)PreviewControl;
 
@@ -34,9 +36,11 @@ public class InteractiveMermaidEditor : InteractiveSourceEditor
         get => Preview.Styles ?? MermaidStyles.Default;
         set => Preview.Styles = value;
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Pushes the edited <paramref name="text"/> into the preview pane's <see cref="MermaidViewer.Mermaid"/>.</summary>
     protected override void ApplyPreviewText(string text) => Preview.Mermaid = text;
 
@@ -48,5 +52,6 @@ public class InteractiveMermaidEditor : InteractiveSourceEditor
         .WithKey("Ctrl+← / Ctrl+→", "Move focus between the panes")
         .WithKey("Drag divider", "Resize the panes")
         .WithKey("↑ / ↓, ← / →", "Scroll / pan the diagram");
-    #endregion
+
+    #endregion Methods
 }

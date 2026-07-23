@@ -1,5 +1,6 @@
 namespace Jumbee.Console;
 
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,8 +8,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-
-using Microsoft.Win32.SafeHandles;
 
 /// <summary>
 /// A Unix pseudo terminal (Linux/macOS) session.
@@ -22,6 +21,7 @@ using Microsoft.Win32.SafeHandles;
 public sealed class UnixPty : IPty
 {
     #region Constructors
+
     private UnixPty(int controller, int pid, Stream input, Stream output)
     {
         _controller = controller;
@@ -29,21 +29,28 @@ public sealed class UnixPty : IPty
         Input = input;
         Output = output;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <inheritdoc/>
     public Stream Input { get; }
+
     /// <inheritdoc/>
     public Stream Output { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <inheritdoc/>
     public event Action? Exited;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <summary>Launches <paramref name="commandLine"/> in a new pty of the given size, optionally starting the
     /// child in <paramref name="workingDirectory"/> (null inherits the host process's directory).</summary>
     public static UnixPty Start(string commandLine, short columns, short rows, string? workingDirectory = null)
@@ -184,9 +191,11 @@ public sealed class UnixPty : IPty
     {
         foreach (var p in elems) if (p != IntPtr.Zero) Marshal.FreeCoTaskMem(p);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private int _controller;
     private readonly int _pid;
 
@@ -196,43 +205,64 @@ public sealed class UnixPty : IPty
 
     // posix_spawn opaque structs: allocate the (larger) glibc sizes with headroom; macOS uses far less.
     private const int FileActionsSize = 128;   // glibc posix_spawn_file_actions_t ≈ 80
+
     private const int SpawnAttrSize = 512;      // glibc posix_spawnattr_t ≈ 336
 
     // POSIX_SPAWN_SETSID differs by libc; TIOCSWINSZ ioctl request likewise.
     private static short POSIX_SPAWN_SETSID => (short)(OperatingSystem.IsMacOS() ? 0x0400 : 0x80);
+
     private static ulong TIOCSWINSZ => OperatingSystem.IsMacOS() ? 0x80087467UL : 0x5414UL;
-    #endregion
+
+    #endregion Fields
 
     #region Native  (all in libc; on macOS "libc" resolves to libSystem)
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_openpt(int flags);
+
     [DllImport("libc", SetLastError = true)] private static extern int grantpt(int fd);
+
     [DllImport("libc", SetLastError = true)] private static extern int unlockpt(int fd);
+
     [DllImport("libc", SetLastError = true)] private static extern IntPtr ptsname(int fd);
 
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_init(IntPtr fileActions);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addopen(IntPtr fileActions, int fd, IntPtr path, int oflag, uint mode);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_adddup2(IntPtr fileActions, int fd, int newFd);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addclose(IntPtr fileActions, int fd);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_addchdir_np(IntPtr fileActions, IntPtr path);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawn_file_actions_destroy(IntPtr fileActions);
 
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_init(IntPtr attr);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_setflags(IntPtr attr, short flags);
+
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawnattr_destroy(IntPtr attr);
 
     [DllImport("libc", SetLastError = true)] private static extern int posix_spawnp(out int pid, IntPtr file, IntPtr fileActions, IntPtr attr, IntPtr argv, IntPtr envp);
 
     [DllImport("libc", SetLastError = true)] private static extern int ioctl(int fd, ulong request, ref WinSize winSize);
+
     [DllImport("libc", SetLastError = true)] private static extern int dup(int fd);
+
     [DllImport("libc", SetLastError = true)] private static extern int close(int fd);
+
     [DllImport("libc", SetLastError = true)] private static extern int waitpid(int pid, ref int status, int options);
+
     [DllImport("libc", SetLastError = true)] private static extern int kill(int pid, int sig);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct WinSize
     {
         public ushort Row, Col, XPixel, YPixel;
-        public WinSize(ushort row, ushort col) { Row = row; Col = col; XPixel = 0; YPixel = 0; }
+
+        public WinSize(ushort row, ushort col)
+        { Row = row; Col = col; XPixel = 0; YPixel = 0; }
     }
-    #endregion
+
+    #endregion Native  (all in libc; on macOS "libc" resolves to libSystem)
 }

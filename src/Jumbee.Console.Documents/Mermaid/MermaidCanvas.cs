@@ -1,11 +1,9 @@
 namespace Jumbee.Console.Documents;
 
+using Jumbee.Console.Documents.Mermaid;
+using Mermaider;
 using System;
 using System.Collections.Generic;
-
-using Mermaider;
-
-using Jumbee.Console.Documents.Mermaid;
 
 /// <summary>
 /// Parses Mermaid source and rasterizes it to a <see cref="CellCanvas"/>, routing by diagram type. Shared by

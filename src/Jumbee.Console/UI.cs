@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 public static class UI
 {
     #region Methods
+
     /// <summary>
     /// Initializes the console and starts the UI, returning a task that completes when the UI stops.
     /// </summary>
@@ -91,12 +92,12 @@ public static class UI
         systemOverlay = layout as Overlay ?? new Overlay(layout);
         ConsoleManager.Content = systemOverlay.CControl;
         UI.layout = systemOverlay;
-        foreach(var c in layout.Controls.Select(lc => lc.FocusableControl))
+        foreach (var c in layout.Controls.Select(lc => lc.FocusableControl))
         {
             if (!controls.Contains(c))
             {
                 controls.Add(c);
-            }               
+            }
         }
         // Convert the target fps to the per-frame wait (ms). Clamp the divisor so fps <= 0 can't divide-by-zero, and
         // floor at 1 ms so a very large fps can't collapse to a 0 ms busy-loop (the dispatcher's WaitOne(0) never blocks).
@@ -111,7 +112,7 @@ public static class UI
         perfHud.RegisterToggle(HotKeys.CtrlF12);
         inputThread = new Thread(InputLoop) { IsBackground = true, Name = "Jumbee.Console.Input" };
         inputThread.Start();
-        RegisterSignalHandlers();        
+        RegisterSignalHandlers();
         return runCompletion.Task;
     }
 
@@ -230,6 +231,7 @@ public static class UI
                     layout?.OnInput(inputEventArgs);
                 }
                 break;
+
             case MouseInputEvent m:
                 ConsoleManager.MousePosition = new Position(m.X, m.Y);
                 // Latch the pressed button so the click handlers that fire on the matching Up (OnClick/OnDoubleClick,
@@ -247,14 +249,16 @@ public static class UI
                         // Move/Drag only need the updated position above.
                 }
                 break;
+
             case PasteInputEvent p:
                 actionInput = true;
                 layout?.OnPaste(p.Text);
                 break;
+
             case FocusInputEvent f:
                 HasFocus = f.HasFocus;
                 break;
-            // ResizeInputEvent is handled by the render loop's terminal-size check, not here.
+                // ResizeInputEvent is handled by the render loop's terminal-size check, not here.
         }
 
         if (actionInput)
@@ -263,8 +267,9 @@ public static class UI
             needsDraw = true;
         }
     }
+
     /// <summary>
-    /// Stops the UI update loop and disposes of the timer. 
+    /// Stops the UI update loop and disposes of the timer.
     /// </summary>
     public static void Stop()
     {
@@ -411,10 +416,13 @@ public static class UI
     /// <summary>Moves focus one cell left/right/up/down in the root layout's 2-D grid (wraps; skips empties). Bound
     /// to <c>Ctrl+Left/Right/Up/Down</c> by default.</summary>
     public static void FocusLeft() => MoveSpatialFocus(0, -1);
+
     /// <summary>Moves focus one cell right in the root layout's 2-D grid. Bound to <c>Ctrl+Right</c> by default.</summary>
     public static void FocusRight() => MoveSpatialFocus(0, +1);
+
     /// <summary>Moves focus one cell up in the root layout's 2-D grid. Bound to <c>Ctrl+Up</c> by default.</summary>
     public static void FocusUp() => MoveSpatialFocus(-1, 0);
+
     /// <summary>Moves focus one cell down in the root layout's 2-D grid. Bound to <c>Ctrl+Down</c> by default.</summary>
     public static void FocusDown() => MoveSpatialFocus(+1, 0);
 
@@ -606,7 +614,7 @@ public static class UI
             ProcessMetrics.RecordFrame(frameTimer.Elapsed.TotalMilliseconds, periodMs, GC.GetTotalAllocatedBytes() - allocBefore, drew, dirtyFraction);
         }
     }
-       
+
     /// <summary>
     /// Runs <paramref name="action"/> on the UI thread, marshaling automatically: <em>inline and immediately</em>
     /// when the caller is already on the UI thread (or no UI thread is running, e.g. headless/initialization),
@@ -640,9 +648,11 @@ public static class UI
         // Invoke is only called when control/layout state actually changes, so request a redraw.
         needsDraw = true;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Properties
+
     /// <summary>The root layout hosting the UI's controls, set by <see cref="Start"/>.</summary>
     /// <remarks>Read-only: the root can't be swapped after <see cref="Start"/>. To reconfigure the UI at runtime
     /// (e.g. a full-screen "zen" toggle), change a container in place rather than the root — collapse a pane via
@@ -730,7 +740,7 @@ public static class UI
     /// <remarks>Background work started alongside the UI (e.g. a Spectre progress/live loop) should observe this so
     /// it terminates on shutdown instead of running on.</remarks>
     public static CancellationToken CancellationToken => cancellationToken;
-    
+
     /// <summary>Average time (ms) spent firing control <see cref="Paint"/> handlers, over the recent sample window.</summary>
     public static double AveragePaintTime
     {
@@ -758,8 +768,8 @@ public static class UI
     {
         get
         {
-            var d = new Dictionary<IFocusable, double>();   
-            foreach(var c in controlPaintTimes)
+            var d = new Dictionary<IFocusable, double>();
+            foreach (var c in controlPaintTimes)
             {
                 double total = 0;
                 int count = 0;
@@ -781,9 +791,11 @@ public static class UI
     public static IDictionary<IFocusable, double> MaxControlPaintTimes => controlPaintTimes
         .Select(kv => KeyValuePair.Create(kv.Key, kv.Value.Where(v => v.HasValue).Select(v => v!.Value).DefaultIfEmpty().Max()))
         .ToDictionary();
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised by <see cref="SetTheme"/> after the active themes change, so live controls re-apply them.</summary>
     /// <remarks>Controls subscribe in their constructor and unsubscribe on <see cref="IDisposable.Dispose"/>.</remarks>
     public static event EventHandler? ThemeChanged;
@@ -793,9 +805,11 @@ public static class UI
     /// change in that case). Frames subscribe/unsubscribe via <see cref="Control.Frame"/>, mirroring
     /// <see cref="ThemeChanged"/>. Fired on the UI thread from <see cref="Control.IsFocused"/>.</summary>
     internal static event Action? FocusChanged;
+
     internal static void RaiseFocusChanged() => FocusChanged?.Invoke();
 
     private static EventHandler<PaintEventArgs>? _Paint;
+
     /// <summary>Raised each frame so subscribed controls render their state; the subscriber's target control is
     /// tracked for per-control paint timing and focus.</summary>
     public static event EventHandler<PaintEventArgs> Paint
@@ -832,13 +846,17 @@ public static class UI
             }
         }
     }
-    #endregion
+
+    #endregion Events
 
     #region Fields
+
     /// <summary>Lines scrolled per mouse-wheel notch.</summary>
     private const int WheelLines = 3;
+
     /// <summary>Collector for process/frame performance metrics, sampled each frame and surfaced by the perf HUD.</summary>
     public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics();
+
     private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
     private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
     private static readonly Dispatcher dispatcher = new Dispatcher();
@@ -847,10 +865,12 @@ public static class UI
     private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
     private static AlternateScreen? altScreen;   // alternate-screen session (ANSI interactive only), restored on Stop
+
     // Mouse (all encodings) + bracketed-paste + focus reporting OFF, reset SGR, show cursor. Emitted once at Start to
     // clear terminal state a hard-killed previous run couldn't restore. See the self-heal note in Start.
     private const string TerminalSelfHealSeq =
         "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1015l\x1b[?1016l\x1b[?2004l\x1b[?1004l\x1b[0m\x1b[?25h";
+
     private static List<PosixSignalRegistration>? signalRegistrations;
     private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     private static CancellationTokenSource cts = new CancellationTokenSource();
@@ -859,10 +879,13 @@ public static class UI
     private static bool isRunning;
     private static volatile bool needsDraw = true;
     private static ILayout? layout;
+
     // UI-owned overlay wrapping the app root; hosts global modals (the F1 help dialog). Set in Start.
     private static Overlay? systemOverlay;
+
     private static readonly List<IFocusable> controls = new List<IFocusable>();
     private static readonly GlobalInputListener globalInputListener = new GlobalInputListener();
+
     private static readonly Dictionary<ConsoleKeyInfo, Action> GlobalHotKeys = new Dictionary<ConsoleKeyInfo, Action>
     {
         { HotKeys.CtrlQ, Stop },
@@ -875,26 +898,32 @@ public static class UI
         { HotKeys.CtrlUp, FocusUp },
         { HotKeys.CtrlDown, FocusDown },
         // Global help dialog (toggles open/closed).
-        { HotKeys.F1, ShowHelp }       
-
+        { HotKeys.F1, ShowHelp }
     };
+
     private static readonly int paintTimeSamples = 60;
     private static readonly double[] paintTimes = new double[paintTimeSamples];
     private static readonly Stopwatch paintTimer = new Stopwatch();
+
     // Measures the whole draw/paint cycle each frame (fed to ProcessMetrics.RecordFrame); lastFrameStart tracks the
     // frame period for UI-thread utilisation.
     private static readonly Stopwatch frameTimer = new Stopwatch();
+
     private static long lastFrameStart;
     internal static int paintTimeIndex = 0;
     internal static readonly Dictionary<IFocusable, Stopwatch> controlPaintTimers = new();
+
     // Fractional milliseconds per control per frame (null when the control didn't repaint that frame). Fractional,
     // not whole ms — most controls (buttons, tab items, labels) repaint in well under 1 ms and would otherwise all
     // record 0, biasing every per-control average/peak to zero.
     internal static readonly Dictionary<IFocusable, double?[]> controlPaintTimes = new();
+
     private static readonly PerfHud perfHud = new PerfHud();
-    #endregion
+
+    #endregion Fields
 
     #region Types
+
     /// <summary>Arguments for the <see cref="Paint"/> event; carries no data (controls read their own state).</summary>
     public class PaintEventArgs : EventArgs
     {
@@ -919,17 +948,17 @@ public static class UI
     }
 
     /// <summary>Input listener that dispatches globally-registered hotkeys before any control sees the event.</summary>
-    public class GlobalInputListener: IInputListener
+    public class GlobalInputListener : IInputListener
     {
         /// <summary>Invokes the registered action for a matching global hotkey and marks the event handled.</summary>
         public void OnInput(InputEvent inputEvent)
         {
             if (GlobalHotKeys.TryGetValue(inputEvent.Key, out var action))
-            {               
+            {
                 action?.Invoke();
                 inputEvent.Handled = true;
-                return;                
-            }           
+                return;
+            }
         }
     }
 
@@ -1005,34 +1034,45 @@ public static class UI
 
         /// <summary>Ctrl+Q — the default quit hotkey.</summary>
         public static ConsoleKeyInfo CtrlQ = Ctrl(ConsoleKey.Q);
+
         // Focus navigation (Ctrl tier): Ctrl+N/P cycle within a region; Ctrl+arrows move between regions.
         /// <summary>Ctrl+N — cycles focus to the next control within the region.</summary>
         public static ConsoleKeyInfo CtrlN = Ctrl(ConsoleKey.N);
+
         /// <summary>Ctrl+P — cycles focus to the previous control within the region.</summary>
         public static ConsoleKeyInfo CtrlP = Ctrl(ConsoleKey.P);
+
         /// <summary>Ctrl+Left — moves focus one region left.</summary>
         public static ConsoleKeyInfo CtrlLeft = Ctrl(ConsoleKey.LeftArrow);
+
         /// <summary>Ctrl+Right — moves focus one region right.</summary>
         public static ConsoleKeyInfo CtrlRight = Ctrl(ConsoleKey.RightArrow);
+
         /// <summary>Ctrl+Up — moves focus one region up.</summary>
         public static ConsoleKeyInfo CtrlUp = Ctrl(ConsoleKey.UpArrow);
+
         /// <summary>Ctrl+Down — moves focus one region down.</summary>
         public static ConsoleKeyInfo CtrlDown = Ctrl(ConsoleKey.DownArrow);
+
         /// <summary>Ctrl+F12.</summary>
         public static ConsoleKeyInfo CtrlF12 = Ctrl(ConsoleKey.F12);
+
         // Alt+arrows — the "Alt tier" layout navigation keys (e.g. TabPanel switches tabs on Alt+Left/Right).
         /// <summary>Alt+Up — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltUp = Alt(ConsoleKey.UpArrow);
+
         /// <summary>Alt+Down — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltDown = Alt(ConsoleKey.DownArrow);
+
         /// <summary>Alt+Left — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltLeft = Alt(ConsoleKey.LeftArrow);
+
         /// <summary>Alt+Right — Alt-tier layout navigation.</summary>
         public static ConsoleKeyInfo AltRight = Alt(ConsoleKey.RightArrow);
+
         /// <summary>Ctrl+Alt+Up.</summary>
         public static ConsoleKeyInfo CtrlAltUp = CtrlAlt(ConsoleKey.UpArrow);
     }
-    #endregion
+
+    #endregion Types
 }
-
-

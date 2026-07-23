@@ -11,6 +11,7 @@ public partial class ListBox
     public class ListBoxItem
     {
         #region Constructors
+
         /// <summary>Initializes an item with the given renderable content at <paramref name="index"/> in <paramref name="listBox"/>.</summary>
         public ListBoxItem(ListBox listBox, int index, IRenderable content)
         {
@@ -29,9 +30,11 @@ public partial class ListBox
             this._backgroundColor = background;
             UpdateTextContent();
         }
-        #endregion
+
+        #endregion Constructors
 
         #region Properties
+
         /// <summary>This item's stable index within its owning list.</summary>
         public readonly int Index;
 
@@ -39,6 +42,7 @@ public partial class ListBox
         public ListBox? ListBox { get; private set; }
 
         private IRenderable _content = default!;
+
         /// <summary>The renderable drawn for this item; setting it clears any text and re-measures the list.</summary>
         public IRenderable Content
         {
@@ -52,6 +56,7 @@ public partial class ListBox
         }
 
         private string? _text;
+
         /// <summary>The item's plain text, or <see langword="null"/> if it was created from a renderable.</summary>
         public string? Text
         {
@@ -68,6 +73,7 @@ public partial class ListBox
         public object? Tag { get; set; }
 
         private Color? _foregroundColor;
+
         /// <summary>Foreground colour of a text item.</summary>
         public Color? ForegroundColor
         {
@@ -80,6 +86,7 @@ public partial class ListBox
         }
 
         private Color? _backgroundColor;
+
         /// <summary>Background colour of a text item.</summary>
         public Color? BackgroundColor
         {
@@ -90,9 +97,11 @@ public partial class ListBox
                 UpdateTextContent();
             }
         }
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         private void UpdateTextContent()
         {
             if (_text != null)
@@ -107,6 +116,7 @@ public partial class ListBox
 
         /// <summary>Whether the item has been detached from its list.</summary>
         public bool IsDetached => ListBox is null;
-        #endregion
+
+        #endregion Methods
     }
 }

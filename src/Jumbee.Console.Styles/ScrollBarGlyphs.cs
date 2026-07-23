@@ -33,6 +33,7 @@ public enum ScrollBarMode
 public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
 {
     #region Constructors
+
     /// <summary>Builds a <see cref="ScrollBarMode.Classic"/> glyph set (explicit glyphs imply the classic bar).</summary>
     public ScrollBarGlyphs(string thumb, string track, string upArrow, string downArrow)
     {
@@ -42,9 +43,11 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
         DownArrow = downArrow;
         Mode = ScrollBarMode.Classic;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Which bar to render (smooth sub-cell block bar, or the classic three-part bar). Defaults to
     /// <see cref="ScrollBarMode.Smooth"/> for a default-constructed value and for the <see cref="Smooth"/> preset.</summary>
     public ScrollBarMode Mode { get; init; }
@@ -60,9 +63,11 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
 
     /// <summary>The glyph at the bottom end of the scrollbar. Classic mode only.</summary>
     public string DownArrow { get; init; }
-    #endregion
+
+    #endregion Properties
 
     #region Presets
+
     /// <summary>The default: the modern <see cref="ScrollBarMode.Smooth"/> block bar (sub-cell thumb, no arrows).</summary>
     public static ScrollBarGlyphs Default { get; } = Smooth;
 
@@ -83,9 +88,11 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
 
     /// <summary>A heavy vertical-line thumb on a light vertical-line track with triangle arrows (classic).</summary>
     public static ScrollBarGlyphs Line { get; } = new("┃", "│", "▲", "▼");
-    #endregion
+
+    #endregion Presets
 
     #region Equality
+
     // Hand-written: the string fields make this struct non-bitwise-comparable, so the runtime's default
     // ValueType.Equals falls back to a reflective, boxing compare (~336 bytes per comparison). See Color.
     // Ordinal string comparison — these are glyphs, not text, so culture must not enter into it.
@@ -117,5 +124,6 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
 
     /// <summary>Inequality operator.</summary>
     public static bool operator !=(ScrollBarGlyphs a, ScrollBarGlyphs b) => !a.Equals(b);
-    #endregion
+
+    #endregion Equality
 }

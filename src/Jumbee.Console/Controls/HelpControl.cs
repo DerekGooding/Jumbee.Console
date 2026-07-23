@@ -1,10 +1,9 @@
 namespace Jumbee.Console;
 
+using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Text;
-
-using Spectre.Console;
 
 /// <summary>
 /// The global help dialog: a fixed-size modal composite showing one tab per <see cref="HelpInfo"/> (built by
@@ -17,6 +16,7 @@ using Spectre.Console;
 public sealed class HelpControl : CompositeControl
 {
     #region Constructors
+
     /// <summary>Initializes the help dialog with one tab per <paramref name="infos"/> entry, invoking
     /// <paramref name="onClose"/> when closed and starting on tab <paramref name="initialTab"/>.</summary>
     public HelpControl(IReadOnlyList<HelpInfo> infos, Action onClose, int initialTab = 0)
@@ -35,17 +35,21 @@ public sealed class HelpControl : CompositeControl
         SetContent(new Grid([DialogHeight - 1, 1], [DialogWidth], [[_tabs], [_close]]));
         if (initialTab > 0) _tabs.SelectedIndex = initialTab;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     // Focus the active tab's header so the Left/Right arrows switch tabs straight away (and it matches the shown
     // tab); Esc closes, Ctrl-nav reaches the Close button.
     /// <inheritdoc/>
     protected override Control? FocusChild =>
         _tabs.TabCount > 0 ? _tabs.Headers[Math.Max(0, _tabs.SelectedIndex)] : _close;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Selects the tab at <paramref name="index"/> (clamped).</summary>
     public void SelectTab(int index) => _tabs.SelectedIndex = index;
 
@@ -62,12 +66,15 @@ public sealed class HelpControl : CompositeControl
         }
         return new SpectreControl<Markup>(new Markup(sb.ToString())).WithSquareBorder();
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int DialogWidth = 72;
     private const int DialogHeight = 22;
     private readonly TabPanel _tabs;
     private readonly Button _close;
-    #endregion
+
+    #endregion Fields
 }

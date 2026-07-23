@@ -1,9 +1,7 @@
 namespace Jumbee.Console.Documents;
 
-using System;
-
 using ConsoleGUI.Space;
-
+using System;
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -15,6 +13,7 @@ using CColor = ConsoleGUI.Data.Color;
 internal sealed class CellCanvas
 {
     #region Constructors
+
     public CellCanvas(int width, int height)
     {
         Width = Math.Max(1, width);
@@ -25,23 +24,29 @@ internal sealed class CellCanvas
         _lineStyle = new byte[Width * Height];
         Array.Fill(_chars, ' ');
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     public int Width { get; }
     public int Height { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     // Direction bits.
     private const int U = 1, D = 2, L = 4, R = 8;
 
     /// <summary>Line weight for <see cref="Link"/>: normal, heavy (thick edges), or dashed (dotted edges).</summary>
-    public enum LineStyle : byte { Normal = 0, Heavy = 1, Dashed = 2 }
+    public enum LineStyle : byte
+    { Normal = 0, Heavy = 1, Dashed = 2 }
 
     /// <summary>Border style for <see cref="Box"/>: square corners, rounded (arc) corners, double lines, or heavy lines.
     /// Used to distinguish node kinds (e.g. decision vs process) without drawing non-rectangular shapes.</summary>
-    public enum BoxBorder : byte { Square = 0, Rounded = 1, Double = 2, Heavy = 3 }
+    public enum BoxBorder : byte
+    { Square = 0, Rounded = 1, Double = 2, Heavy = 3 }
 
     /// <summary>Writes an opaque glyph (node borders, labels, arrowheads), clearing any accumulated line mask.</summary>
     public void SetChar(int x, int y, char c, CColor? color)
@@ -68,9 +73,9 @@ internal sealed class CellCanvas
     {
         var dx = b.x - a.x;
         var dy = b.y - a.y;
-        if (dx == 1)       { AddBit(a.x, a.y, R, color, style); AddBit(b.x, b.y, L, color, style); }
+        if (dx == 1) { AddBit(a.x, a.y, R, color, style); AddBit(b.x, b.y, L, color, style); }
         else if (dx == -1) { AddBit(a.x, a.y, L, color, style); AddBit(b.x, b.y, R, color, style); }
-        else if (dy == 1)  { AddBit(a.x, a.y, D, color, style); AddBit(b.x, b.y, U, color, style); }
+        else if (dy == 1) { AddBit(a.x, a.y, D, color, style); AddBit(b.x, b.y, U, color, style); }
         else if (dy == -1) { AddBit(a.x, a.y, U, color, style); AddBit(b.x, b.y, D, color, style); }
     }
 
@@ -176,13 +181,28 @@ internal sealed class CellCanvas
     {
         LineStyle.Heavy => mask switch
         {
-            U | D => '┃', L | R => '━', D | R => '┏', D | L => '┓', U | R => '┗', U | L => '┛',
-            U | D | R => '┣', U | D | L => '┫', D | L | R => '┳', U | L | R => '┻', U | D | L | R => '╋',
-            U or D => '┃', L or R => '━', _ => ' ',
+            U | D => '┃',
+            L | R => '━',
+            D | R => '┏',
+            D | L => '┓',
+            U | R => '┗',
+            U | L => '┛',
+            U | D | R => '┣',
+            U | D | L => '┫',
+            D | L | R => '┳',
+            U | L | R => '┻',
+            U | D | L | R => '╋',
+            U or D => '┃',
+            L or R => '━',
+            _ => ' ',
         },
         LineStyle.Dashed => mask switch   // dashed straights, ordinary junctions (no dashed corner glyphs exist)
         {
-            U | D => '┆', L | R => '┄', U or D => '┆', L or R => '┄', _ => LightGlyph(mask),
+            U | D => '┆',
+            L | R => '┄',
+            U or D => '┆',
+            L or R => '┄',
+            _ => LightGlyph(mask),
         },
         _ => LightGlyph(mask),
     };
@@ -204,12 +224,15 @@ internal sealed class CellCanvas
         L or R => '─',
         _ => ' ',
     };
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly char[] _chars;
     private readonly CColor?[] _fg;
     private readonly byte[] _mask;
     private readonly byte[] _lineStyle;
-    #endregion
+
+    #endregion Fields
 }

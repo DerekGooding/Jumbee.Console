@@ -1,10 +1,9 @@
 namespace Jumbee.Console;
 
-using System;
-
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
+using System;
 
 /// <summary>
 /// The <see cref="IConsole"/> used by the ANSI render path. The terminal size is <b>read</b> from the live terminal,
@@ -20,6 +19,7 @@ using ConsoleGUI.Space;
 internal sealed class AnsiTerminalConsole : IConsole
 {
     #region Properties
+
     public Size Size
     {
         // Live terminal size; falls back to the last requested size if the terminal can't be queried (e.g. redirected).
@@ -28,9 +28,11 @@ internal sealed class AnsiTerminalConsole : IConsole
     }
 
     public bool KeyAvailable => false;   // input arrives via the VT input source, not Console.ReadKey
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     public void Initialize()
     {
         // UTF-8 output, then hide the cursor and clear the screen via ANSI — deliberately NOT Console.Clear() /
@@ -44,13 +46,20 @@ internal sealed class AnsiTerminalConsole : IConsole
         catch { /* not a real console (redirected) */ }
         try { Console.Out.Write("\x1b[?25l\x1b[2J\x1b[H"); Console.Out.Flush(); } catch { /* best effort */ }
     }
+
     public void OnRefresh() => _inner.OnRefresh();
-    public void Write(Position position, in Character character) { }   // unused on the ANSI path (acsb writes directly)
+
+    public void Write(Position position, in Character character)
+    { }   // unused on the ANSI path (acsb writes directly)
+
     public ConsoleKeyInfo ReadKey() => throw new NotSupportedException();
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly StandardConsole _inner = new StandardConsole();
     private Size _requested = new Size(80, 25);
-    #endregion
+
+    #endregion Fields
 }

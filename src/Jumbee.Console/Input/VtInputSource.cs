@@ -1,5 +1,6 @@
 namespace Jumbee.Console;
 
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,8 +8,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
-using Microsoft.Win32.SafeHandles;
 
 /// <summary>
 /// An <see cref="IInputSource"/> that puts the terminal into VT input mode and enables mouse, bracketed-paste, and
@@ -29,6 +28,7 @@ using Microsoft.Win32.SafeHandles;
 public sealed class VtInputSource : IInputSource, IDisposable
 {
     #region Constructors
+
     /// <param name="idleFlushMs">Idle timeout before flushing a dangling escape sequence.</param>
     /// <param name="anyMotion">
     /// When <see langword="true"/>, request any-motion mouse tracking (DEC 1003) so the pointer is reported on
@@ -48,9 +48,11 @@ public sealed class VtInputSource : IInputSource, IDisposable
         _reader = new Thread(ReaderLoop) { IsBackground = true, Name = "Jumbee.VtInput" };
         _reader.Start();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <inheritdoc/>
     public bool TryRead(out TerminalInputEvent? evt)
     {
@@ -108,6 +110,7 @@ public sealed class VtInputSource : IInputSource, IDisposable
     // Opt-in input diagnostics: set JUMBEE_INPUT_LOG=/path to capture what the reader thread sees (handy for the
     // untested-on-this-host Unix input path). No-op when the env var is unset.
     private static readonly string? LogPath = Environment.GetEnvironmentVariable("JUMBEE_INPUT_LOG");
+
     private static void Log(string msg)
     {
         if (LogPath is null) return;
@@ -121,9 +124,11 @@ public sealed class VtInputSource : IInputSource, IDisposable
         _running = false;     // reader exits on its next idle timeout (it is a background thread)
         _mode.Dispose();      // disable reporting + restore the original console mode
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly AnsiInputDecoder _decoder = new();
     private readonly System.Collections.Concurrent.ConcurrentQueue<TerminalInputEvent> _queue = new();
     private readonly Stream _stdin;
@@ -131,7 +136,8 @@ public sealed class VtInputSource : IInputSource, IDisposable
     private readonly TerminalInputMode _mode;
     private readonly int _idleFlushMs;
     private volatile bool _running = true;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -232,6 +238,7 @@ internal sealed class TerminalInputMode : IDisposable
     public bool RawModeApplied => _termiosChanged || _modeChanged;
 
     #region Win32
+
     private const int STD_INPUT_HANDLE = -10;
     private const uint ENABLE_PROCESSED_INPUT = 0x0001;      // off → Ctrl+C arrives as a 0x03 byte, not a signal
     private const uint ENABLE_LINE_INPUT = 0x0002;
@@ -254,13 +261,16 @@ internal sealed class TerminalInputMode : IDisposable
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
-    #endregion
+
+    #endregion Win32
 
     #region Posix
+
     private const int STDIN_FILENO = 0;
     private const int TCSANOW = 0;          // apply termios change immediately (same value on Linux/macOS/BSD)
     private const int O_RDWR = 2;           // open() flags — value is identical on Linux/macOS/BSD
     private const string DevTty = "/dev/tty";
+
     // struct termios is at most ~72 bytes (macOS); over-allocate so tcgetattr's write always fits. The blob is
     // opaque — cfmakeraw does all the field/flag manipulation, so we never depend on the per-platform layout.
     private const int TermiosSize = 128;
@@ -287,5 +297,6 @@ internal sealed class TerminalInputMode : IDisposable
 
     [DllImport("libc")]
     private static extern void cfmakeraw([In, Out] byte[] termios);
-    #endregion
+
+    #endregion Posix
 }

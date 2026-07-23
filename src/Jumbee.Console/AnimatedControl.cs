@@ -6,14 +6,17 @@ using System;
 public abstract class AnimatedControl : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="AnimatedControl"/> and requests an initial paint.</summary>
     public AnimatedControl() : base()
     {
         Invalidate();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Starts the animation, resetting the frame timer.</summary>
     public void Start()
     {
@@ -58,21 +61,30 @@ public abstract class AnimatedControl : Control
 
     // Control should always repaint itself
     /// <summary>No-op so the control always repaints itself each frame.</summary>
-    protected override void Validate() {}
-    #endregion
+    protected override void Validate()
+    { }
+
+    #endregion Methods
 
     #region Fields
+
     /// <summary>Total number of frames in the animation cycle.</summary>
     protected int frameCount = 0;
+
     /// <summary>Index of the currently displayed frame.</summary>
     protected int frameIndex = 0;
+
     /// <summary>Tick count of the previous paint, used to measure elapsed time.</summary>
     protected long lastUpdate;
+
     /// <summary>Ticks accumulated toward the next frame advance.</summary>
     protected long accumulated;
+
     /// <summary>Ticks between frame advances.</summary>
     protected long interval;
+
     /// <summary>Whether the animation is currently running.</summary>
     protected bool isRunning = false;
-    #endregion
+
+    #endregion Fields
 }

@@ -1,14 +1,12 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// An append-only, scrolling log of Spectre <see cref="IRenderable"/> entries — markup strings, tables, rules,
@@ -27,15 +25,18 @@ using Spectre.Console.Rendering;
 public class Log : Control
 {
     #region Properties
+
     /// <summary>The maximum number of entries retained; older entries are discarded. Defaults to 1000.</summary>
     public int MaxEntries
     {
         get => _maxEntries;
         set => UI.Invoke(() => { _maxEntries = Math.Max(1, value); Trim(); Invalidate(); });
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Appends a markup string as a styled entry. Safe to call from any thread.</summary>
     public void Write(string markup) => Write(new Markup(markup ?? ""));
 
@@ -218,24 +219,31 @@ public class Log : Control
             }
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int ScrollbarWidth = 1;
     private static readonly Character ScrollThumb = new('█', new Color(0x9e, 0x9e, 0x9e), null, ConsoleGUI.Data.Decoration.None);
     private static readonly Character ScrollTrack = new('░', new Color(0x44, 0x44, 0x44), null, ConsoleGUI.Data.Decoration.None);
 
     private readonly List<IRenderable> _entries = new();
+
     // Pre-rendered visual lines (flat) at _renderedWidth, and the line count each entry contributed (for trimming).
     private readonly List<SegmentLine> _lines = new();
+
     private readonly List<int> _entryLineCounts = new();
     private int _renderedWidth = -1;
     private bool _needsRebuild;
     private int _maxEntries = 1000;
+
     // Scroll view state: _follow pins the view to the newest line; when false, _viewTop is the absolute top line.
     private bool _follow = true;
+
     private int _viewTop;
 
     private int ContentWidth => Math.Max(0, ActualWidth - ScrollbarWidth);
-    #endregion
+
+    #endregion Fields
 }

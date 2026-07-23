@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// Shared base for the vertical, navigable toggle lists (<see cref="RadioSet"/>, <see cref="SelectionList"/>).
@@ -28,6 +26,7 @@ using Spectre.Console.Rendering;
 public abstract class ToggleList : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="ToggleList"/> with the given <paramref name="options"/>.</summary>
     protected ToggleList(IEnumerable<string> options)
     {
@@ -36,9 +35,11 @@ public abstract class ToggleList : RenderableControl
         // Styles + glyphs are captured by ApplyTheme, which the subclass calls from its constructor (and which
         // re-runs on a runtime theme switch). Width is set there via SetGlyphs.
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
 
@@ -74,9 +75,11 @@ public abstract class ToggleList : RenderableControl
         get => _selectionStyle;
         set => SetAtomicProperty(ref _selectionStyle, value, watch: (_, v) => _selectionBackground = SelectionBg(v), themeOverride: true);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary><see langword="true"/> if the option at <paramref name="index"/> is currently selected/checked.</summary>
     protected abstract bool IsChecked(int index);
 
@@ -120,18 +123,22 @@ public abstract class ToggleList : RenderableControl
                 CursorIndex = (_cursor - 1 + count) % count;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.DownArrow:
                 CursorIndex = (_cursor + 1) % count;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Home:
                 CursorIndex = 0;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.End:
                 CursorIndex = count - 1;
                 inputEvent.Handled = true;
                 break;
+
             case ConsoleKey.Enter:
             case ConsoleKey.Spacebar:
                 Activate(_cursor);
@@ -194,10 +201,12 @@ public abstract class ToggleList : RenderableControl
         if (y < top) Frame.Top = y;
         else if (y >= top + viewportHeight) Frame.Top = y - viewportHeight + 1;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
-    private protected readonly List<string> _options;
+
+    protected readonly List<string> _options;
     private int _cursor;
     private string _on = "";
     private string _off = "";
@@ -207,5 +216,6 @@ public abstract class ToggleList : RenderableControl
     private Style _mutedStyle;
     private Style _selectionStyle;
     private Style _selectionBackground;
-    #endregion
+
+    #endregion Fields
 }

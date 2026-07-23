@@ -1,23 +1,27 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
-
-using Spectre.Console.Rendering;
 
 /// <summary>Preset colour schemes for a <see cref="Badge"/>, resolved from the active theme.</summary>
 public enum BadgeVariant
 {
     /// <summary>The neutral default scheme.</summary>
     Default,
+
     /// <summary>The theme's primary accent scheme.</summary>
     Primary,
+
     /// <summary>The theme's secondary accent scheme.</summary>
     Secondary,
+
     /// <summary>A green "success" scheme.</summary>
     Success,
+
     /// <summary>A yellow "warning" scheme.</summary>
     Warning,
+
     /// <summary>A red "error" scheme.</summary>
     Error,
 }
@@ -33,6 +37,7 @@ public enum BadgeVariant
 public class Badge : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Badge"/> with the given text and themed <see cref="BadgeVariant"/>.</summary>
     public Badge(string text, BadgeVariant variant = BadgeVariant.Default)
     {
@@ -48,9 +53,11 @@ public class Badge : RenderableControl
     {
         Style = style;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The badge's label text.</summary>
     public string Text
     {
@@ -78,9 +85,11 @@ public class Badge : RenderableControl
         get => _style;
         set => SetAtomicProperty(ref _style, value, themeOverride: true);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override bool RendersInteractiveState => false;
 
@@ -92,6 +101,7 @@ public class Badge : RenderableControl
 
     /// <inheritdoc/>
     protected override int IntrinsicHeight() => 1;
+
     /// <inheritdoc/>
     protected override int IntrinsicWidth() => DisplayWidth();
 
@@ -121,12 +131,15 @@ public class Badge : RenderableControl
     // colour to the background and draw dark text on top.
     private static Style Filled(Style foregroundStyle)
         => foregroundStyle.ForegroundColor is { } color ? Style.Black | Style.Bg(color) : foregroundStyle;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _text;
     private int _padding = 1;
     private BadgeVariant _variant;
     private Style _style;
-    #endregion
+
+    #endregion Fields
 }

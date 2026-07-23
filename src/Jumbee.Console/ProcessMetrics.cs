@@ -23,6 +23,7 @@ using System.Threading;
 public sealed class ProcessMetrics : IDisposable
 {
     #region Constructors
+
     /// <param name="capacity">Number of snapshots/frames retained (covers <paramref name="windowMs"/> at the frame
     /// rate; the default covers several seconds at a 100&#160;ms tick).</param>
     /// <param name="windowMs">Rolling window over which whole-process rates (CPU%, GC-pause%, exceptions/s) are measured.</param>
@@ -41,9 +42,11 @@ public sealed class ProcessMetrics : IDisposable
         _cpuSupported = !OperatingSystem.IsBrowser() && !OperatingSystem.IsWasi()
             && !OperatingSystem.IsTvOS() && !(OperatingSystem.IsIOS() && !OperatingSystem.IsMacCatalyst());
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties — per-frame render cost (directly measured, high-resolution)
+
     /// <summary>Mean draw/paint cycle wall time over the retained frames, in milliseconds.</summary>
     public double RenderTimeMsAvg => Avg(_frameRenderMs);
 
@@ -129,9 +132,11 @@ public sealed class ProcessMetrics : IDisposable
     {
         get { double p = 0; for (int i = 0; i < _fCount; i++) if (_frameDirty[i] > p) p = _frameDirty[i]; return p * 100.0; }
     }
-    #endregion
+
+    #endregion Properties — per-frame render cost (directly measured, high-resolution)
 
     #region Properties — whole-process rates & gauges
+
     /// <summary><see langword="true"/> if per-process CPU time is available on this OS (see the constructor guard).</summary>
     public bool CpuSupported => _cpuSupported;
 
@@ -191,18 +196,23 @@ public sealed class ProcessMetrics : IDisposable
 
     /// <summary>Cumulative number of generation-0 garbage collections since process start.</summary>
     public int Gen0Collections => GC.CollectionCount(0);
+
     /// <summary>Cumulative number of generation-1 garbage collections since process start.</summary>
     public int Gen1Collections => GC.CollectionCount(1);
+
     /// <summary>Cumulative number of generation-2 garbage collections since process start.</summary>
     public int Gen2Collections => GC.CollectionCount(2);
 
     /// <summary>Current number of thread-pool worker threads.</summary>
     public int ThreadPoolThreadCount => ThreadPool.ThreadCount;
+
     /// <summary>Number of work items currently queued to the thread pool.</summary>
     public long ThreadPoolQueueLength => ThreadPool.PendingWorkItemCount;
-    #endregion
+
+    #endregion Properties — whole-process rates & gauges
 
     #region Methods
+
     /// <summary>Begins collection: clears the retained frame/snapshot history (so a new UI session doesn't average
     /// in the previous one's frames), subscribes to first-chance exceptions, and takes a baseline cumulative sample.</summary>
     public void Start()
@@ -269,10 +279,16 @@ public sealed class ProcessMetrics : IDisposable
 
     private void OnFirstChanceException(object? sender, FirstChanceExceptionEventArgs e) => Interlocked.Increment(ref _exceptions);
 
-    private static double Avg(double[] ring, int count) { if (count == 0) return 0; double t = 0; for (int i = 0; i < count; i++) t += ring[i]; return t / count; }
+    private static double Avg(double[] ring, int count)
+    { if (count == 0) return 0; double t = 0; for (int i = 0; i < count; i++) t += ring[i]; return t / count; }
+
     private double Avg(double[] ring) => Avg(ring, _fCount);
-    private double Avg(long[] ring) { if (_fCount == 0) return 0; long t = 0; for (int i = 0; i < _fCount; i++) t += ring[i]; return (double)t / _fCount; }
-    private double Max(double[] ring) { double p = 0; for (int i = 0; i < _fCount; i++) if (ring[i] > p) p = ring[i]; return p; }
+
+    private double Avg(long[] ring)
+    { if (_fCount == 0) return 0; long t = 0; for (int i = 0; i < _fCount; i++) t += ring[i]; return (double)t / _fCount; }
+
+    private double Max(double[] ring)
+    { double p = 0; for (int i = 0; i < _fCount; i++) if (ring[i] > p) p = ring[i]; return p; }
 
     // The newest cumulative snapshot and the oldest still within the rolling window, plus the wall time between them.
     private bool TryWindow(out Snapshot oldest, out Snapshot newest, out double elapsedMs)
@@ -304,16 +320,20 @@ public sealed class ProcessMetrics : IDisposable
     }
 
     private Snapshot At(int i) => _samples[(_start + i) % _samples.Length];
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     // Cumulative-snapshot ring (whole-process window rates).
     private readonly Snapshot[] _samples;
+
     private int _start;
     private int _count;
 
     // Per-frame render-cost rings (directly measured), pushed together under one index.
     private readonly double[] _frameRenderMs;
+
     private readonly double[] _framePeriodMs;
     private readonly long[] _frameAlloc;
     private readonly bool[] _frameRedrawn;
@@ -325,9 +345,11 @@ public sealed class ProcessMetrics : IDisposable
     private readonly bool _cpuSupported;
     private long _exceptions;
     private bool _started;
-    #endregion
+
+    #endregion Fields
 
     #region Types
+
     private readonly struct Snapshot(long timestamp, double cpuMs, long allocated, double gcPauseMs, long exceptions, long workingSet)
     {
         public readonly long Timestamp = timestamp;     // Stopwatch.GetTimestamp ticks (high resolution)
@@ -337,5 +359,6 @@ public sealed class ProcessMetrics : IDisposable
         public readonly long Exceptions = exceptions;
         public readonly long WorkingSet = workingSet;   // Environment.WorkingSet at sample time, in bytes
     }
-    #endregion
+
+    #endregion Types
 }

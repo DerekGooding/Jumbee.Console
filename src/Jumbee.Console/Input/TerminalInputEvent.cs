@@ -10,10 +10,13 @@ public enum TerminalModifiers
 {
     /// <summary>No modifier keys held.</summary>
     None = 0,
+
     /// <summary>The Shift key is held.</summary>
     Shift = 1,
+
     /// <summary>The Alt key is held.</summary>
     Alt = 2,
+
     /// <summary>The Control key is held.</summary>
     Control = 4,
 }
@@ -23,14 +26,19 @@ public enum TerminalMouseButton
 {
     /// <summary>No button (e.g. a bare move).</summary>
     None,
+
     /// <summary>The left mouse button.</summary>
     Left,
+
     /// <summary>The middle mouse button.</summary>
     Middle,
+
     /// <summary>The right mouse button.</summary>
     Right,
+
     /// <summary>The wheel scrolled up.</summary>
     WheelUp,
+
     /// <summary>The wheel scrolled down.</summary>
     WheelDown,
 }
@@ -40,12 +48,16 @@ public enum TerminalMouseKind
 {
     /// <summary>A button was pressed.</summary>
     Down,
+
     /// <summary>A button was released.</summary>
     Up,
+
     /// <summary>The pointer moved with a button held.</summary>
     Drag,
+
     /// <summary>The pointer moved with no button held.</summary>
     Move,
+
     /// <summary>A wheel scroll.</summary>
     Wheel,
 }

@@ -1,14 +1,11 @@
 namespace Jumbee.Console.Documents;
 
-using System;
-using System.Threading.Tasks;
-
+using AdocNet.Parser;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
-using AdocNet.Parser;
-
 using Spectre.Console.Rendering;
+using System;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A read-only, scrollable AsciiDoc viewer.
@@ -28,11 +25,14 @@ using Spectre.Console.Rendering;
 public class AsciiDocViewer : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="AsciiDocViewer"/> showing <paramref name="asciiDoc"/>.</summary>
     public AsciiDocViewer(string asciiDoc = "") => _asciiDoc = asciiDoc ?? "";
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The AsciiDoc source. Setting it re-renders (off the UI thread) and re-lays-out.</summary>
     public string AsciiDoc
     {
@@ -56,9 +56,11 @@ public class AsciiDocViewer : Control
 
     /// <summary>Always <see langword="true"/> — the viewer handles scroll keys.</summary>
     public override bool HandlesInput => true;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     // A viewer paints its own content; don't overlay the themed focus tint over the whole document.
     protected override bool RendersOwnFocus => true;
@@ -204,9 +206,11 @@ public class AsciiDocViewer : Control
         foreach (var c in text) if (c == '\n') n++;
         return n;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     // The rendered content is capped at this many rows — beyond the control's own ~1000-row size clamp nothing is
     // reachable anyway, so a taller document simply clips at the bottom.
     private const int MaxRows = 1024;
@@ -221,5 +225,6 @@ public class AsciiDocViewer : Control
     private int _renderedVersion = -1;
     private int _renderingWidth = -1;           // (width, version) a render is currently in flight for, or -1
     private int _renderingVersion = -1;
-    #endregion
+
+    #endregion Fields
 }

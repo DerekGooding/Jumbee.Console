@@ -9,6 +9,7 @@ namespace Jumbee.Console;
 public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="GaugeStyle"/> from the fill, track, and text styles.</summary>
     public GaugeStyle(Style fill, Style track, Style text)
     {
@@ -16,9 +17,11 @@ public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
         Track = track;
         Text = text;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The filled portion of the bar (its foreground colour fills the band).</summary>
     public Style Fill { get; init; }
 
@@ -27,22 +30,28 @@ public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
 
     /// <summary>The percent/value readout and any inline label.</summary>
     public Style Text { get; init; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>A copy with the fill recoloured (keeps the track and text).</summary>
     public GaugeStyle WithFill(Color fill) => new(fill, Track, Text);
-    #endregion
+
+    #endregion Methods
 
     #region Presets
+
     /// <summary>A blue fill on a dim dark-grey track, with grey text.</summary>
     public static GaugeStyle Default { get; } = new(
         fill: new Color(90, 160, 240),
         track: new Color(48, 48, 58),
         text: Style.Grey85);
-    #endregion
+
+    #endregion Presets
 
     #region Equality
+
     // Hand-written: Style holds a reference, so the runtime's default ValueType.Equals falls back to a reflective,
     // boxing field-by-field compare — which is what SetAtomicProperty would run on every assignment. See Color.
     /// <summary>Determines whether this <see cref="GaugeStyle"/> equals <paramref name="other"/>.</summary>
@@ -59,5 +68,6 @@ public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
 
     /// <summary>Inequality operator.</summary>
     public static bool operator !=(GaugeStyle a, GaugeStyle b) => !a.Equals(b);
-    #endregion
+
+    #endregion Equality
 }

@@ -1,14 +1,12 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Data;
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-
-using ConsoleGUI.Data;
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
-
 using CColor = ConsoleGUI.Data.Color;
 
 #if GLOBE_TEXTURE_TOOL
@@ -38,11 +36,14 @@ using SixLabors.ImageSharp.Processing;
 public class Globe : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new display-only <see cref="Globe"/> (not focusable).</summary>
     public Globe() => Focusable = false;   // display-only
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Rotation of the globe about its polar axis, in radians. Advance it each tick to spin the world.</summary>
     public double RotationAngle
     {
@@ -129,9 +130,11 @@ public class Globe : Control
             Invalidate();
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Spins the globe about its polar axis by <paramref name="delta"/> radians — turning the world under a
     /// fixed camera and light, so the day/night terminator stays put on screen (the natural "rotating earth, fixed
     /// sun" look). One invalidation.</summary>
@@ -158,6 +161,7 @@ public class Globe : Control
     }
 
     #region Input (active only when Interactive)
+
     /// <summary>Receives mouse events only while <see cref="Interactive"/> (drag-rotate / wheel-zoom).</summary>
     protected override bool WantsMouse => _interactive;
 
@@ -221,7 +225,8 @@ public class Globe : Control
         }
         inputEvent.Handled = true;
     }
-    #endregion
+
+    #endregion Input (active only when Interactive)
 
     // A globe fills its container and re-fits on resize; it must never be scrolled (inside a ControlFrame this hands
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
@@ -351,9 +356,11 @@ public class Globe : Control
         if (i >= stops.Length - 1) return stops[^1];
         return Mix(stops[i], stops[i + 1], scaled - i);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const double DragSpinPerCell = 0.03;
     private const double DragTiltPerCell = 0.03;
     private const double ZoomPerNotch = 0.1;
@@ -365,13 +372,16 @@ public class Globe : Control
 
     // Deep ocean → shallow coastal water.
     private static readonly CColor[] OceanStops = [new(46, 112, 150), new(24, 74, 132), new(10, 32, 82)];
+
     // Coast lowland green → inland green → tan highland → brown mountains.
     private static readonly CColor[] LandStops = [new(74, 132, 78), new(92, 146, 74), new(150, 148, 96), new(126, 102, 74)];
+
     // Inland distance (grid cells from the coast, from EarthMask's distance transform) at which land reaches full
     // brown. This fakes elevation from distance-to-coast — so brown coverage scales with a continent's size. At the
     // old value (12) a mid-size landmass like Australia peaked at ~11 and never browned; 9 lets its arid interior read
     // tan→brown while keeping a green coastal band, and only marginally deepens the already-brown large deserts.
     private const double BrownDepth = 9.0;
+
     private static readonly CColor Ice = new(232, 238, 245);
 
     private double _angle;
@@ -384,10 +394,13 @@ public class Globe : Control
     private CColor _foreground = new(120, 210, 230);
     private bool _damageTracking = true;
     private Rect _prevDisc = Rect.Empty;   // last frame's drawn disc, unioned with this frame's to avoid ghosting
+
     // Light mostly overhead (+y) and north (+z) with a little toward the camera (+x), giving a diagonal terminator.
     private double _lx = 0.2074, _ly = 0.8296, _lz = 0.5185;
+
     private double _softness = 2.5;        // terminator sharpness: higher = harder day/night edge
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -400,13 +413,16 @@ public class Globe : Control
 internal sealed class EarthTexture
 {
     #region Properties
+
     public static EarthTexture? Instance
     {
         get { if (!_loaded) { _instance = Load(); _loaded = true; } return _instance; }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     public CColor Sample(double latDeg, double lonDeg)
     {
         double u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);   // wrap longitude into [0,1)
@@ -442,16 +458,22 @@ internal sealed class EarthTexture
         while (off < buffer.Length && (n = stream.Read(buffer, off, buffer.Length - off)) > 0) off += n;
         return off == buffer.Length;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const long MaxPixels = 8_000_000;   // sanity cap on a malformed header (~24MB of RGB)
     private readonly byte[] _rgb;
     private readonly int _w, _h;
-    private EarthTexture(byte[] rgb, int w, int h) { _rgb = rgb; _w = w; _h = h; }
+
+    private EarthTexture(byte[] rgb, int w, int h)
+    { _rgb = rgb; _w = w; _h = h; }
+
     private static EarthTexture? _instance;
     private static bool _loaded;
-    #endregion
+
+    #endregion Fields
 }
 
 #if GLOBE_TEXTURE_TOOL
@@ -516,6 +538,7 @@ internal static class EarthTextureBaker
 internal sealed class EarthMask
 {
     #region Constructors
+
     private EarthMask()
     {
         // Filled from closed land RINGS, not from the coastline point cloud the map widgets scatter-plot: that cloud
@@ -558,13 +581,17 @@ internal sealed class EarthMask
         _elev = Distance(land: true);
         _depth = Distance(land: false);
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     public static EarthMask Instance => _instance ??= new EarthMask();
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     public void Sample(double latDeg, double lonDeg, out bool land, out int elev, out int depth)
     {
         double u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);
@@ -625,14 +652,17 @@ internal sealed class EarthMask
         if (ring.Count > 0) rings.Add(ring);
         return rings;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int W = 400, H = 200;
     private static readonly (int dy, int dx)[] Neighbors4 = [(-1, 0), (1, 0), (0, -1), (0, 1)];   // BFS 4-neighbourhood
     private static EarthMask? _instance;
     private readonly bool[,] _ocean;
     private readonly int[,] _elev;
     private readonly int[,] _depth;
-    #endregion
+
+    #endregion Fields
 }

@@ -1,14 +1,12 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ConsoleGUI;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>Where a <see cref="Select"/>'s dropdown opens relative to the control.</summary>
 public enum SelectPopupPosition
@@ -16,8 +14,10 @@ public enum SelectPopupPosition
     /// <summary>Open below when the dropdown fits under the control, otherwise above — so a Select near the bottom of
     /// the screen still shows all its options.</summary>
     Auto,
+
     /// <summary>Always open below the control.</summary>
     Below,
+
     /// <summary>Always open above the control.</summary>
     Above,
 }
@@ -34,6 +34,7 @@ public enum SelectPopupPosition
 public class Select : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Select"/> with the given <paramref name="options"/>.</summary>
     public Select(params string[] options)
     {
@@ -41,14 +42,18 @@ public class Select : RenderableControl
         Height = 1;
         Width = PreferredWidth();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when a different value is committed.</summary>
     public event EventHandler<string>? SelectionChanged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>The selectable options.</summary>
     public IReadOnlyList<string> Options => _options;
 
@@ -57,6 +62,7 @@ public class Select : RenderableControl
 
     /// <summary>The text colour of the collapsed control.</summary>
     public Color Foreground { get; set; } = Color.White;
+
     /// <summary>The background colour of the collapsed control.</summary>
     public Color Background { get; set; } = new(50, 50, 70);
 
@@ -82,9 +88,11 @@ public class Select : RenderableControl
 
     /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Opens the dropdown into the ambient <see cref="UI.Overlay"/> (no-op before <see cref="UI.Start"/>
     /// or with no options).</summary>
     public void Open()
@@ -177,13 +185,16 @@ public class Select : RenderableControl
         var longest = _options.Count == 0 ? 0 : _options.Max(o => o.Length);
         return Math.Max(longest, Placeholder.Length) + 3;   // leading space + arrow + a little padding
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int MaxDropdownRows = 8;
     private readonly List<string> _options;
     private int _selectedIndex = -1;
     private int _controlLeft = -1;
     private int _controlTop = -1;
-    #endregion
+
+    #endregion Fields
 }

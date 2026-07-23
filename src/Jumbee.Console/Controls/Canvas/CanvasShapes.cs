@@ -29,12 +29,16 @@ public sealed class Line : IShape
 
     /// <summary>X coordinate of the start point.</summary>
     public double X1 { get; }
+
     /// <summary>Y coordinate of the start point.</summary>
     public double Y1 { get; }
+
     /// <summary>X coordinate of the end point.</summary>
     public double X2 { get; }
+
     /// <summary>Y coordinate of the end point.</summary>
     public double Y2 { get; }
+
     /// <summary>Colour of the line.</summary>
     public Color Color { get; }
 
@@ -63,14 +67,19 @@ public sealed class FilledLine : IShape
 
     /// <summary>X coordinate of the start point.</summary>
     public double X1 { get; }
+
     /// <summary>Y coordinate of the start point.</summary>
     public double Y1 { get; }
+
     /// <summary>X coordinate of the end point.</summary>
     public double X2 { get; }
+
     /// <summary>Y coordinate of the end point.</summary>
     public double Y2 { get; }
+
     /// <summary>Y coordinate the fill extends to from each line point.</summary>
     public double FillToY { get; }
+
     /// <summary>Colour of the line and its fill.</summary>
     public Color Color { get; }
 
@@ -109,12 +118,16 @@ public sealed class Rectangle : IShape
 
     /// <summary>X coordinate of the bottom-left corner.</summary>
     public double X { get; }
+
     /// <summary>Y coordinate of the bottom-left corner.</summary>
     public double Y { get; }
+
     /// <summary>Width of the rectangle.</summary>
     public double Width { get; }
+
     /// <summary>Height of the rectangle.</summary>
     public double Height { get; }
+
     /// <summary>Colour of the outline.</summary>
     public Color Color { get; }
 
@@ -143,6 +156,7 @@ public sealed class Points : IShape
 
     /// <summary>The point coordinates in canvas space.</summary>
     public IReadOnlyList<(double X, double Y)> Coords { get; }
+
     /// <summary>Colour of the points.</summary>
     public Color Color { get; }
 
@@ -166,10 +180,13 @@ public sealed class Circle : IShape
 
     /// <summary>X coordinate of the centre.</summary>
     public double X { get; }
+
     /// <summary>Y coordinate of the centre.</summary>
     public double Y { get; }
+
     /// <summary>Radius of the circle.</summary>
     public double Radius { get; }
+
     /// <summary>Colour of the outline.</summary>
     public Color Color { get; }
 

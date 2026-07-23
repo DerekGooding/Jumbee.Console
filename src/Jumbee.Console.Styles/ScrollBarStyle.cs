@@ -9,6 +9,7 @@ namespace Jumbee.Console;
 public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="ScrollBarStyle"/> from the thumb, track, and end-arrow styles.</summary>
     public ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow)
     {
@@ -17,9 +18,11 @@ public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
         UpArrow = upArrow;
         DownArrow = downArrow;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Style for the thumb (the draggable handle).</summary>
     public Style Thumb { get; init; }
 
@@ -31,9 +34,11 @@ public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 
     /// <summary>Style for the bottom end arrow.</summary>
     public Style DownArrow { get; init; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>
     /// Returns a copy with the foreground colours overridden. A <c>null</c> argument leaves that part unchanged;
     /// <paramref name="arrows"/> recolours both end arrows.
@@ -47,9 +52,11 @@ public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 
     /// <summary>A scrollbar style with the same <see cref="Style"/> applied to every part.</summary>
     public static ScrollBarStyle Uniform(Style style) => new(style, style, style, style);
-    #endregion
+
+    #endregion Methods
 
     #region Presets
+
     /// <summary>The default colours: a medium-grey thumb on a dim dark-grey track (a neutral, modern groove that
     /// reads clearly under the smooth block bar), with terminal-default arrows for the classic bar.</summary>
     public static ScrollBarStyle Default { get; } = new(
@@ -57,9 +64,11 @@ public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
         track: new Color(68, 68, 68),
         upArrow: Style.Plain,
         downArrow: Style.Plain);
-    #endregion
+
+    #endregion Presets
 
     #region Equality
+
     // Hand-written: Style holds a reference, so the runtime's default ValueType.Equals falls back to a reflective,
     // boxing field-by-field compare — which is what SetAtomicProperty would run on every assignment. See Color.
     /// <summary>Determines whether this <see cref="ScrollBarStyle"/> equals <paramref name="other"/>.</summary>
@@ -77,5 +86,6 @@ public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
 
     /// <summary>Inequality operator.</summary>
     public static bool operator !=(ScrollBarStyle a, ScrollBarStyle b) => !a.Equals(b);
-    #endregion
+
+    #endregion Equality
 }

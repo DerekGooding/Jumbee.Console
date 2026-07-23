@@ -1,11 +1,11 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
-using Spectre.Console.Rendering;
 
 /// <summary>
-/// Wraps an existing Spectre.Console <see cref="IRenderable"/> control for use with ConsoleGUI control and layout types. 
+/// Wraps an existing Spectre.Console <see cref="IRenderable"/> control for use with ConsoleGUI control and layout types.
 /// </summary>
 /// <remarks>
 /// Uses an <see cref="AnsiConsoleBuffer"/> to render the control to a buffer.
@@ -17,27 +17,32 @@ using Spectre.Console.Rendering;
 public class SpectreControl<T> : RenderableControl where T : IRenderable
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="SpectreControl{T}"/> wrapping the given Spectre.Console <paramref name="content"/>.</summary>
     public SpectreControl(T content) : base()
     {
         _content = content;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The wrapped Spectre.Console renderable; setting it requests a re-render.</summary>
     public T Content
     {
         get => _content;
-        set 
+        set
         {
             _content = value;
             Invalidate();
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>
     /// Applies a mutation to the wrapped content on the UI thread (inline when already there, otherwise
     /// marshaled), so a non-atomic change never races with rendering.
@@ -64,10 +69,12 @@ public class SpectreControl<T> : RenderableControl where T : IRenderable
     // (both call Invalidate).
     /// <summary>Always <see langword="false"/> — the wrapped content's output does not depend on interactive state, so focus/hover changes reuse the cached buffer.</summary>
     protected override bool RendersInteractiveState => false;
-    
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private T _content;
-    #endregion
+
+    #endregion Fields
 }

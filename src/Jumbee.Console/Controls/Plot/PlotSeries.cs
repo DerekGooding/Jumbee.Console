@@ -3,8 +3,6 @@ namespace Jumbee.Console;
 using System;
 using System.Collections.Generic;
 
-using ConsolePlot.Plotting;
-
 using CPlot = ConsolePlot.Plot;
 
 /// <summary>
@@ -19,14 +17,17 @@ using CPlot = ConsolePlot.Plot;
 public sealed class PlotSeries
 {
     #region Constructors
+
     internal PlotSeries(Plot plot, Action<CPlot, IReadOnlyList<double>, IReadOnlyList<double>> draw)
     {
         _plot = plot;
         _draw = draw;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Replaces the series data with the paired <paramref name="xs"/>/<paramref name="ys"/> (same length).
     /// Passing empty lists is valid and draws nothing — a live series can be emptied (equivalently, <see cref="Clear"/>)
     /// and refilled without removing/re-adding it, so a series that appears only under some state (a trigger marker,
@@ -94,12 +95,15 @@ public sealed class PlotSeries
 
     // Applied by the plot on every rebuild — reads the current buffers, which the element then snapshots.
     internal void Apply(CPlot cplot) => _draw(cplot, _xs, _ys);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly Plot _plot;
     private readonly Action<CPlot, IReadOnlyList<double>, IReadOnlyList<double>> _draw;
     private readonly List<double> _xs = [];
     private readonly List<double> _ys = [];
-    #endregion
+
+    #endregion Fields
 }

@@ -24,6 +24,7 @@ public enum SplitOrientation
 public class SplitPanel : Layout<SplitPanelDockPanel>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="SplitPanel"/> splitting <paramref name="first"/> and <paramref name="second"/> along <paramref name="orientation"/>, with the first pane given <paramref name="splitPosition"/> cells.</summary>
     public SplitPanel(SplitOrientation orientation, IFocusable first, IFocusable second, int splitPosition = 20)
         : base(new SplitPanelDockPanel(orientation, first.RenderNode(), second.RenderNode(),
@@ -37,14 +38,18 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
         _divider.Dragged += delta => SplitPosition += delta;
         _divider.Nudged += delta => SplitPosition += delta;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised after <see cref="SplitPosition"/> changes, with the new first-pane extent.</summary>
     public event Action<int>? SplitChanged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>How the two panes are arranged (fixed at construction).</summary>
     public SplitOrientation Orientation => _orientation;
 
@@ -140,9 +145,11 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     // Surface the focused descendant so a parent layout routing through this single IFocusable reaches it.
     /// <inheritdoc/>
     public override IFocusable? FocusedControl => _first.FocusedControl ?? _divider.FocusedControl ?? _second.FocusedControl;
-    #endregion
+
+    #endregion Properties
 
     #region Fields
+
     private const int DefaultMin = 3;
     private readonly SplitOrientation _orientation;
     private readonly IFocusable _first;
@@ -152,5 +159,6 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     private int _minFirst = DefaultMin;
     private int _minSecond = DefaultMin;
     private bool _extentDirty;   // a coalesced SetFirstExtent is queued for the next frame (see ApplyExtent)
-    #endregion
+
+    #endregion Fields
 }

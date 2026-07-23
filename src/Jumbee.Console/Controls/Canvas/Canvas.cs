@@ -1,19 +1,15 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Jumbee.Console.Drawing;
-
 using Spectre.Console.Interop;
 using Spectre.Console.Rendering;
-
+using System;
+using System.Collections.Generic;
+using CColor = ConsoleGUI.Data.Color;
 using Character = ConsoleGUI.Data.Character;
 using Decoration = ConsoleGUI.Data.Decoration;
-using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
 /// A blank drawing surface on which you paint <see cref="IShape"/>s (<see cref="Line"/>, <see cref="Rectangle"/>,
@@ -33,11 +29,14 @@ using CColor = ConsoleGUI.Data.Color;
 public class Canvas : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new display-only <see cref="Canvas"/> (not focusable).</summary>
     public Canvas() => Focusable = false;   // display-only
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The horizontal window (left, right) of the coordinate system mapped across the control's width. Default (0, 0).</summary>
     public (double Min, double Max) XBounds
     {
@@ -109,9 +108,11 @@ public class Canvas : Control
             Invalidate();
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Sets the <see cref="XBounds"/> and returns this canvas, for fluent chaining.</summary>
     public Canvas WithXBounds(double min, double max)
     {
@@ -289,6 +290,7 @@ public class Canvas : Control
     }
 
     #region Input (pan/zoom, active only when Interactive)
+
     /// <summary>Receives mouse events only while <see cref="Interactive"/> (drag-pan / wheel-zoom).</summary>
     protected override bool WantsMouse => _interactive;
 
@@ -405,7 +407,8 @@ public class Canvas : Control
         XBounds = (cx - hx, cx + hx);
         YBounds = (cy - hy, cy + hy);
     }
-    #endregion
+
+    #endregion Input (pan/zoom, active only when Interactive)
 
     // A canvas fills its container and re-fits on resize; it must never be scrolled (inside a ControlFrame this hands
     // it the bounded viewport height instead of the unbounded scroll height, which would balloon it to the clamp).
@@ -590,9 +593,11 @@ public class Canvas : Control
             if (trackLabels) Damage(rect);
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Child types
+
     // An entry in the retained op list: a shape to draw on the current layer, a plain layer break, or a layer break
     // that also switches the marker for the new layer.
     private readonly struct Op
@@ -607,6 +612,7 @@ public class Canvas : Control
         public CanvasMarker? NewMarker { get; }       // set (with Shape null) => layer break switching to this marker
 
         public static Op Draw(IShape shape) => new(shape, null);
+
         public static Op LayerBreak(CanvasMarker? marker) => new(null, marker);
     }
 
@@ -641,13 +647,17 @@ public class Canvas : Control
         public double Y { get; }
         public StyledChar[] Chars { get; }
     }
-    #endregion
+
+    #endregion Child types
 
     #region Fields
+
     // The ordered op list of shapes and layer breaks (see Op); replayed each rebuild.
     private readonly List<Op> _ops = [];
+
     // Text labels drawn on top of every layer each render (not part of the layer/marker system).
     private readonly List<Label> _labels = [];
+
     private List<Layer>? _layers;
     private (double Min, double Max) _xBounds;
     private (double Min, double Max) _yBounds;
@@ -658,6 +668,7 @@ public class Canvas : Control
 
     // Interactive pan/zoom state. ZoomFactorPerNotch > 1: a wheel-down notch grows the window (zoom out).
     private const double ZoomFactorPerNotch = 1.1;
+
     private bool _interactive;
     private bool _dragging;
     private Position _lastDrag;
@@ -666,14 +677,19 @@ public class Canvas : Control
 
     // Reused per-property compositing scratch (grown to the largest buffer seen), cleared each blit.
     private char?[] _sym = [];
+
     private CColor?[] _fg = [];
     private CColor?[] _bg = [];
     private bool _damageTracking = true;
+
     // Last frame's blitted layer content, diffed in Blit to report damage. Invalid until the first full report.
     private Cel[]? _cells;
+
     private int _snapshotWidth = -1;
     private bool _snapshotValid;
+
     // Where the labels were drawn last frame, so a label that moves damages the cells it vacated.
     private readonly List<Rect> _prevLabelRects = [];
-    #endregion
+
+    #endregion Fields
 }

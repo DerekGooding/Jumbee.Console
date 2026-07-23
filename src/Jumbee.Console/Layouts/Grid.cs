@@ -1,10 +1,7 @@
 ﻿namespace Jumbee.Console;
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
-using ConsoleGUI;
 
 /// <summary>
 ///  A grid layout with controls arranged in rows and columns.
@@ -12,6 +9,7 @@ using ConsoleGUI;
 public class Grid : Layout<ConsoleGUI.Controls.Grid>
 {
     #region Constructors
+
     /// <summary>
     /// Creates a grid layout with fixed row heights, fixed column widths, and a control for each cell.
     /// </summary>
@@ -28,11 +26,11 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
     /// <param name="controls">Row-major controls: one inner array per row, each with one control per column.</param>
     /// <exception cref="ArgumentException">The control grid's row/column counts don't match
     /// <paramref name="rowHeights"/>/<paramref name="columnWidths"/>.</exception>
-    public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls ) : base(new ConsoleGUI.Controls.Grid())
-    {                
+    public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls) : base(new ConsoleGUI.Controls.Grid())
+    {
         control.Rows = rowHeights.Select(h => new ConsoleGUI.Controls.Grid.RowDefinition(h)).ToArray();
         control.Columns = columnWidths.Select(w => new ConsoleGUI.Controls.Grid.ColumnDefinition(w)).ToArray();
-        
+
         if (controls.Length != rowHeights.Length)
         {
             throw new ArgumentException($"The number of control rows: {controls.Length} must match the number of row heights: {rowHeights.Length}.");
@@ -42,18 +40,20 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
             var c = controls.First(r => r.Length != columnWidths.Length);
             var index = Array.IndexOf(controls, c);
             throw new ArgumentException($"The number of control columns in row {index}: {c.Length} must match the number of column widths: {columnWidths.Length}.");
-        }   
+        }
         for (int r = 0; r < controls.Length; r++)
         {
             for (int c = 0; c < controls[r].Length; c++)
             {
                 control.AddChild(c, r, controls[r][c].FocusableControl);
             }
-        }       
+        }
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Places <paramref name="child"/> in the cell at the given <paramref name="row"/> and <paramref name="column"/>.</summary>
     public void SetChild(int row, int column, IFocusable child)
     {
@@ -67,6 +67,8 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
     public override int Columns => control.Columns.Length;
 
     /// <summary>Gets the control at the given <paramref name="row"/> and <paramref name="column"/>.</summary>
-    public override IFocusable this[int row, int column] => (IFocusable) control.GetChild(column, row);
-    #endregion   
+    public override IFocusable this[int row, int column] => (IFocusable)control.GetChild(column, row);
+
+    #endregion Methods
+
 }

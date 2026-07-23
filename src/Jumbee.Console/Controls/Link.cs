@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// A focusable, clickable text link. Activating it (a mouse click, or Enter/Space while focused) opens
@@ -20,6 +18,7 @@ using Spectre.Console.Rendering;
 public class Link : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a <see cref="Link"/> with the given display text and optional URL.</summary>
     public Link(string text, string? url = null)
     {
@@ -29,16 +28,21 @@ public class Link : RenderableControl
         Height = 1;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when the link is activated by a mouse click or by Enter/Space while focused.</summary>
     public event EventHandler? Activated;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <inheritdoc/>
     public override bool HandlesInput => true;
+
     /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;   // underlines/highlights on focus
 
@@ -58,9 +62,11 @@ public class Link : RenderableControl
     /// <summary>Style while hovered or focused. Defaults to <see cref="IStyleTheme.Info"/>, underlined and
     /// reverse-video so the focused link is clearly highlighted.</summary>
     public Style HoverStyle { get => _hoverStyle; set => SetAtomicProperty(ref _hoverStyle, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Programmatically activate the link (the same path as a click): open the URL and raise <see cref="Activated"/>.</summary>
     public void Activate()
     {
@@ -109,12 +115,15 @@ public class Link : RenderableControl
         {
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _text;
     private string? _url;
     private Style _linkStyle;
     private Style _hoverStyle;
-    #endregion
+
+    #endregion Fields
 }

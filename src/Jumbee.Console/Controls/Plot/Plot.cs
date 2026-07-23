@@ -1,14 +1,12 @@
 namespace Jumbee.Console;
 
+using ConsolePlot.Drawing.Tools;
+using ConsolePlot.Plotting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using ConsolePlot.Drawing.Tools;
-using ConsolePlot.Plotting;
-
-using CPlot = ConsolePlot.Plot;
 using CColor = ConsoleGUI.Data.Color;
+using CPlot = ConsolePlot.Plot;
 
 /// <summary>
 /// A line/scatter chart backed by the ConsolePlot library, rendered into the control's buffer. Add data with
@@ -26,20 +24,25 @@ using CColor = ConsoleGUI.Data.Color;
 public class Plot : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new display-only <see cref="Plot"/> (not focusable).</summary>
     public Plot() => Focusable = false;   // display-only
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Background colour painted behind the plot, or <see langword="null"/> (the default) for transparent.</summary>
     public Color? Background
     {
         get => _background;
         set => SetAtomicProperty(ref _background, value, watch: (_, _) => _dirty = true);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Sets the <see cref="Background"/> colour and returns this plot, for fluent chaining.</summary>
     public Plot WithBackground(Color? background)
     {
@@ -514,10 +517,12 @@ public class Plot : Control
     [
         new(68, 1, 84), new(59, 82, 139), new(33, 145, 140), new(94, 201, 98), new(253, 231, 37),
     ];
+
     private static readonly CColor[] HeatStops =
     [
         new(0, 0, 0), new(150, 0, 0), new(230, 90, 0), new(250, 200, 40), new(255, 255, 220),
     ];
+
     private static readonly CColor[] GrayscaleStops = [new(15, 15, 15), new(245, 245, 245)];
     private static readonly CColor[] CoolStops = [new(0, 220, 220), new(120, 120, 240), new(230, 60, 230)];
 
@@ -776,9 +781,11 @@ public class Plot : Control
         foreach (var apply in _config) apply(plot);    // then per-data series/labels/ranges
         return plot;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int MinWidth = 8;
     private const int MinHeight = 4;
 
@@ -791,15 +798,18 @@ public class Plot : Control
     ];
 
     private readonly List<Action<CPlot>> _config = [];
+
     // Persistent axis/grid/tick styling — replayed on every rebuild and NOT emptied by Clear() (see ConfigureChrome).
     private readonly List<Action<CPlot>> _chrome = [];
+
     private PlotImage? _plot;
     private int _seriesCount;
     private int _builtWidth = -1;
     private int _builtHeight = -1;
     private bool _dirty = true;
     private CColor? _background;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -810,12 +820,16 @@ public enum PlotBrush
 {
     /// <summary>Braille dots — 2×4 sub-cells per character (8 points/cell), the smoothest. The default.</summary>
     Braille,
+
     /// <summary>Quadrant blocks — 2×2 sub-cells per character (4 points/cell), solid blocks rather than dots.</summary>
     Quadrant,
+
     /// <summary>A solid full block <c>█</c> per point (1×1).</summary>
     Block,
+
     /// <summary>A <c>•</c> per point (1×1).</summary>
     Dot,
+
     /// <summary>A <c>*</c> per point (1×1).</summary>
     Star,
 }
@@ -825,10 +839,13 @@ public enum PlotColormap
 {
     /// <summary>Perceptually-uniform dark-purple → blue → teal → green → yellow (the default).</summary>
     Viridis,
+
     /// <summary>Classic heat: black → red → orange → yellow → white.</summary>
     Heat,
+
     /// <summary>Dark → light grey.</summary>
     Grayscale,
+
     /// <summary>Cyan → blue → magenta.</summary>
     Cool,
 }
@@ -838,8 +855,10 @@ public enum PlotLabelAlign
 {
     /// <summary>The text starts at the point and runs right.</summary>
     Left,
+
     /// <summary>The text is centred on the point.</summary>
     Center,
+
     /// <summary>The text ends at the point.</summary>
     Right,
 }

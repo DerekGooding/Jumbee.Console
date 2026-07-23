@@ -1,12 +1,11 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// One entry in a <see cref="ContextMenu"/>: a label, an optional right-aligned shortcut hint, an action invoked
@@ -17,12 +16,16 @@ public sealed class MenuItem
 {
     /// <summary>The item's label text.</summary>
     public string Text { get; init; } = string.Empty;
+
     /// <summary>An optional right-aligned shortcut hint (display only).</summary>
     public string? Shortcut { get; init; }
+
     /// <summary>The action invoked when the item is chosen.</summary>
     public Action? Action { get; init; }
+
     /// <summary>Whether the item is selectable; disabled items are shown muted and skipped.</summary>
     public bool Enabled { get; init; } = true;
+
     /// <summary>Whether the item is a non-selectable divider row.</summary>
     public bool IsSeparator { get; init; }
 
@@ -32,12 +35,16 @@ public sealed class MenuItem
     public IReadOnlyList<MenuItem>? Submenu { get; init; }
 
     /// <summary>Initializes an empty <see cref="MenuItem"/>.</summary>
-    public MenuItem() { }
+    public MenuItem()
+    { }
+
     /// <summary>Initializes a <see cref="MenuItem"/> with the given label and optional action.</summary>
-    public MenuItem(string text, Action? action = null) { Text = text; Action = action; }
+    public MenuItem(string text, Action? action = null)
+    { Text = text; Action = action; }
 
     /// <summary>A parent item that opens <paramref name="submenu"/> when chosen (Right/Enter, or hover).</summary>
-    public MenuItem(string text, IEnumerable<MenuItem> submenu) { Text = text; Submenu = submenu.ToList(); }
+    public MenuItem(string text, IEnumerable<MenuItem> submenu)
+    { Text = text; Submenu = submenu.ToList(); }
 
     /// <summary>A non-selectable divider row.</summary>
     public static readonly MenuItem Separator = new() { IsSeparator = true, Enabled = false };
@@ -67,6 +74,7 @@ public sealed class MenuItem
 public class ContextMenu : Control
 {
     #region Constructors
+
     /// <summary>Initializes a <see cref="ContextMenu"/> from the given top-level items.</summary>
     public ContextMenu(IEnumerable<MenuItem> items)
     {
@@ -75,26 +83,34 @@ public class ContextMenu : Control
         ResetToRoot();
         OnLostFocus += () => Closed?.Invoke(this, EventArgs.Empty);   // dismissed (Escape / click-outside) or chosen
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when a leaf item is chosen (after its <see cref="MenuItem.Action"/> runs).</summary>
     public event EventHandler<MenuItem>? ItemActivated;
 
     /// <summary>Raised whenever the menu closes — whether an item was chosen or it was dismissed.</summary>
     public event EventHandler? Closed;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <inheritdoc/>
     public override bool HandlesInput => true;
+
     /// <inheritdoc/>
     protected override bool WantsMouse => true;   // hover highlights an item / opens its submenu
+
     /// <summary>The menu's top-level items.</summary>
     public IReadOnlyList<MenuItem> Items => _root;
-    #endregion
+
+    #endregion Properties
 
     #region Indexers
+
     // Guard cell reads against the real buffer bounds: while a submenu open/close resizes the control, the base
     // indexer (which guards on Size, not the buffer) can be read re-entrantly by the overlay's re-layout in the
     // window between Size growing and the buffer growing — reading past the buffer and throwing. Returning an empty
@@ -110,9 +126,11 @@ public class ContextMenu : Control
             return base[position];
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Methods
+
     /// <summary>Shows the menu (reset to its root level) in the ambient <see cref="UI.Overlay"/> with its top-left at
     /// (<paramref name="x"/>, <paramref name="y"/>), then focuses it (no-op before <see cref="UI.Start"/>).</summary>
     public void Show(int x, int y)
@@ -180,7 +198,8 @@ public class ContextMenu : Control
     }
 
     /// <inheritdoc/>
-    protected override void OnMouseLeave() { _lastHoverLevel = _lastHoverItem = -1; }
+    protected override void OnMouseLeave()
+    { _lastHoverLevel = _lastHoverItem = -1; }
 
     // Click a leaf to choose it; click a submenu parent to open it.
     /// <inheritdoc/>
@@ -299,6 +318,7 @@ public class ContextMenu : Control
     // parent), so the overlay anchors the popup to it and Size stays in step with the buffer.
     /// <inheritdoc/>
     protected override int IntrinsicWidth() => _chainWidth;
+
     /// <inheritdoc/>
     protected override int IntrinsicHeight() => _chainHeight;
 
@@ -405,20 +425,25 @@ public class ContextMenu : Control
         for (var i = 0; i < items.Count; i++) if (items[i].Selectable) return i;
         return -1;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Child types
+
     // One open level of the menu chain: its items, the highlighted index, and its box rect in the control's buffer.
     private sealed class Level
     {
         public readonly IReadOnlyList<MenuItem> Items;
         public int Highlighted;
         public int OriginX, OriginY, Width, Height;
+
         public Level(IReadOnlyList<MenuItem> items) => Items = items;
     }
-    #endregion
+
+    #endregion Child types
 
     #region Fields
+
     private readonly List<MenuItem> _root;
     private readonly List<Level> _levels = new();   // _levels[0] = root; deeper entries = open submenus
     private int _lastHoverLevel = -1;
@@ -431,5 +456,6 @@ public class ContextMenu : Control
     private Style _mutedStyle;
     private Style _selectedStyle;
     private Style _borderStyle;
-    #endregion
+
+    #endregion Fields
 }

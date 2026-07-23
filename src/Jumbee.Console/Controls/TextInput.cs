@@ -1,12 +1,9 @@
 namespace Jumbee.Console;
 
-using System;
-
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
-using Spectre.Console;
+using System;
 
 /// <summary>
 /// A single-line text entry control: caret, selection (Shift+navigation), horizontal scrolling when the text
@@ -19,6 +16,7 @@ using Spectre.Console;
 public class TextInput : Control
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="TextInput"/> with the given initial <paramref name="text"/> and <paramref name="placeholder"/> hint.</summary>
     public TextInput(string text = "", string placeholder = "")
     {
@@ -27,11 +25,14 @@ public class TextInput : Control
         _caret = _text.Length;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
+
     /// <summary>Reports <see langword="true"/>: the text cursor indicates focus, so no default focus tint is drawn.</summary>
     protected override bool RendersOwnFocus => true;   // the text cursor shows focus
 
@@ -90,19 +91,24 @@ public class TextInput : Control
 
     /// <summary>Style of selected text. Defaults to <see cref="IStyleTheme.Selection"/>.</summary>
     public Style SelectionStyle { get => _selectionStyle; set => SetAtomicProperty(ref _selectionStyle, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised whenever the text changes (typing, deletion, paste, or the <see cref="Text"/> setter).</summary>
     public event EventHandler? Changed;
 
     /// <summary>Raised when Enter is pressed. Read <see cref="Text"/> for the value.</summary>
     public event EventHandler? Submitted;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <summary>The input's fixed height of one row.</summary>
     protected override int IntrinsicHeight() => 1;   // one row tall
+
     /// <summary>Returns 0 so the input fills the available width.</summary>
     protected override int IntrinsicWidth() => 0;    // fill the available width
 
@@ -205,13 +211,16 @@ public class TextInput : Control
                 if (!shift && HasSelection) CollapseSelection(SelStart);
                 else MoveCaret(_caret - 1, shift);
                 break;
+
             case ConsoleKey.RightArrow:
                 if (!shift && HasSelection) CollapseSelection(SelEnd);
                 else MoveCaret(_caret + 1, shift);
                 break;
+
             case ConsoleKey.Home:
                 MoveCaret(0, shift);
                 break;
+
             case ConsoleKey.End:
                 MoveCaret(_text.Length, shift);
                 break;
@@ -223,6 +232,7 @@ public class TextInput : Control
                 else break;
                 RaiseChanged();
                 break;
+
             case ConsoleKey.Delete:
                 if (_readOnly) break;
                 if (HasSelection) DeleteSelection();
@@ -317,9 +327,11 @@ public class TextInput : Control
         ConsoleGUI.Data.Decoration? decoration = deco == Spectre.Console.Decoration.None ? null : (ConsoleGUI.Data.Decoration)deco;
         return new Character(content, fg, bg, decoration);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _text;
     private string _placeholder;
     private int _caret;
@@ -330,5 +342,6 @@ public class TextInput : Control
     private Style _textStyle;
     private Style _placeholderStyle;
     private Style _selectionStyle;
-    #endregion
+
+    #endregion Fields
 }

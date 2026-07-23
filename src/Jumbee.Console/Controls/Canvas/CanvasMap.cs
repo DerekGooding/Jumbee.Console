@@ -12,6 +12,7 @@ public enum MapResolution
 {
     /// <summary>~1166 points — coarse; fine with a 1×1 marker such as <see cref="CanvasMarker.Dot"/>. The default.</summary>
     Low,
+
     /// <summary>~5125 points — detailed; best drawn with <see cref="CanvasMarker.Braille"/> for a crisp coastline.</summary>
     High,
 }
@@ -34,6 +35,7 @@ public sealed class WorldMap : IShape
 
     /// <summary>Colour of the map points.</summary>
     public Color Color { get; }
+
     /// <summary>Point density of the coastline sampling.</summary>
     public MapResolution Resolution { get; }
 

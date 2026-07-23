@@ -1,12 +1,10 @@
 namespace Jumbee.Console.Documents;
 
+using ConsoleGUI.Space;
+using NTokenizers.Extensions.Spectre.Console.Styles;
 using System;
 using System.Collections.Generic;
 using System.Text;
-
-using ConsoleGUI.Space;
-
-using NTokenizers.Extensions.Spectre.Console.Styles;
 
 /// <summary>
 /// A <see cref="MarkdownViewer"/> that renders fenced <c>```mermaid</c> code blocks as diagrams (flowchart, sequence,
@@ -24,20 +22,25 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 public class MarkdownExtendedViewer : MarkdownViewer
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="MarkdownExtendedViewer"/> showing <paramref name="markdown"/>.</summary>
     public MarkdownExtendedViewer(string markdown = "") : base(markdown) { }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Colours / scale for embedded mermaid diagrams. Defaults to <see cref="MermaidStyles.Default"/>.</summary>
     public MermaidStyles DiagramStyles
     {
         get => _mermaid;
         set => UI.Invoke(() => { _mermaid = value ?? MermaidStyles.Default; InvalidateContent(); });
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     // Splits the document at fenced ```mermaid blocks, renders markdown spans via the base viewer and diagram spans via
     // the mermaid rasterizer, then stacks the pieces into the reusable `target` content buffer. Falls straight through
@@ -159,9 +162,12 @@ public class MarkdownExtendedViewer : MarkdownViewer
 
     private static bool IsMermaidLang(string lang) =>
         lang.Trim().ToLowerInvariant() is "mermaid" or "mmd";
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private MermaidStyles _mermaid = MermaidStyles.Default;
-    #endregion
+
+    #endregion Fields
 }

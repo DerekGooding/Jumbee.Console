@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
-
-using Spectre.Console.Rendering;
 
 /// <summary>
 /// Attaches type-ahead suggestions to a <see cref="TextInput"/>.
@@ -21,6 +19,7 @@ using Spectre.Console.Rendering;
 public sealed class Autocomplete
 {
     #region Constructors
+
     /// <summary>Attaches type-ahead to <paramref name="input"/>, floating suggestions in the ambient
     /// <see cref="UI.Overlay"/> just below the caret.</summary>
     public Autocomplete(TextInput input, Func<string, IEnumerable<string>> suggest)
@@ -37,14 +36,18 @@ public sealed class Autocomplete
     /// <summary>Convenience: suggests from a fixed candidate list (case-insensitive substring match, prefix matches first).</summary>
     public Autocomplete(TextInput input, params string[] candidates)
         : this(input, DefaultFilter(candidates)) { }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Maximum suggestions shown at once. Defaults to 8.</summary>
     public int MaxRows { get => _maxRows; set => _maxRows = Math.Max(1, value); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Closes the suggestion popup if open.</summary>
     public void Close()
     {
@@ -100,6 +103,7 @@ public sealed class Autocomplete
             case ConsoleKey.Tab:
                 if (_list.Selected is { } s) { Accept(s); return true; }
                 return false;
+
             case ConsoleKey.Escape: Close(); return true;
             default: return false;   // other keys edit the field (and re-trigger Refresh)
         }
@@ -112,16 +116,19 @@ public sealed class Autocomplete
         _accepting = false;
         Close();
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly TextInput _input;
     private readonly Func<string, IEnumerable<string>> _suggest;
     private readonly SuggestionList _list = new();
     private bool _open;
     private bool _accepting;
     private int _maxRows = 8;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>The popup list rendered by an <see cref="Autocomplete"/>. Non-focusable (the field keeps focus) but

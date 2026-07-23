@@ -14,14 +14,17 @@ using System.Threading.Tasks;
 public sealed class Dispatcher
 {
     #region Properties
+
     /// <summary>Gets a value indicating whether the UI loop is running.</summary>
     public bool IsRunning => _running;
 
     /// <summary>Gets the managed thread id of the UI thread, or -1 when not running.</summary>
     public int ThreadId => _uiThreadId;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>
     /// Returns <see langword="true"/> when the caller is on the UI thread, or when no UI thread is running
     /// (so headless/inline callers are treated as having access).
@@ -267,9 +270,11 @@ public sealed class Dispatcher
             catch { /* a posted action error must not kill the UI thread */ }
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int NoThread = -1;
     private readonly ConcurrentQueue<Action> _queue = new();
     private readonly AutoResetEvent _wake = new(false);
@@ -279,11 +284,13 @@ public sealed class Dispatcher
     private int _frameIntervalMs = 100;
     private volatile int _uiThreadId = NoThread;
     private volatile bool _running;
+
     // Cancelled by Stop and re-created by Start. Marshalled work (Invoke/InvokeAsync) links to this so a Stop that
     // discards queued completion closures RELEASES its waiters (Invoke returns; InvokeAsync tasks cancel) instead of
     // hanging them forever.
     private CancellationTokenSource _lifetime = new();
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>

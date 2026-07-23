@@ -10,6 +10,7 @@ namespace Jumbee.Console;
 public sealed class TabItem
 {
     #region Constructors
+
     internal TabItem(TabPanel owner, string name, IFocusable content, TabHeader header)
     {
         _owner = owner;
@@ -17,9 +18,11 @@ public sealed class TabItem
         Content = content;
         Header = header;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The tab's content control.</summary>
     public IFocusable Content { get; }
 
@@ -60,12 +63,15 @@ public sealed class TabItem
         get => Header.Closable;
         set { if (Header.Closable == value) return; _owner.SetTabClosable(this, value); }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Fields
+
     private readonly TabPanel _owner;
     private string _name;
     private bool _hidden;
     private bool _disabled;
-    #endregion
+
+    #endregion Fields
 }

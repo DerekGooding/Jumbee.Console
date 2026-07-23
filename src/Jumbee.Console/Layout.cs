@@ -1,16 +1,12 @@
 ﻿namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
 using ConsoleGUI;
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
-using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Interop;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>Common interface for Jumbee.Console layout classes: a 2-D grid of focusable cells over a ConsoleGUI control, with focus navigation and input routing.</summary>
 public interface ILayout : IFocusable, IDrawingContextListener
@@ -137,22 +133,27 @@ public interface ILayout : IFocusable, IDrawingContextListener
 }
 
 /// <summary>Base class for Jumbee.Console layouts wrapping a ConsoleGUI layout control <typeparamref name="T"/> and exposing it through <see cref="ILayout"/>.</summary>
-public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListener
+public abstract class Layout<T> : ILayout where T : CControl, IDrawingContextListener
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Layout{T}"/> wrapping the given ConsoleGUI <paramref name="control"/>.</summary>
     protected Layout(T control)
     {
         this.control = control;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Indexers
+
     /// <summary>Gets the focusable at the given grid cell.</summary>
     public abstract IFocusable this[int row, int column] { get; }
-    #endregion
+
+    #endregion Indexers
 
     #region Properties
+
     /// <summary>The number of rows in the layout grid.</summary>
     public abstract int Rows { get; }
 
@@ -171,7 +172,7 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
     /// <summary>The wrapped control's drawing context.</summary>
     public IDrawingContext Context
     {
-        get => ((IControl) control).Context;
+        get => ((IControl)control).Context;
         set => ((IControl)control).Context = value;
     }
 
@@ -234,17 +235,21 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
             return Focusable && IsFocused ? FocusableControl : null;
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised when the layout gains focus.</summary>
     public event FocusableEventHandler? OnFocus;
 
     /// <summary>Raised when the layout loses focus.</summary>
     public event FocusableEventHandler? OnLostFocus;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     /// <inheritdoc/>
     public void OnRedraw(DrawingContext drawingContext) => control.OnRedraw(drawingContext);
 
@@ -302,10 +307,13 @@ public abstract class Layout<T> : ILayout where T:CControl, IDrawingContextListe
 
     /// <summary>Forwards a bracketed-paste payload to each cell's focused descendant.</summary>
     public void OnPaste(string text) => Controls.ForEach(f => f?.FocusedControl?.OnPaste(text));
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     /// <summary>The wrapped ConsoleGUI layout control.</summary>
     public readonly T control;
-    #endregion
+
+    #endregion Fields
 }

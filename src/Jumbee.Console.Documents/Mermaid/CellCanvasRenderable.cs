@@ -1,12 +1,10 @@
 namespace Jumbee.Console.Documents;
 
+using Spectre.Console;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Text;
-
-using Spectre.Console;
-using Spectre.Console.Rendering;
-
 using CColor = ConsoleGUI.Data.Color;
 
 /// <summary>
@@ -19,10 +17,13 @@ using CColor = ConsoleGUI.Data.Color;
 internal sealed class CellCanvasRenderable : IRenderable
 {
     #region Constructors
+
     public CellCanvasRenderable(CellCanvas canvas) => _canvas = canvas;
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     public Measurement Measure(RenderOptions options, int maxWidth)
     {
         var w = Math.Min(_canvas.Width, maxWidth);
@@ -59,9 +60,12 @@ internal sealed class CellCanvasRenderable : IRenderable
         if (a is { } ca && b is { } cb) return ca.Red == cb.Red && ca.Green == cb.Green && ca.Blue == cb.Blue;
         return !a.HasValue && !b.HasValue;
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly CellCanvas _canvas;
-    #endregion
+
+    #endregion Fields
 }

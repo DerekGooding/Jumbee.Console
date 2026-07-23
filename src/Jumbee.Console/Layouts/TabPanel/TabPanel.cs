@@ -8,10 +8,13 @@ public enum TabBarDock
 {
     /// <summary>Tab bar along the top edge.</summary>
     Top,
+
     /// <summary>Tab bar along the left edge.</summary>
     Left,
+
     /// <summary>Tab bar along the right edge.</summary>
     Right,
+
     /// <summary>Tab bar along the bottom edge.</summary>
     Bottom
 }
@@ -29,6 +32,7 @@ public enum TabBarDock
 public class TabPanel : Layout<TabPanelDockPanel>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="TabPanel"/> with its bar docked at <paramref name="tabBarDock"/> and the given <paramref name="tabs"/> (first selectable tab auto-selects).</summary>
     public TabPanel(TabBarDock tabBarDock, params (string Name, IFocusable Content)[] tabs)
         : base(new TabPanelDockPanel(tabBarDock, BarThickness(tabBarDock, tabs)))
@@ -47,9 +51,11 @@ public class TabPanel : Layout<TabPanelDockPanel>
         foreach (var (name, _) in tabs) width = Math.Max(width, name.Length + 2);
         return width;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised after the selected tab changes, with the new index (-1 when no tab is selectable).</summary>
     public event Action<int>? SelectionChanged;
 
@@ -64,9 +70,11 @@ public class TabPanel : Layout<TabPanelDockPanel>
 
     /// <summary>Raised after a tab has been removed (via ✕, <see cref="RemoveTab(TabItem)"/>, etc.), with its handle.</summary>
     public event Action<TabItem>? TabRemoved;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary>The number of tabs (including hidden and disabled ones).</summary>
     public int TabCount => _tabs.Count;
 
@@ -184,9 +192,11 @@ public class TabPanel : Layout<TabPanelDockPanel>
             return _selected?.Content.FocusedControl;
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Selects the tab at <paramref name="index"/> (clamped). Equivalent to setting <see cref="SelectedIndex"/>.</summary>
     public void SelectTab(int index) => SelectedIndex = index;
 
@@ -463,9 +473,11 @@ public class TabPanel : Layout<TabPanelDockPanel>
         if (content is Control { Focusable: true, HandlesInput: true } interactive) UI.SetFocus(interactive);
         else UI.SetFocus(_selected.Header);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly bool _horizontal;
     private readonly List<TabItem> _tabs = new();
     private TabItem? _selected;
@@ -473,7 +485,8 @@ public class TabPanel : Layout<TabPanelDockPanel>
     private bool _closableTabs;
     private bool _showAddButton;
     private TabAddButton? _addButton;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>Arguments for <see cref="TabPanel.TabCloseRequested"/>.</summary>

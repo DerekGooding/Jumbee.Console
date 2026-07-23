@@ -1,13 +1,10 @@
 namespace Jumbee.Console;
 
-using System;
-
 using ConsoleGUI;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-
 using Spectre.Console.Rendering;
-
+using System;
 using CColor = ConsoleGUI.Data.Color;
 
 // The unqualified name Color in this namespace resolves to Jumbee.Console(.Styles).Color, which has static
@@ -28,6 +25,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class GlassPanel : Control
 {
     #region Constructors
+
     /// <param name="width">Panel width in cells.</param>
     /// <param name="height">Panel height in cells.</param>
     /// <param name="tint">Colour the layer beneath is blended toward (the glass colour).</param>
@@ -46,9 +44,11 @@ public class GlassPanel : Control
         _gammaCorrect = gammaCorrect;
         Focusable = false;   // a HUD never takes focus; clicks pass through the glass to the layer beneath
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Indexers
+
     /// <summary>The composited cell at <paramref name="position"/>: the panel's opaque content where it has ink,
     /// otherwise the tinted glass backdrop (the layer beneath).</summary>
     // Composite: the panel's own rendered content (opaque, crisp) wherever it has ink, otherwise the glass backdrop
@@ -71,9 +71,11 @@ public class GlassPanel : Control
             return new Cell(new Character(content.Content, fg, bg, content.Decoration));
         }
     }
-    #endregion
+
+    #endregion Indexers
 
     #region Properties
+
     /// <summary>The Spectre renderable drawn opaquely over the glass (labels, values, a bordered <c>Panel</c>, …),
     /// or <see langword="null"/> for a bare glass pane.</summary>
     public IRenderable? Content
@@ -106,9 +108,11 @@ public class GlassPanel : Control
     /// <summary><see langword="true"/> while the panel is floating over an overlay (between <see cref="Show"/> and
     /// <see cref="Hide"/>).</summary>
     public bool IsShown { get; private set; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Floats the panel over <paramref name="overlay"/> (or the ambient <see cref="UI.Overlay"/>) with its
     /// top-left at (<paramref name="x"/>, <paramref name="y"/>). Non-capturing: the layer beneath keeps focus.</summary>
     public void Show(int x, int y, Overlay? overlay = null)
@@ -155,6 +159,7 @@ public class GlassPanel : Control
     // A fixed extent so a docking/placement parent (the overlay's anchoring Box) sizes the panel snugly instead of
     // stretching it to fill the screen.
     protected override int IntrinsicWidth() => _w;
+
     /// <summary>The panel's fixed height in cells.</summary>
     protected override int IntrinsicHeight() => _h;
 
@@ -197,9 +202,11 @@ public class GlassPanel : Control
         var coverage = GlassBlend.EstimateCoverage(content);
         return coverage <= 0f ? bg : coverage >= 1f ? fg : bg.Mix(fg, coverage);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private static readonly CColor UnknownBackground = new(12, 12, 16);
     private readonly int _w;
     private readonly int _h;
@@ -212,7 +219,8 @@ public class GlassPanel : Control
     private IControl? _below;
     private Position _anchor;
     private Overlay? _overlay;
-    #endregion
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -223,6 +231,7 @@ public class GlassPanel : Control
 public static class GlassBlend
 {
     #region Constructors
+
     static GlassBlend()
     {
         for (int i = 0; i < 256; i++)
@@ -237,9 +246,11 @@ public static class GlassBlend
             _linearToSrgb[i] = (byte)Math.Clamp((int)MathF.Round(s * 255f), 0, 255);
         }
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Methods
+
     /// <summary>Blends <paramref name="from"/> toward <paramref name="to"/> by <paramref name="factor"/> (0..1),
     /// in gamma space, or in linear light when <paramref name="gammaCorrect"/> is set.</summary>
     public static CColor Blend(in CColor from, in CColor to, float factor, bool gammaCorrect)
@@ -272,11 +283,14 @@ public static class GlassBlend
         '■' or '●' or '◆' => 1f,            // ■ ● ◆ solid marks
         _ => 0.38f,                                        // ordinary ink
     };
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int LinearSteps = 4096;
     private static readonly float[] _srgbToLinear = new float[256];
     private static readonly byte[] _linearToSrgb = new byte[LinearSteps + 1];
-    #endregion
+
+    #endregion Fields
 }

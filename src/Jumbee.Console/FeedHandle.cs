@@ -12,21 +12,26 @@ using System.Threading.Tasks;
 public sealed class FeedHandle : IDisposable
 {
     #region Constructors
+
     internal FeedHandle(CancellationTokenSource cts, Task completion)
     {
         _cts = cts;
         Completion = completion;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Completes when the feed's loop has fully stopped — the in-flight tick has finished running. Await this
     /// after <see cref="Cancel"/> (or use <see cref="StopAsync"/>) before disposing anything the producer touches, so
     /// the resource is never torn down under a live tick.</summary>
     public Task Completion { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Requests the feed to stop. Idempotent; does not wait — await <see cref="Completion"/> to join.</summary>
     public void Cancel() => _cts.Cancel();
 
@@ -39,9 +44,12 @@ public sealed class FeedHandle : IDisposable
 
     /// <summary>Stops the feed (same as <see cref="Cancel"/>). Disposing the control that started it cancels it too.</summary>
     public void Dispose() => _cts.Cancel();
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly CancellationTokenSource _cts;
-    #endregion
+
+    #endregion Fields
 }

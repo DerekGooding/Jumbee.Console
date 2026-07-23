@@ -18,6 +18,7 @@ using System;
 internal sealed class AlternateScreen : IDisposable
 {
     #region Methods
+
     public static AlternateScreen Enter() => new();
 
     private AlternateScreen()
@@ -37,11 +38,14 @@ internal sealed class AlternateScreen : IDisposable
         try { Console.Out.Write(LeaveSeq); Console.Out.Flush(); }
         catch { /* best effort */ }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const string EnterSeq = "\x1b[?1049h";                 // switch to the alternate screen buffer
     private const string LeaveSeq = "\x1b[0m\x1b[?25h\x1b[?1049l"; // reset SGR, show cursor, switch back to primary
     private bool _disposed;
-    #endregion
+
+    #endregion Fields
 }

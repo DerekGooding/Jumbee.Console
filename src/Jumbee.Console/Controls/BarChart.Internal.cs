@@ -5,7 +5,6 @@ using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 
 public partial class BarChart
 {
@@ -76,8 +75,6 @@ public partial class BarChart
 
         /// <summary>Requests a redraw of the owning chart.</summary>
         public void UpdateChart() => chart?.Update();
-
-
     }
 
     /// <summary>A single bar renderable within a <see cref="BarChart"/>.</summary>
@@ -85,8 +82,10 @@ public partial class BarChart
     {
         /// <summary>The bar's value.</summary>
         double Value { get; set; }
+
         /// <summary>The value corresponding to a full bar.</summary>
         double MaxValue { get; set; }
+
         /// <summary>The bar's colour.</summary>
         Color Color { get; set; }
     }
@@ -96,14 +95,19 @@ public partial class BarChart
     {
         /// <summary>The bar's value.</summary>
         public double Value { get; set; }
+
         /// <summary>The value corresponding to a full-height bar.</summary>
         public double MaxValue { get; set; }
+
         /// <summary>The bar's height in rows.</summary>
         public int Height { get; set; }
+
         /// <summary>The bar's colour.</summary>
         public Color Color { get; set; }
+
         /// <summary>The glyph used to draw the bar in Unicode mode.</summary>
         public char UnicodeBar { get; set; } = '█';
+
         /// <summary>The glyph used to draw the bar in ASCII mode.</summary>
         public char AsciiBar { get; set; } = '|';
 
@@ -126,9 +130,9 @@ public partial class BarChart
             for (int i = 0; i < emptyHeight; i++)
             {
                 yield return new Segment(new string(' ', 1) + "\n"); // Or just " \n"
-                                                                     // Actually Segment usually doesn't contain newline for Grid cells? 
+                                                                     // Actually Segment usually doesn't contain newline for Grid cells?
                                                                      // Grid handles newlines. If we return multiple segments, they are just concatenated?
-                                                                     // No, IRenderable.Render usually returns a flow of segments. 
+                                                                     // No, IRenderable.Render usually returns a flow of segments.
                                                                      // In a Grid cell, if we want multiple lines, we must emit newlines.
                                                                      // However, Spectre.Console Grid cells can wrap or handle explicit newlines.
                                                                      // Let's try explicit newlines.
@@ -136,12 +140,12 @@ public partial class BarChart
 
             for (int i = 0; i < barHeight; i++)
             {
-                // We render the bar character. 
-                // We should probably repeat it for width? 
+                // We render the bar character.
+                // We should probably repeat it for width?
                 // But VerticalBar is usually 1 char wide or full cell width?
-                // Let's assume full cell width. But we don't know the exact width assigned by Grid here easily 
+                // Let's assume full cell width. But we don't know the exact width assigned by Grid here easily
                 // unless we use maxWidth.
-                // For a simple vertical bar, let's use 3 chars wide? Or just 1? 
+                // For a simple vertical bar, let's use 3 chars wide? Or just 1?
                 // Let's use maxWidth to fill the column.
                 // But Grid column width is determined by content... circular dependency?
                 // No, Grid passes maxWidth.
@@ -179,31 +183,41 @@ public partial class BarChart
     {
         /// <summary>The bar's value.</summary>
         public double Value { get; set; }
+
         /// <summary>The value corresponding to a full-width bar. Defaults to 100.</summary>
         public double MaxValue { get; set; } = 100;
 
         /// <summary>The bar's width in cells, or <see langword="null"/> to fill the available width.</summary>
         public int? Width { get; set; }
+
         /// <summary>Whether the remaining (unfilled) portion of the track is drawn. Defaults to <see langword="true"/>.</summary>
         public bool ShowRemaining { get; set; } = true;
+
         /// <summary>The glyph used to draw the bar in Unicode mode.</summary>
         public char UnicodeBar { get; set; } = '━';
+
         /// <summary>The glyph used to draw the bar in ASCII mode.</summary>
         public char AsciiBar { get; set; } = '-';
+
         /// <summary>Whether the formatted value is shown after the bar.</summary>
         public bool ShowValue { get; set; }
+
         /// <summary>The culture used to format the value, or <see langword="null"/> for the invariant culture.</summary>
         public CultureInfo? Culture { get; set; }
+
         /// <summary>An optional custom formatter for the value.</summary>
         public Func<double, CultureInfo, string>? ValueFormatter { get; set; }
 
         /// <summary>The bar's colour (sets both the completed and finished styles).</summary>
-        public Color Color { get => CompletedStyle; set { CompletedStyle = value; FinishedStyle = value; } }
+        public Color Color
+        { get => CompletedStyle; set { CompletedStyle = value; FinishedStyle = value; } }
 
         /// <summary>The style of the filled portion while the bar is incomplete. Defaults to yellow.</summary>
         public Style CompletedStyle { get; set; } = Color.Yellow;
+
         /// <summary>The style of the filled portion once the bar is complete. Defaults to green.</summary>
         public Style FinishedStyle { get; set; } = Color.Green;
+
         /// <summary>The style of the remaining (unfilled) portion. Defaults to grey.</summary>
         public Style RemainingStyle { get; set; } = Color.Grey;
 

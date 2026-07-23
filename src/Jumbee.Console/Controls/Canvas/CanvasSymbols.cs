@@ -18,18 +18,24 @@ public enum CanvasMarker
 {
     /// <summary>A single <c>•</c> per point (1×1 resolution).</summary>
     Dot,
+
     /// <summary>A solid full block <c>█</c> per point (1×1). Also paints the cell background, so a later layer can
     /// overlay a foreground glyph on top.</summary>
     Block,
+
     /// <summary>A half-height bar <c>▄</c> per point (1×1).</summary>
     Bar,
+
     /// <summary>Braille dots — 2×4 sub-cells per character (8 points/cell), the smoothest. The default.</summary>
     Braille,
+
     /// <summary>Vertical half blocks — 1×2 sub-cells per character, with independent colour for the upper and lower
     /// half of each cell (the only marker that colours sub-cells individually).</summary>
     HalfBlock,
+
     /// <summary>Quadrant blocks — 2×2 sub-cells per character (4 points/cell).</summary>
     Quadrant,
+
     /// <summary>A caller-supplied character per point (1×1); see <see cref="Jumbee.Console.Canvas.CustomMarker"/>.</summary>
     Custom,
 }
@@ -39,14 +45,19 @@ internal static class CanvasSymbols
 {
     /// <summary>The dot marker glyph.</summary>
     public const char Dot = '•';
+
     /// <summary>The full-block glyph (block marker and full half-block cell).</summary>
     public const char Block = '█';
+
     /// <summary>The half-bar glyph (bar marker and lower half-block cell).</summary>
     public const char Bar = '▄';
+
     /// <summary>Upper half-block glyph.</summary>
     public const char HalfUpper = '▀';
+
     /// <summary>Lower half-block glyph.</summary>
     public const char HalfLower = '▄';
+
     /// <summary>Full-block glyph used when both halves of a half-block cell share a colour.</summary>
     public const char HalfFull = '█';
 

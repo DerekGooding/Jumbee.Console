@@ -1,11 +1,8 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI;
 using System;
 using System.Collections.Generic;
-
-using ConsoleGUI;
-using ConsoleGUI.Controls;
-using ConsoleGUI.Space;
 
 /// <summary>
 /// The visual scaffold behind <see cref="TabPanel"/>: a ConsoleGUI <see cref="ConsoleGUI.Controls.DockPanel"/> that
@@ -16,6 +13,7 @@ using ConsoleGUI.Space;
 public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
 {
     #region Constructors
+
     // barThickness = the bar's cross-axis size: the label row height for a top/bottom bar (1), or the widest label
     // for a left/right bar. A stack panel stretches each child to the cross-axis it's given, so this can't be
     // derived from a laid-out header (that would be circular); TabPanel computes it from the label texts up front.
@@ -41,14 +39,18 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
             : new ConsoleGUI.Controls.Boundary { MinWidth = barThickness, MaxWidth = barThickness, Content = _bar };
         DockedControl = _boundary;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary><see langword="true"/> when the tab bar runs horizontally (docked top or bottom).</summary>
     public bool IsHorizontalTabBar { get; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     // Replace the whole bar with the given headers, in order — the single path for add/remove/reorder/hide, since the
     // stack panels only append/remove and can't insert at a position.
     /// <summary>Replaces the entire tab bar with <paramref name="headers"/>, in order.</summary>
@@ -70,10 +72,13 @@ public sealed class TabPanelDockPanel : ConsoleGUI.Controls.DockPanel
     // Null clears the fill (the empty state when no tab is selectable); DrawingContext tolerates a null child.
     /// <summary>Sets the fill region to the active tab's <paramref name="content"/>, or <see langword="null"/> to clear it.</summary>
     public void SetFill(IControl? content) => FillingControl = content!;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly CControl _bar;
     private readonly ConsoleGUI.Controls.Boundary _boundary;
-    #endregion
+
+    #endregion Fields
 }

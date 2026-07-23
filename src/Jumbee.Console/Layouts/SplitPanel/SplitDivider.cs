@@ -1,12 +1,10 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// The draggable divider between a <see cref="SplitPanel"/>'s two panes.
@@ -19,30 +17,38 @@ using Spectre.Console.Rendering;
 public class SplitDivider : RenderableControl
 {
     #region Constructors
+
     internal SplitDivider(SplitOrientation orientation)
     {
         _orientation = orientation;
         if (orientation == SplitOrientation.Horizontal) Width = 1; else Height = 1;   // cross-axis fills
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised while dragging, with a signed cell delta along the split axis.</summary>
     internal event Action<int>? Dragged;
 
     /// <summary>Raised on a keyboard resize, with a signed cell step along the split axis.</summary>
     internal event Action<int>? Nudged;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary><see langword="true"/>: the divider consumes keyboard input to resize with the arrow keys.</summary>
     public override bool HandlesInput => true;
+
     /// <summary><see langword="true"/>: the divider draws its own focus indication by recolouring the line.</summary>
     protected override bool RendersOwnFocus => true;   // recolours the divider when focused (grabbed for resize)
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyTheme()
     {
@@ -121,14 +127,17 @@ public class SplitDivider : RenderableControl
     }
 
     private int Axis(Position p) => _orientation == SplitOrientation.Horizontal ? p.X : p.Y;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly SplitOrientation _orientation;
     private bool _dragging;
     private int _dragLast;
     private Style _lineStyle;
     private Style _hoverStyle;
     private Style _activeStyle;
-    #endregion
+
+    #endregion Fields
 }

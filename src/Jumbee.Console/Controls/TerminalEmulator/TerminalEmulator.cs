@@ -1,16 +1,14 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Data;
+using ConsoleGUI.Input;
+using ConsoleGUI.Space;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
-using ConsoleGUI.Data;
-using ConsoleGUI.Input;
-using ConsoleGUI.Space;
-
 using VtNetCore.VirtualTerminal;
 using VtNetCore.VirtualTerminal.Enums;
 using VtNetCore.XTermParser;
@@ -27,6 +25,7 @@ using CColor = ConsoleGUI.Data.Color;
 public class TerminalEmulator : Control
 {
     #region Constructors
+
     /// <summary>
     /// Creates a terminal. With a <paramref name="commandLine"/> the control launches that process in a pseudo
     /// console once it is sized.
@@ -46,11 +45,14 @@ public class TerminalEmulator : Control
         _terminal.SendData += OnTerminalSendData;   // terminal responses (DSR/DA/…) → back to the process
         _terminal.WindowTitleChanged += OnWindowTitleChanged;   // OSC 0/2 title set by the running program
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Always <see langword="true"/>: the terminal consumes keyboard input to forward to the child process.</summary>
     public override bool HandlesInput => true;
+
     /// <summary>Always <see langword="true"/>: the terminal's own cursor indicates focus, so no focus tint is drawn.</summary>
     protected override bool RendersOwnFocus => true;   // the terminal cursor shows focus
 
@@ -76,17 +78,21 @@ public class TerminalEmulator : Control
         get => _defaultBackground;
         set => SetAtomicProperty(ref _defaultBackground, value);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Events
+
     /// <summary>Raised on the UI thread after the child process exits (never for a manually-driven terminal).</summary>
     public event Action? Exited;
 
     /// <summary>Raised on the UI thread when the running program changes the window title (OSC 0/2).</summary>
     public event Action<string>? TitleChanged;
-    #endregion
+
+    #endregion Events
 
     #region Methods
+
     // A terminal owns its own scrollback, so it must fill the framing viewport rather than be given a frame's
     // unbounded scroll height — otherwise it balloons to ~1000 rows, oversizing the PTY and pushing live output
     // off-screen (no auto-scroll). Opting out makes the frame offer the bounded viewport height instead.
@@ -214,7 +220,8 @@ public class TerminalEmulator : Control
         catch (Exception) { /* pipe closed on exit */ }
     }
 
-    private int PendingOutputBytes { get { lock (_outLock) return _outBytes; } }
+    private int PendingOutputBytes
+    { get { lock (_outLock) return _outBytes; } }
 
     // Queue a chunk for the UI thread, scheduling a single coalesced drain regardless of how many chunks pile up.
     private void EnqueueOutput(byte[] chunk)
@@ -305,6 +312,7 @@ public class TerminalEmulator : Control
     // mouse events carry no button/modifier, so only the left button (0) with no modifiers is reported.
     /// <summary>Forwards a left-button press to the child program when it is tracking the mouse.</summary>
     protected override void OnMousePress(Position position) => ForwardMouse(position, button: 0, press: true);
+
     /// <summary>Forwards a left-button release to the child program when it is tracking the mouse.</summary>
     protected override void OnMouseRelease(Position position) => ForwardMouse(position, button: 0, press: false);
 
@@ -552,8 +560,8 @@ public class TerminalEmulator : Control
     private static int CursorStyleValue(TerminalCursorState s) => s.CursorShape switch
     {
         ECursorShape.Underline => (int)(s.BlinkingCursor ? CursorStyle.BlinkingUnderline : CursorStyle.SteadyUnderline),
-        ECursorShape.Bar       => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBar : CursorStyle.SteadyBar),
-        _                      => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock),
+        ECursorShape.Bar => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBar : CursorStyle.SteadyBar),
+        _ => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock),
     };
 
     private static CColor? ParseWebColor(string? web)
@@ -573,13 +581,17 @@ public class TerminalEmulator : Control
         Teardown();
         base.Dispose();
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const int ScrollbarWidth = 1;
+
     // The web colour VtNetCore reports for the terminal-default background (ETerminalColor.Black → #000000); cells at
     // this value are treated as "no explicit background" and take DefaultBackground.
     private const string DefaultBgWeb = "#000000";
+
     private static readonly Character Blank = new(' ');
     private Color? _defaultBackground;
     private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, Decoration.None);
@@ -590,18 +602,24 @@ public class TerminalEmulator : Control
     private readonly DataConsumer _consumer;
     private IPty? _pty;
     private CancellationTokenSource? _cts;
+
     // Desired run state: true = keep a child alive while sized (auto-start on first layout). Toggled by
     // Start/StopProcess so a host can stop the shell while hidden and restart it on return.
     private bool _wantRunning = true;
+
     // Scrollback view state: _follow pins the view to the live bottom; when false, _viewTop is the absolute top line.
     private bool _follow = true;
+
     private int _viewTop;
+
     // Flow-controlled output: chunks from the read loop, applied to the emulator on the UI thread in bounded batches.
     private const int OutputHighWater = 256 * 1024;   // pending bytes above which the read loop backs off
+
     private const int OutputDrainCap = 16 * 1024;     // max bytes parsed per UI-thread batch (keeps input responsive)
     private readonly object _outLock = new();
     private readonly Queue<byte[]> _outChunks = new();
     private int _outBytes;
     private bool _drainScheduled;
-    #endregion
+
+    #endregion Fields
 }

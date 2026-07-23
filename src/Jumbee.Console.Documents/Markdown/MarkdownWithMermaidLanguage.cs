@@ -1,11 +1,8 @@
 namespace Jumbee.Console.Documents;
 
-using System.Collections.Generic;
-
 using ColorCode;
 using ColorCode.Common;
-
-using Jumbee.Console.Documents.Mermaid;
+using System.Collections.Generic;
 
 /// <summary>
 /// A ColorCode <see cref="ILanguage"/> that highlights Markdown <em>and</em> the contents of embedded
@@ -20,6 +17,7 @@ using Jumbee.Console.Documents.Mermaid;
 public sealed class MarkdownWithMermaidLanguage : ILanguage
 {
     #region Singleton
+
     /// <summary>The shared grammar instance (ColorCode caches the compiled grammar by <see cref="Id"/>).</summary>
     public static readonly MarkdownWithMermaidLanguage Instance = new();
 
@@ -30,19 +28,26 @@ public sealed class MarkdownWithMermaidLanguage : ILanguage
         if (Languages.FindById(MermaidLanguage.Instance.Id) is null)
             Languages.Load(MermaidLanguage.Instance);
     }
-    #endregion
+
+    #endregion Singleton
 
     #region ILanguage
+
     /// <summary>The ColorCode language id (<c>"markdown-mermaid"</c>).</summary>
     public string Id => "markdown-mermaid";
+
     /// <summary>The display name.</summary>
     public string Name => "Markdown (with Mermaid)";
+
     /// <summary>The CSS class name used for HTML output.</summary>
     public string CssClassName => "markdown-mermaid";
+
     /// <summary>First-line detection pattern (unused; <see langword="null"/>).</summary>
     public string FirstLinePattern => null!;
+
     /// <summary>Always <see langword="false"/> — this grammar has no aliases.</summary>
     public bool HasAlias(string lang) => false;
+
     /// <inheritdoc/>
     public override string ToString() => Name;
 
@@ -72,5 +77,6 @@ public sealed class MarkdownWithMermaidLanguage : ILanguage
             return rules;
         }
     }
-    #endregion
+
+    #endregion ILanguage
 }

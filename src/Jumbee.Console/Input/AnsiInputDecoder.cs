@@ -23,6 +23,7 @@ using System.Text;
 public sealed class AnsiInputDecoder
 {
     #region Methods
+
     /// <summary>Feeds decoded chars and returns the events that could be fully parsed.</summary>
     public IReadOnlyList<TerminalInputEvent> Feed(ReadOnlySpan<char> chars)
     {
@@ -329,9 +330,11 @@ public sealed class AnsiInputDecoder
 
     private static int ParseInt(string s)
         => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private const char Esc = '\x1b';
     private const string PasteEnd = "\x1b[201~";   // bracketed-paste terminator
     private readonly StringBuilder _buffer = new();
@@ -339,7 +342,9 @@ public sealed class AnsiInputDecoder
     // Bracketed-paste accumulation: the body lives here (not in _buffer) and is scanned incrementally from
     // _pasteScanFrom so a paste arriving in many chunks stays O(n) overall.
     private bool _inPaste;
+
     private readonly StringBuilder _pasteBuf = new();
     private int _pasteScanFrom;
-    #endregion
+
+    #endregion Fields
 }

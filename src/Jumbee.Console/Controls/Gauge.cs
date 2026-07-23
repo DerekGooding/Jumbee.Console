@@ -1,10 +1,8 @@
 namespace Jumbee.Console;
 
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
-
-using Spectre.Console.Rendering;
-
 using SColor = Spectre.Console.Color;
 using SStyle = Spectre.Console.Style;
 
@@ -20,6 +18,7 @@ using SStyle = Spectre.Console.Style;
 public class Gauge : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Gauge"/> with the given <paramref name="value"/> and full-bar <paramref name="max"/>.</summary>
     public Gauge(double value = 0, double max = 100)
     {
@@ -29,9 +28,11 @@ public class Gauge : RenderableControl
         Height = 1;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The current value. The filled fraction is <see cref="Value"/> / <see cref="Max"/> (clamped to 0..1).</summary>
     public double Value { get => _value; set => SetAtomicProperty(ref _value, value); }
 
@@ -49,11 +50,14 @@ public class Gauge : RenderableControl
 
     /// <summary>The fill/track/text colours. Defaults to <see cref="IStyleTheme.Gauge"/>.</summary>
     public GaugeStyle Style { get => _style; set => SetAtomicProperty(ref _style, value, themeOverride: true); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Recolours the fill (a fluent shorthand for <c>Style = Style.WithFill(color)</c>); marks it an override.</summary>
-    public Gauge WithFill(Color color) { Style = _style.WithFill(color); return this; }
+    public Gauge WithFill(Color color)
+    { Style = _style.WithFill(color); return this; }
 
     /// <inheritdoc/>
     protected override void ApplyTheme()
@@ -107,9 +111,11 @@ public class Gauge : RenderableControl
 
     // Whole numbers render without a decimal point; fractional values keep up to two places.
     private static string FormatValue(double v) => v == Math.Floor(v) ? ((long)v).ToString() : v.ToString("0.##");
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private double _value;
     private double _max;
     private string? _label;
@@ -119,5 +125,6 @@ public class Gauge : RenderableControl
 
     // Left-anchored eighth blocks for the fractional fill edge (index = eighths filled, 0 = empty .. 8 = full).
     private static readonly char[] LeftBlocks = [' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
-    #endregion
+
+    #endregion Fields
 }

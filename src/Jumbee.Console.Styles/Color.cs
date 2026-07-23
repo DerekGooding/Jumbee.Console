@@ -8,6 +8,7 @@ using SystemDrawingColor = System.Drawing.Color;
 public readonly partial struct Color : System.IEquatable<Color>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Color"/> from red, green, and blue channel values.</summary>
     public Color(byte r, byte g, byte b)
     {
@@ -15,23 +16,25 @@ public readonly partial struct Color : System.IEquatable<Color>
         G = g;
         B = b;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     // Computed on demand (not stored) so Color stays a 3-byte value instead of carrying a ~24-byte
     // System.Drawing.Color; R/G/B already fully describe the colour and the alpha is always opaque.
     /// <summary>This colour as a <see cref="System.Drawing.Color"/> (always fully opaque).</summary>
     public SystemDrawingColor SystemColor => SystemDrawingColor.FromArgb(R, G, B);
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Converts this colour to a <see cref="Spectre.Console.Color"/>.</summary>
     public SpectreColor ToSpectreColor() => new SpectreColor(R, G, B);
 
-
     /// <summary>Creates a <see cref="Color"/> from a <see cref="Spectre.Console.Color"/>.</summary>
     public static Color FromSpectreColor(SpectreColor color) => new Color(color.R, color.G, color.B);
-
 
     /// <summary>Converts a <see cref="Spectre.Console.Color"/> to a ConsoleGUI colour, or <see langword="null"/> for the default colour.</summary>
     public static ConsoleGUIColor? ToConsoleGUIColor(SpectreColor color)
@@ -125,9 +128,10 @@ public readonly partial struct Color : System.IEquatable<Color>
     /// <inheritdoc/>
     public override int GetHashCode() => (R << 16) | (G << 8) | B;
 
-    #endregion
+    #endregion Methods
 
     #region Operators
+
     /// <summary>Equality operator.</summary>
     public static bool operator ==(Color a, Color b) => a.Equals(b);
 
@@ -148,19 +152,24 @@ public readonly partial struct Color : System.IEquatable<Color>
 
     /// <summary>Implicitly converts a <see cref="Color"/> to a <see cref="System.Drawing.Color"/>.</summary>
     public static implicit operator SystemDrawingColor(Color color) => color.SystemColor;
-    #endregion
+
+    #endregion Operators
 
     #region Fields
+
     /// <summary>The red channel value.</summary>
     public readonly byte R;
+
     /// <summary>The green channel value.</summary>
     public readonly byte G;
+
     /// <summary>The blue channel value.</summary>
     public readonly byte B;
 
     // The 16 console colours' RGB, indexed by ConsoleColor value — Spectre's own mapping, so ToConsoleColor's
     // nearest-match is the exact inverse of FromSystemConsoleColor. Built once (allocation-free lookups thereafter).
     private static readonly (byte R, byte G, byte B)[] ConsolePalette = BuildConsolePalette();
+
     private static (byte, byte, byte)[] BuildConsolePalette()
     {
         var p = new (byte, byte, byte)[16];
@@ -179,6 +188,7 @@ public readonly partial struct Color : System.IEquatable<Color>
     /// Gets the color "Black" (RGB 0,0,0).
     /// </summary>
     public static readonly Color Black = FromSpectreColor(SpectreColor.Black);
+
     /// <summary>
     /// Gets the color "Maroon" (RGB 128,0,0).
     /// </summary>
@@ -1454,5 +1464,5 @@ public readonly partial struct Color : System.IEquatable<Color>
     /// </summary>
     public static readonly Color Grey93 = FromSpectreColor(SpectreColor.Grey93);
 
-    #endregion
+    #endregion Fields
 }

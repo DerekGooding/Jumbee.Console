@@ -1,12 +1,10 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 // The button styles its label with the text Style type while exposing a themeable ButtonStyle named `Style`; alias
 // the text type so the property name doesn't shadow it inside this file.
@@ -24,6 +22,7 @@ using TextStyle = Jumbee.Console.Style;
 public class Button : RenderableControl
 {
     #region Constructors
+
     /// <summary>Initializes a new primary-styled <see cref="Button"/> with the given label.</summary>
     public Button(string text) : this(text, ButtonRole.Primary) { }
 
@@ -33,16 +32,21 @@ public class Button : RenderableControl
         _role = role;
         ApplyTheme();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when the button is activated by a mouse click or by Enter/Space while focused.</summary>
     public event EventHandler? Activated;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <inheritdoc/>
     public override bool HandlesInput => true;
+
     /// <inheritdoc/>
     protected override bool RendersOwnFocus => true;   // focus lightens the tile / bolds the label
 
@@ -67,9 +71,11 @@ public class Button : RenderableControl
         get => _style;
         set => SetAtomicProperty(ref _style, value, updatesLayout: true, themeOverride: true);
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Creates a primary-styled button (the theme's <see cref="IStyleTheme.PrimaryButton"/>).</summary>
     public static Button Primary(string text) => new(text, ButtonRole.Primary);
 
@@ -181,15 +187,21 @@ public class Button : RenderableControl
         var left = pad / 2;
         return new string(' ', left) + text + new string(' ', pad - left);
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private string _text;
     private ButtonStyle _style;
     private readonly ButtonRole _role;
-    #endregion
+
+    #endregion Fields
 
     #region Types
-    private enum ButtonRole { Primary, Secondary }
-    #endregion
+
+    private enum ButtonRole
+    { Primary, Secondary }
+
+    #endregion Types
 }

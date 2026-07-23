@@ -1,5 +1,10 @@
 namespace Jumbee.Console;
 
+using ConsoleGUI.Data;
+using ConsoleGUI.Space;
+using Spectre.Console;
+using Spectre.Console.Interop;
+using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,18 +12,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-using ConsoleGUI.Data;
-using ConsoleGUI.Space;
-using Spectre.Console;
-using Spectre.Console.Interop;
-using Spectre.Console.Rendering;
-
 /// <summary>
 /// An implementation of Spectre.Console.IAnsiConsole that writes to a ConsoleBuffer.
 /// </summary>
 public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOutput, IExclusivityMode, IDisposable
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="AnsiConsoleBuffer"/> that renders Spectre.Console output into
     /// <paramref name="console"/>.</summary>
     public AnsiConsoleBuffer(ConsoleBuffer console)
@@ -44,26 +44,35 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         _cursorY = 0;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The Spectre.Console profile describing this buffer's capabilities.</summary>
     public Profile Profile => _profile;
+
     /// <summary>The cursor for this buffer.</summary>
     public IAnsiConsoleCursor Cursor => _cursor;
+
     /// <summary>The concrete buffer cursor, exposing Jumbee-specific <see cref="AnsiConsoleBufferCursor.Style"/>/<see cref="AnsiConsoleBufferCursor.Color"/>.</summary>
     internal AnsiConsoleBufferCursor BufferCursor => _cursor;
+
     /// <summary>The input source for this console (throws on read; input is handled elsewhere).</summary>
     public IAnsiConsoleInput Input => _input;
+
     /// <summary>The exclusivity mode guarding concurrent Spectre live/exclusive operations.</summary>
     public IExclusivityMode ExclusivityMode => _exclusivityMode;
+
     /// <summary>The Spectre.Console render pipeline for this console.</summary>
     public RenderPipeline Pipeline => _pipeline;
+
     internal int CursorX => _cursorX;
     internal int CursorY => _cursorY;
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Clears the buffer; when <paramref name="home"/> is <see langword="true"/> also resets the cursor to the origin.</summary>
     public void Clear(bool home)
     {
@@ -92,7 +101,6 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         {
             _cursor.Show(true);
         }
-        
     }
 
     /// <summary>Renders <paramref name="renderable"/> to segments and writes them into the buffer.</summary>
@@ -182,7 +190,6 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                             continue;
                         }
                     }
-                    
                 }
             }
             else
@@ -233,11 +240,10 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                         var position = new Position(_cursorX, _cursorY);
                         if (IsValidPosition(position))
                         {
-                            _console.Write(position, new Character(c, fg, bg, decoration));             
+                            _console.Write(position, new Character(c, fg, bg, decoration));
                             _cursorX += width;
                         }
                     }
-                    
                 }
             }
         }
@@ -246,7 +252,6 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         {
             _cursor.Show(true);
         }
-        
     }
 
     /// <inheritdoc/>
@@ -260,49 +265,56 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         get => _cursorY * _console.Size.Width + _cursorX;
         set => SetCursorPosition(_console.GetPosition(value));
     }
-    
+
     internal void SetCursorPosition(int x, int y)
-    {        
+    {
         _cursorX = x;
-        _cursorY = y;        
+        _cursorY = y;
     }
 
     internal void SetCursorPosition(Position position)
-    {      
+    {
         _cursorX = position.X;
         _cursorY = position.Y;
     }
 
     internal void MoveCursor(int dx, int dy)
-    {       
+    {
         _cursorX += dx;
-        _cursorY += dy;      
+        _cursorY += dy;
     }
 
     private bool IsValidPosition(Position position) =>
-       position.X >= 0 && position.X < _console.Size.Width && position.Y >= 0  && position.Y < _console.Size.Height;
-    
-    #region IAnsiConsoleInput implementation 
+       position.X >= 0 && position.X < _console.Size.Width && position.Y >= 0 && position.Y < _console.Size.Height;
+
+    #region IAnsiConsoleInput implementation
+
     bool IAnsiConsoleInput.IsKeyAvailable() => throw new NotSupportedException();
 
     ConsoleKeyInfo? IAnsiConsoleInput.ReadKey(bool intercept) => throw new NotSupportedException();
 
     Task<ConsoleKeyInfo?> IAnsiConsoleInput.ReadKeyAsync(bool intercept, CancellationToken cancellationToken) => throw new NotSupportedException();
-    #endregion
+
+    #endregion IAnsiConsoleInput implementation
 
     #region IAnsiConsoleOutput implementation
+
     TextWriter IAnsiConsoleOutput.Writer => throw new NotSupportedException();
-    
+
     bool IAnsiConsoleOutput.IsTerminal => true;
-    
+
     int IAnsiConsoleOutput.Width => _console.Size.Width;
-    
-    int IAnsiConsoleOutput. Height => _console.Size.Height;
-    
-    void IAnsiConsoleOutput.SetEncoding(Encoding encoding) {}
-    #endregion
+
+    int IAnsiConsoleOutput.Height => _console.Size.Height;
+
+    void IAnsiConsoleOutput.SetEncoding(Encoding encoding)
+    {
+    }
+
+    #endregion IAnsiConsoleOutput implementation
 
     #region IExclusivityMode implementation
+
     T IExclusivityMode.Run<T>(Func<T> func)
     {
         // Try acquiring the exclusivity semaphore
@@ -338,11 +350,13 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
             _semaphore.Release(1);
         }
     }
-    #endregion
 
-    #endregion
+    #endregion IExclusivityMode implementation
+
+    #endregion Methods
 
     #region Fields
+
     /// <summary>
     /// When <see langword="true"/>, <see cref="Write"/> and <see cref="Clear"/> are marshaled onto the UI thread
     /// via <see cref="UI.Invoke"/> so their buffer mutations are serialized with rendering and resizing.
@@ -353,13 +367,16 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     /// preserve the original synchronous IAnsiConsole behavior for existing Spectre.Console controls.
     /// </remarks>
     public bool marshal;
+
     /// <summary>When <see langword="true"/>, <see cref="Write"/> wraps glyphs to the next row at the buffer's
     /// right edge instead of clipping them. See the wrap note in <see cref="_Write"/>.</summary>
     public bool wrap;
+
     /// <summary>When <see langword="true"/>, <see cref="Write"/> soft-wraps at <b>word</b> boundaries (breaking to
     /// the next row before a word that wouldn't fit), with the character-level wrap as a fallback for an over-long
     /// word. Used by <see cref="MarkdownViewer"/> so paragraph text reflows to the buffer width instead of clipping.</summary>
     public bool wrapWords;
+
     internal readonly ConsoleBuffer _console;
     internal readonly AnsiConsoleBufferCursor _cursor;
     private readonly IAnsiConsoleInput _input;
@@ -372,16 +389,20 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     private int _cursorX;
     private int _cursorY;
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-    #endregion
+
+    #endregion Fields
 }
 
 internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 {
     #region Constructors
+
     public AnsiConsoleBufferCursor(AnsiConsoleBuffer parent) => _parent = parent;
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     internal bool IsVisible => _isVisible;
 
     /// <summary>The cursor shape/blink, emitted by the renderer as DECSCUSR. Re-applies live if visible.</summary>
@@ -411,11 +432,13 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
             }
         }
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     public void Show(bool show)
-    {        
+    {
         if (show)
         {
             if (_isVisible)
@@ -437,17 +460,17 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
             {
                 HideCursor();
             }
-        }      
+        }
     }
 
     internal bool Hide()
-    {       
+    {
         if (_isVisible)
         {
             HideCursor();
             return true;
         }
-        return false;    
+        return false;
     }
 
     internal void Forget()
@@ -496,40 +519,46 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
     }
 
     public void SetPosition(int column, int line)
-    {       
+    {
         var wasVisible = Hide();
         _parent.SetCursorPosition(column, line);
-        if (wasVisible) Show(true);   
+        if (wasVisible) Show(true);
     }
 
     public void Move(CursorDirection direction, int steps)
-    {   
+    {
         var wasVisible = Hide();
         switch (direction)
         {
             case CursorDirection.Up:
                 _parent.MoveCursor(0, -steps);
                 break;
+
             case CursorDirection.Down:
                 _parent.MoveCursor(0, steps);
                 break;
+
             case CursorDirection.Left:
                 _parent.MoveCursor(-steps, 0);
                 break;
+
             case CursorDirection.Right:
                 _parent.MoveCursor(steps, 0);
                 break;
         }
-        if (wasVisible) Show(true);    
-    }    
-    #endregion
+        if (wasVisible) Show(true);
+    }
+
+    #endregion Methods
 
     #region Fields
+
     private readonly AnsiConsoleBuffer _parent;
     private Position? _savedPosition;
     private Cell _savedCell;
     private bool _isVisible;
     private CursorStyle _style = CursorStyle.Default;
     private Color? _color;
-    #endregion
+
+    #endregion Fields
 }

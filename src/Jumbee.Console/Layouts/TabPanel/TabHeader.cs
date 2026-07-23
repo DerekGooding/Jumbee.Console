@@ -1,13 +1,11 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-
 using Spectre.Console;
 using Spectre.Console.Rendering;
+using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// A single clickable tab label in a <see cref="TabPanel"/>'s tab bar.
@@ -20,6 +18,7 @@ using Spectre.Console.Rendering;
 public class TabHeader : RenderableControl
 {
     #region Constructors
+
     internal TabHeader(int index, string text)
     {
         _index = index;
@@ -28,9 +27,11 @@ public class TabHeader : RenderableControl
         Height = 1;
         Width = LabelWidth();
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Events
+
     /// <summary>Raised when this tab is chosen — by a click or by Enter/Space while focused.</summary>
     public event EventHandler? Activated;
 
@@ -39,11 +40,14 @@ public class TabHeader : RenderableControl
     /// <remarks>The owning <see cref="TabPanel"/> turns this into a cancelable
     /// <see cref="TabPanel.TabCloseRequested"/>.</remarks>
     public event EventHandler? CloseRequested;
-    #endregion
+
+    #endregion Events
 
     #region Properties
+
     /// <summary><see langword="true"/> unless the tab is disabled: an enabled header handles Enter/Space to select.</summary>
     public override bool HandlesInput => _isEnabled;
+
     /// <summary><see langword="true"/>: the header shows keyboard focus itself by underlining an inactive tab.</summary>
     protected override bool RendersOwnFocus => true;   // underlines an inactive header on focus
 
@@ -86,9 +90,11 @@ public class TabHeader : RenderableControl
     /// <summary>How the active tab is indicated — highlight / underline / caret. Set by the owning
     /// <see cref="TabPanel"/>; defaults to the theme's <see cref="IStyleTheme.SelectionStyle"/>.</summary>
     internal SelectionStyle SelectionStyle { get => _selectionStyle; set => SetAtomicProperty(ref _selectionStyle, value, updatesLayout: true, themeOverride: true, watch: (_, _) => Width = LabelWidth()); }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyTheme()
     {
@@ -188,9 +194,11 @@ public class TabHeader : RenderableControl
         _text.Length + 2
         + (_selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0)
         + (_closable ? _closeGlyph.GetCellWidth() + 1 : 0);
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private int _index;
     private string _text;
     private bool _isActive;
@@ -202,5 +210,6 @@ public class TabHeader : RenderableControl
     private Style _hoverStyle;
     private SelectionStyle _selectionStyle;
     private string _selectionCaret = "";
-    #endregion
+
+    #endregion Fields
 }

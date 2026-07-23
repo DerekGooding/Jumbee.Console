@@ -15,39 +15,53 @@ using Spectre.Console;
 public interface IGlyphTheme
 {
     #region Checkbox
+
     /// <summary>Glyph for a checked checkbox.</summary>
     string CheckboxChecked => "[X]";
+
     /// <summary>Glyph for an unchecked checkbox.</summary>
     string CheckboxUnchecked => "[ ]";
-    #endregion
+
+    #endregion Checkbox
 
     #region Radio
+
     /// <summary>Glyph for a selected radio button.</summary>
     string RadioSelected => "(●)";     // (●)
+
     /// <summary>Glyph for an unselected radio button.</summary>
     string RadioUnselected => "( )";
-    #endregion
+
+    #endregion Radio
 
     #region Switch
+
     /// <summary>Glyph for a switch in the on position.</summary>
     string SwitchOn => "(─●)";    // (─●)
+
     /// <summary>Glyph for a switch in the off position.</summary>
     string SwitchOff => "(●─)";   // (●─)
-    #endregion
+
+    #endregion Switch
 
     #region Scrollbar
+
     /// <summary>The glyphs a control frame's vertical scrollbar uses (colours come from <see cref="IStyleTheme.ScrollBar"/>).
     /// Defaults to <see cref="ScrollBarGlyphs.Default"/>.</summary>
     ScrollBarGlyphs ScrollBar => ScrollBarGlyphs.Default;
-    #endregion
+
+    #endregion Scrollbar
 
     #region Selection
+
     /// <summary>The glyph prefixed to the selected item when a control's <see cref="SelectionStyle"/> is
     /// <see cref="SelectionStyle.Caret"/> (includes its trailing spacing). Defaults to <c>"▶ "</c>.</summary>
     string SelectionCaret => "▶ ";
-    #endregion
+
+    #endregion Selection
 
     #region Tabs
+
     /// <summary>The close glyph shown on a closable tab. Defaults to <c>"✕"</c> (override with <c>"x"</c> for an
     /// ASCII terminal).</summary>
     /// <remarks>Drawn only on the active/hovered tab; other tabs reserve a same-width blank.</remarks>
@@ -55,13 +69,16 @@ public interface IGlyphTheme
 
     /// <summary>The glyph on a tab panel's "+" new-tab button. Defaults to <c>"+"</c>.</summary>
     string TabAdd => "+";
-    #endregion
+
+    #endregion Tabs
 
     #region Tree
+
     /// <summary>Disclosure glyph shown before an <em>expanded</em> node that has children (includes trailing
     /// spacing). Defaults to <c>"▼ "</c>.</summary>
     /// <remarks>Both tree glyphs should share a cell width so labels stay aligned.</remarks>
     string TreeExpanded => "▼ ";
+
     /// <summary>Disclosure glyph shown before a <em>collapsed</em> node that has children (includes trailing
     /// spacing). Defaults to <c>"► "</c>.</summary>
     /// <remarks>U+25BA — the text-presentation counterpart of <c>▼</c>; the emoji-variant <c>▶</c> U+25B6 tofus in
@@ -72,13 +89,16 @@ public interface IGlyphTheme
     /// Defaults to <c>"• "</c>.</summary>
     /// <remarks>Should share a cell width with the disclosure glyphs so labels stay aligned.</remarks>
     string TreeLeaf => "• ";
-    #endregion
+
+    #endregion Tree
 
     #region Helpers
+
     /// <summary>The cell width of the widest of two state glyphs (both states of a toggle should be equal width;
     /// this guards against a theme that isn't).</summary>
     static int CellWidth(string a, string b) => System.Math.Max(a.GetCellWidth(), b.GetCellWidth());
-    #endregion
+
+    #endregion Helpers
 }
 
 /// <summary>The built-in glyph theme: every glyph uses <see cref="IGlyphTheme"/>'s default values.</summary>

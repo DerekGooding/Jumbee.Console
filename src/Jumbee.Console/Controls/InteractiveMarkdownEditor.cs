@@ -15,6 +15,7 @@ using NTokenizers.Extensions.Spectre.Console.Styles;
 public class InteractiveMarkdownEditor : InteractiveSourceEditor
 {
     #region Constructors
+
     /// <param name="markdown">Initial document text (both panes start in sync).</param>
     /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
     /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
@@ -29,10 +30,13 @@ public class InteractiveMarkdownEditor : InteractiveSourceEditor
     protected InteractiveMarkdownEditor(MarkdownViewer preview, string markdown, SplitOrientation orientation,
         int splitPosition)
         : base(new CodeEditor(Language.Markdown) { Text = markdown ?? "" }, preview, " Markdown ", " Preview ",
-            markdown ?? "", orientation, splitPosition) { }
-    #endregion
+            markdown ?? "", orientation, splitPosition)
+    { }
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The preview pane rendering the live Markdown.</summary>
     public MarkdownViewer Preview => (MarkdownViewer)PreviewControl;
 
@@ -42,9 +46,11 @@ public class InteractiveMarkdownEditor : InteractiveSourceEditor
         get => Preview.Styles;
         set => Preview.Styles = value;
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <inheritdoc/>
     protected override void ApplyPreviewText(string text) => Preview.Markdown = text;
 
@@ -55,5 +61,6 @@ public class InteractiveMarkdownEditor : InteractiveSourceEditor
         .WithKey("Ctrl+← / Ctrl+→", "Move focus between the panes")
         .WithKey("Drag divider", "Resize the panes")
         .WithKey("↑ / ↓, PgUp / PgDn", "Scroll the focused pane");
-    #endregion
+
+    #endregion Methods
 }

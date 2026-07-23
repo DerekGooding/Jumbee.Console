@@ -1,13 +1,11 @@
 namespace Jumbee.Console.Snapshot;
 
-using System.Text;
-using System.Threading.Tasks;
-
 using ConsoleGUI;
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-
+using System.Text;
+using System.Threading.Tasks;
 using JControl = Jumbee.Console.Control;
 
 /// <summary>
@@ -29,6 +27,7 @@ using JControl = Jumbee.Console.Control;
 public static class AnsiConsoleSnapshot
 {
     #region Methods
+
     /// <summary>Renders <paramref name="content"/> through ConsoleManager's ANSI path and returns the parsed screen.</summary>
     public static async Task<AnsiScreen> RenderAsync(IControl content, int width, int height)
     {
@@ -81,7 +80,8 @@ public static class AnsiConsoleSnapshot
     /// <summary>Renders a layout through the ANSI path and returns the parsed screen as text (glyphs only).</summary>
     public static async Task<string> ToTextAsync(ILayout layout, int width, int height)
         => ConsoleSnapshot.ToText((await RenderAsync(layout, width, height)).Buffer);
-    #endregion
+
+    #endregion Methods
 }
 
 /// <summary>A no-op <see cref="IConsole"/> with a settable size, so <see cref="ConsoleManager"/> can run the ANSI
@@ -91,8 +91,15 @@ internal sealed class HeadlessConsole : IConsole
 {
     public Size Size { get; set; }
     public bool KeyAvailable => false;
-    public void Initialize() { }
-    public void OnRefresh() { }
-    public void Write(Position position, in Character character) { }
+
+    public void Initialize()
+    { }
+
+    public void OnRefresh()
+    { }
+
+    public void Write(Position position, in Character character)
+    { }
+
     public ConsoleKeyInfo ReadKey() => throw new System.NotSupportedException();
 }

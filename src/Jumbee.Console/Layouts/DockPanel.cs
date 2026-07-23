@@ -1,17 +1,19 @@
 namespace Jumbee.Console;
 
 using System;
-using ConsoleGUI;
 
 /// <summary>Which edge a <see cref="DockPanel"/> pins its docked control to.</summary>
 public enum DockedControlPlacement
 {
     /// <summary>Dock the control to the top edge.</summary>
     Top,
+
     /// <summary>Dock the control to the right edge.</summary>
     Right,
+
     /// <summary>Dock the control to the bottom edge.</summary>
     Bottom,
+
     /// <summary>Dock the control to the left edge.</summary>
     Left
 }
@@ -82,12 +84,16 @@ public class DockPanel : Layout<ConsoleGUI.Controls.DockPanel>
             {
                 case ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Top:
                     return row == 0 ? DockedControl : FillControl;
+
                 case ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Bottom:
                     return row == 0 ? FillControl : DockedControl;
+
                 case ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Left:
                     return column == 0 ? DockedControl : FillControl;
+
                 case ConsoleGUI.Controls.DockPanel.DockedControlPlacement.Right:
                     return column == 0 ? FillControl : DockedControl;
+
                 default:
                     throw new NotSupportedException($"Unknown DockedControlPlacement value {control.Placement}.");
             }

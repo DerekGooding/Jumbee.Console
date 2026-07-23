@@ -2,9 +2,8 @@ namespace Jumbee.Console;
 
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-
-using CPlot = ConsolePlot.Plot;
 using CColor = ConsoleGUI.Data.Color;
+using CPlot = ConsolePlot.Plot;
 
 /// <summary>
 /// A <see cref="ConsolePlot.Plot"/> whose <see cref="Render"/> blits the rendered image into a
@@ -14,15 +13,20 @@ using CColor = ConsoleGUI.Data.Color;
 internal sealed class PlotImage : CPlot
 {
     #region Constructors
+
     public PlotImage(int width, int height, ConsoleBuffer buffer) : base(width, height) => _buffer = buffer;
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>Background colour written behind every cell, or <see langword="null"/> for transparent.</summary>
     public CColor? Background { get; set; }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>
     /// Copies the drawn image into the target buffer. ConsolePlot's image has y = 0 at the bottom, so its rows are
     /// flipped vertically onto the buffer's top-down rows.
@@ -43,9 +47,12 @@ internal sealed class PlotImage : CPlot
             }
         }
     }
-    #endregion
+
+    #endregion Methods
 
     #region Fields
+
     private readonly ConsoleBuffer _buffer;
-    #endregion
+
+    #endregion Fields
 }

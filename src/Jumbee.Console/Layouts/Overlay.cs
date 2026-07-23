@@ -1,12 +1,8 @@
 namespace Jumbee.Console;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ConsoleGUI;
 using ConsoleGUI.Space;
-
+using System;
 using CBox = ConsoleGUI.Controls.Box;
 using CMargin = ConsoleGUI.Controls.Margin;
 using COverlay = ConsoleGUI.Controls.Overlay;
@@ -24,15 +20,18 @@ using COverlay = ConsoleGUI.Controls.Overlay;
 public class Overlay : Layout<COverlay>
 {
     #region Constructors
+
     /// <summary>Initializes a new <see cref="Overlay"/> with <paramref name="bottom"/> as its persistent base layer.</summary>
     public Overlay(ILayout bottom) : base(new COverlay())
     {
         _bottom = bottom;
         control.BottomContent = bottom.CControl;
     }
-    #endregion
+
+    #endregion Constructors
 
     #region Properties
+
     /// <summary>The persistent base layer.</summary>
     public ILayout Bottom => _bottom;
 
@@ -70,9 +69,11 @@ public class Overlay : Layout<COverlay>
         get => _modalDim ?? UI.StyleTheme.ScrimDim;
         set => _modalDim = value;
     }
-    #endregion
+
+    #endregion Properties
 
     #region Methods
+
     /// <summary>Show <paramref name="popup"/> centered over the bottom layer.</summary>
     public void Show(Control popup) => Show(popup, CenterIn(popup), modal: false);
 
@@ -188,22 +189,27 @@ public class Overlay : Layout<COverlay>
         return false;
     }
 
-    #endregion
+    #endregion Methods
 
     #region Layout overrides
+
     // With no popup the overlay is transparent to navigation and input routing — it delegates its 2-D cell grid to
     // the bottom layer, so spatial nav (Ctrl+arrows) and routing see the bottom's real structure. While a popup is
     // shown it presents ONLY the popup (a single cell), so focus/input/nav are exclusive to it until it closes.
     // A passive top is drawn but never captures routing/nav, so the bottom layer stays addressable beneath it.
     /// <summary>Number of rows in the layout grid (1 while a capturing popup is shown, otherwise the bottom layer's rows).</summary>
     public override int Rows => _top is not null && !_passive ? 1 : _bottom.Rows;
+
     /// <summary>Number of columns in the layout grid (1 while a capturing popup is shown, otherwise the bottom layer's columns).</summary>
     public override int Columns => _top is not null && !_passive ? 1 : _bottom.Columns;
+
     /// <summary>Gets the control at the given <paramref name="row"/> and <paramref name="column"/> (the popup while one is shown, otherwise the bottom layer's cell).</summary>
     public override IFocusable this[int row, int column] => _top is not null && !_passive ? _top : _bottom[row, column];
-    #endregion
+
+    #endregion Layout overrides
 
     #region Fields
+
     private static readonly Color DefaultScrim = new(10, 10, 15);   // fallback when the theme leaves Scrim without a bg
     private readonly ILayout _bottom;
     private Control? _top;
@@ -212,5 +218,6 @@ public class Overlay : Layout<COverlay>
     private IFocusable? _previousFocus;
     private Color? _modalScrim;   // null = use the theme's Scrim colour
     private float? _modalDim;     // null = use the theme's ScrimDim
-    #endregion
+
+    #endregion Fields
 }
