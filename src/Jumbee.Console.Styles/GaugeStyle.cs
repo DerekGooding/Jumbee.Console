@@ -6,30 +6,21 @@ namespace Jumbee.Console;
 /// </summary>
 /// <remarks>Only the foreground colour of <see cref="Fill"/>/<see cref="Track"/> is used — the bar is drawn as a
 /// solid colour band.</remarks>
-public readonly struct GaugeStyle : System.IEquatable<GaugeStyle>
+/// <remarks>Initializes a new <see cref="GaugeStyle"/> from the fill, track, and text styles.</remarks>
+public readonly struct GaugeStyle(Style fill, Style track, Style text) : IEquatable<GaugeStyle>
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="GaugeStyle"/> from the fill, track, and text styles.</summary>
-    public GaugeStyle(Style fill, Style track, Style text)
-    {
-        Fill = fill;
-        Track = track;
-        Text = text;
-    }
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>The filled portion of the bar (its foreground colour fills the band).</summary>
-    public Style Fill { get; init; }
+    public Style Fill { get; init; } = fill;
 
     /// <summary>The empty track behind the fill (its foreground colour fills the band).</summary>
-    public Style Track { get; init; }
+    public Style Track { get; init; } = track;
 
     /// <summary>The percent/value readout and any inline label.</summary>
-    public Style Text { get; init; }
+    public Style Text { get; init; } = text;
 
     #endregion Properties
 

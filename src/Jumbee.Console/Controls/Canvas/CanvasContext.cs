@@ -1,7 +1,3 @@
-
-using System;
-using System.Collections.Generic;
-
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console.Drawing;
@@ -10,13 +6,8 @@ namespace Jumbee.Console.Drawing;
 /// implementations. The origin of the canvas coordinate system is the bottom-left corner (unlike the terminal's
 /// top-left), so <see cref="GetPoint"/> flips the y axis.
 /// </summary>
-internal sealed class Painter
+internal sealed class Painter(CanvasContext context)
 {
-    public Painter(CanvasContext context)
-    {
-        _context = context;
-        _resolution = context.Grid.Resolution;
-    }
 
     /// <summary>The canvas coordinate bounds — (x: [left, right], y: [bottom, top]).</summary>
     public ((double Min, double Max) X, (double Min, double Max) Y) Bounds => (_context.XBounds, _context.YBounds);
@@ -31,19 +22,19 @@ internal sealed class Painter
         var (left, right) = _context.XBounds;
         var (bottom, top) = _context.YBounds;
         if (x < left || x > right || y < bottom || y > top) return null;
-        double width = right - left;
-        double height = top - bottom;
+        var width = right - left;
+        var height = top - bottom;
         if (width <= 0.0 || height <= 0.0) return null;
-        int gx = (int)Math.Round((x - left) * (_resolution.X - 1.0) / width, MidpointRounding.AwayFromZero);
-        int gy = (int)Math.Round((top - y) * (_resolution.Y - 1.0) / height, MidpointRounding.AwayFromZero);
+        var gx = (int)Math.Round((x - left) * (_resolution.X - 1.0) / width, MidpointRounding.AwayFromZero);
+        var gy = (int)Math.Round((top - y) * (_resolution.Y - 1.0) / height, MidpointRounding.AwayFromZero);
         return (gx, gy);
     }
 
     /// <summary>Paints the grid dot at (<paramref name="x"/>, <paramref name="y"/>) — grid coordinates from <see cref="GetPoint"/>.</summary>
     public void Paint(int x, int y, CColor color) => _context.Grid.Paint(x, y, color);
 
-    private readonly CanvasContext _context;
-    private readonly (double X, double Y) _resolution;
+    private readonly CanvasContext _context = context;
+    private readonly (double X, double Y) _resolution = context.Grid.Resolution;
 }
 
 /// <summary>
@@ -51,20 +42,11 @@ internal sealed class Painter
 /// bounds, and the layers built so far. Shapes are drawn with <see cref="Draw"/>; <see cref="Layer"/> snapshots the
 /// current grid and starts a fresh one; <see cref="Finish"/> flushes the final layer.
 /// </summary>
-internal sealed class CanvasContext
+internal sealed class CanvasContext(int width, int height, (double Min, double Max) xBounds, (double Min, double Max) yBounds, CanvasMarker marker, char customMarker)
 {
-    public CanvasContext(int width, int height, (double Min, double Max) xBounds, (double Min, double Max) yBounds, CanvasMarker marker, char customMarker)
-    {
-        _width = width;
-        _height = height;
-        XBounds = xBounds;
-        YBounds = yBounds;
-        Grid = MarkerToGrid(width, height, marker, customMarker);
-    }
-
-    public (double Min, double Max) XBounds { get; }
-    public (double Min, double Max) YBounds { get; }
-    public IGrid Grid { get; private set; }
+    public (double Min, double Max) XBounds { get; } = xBounds;
+    public (double Min, double Max) YBounds { get; } = yBounds;
+    public IGrid Grid { get; private set; } = MarkerToGrid(width, height, marker, customMarker);
     public IReadOnlyList<Layer> Layers => _layers;
 
     /// <summary>Draws a shape onto the current grid.</summary>
@@ -107,8 +89,8 @@ internal sealed class CanvasContext
         _ => new CharGrid(width, height, CanvasSymbols.Dot),
     };
 
-    private readonly int _width;
-    private readonly int _height;
+    private readonly int _width = width;
+    private readonly int _height = height;
     private readonly List<Layer> _layers = [];
     private bool _dirty;
 }

@@ -4,9 +4,6 @@ using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Interop;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using CircularTreeException = Spectre.Console.Interop.CircularTreeException;
 
 namespace Jumbee.Console;
@@ -49,12 +46,12 @@ public partial class Tree : RenderableControl
     /// <param name="expanded">Whether the root starts expanded.</param>
     public Tree(IRenderable rootLabel, TreeGuide? guide = null, Style? guideStyle = null, bool expanded = true) : base()
     {
-        this._rootLabel = rootLabel;
-        this._root = new TreeNode(this, 0, _rootLabel);
-        this._style = guideStyle ?? Style.Plain;
-        this._guide = guide ?? TreeGuide.Line;
-        this.scguide = GetSpectreConsoleTreeGuide(this._guide);
-        this._expanded = expanded;
+        _rootLabel = rootLabel;
+        _root = new TreeNode(this, 0, _rootLabel);
+        _style = guideStyle ?? Style.Plain;
+        _guide = guide ?? TreeGuide.Line;
+        scguide = GetSpectreConsoleTreeGuide(_guide);
+        _expanded = expanded;
         ApplyTheme();
     }
 
@@ -66,10 +63,7 @@ public partial class Tree : RenderableControl
     /// <param name="guideStyle">The style of the connector lines (defaults to <see cref="Style.Plain"/>).</param>
     /// <param name="expanded">Whether the root starts expanded.</param>
     public Tree(string rootText, TreeGuide? guide = null, Style? guideStyle = null, bool expanded = true) :
-        this(new Markup(rootText), guide, guideStyle, expanded)
-    {
-        _root.Text = rootText;
-    }
+        this(new Markup(rootText), guide, guideStyle, expanded) => _root.Text = rootText;
 
     #endregion Constructors
 
@@ -152,11 +146,11 @@ public partial class Tree : RenderableControl
     /// Defaults to <see langword="false"/> (off — pointer movement is ignored so it doesn't distract from selection).</summary>
     public bool HoverHighlighting
     {
-        get => _hoverHighlighting;
+        get;
         set
         {
-            if (_hoverHighlighting == value) return;
-            _hoverHighlighting = value;
+            if (field == value) return;
+            field = value;
             // Drop any existing tint when turning it off so a stale hovered row doesn't linger.
             if (!value && _hoveredNode is not null) _hoveredNode = null;
             Invalidate();
@@ -374,7 +368,7 @@ public partial class Tree : RenderableControl
     /// <inheritdoc/>
     protected override void OnMouseMove(Position position)
     {
-        if (!_hoverHighlighting) return;
+        if (!HoverHighlighting) return;
         var node = NodeAt(position.Y);
         if (!ReferenceEquals(node, _hoveredNode))
         {
@@ -386,7 +380,7 @@ public partial class Tree : RenderableControl
     /// <inheritdoc/>
     protected override void OnMouseLeave()
     {
-        if (!_hoverHighlighting) return;
+        if (!HoverHighlighting) return;
         if (_hoveredNode is not null)
         {
             _hoveredNode = null;
@@ -446,7 +440,7 @@ public partial class Tree : RenderableControl
     // The cell width of one guide part (e.g. "├── "); constant across parts for a given guide.
     private int GuidePartWidth() => scguide.GetSafeTreeGuide(safe: false).GetPart(TreeGuidePart.Continue).GetCellWidth();
 
-    internal void Update() => this.Invalidate();
+    internal void Update() => Invalidate();
 
     /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
@@ -458,8 +452,10 @@ public partial class Tree : RenderableControl
         var stack = new Stack<Queue<TreeNode>>();
         stack.Push(new Queue<TreeNode>(new[] { _root }));
 
-        var levels = new List<Segment>();
-        levels.Add(GetGuide(options, TreeGuidePart.Continue));
+        var levels = new List<Segment>
+        {
+            GetGuide(options, TreeGuidePart.Continue)
+        };
 
         while (stack.Count > 0)
         {
@@ -518,7 +514,7 @@ public partial class Tree : RenderableControl
             var hovered = !current.Selected && ReferenceEquals(current, _hoveredNode);
             var highlightRenderable = !isTextNode && current.Selected;
 
-            IRenderable renderable = current.Renderable;
+            var renderable = current.Renderable;
             var folded = false;
             if (isTextNode && current.Selected)
             {
@@ -769,14 +765,13 @@ public partial class Tree : RenderableControl
     private string _leafGlyph = "";
     private Color? _leafGlyphColor;
     private Style _hoverStyle;
-    private bool _hoverHighlighting;
     private TreeNode? _hoveredNode;
     private TreeNode? _lastSelection;   // last node reported by SelectionChanged, so we only raise on an actual change
 
     // Content row -> (owning node, is that node's first/glyph row) for the last render. Lets the mouse handlers map a
     // clicked row to the correct node when labels wrap onto multiple rows. Written in Render, read in the mouse
     // handlers — both on the UI thread.
-    private readonly List<(TreeNode node, bool first)> _rowMap = new();
+    private readonly List<(TreeNode node, bool first)> _rowMap = [];
 
     #endregion Fields
 }

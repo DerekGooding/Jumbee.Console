@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console;
 /// <summary>
 /// Factory that opens an <see cref="IPty"/> using the right backend for the current OS: the Windows pseudo console
@@ -15,9 +12,9 @@ public static class Pty
     {
         if (OperatingSystem.IsWindows())
             return ConPty.Start(commandLine, columns, rows, workingDirectory);
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-            return UnixPty.Start(commandLine, columns, rows, workingDirectory);
-        throw new PlatformNotSupportedException("A pseudo terminal requires Windows (ConPTY) or Linux/macOS.");
+        return OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()
+            ? (IPty)UnixPty.Start(commandLine, columns, rows, workingDirectory)
+            : throw new PlatformNotSupportedException("A pseudo terminal requires Windows (ConPTY) or Linux/macOS.");
     }
 
     /// <summary>The OS default interactive shell: <c>cmd.exe</c> on Windows, <c>$SHELL</c> (or <c>/bin/bash</c>)

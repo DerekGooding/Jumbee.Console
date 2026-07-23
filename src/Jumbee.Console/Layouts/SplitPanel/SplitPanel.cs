@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console;
 /// <summary>How a <see cref="SplitPanel"/> arranges its two panes.</summary>
 public enum SplitOrientation
@@ -30,13 +27,13 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
         : base(new SplitPanelDockPanel(orientation, first.RenderNode(), second.RenderNode(),
             Math.Max(DefaultMin, splitPosition)))
     {
-        _orientation = orientation;
-        _first = first;
-        _second = second;
-        _divider = control.Divider;
+        Orientation = orientation;
+        First = first;
+        Second = second;
+        Divider = control.Divider;
         _splitPosition = Math.Max(DefaultMin, splitPosition);
-        _divider.Dragged += delta => SplitPosition += delta;
-        _divider.Nudged += delta => SplitPosition += delta;
+        Divider.Dragged += delta => SplitPosition += delta;
+        Divider.Nudged += delta => SplitPosition += delta;
     }
 
     #endregion Constructors
@@ -51,16 +48,16 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     #region Properties
 
     /// <summary>How the two panes are arranged (fixed at construction).</summary>
-    public SplitOrientation Orientation => _orientation;
+    public SplitOrientation Orientation { get; }
 
     /// <summary>The draggable divider (for theming or focusing).</summary>
-    public SplitDivider Divider => _divider;
+    public SplitDivider Divider { get; }
 
     /// <summary>The first pane (left/top).</summary>
-    public IFocusable First => _first;
+    public IFocusable First { get; }
 
     /// <summary>The second pane (right/bottom).</summary>
-    public IFocusable Second => _second;
+    public IFocusable Second { get; }
 
     /// <summary>The first pane's extent in cells (width for a horizontal split, height for a vertical one).</summary>
     /// <remarks>Clamped to <see cref="MinFirst"/> and to leaving the divider plus <see cref="MinSecond"/> for the
@@ -72,10 +69,10 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
         get => _splitPosition;
         set
         {
-            var total = _orientation == SplitOrientation.Horizontal ? control.Size.Width : control.Size.Height;
+            var total = Orientation == SplitOrientation.Horizontal ? control.Size.Width : control.Size.Height;
             // Once laid out, don't let the first pane crowd out the divider + the second pane's minimum.
-            var max = total > 0 ? total - 1 - _minSecond : int.MaxValue;
-            var clamped = Math.Clamp(value, _minFirst, Math.Max(_minFirst, max));
+            var max = total > 0 ? total - 1 - MinSecond : int.MaxValue;
+            var clamped = Math.Clamp(value, MinFirst, Math.Max(MinFirst, max));
             if (clamped == _splitPosition) return;
             _splitPosition = clamped;
             ApplyExtent();
@@ -102,22 +99,22 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
     /// sliver (set <c>MinFirst = 1</c> for the thinnest zen collapse).</summary>
     public int MinFirst
     {
-        get => _minFirst;
-        set { _minFirst = Math.Max(1, value); SplitPosition = _splitPosition; }
-    }
+        get;
+        set { field = Math.Max(1, value); SplitPosition = _splitPosition; }
+    } = DefaultMin;
 
     /// <summary>Minimum extent of the second pane in cells (default 3).</summary>
     public int MinSecond
     {
-        get => _minSecond;
-        set { _minSecond = Math.Max(1, value); SplitPosition = _splitPosition; }
-    }
+        get;
+        set { field = Math.Max(1, value); SplitPosition = _splitPosition; }
+    } = DefaultMin;
 
     // Logical children for input routing (like TabPanel): first pane, divider, second pane. Both panes and the
     // divider are focusable; the divider takes arrow-key resizes when focused. Laid out along the split axis — a
     // horizontal (side-by-side) split exposes them as columns, a vertical (stacked) split as rows — so spatial focus
     // navigation moves between the panes with the matching arrow keys (Ctrl+←/→ vs Ctrl+↑/↓).
-    private bool IsHorizontal => _orientation == SplitOrientation.Horizontal;
+    private bool IsHorizontal => Orientation == SplitOrientation.Horizontal;
 
     /// <summary>Number of rows in the layout grid (3 for a vertical split's stacked panes+divider, otherwise 1).</summary>
     public override int Rows => IsHorizontal ? 1 : 3;
@@ -131,12 +128,13 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
         get
         {
             var (index, cross) = IsHorizontal ? (column, row) : (row, column);
-            if (cross != 0) throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(row) : nameof(column));
-            return index switch
+            return cross != 0
+                ? throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(row) : nameof(column))
+                : index switch
             {
-                0 => _first,
-                1 => _divider,
-                2 => _second,
+                0 => First,
+                1 => Divider,
+                2 => Second,
                 _ => throw new ArgumentOutOfRangeException(IsHorizontal ? nameof(column) : nameof(row))
             };
         }
@@ -144,20 +142,14 @@ public class SplitPanel : Layout<SplitPanelDockPanel>
 
     // Surface the focused descendant so a parent layout routing through this single IFocusable reaches it.
     /// <inheritdoc/>
-    public override IFocusable? FocusedControl => _first.FocusedControl ?? _divider.FocusedControl ?? _second.FocusedControl;
+    public override IFocusable? FocusedControl => First.FocusedControl ?? Divider.FocusedControl ?? Second.FocusedControl;
 
     #endregion Properties
 
     #region Fields
 
     private const int DefaultMin = 3;
-    private readonly SplitOrientation _orientation;
-    private readonly IFocusable _first;
-    private readonly IFocusable _second;
-    private readonly SplitDivider _divider;
     private int _splitPosition;
-    private int _minFirst = DefaultMin;
-    private int _minSecond = DefaultMin;
     private bool _extentDirty;   // a coalesced SetFirstExtent is queued for the next frame (see ApplyExtent)
 
     #endregion Fields

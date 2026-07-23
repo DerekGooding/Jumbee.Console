@@ -1,9 +1,6 @@
 
 using ConsolePlot.Drawing.Tools;
 using ConsolePlot.Plotting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using CColor = ConsoleGUI.Data.Color;
 using CPlot = ConsolePlot.Plot;
 
@@ -180,13 +177,13 @@ public class Plot : Control
         // All values equal: a single bar at that value.
         if (max <= min) return ([min], [finite.Length]);
 
-        double width = (max - min) / bins;
+        var width = (max - min) / bins;
         var counts = new double[bins];
         foreach (var v in finite)
             counts[Math.Clamp((int)((v - min) / width), 0, bins - 1)]++;   // the max value lands in the last bin
 
         var mids = new double[bins];
-        for (int b = 0; b < bins; b++) mids[b] = min + (b + 0.5) * width;
+        for (var b = 0; b < bins; b++) mids[b] = min + ((b + 0.5) * width);
         return (mids, counts);
     }
 
@@ -251,7 +248,7 @@ public class Plot : Control
             var medians = new List<double>();
             var q3s = new List<double>();
             var maxes = new List<double>();
-            for (int i = 0; i < groups.Count; i++)
+            for (var i = 0; i < groups.Count; i++)
             {
                 if (!Quartiles(groups[i], out var min, out var q1, out var med, out var q3, out var max))
                     continue;
@@ -286,10 +283,10 @@ public class Plot : Control
         static double Percentile(double[] s, double p)
         {
             if (s.Length == 1) return s[0];
-            double rank = p * (s.Length - 1);
-            int lo = (int)Math.Floor(rank);
-            int hi = (int)Math.Ceiling(rank);
-            return s[lo] + (s[hi] - s[lo]) * (rank - lo);
+            var rank = p * (s.Length - 1);
+            var lo = (int)Math.Floor(rank);
+            var hi = (int)Math.Ceiling(rank);
+            return s[lo] + ((s[hi] - s[lo]) * (rank - lo));
         }
     }
 
@@ -394,19 +391,24 @@ public class Plot : Control
     {
         UI.Invoke(() =>
         {
-            int rows = values.Count;
+            var rows = values.Count;
             if (rows == 0) return;
-            int cols = values[0].Count;
+            var cols = values[0].Count;
             if (cols == 0) return;
 
             double dataMin = double.PositiveInfinity, dataMax = double.NegativeInfinity;
             foreach (var row in values)
+            {
                 foreach (var v in row)
+                {
                     if (!double.IsNaN(v) && !double.IsInfinity(v))
                     {
                         if (v < dataMin) dataMin = v;
                         if (v > dataMax) dataMax = v;
                     }
+                }
+            }
+
             if (double.IsInfinity(dataMin)) return;   // no finite values
 
             double lo = min ?? dataMin, hi = max ?? dataMax;
@@ -432,8 +434,8 @@ public class Plot : Control
     {
         AddHeatmap(counts, colormap, cellText: v => ((long)Math.Round(v)).ToString());
 
-        int rows = counts.Count;
-        int cols = rows > 0 ? counts[0].Count : 0;
+        var rows = counts.Count;
+        var cols = rows > 0 ? counts[0].Count : 0;
         // The grid tiles 0..cols × 0..rows with row 0 at the top, so column c's centre is at x = c+0.5 and row r's
         // centre is at y = rows−r−0.5 (image y is up).
         if (colLabels is not null && cols > 0)
@@ -501,16 +503,16 @@ public class Plot : Control
     private static CColor Ramp(CColor[] stops, double t)
     {
         t = Math.Clamp(t, 0.0, 1.0);
-        double scaled = t * (stops.Length - 1);
-        int i = (int)Math.Floor(scaled);
+        var scaled = t * (stops.Length - 1);
+        var i = (int)Math.Floor(scaled);
         if (i >= stops.Length - 1) return stops[^1];
-        double f = scaled - i;
+        var f = scaled - i;
         var a = stops[i];
         var b = stops[i + 1];
         return new CColor(
-            (byte)(a.Red + (b.Red - a.Red) * f),
-            (byte)(a.Green + (b.Green - a.Green) * f),
-            (byte)(a.Blue + (b.Blue - a.Blue) * f));
+            (byte)(a.Red + ((b.Red - a.Red) * f)),
+            (byte)(a.Green + ((b.Green - a.Green) * f)),
+            (byte)(a.Blue + ((b.Blue - a.Blue) * f)));
     }
 
     private static readonly CColor[] ViridisStops =
@@ -530,7 +532,7 @@ public class Plot : Control
     private static IReadOnlyList<CColor> ColorsFor(int count, IReadOnlyList<Color>? colors)
     {
         var result = new CColor[count];
-        for (int j = 0; j < count; j++)
+        for (var j = 0; j < count; j++)
             result[j] = colors is not null && j < colors.Count ? (CColor)colors[j] : Palette[j % Palette.Length];
         return result;
     }

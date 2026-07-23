@@ -3,8 +3,6 @@ using ConsoleGUI;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -176,7 +174,7 @@ public class MenuBar : RenderableControl
 
     #region Fields
 
-    private readonly List<(string Title, MenuItem[] Items)> _menus = new();
+    private readonly List<(string Title, MenuItem[] Items)> _menus = [];
     private int _active;
     private int _openIndex = -1;
     private int _originX;

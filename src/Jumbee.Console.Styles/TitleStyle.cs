@@ -53,24 +53,18 @@ public enum TitleColorStyle
 /// Describes how a control frame title is aligned, bordered, and colored.
 /// </summary>
 /// <remarks>A frame's default title style comes from <see cref="IStyleTheme.TitleStyle"/>.</remarks>
-public readonly struct TitleStyle : System.IEquatable<TitleStyle>
+/// <remarks>Initializes a new <see cref="TitleStyle"/> with the given position, border style, and color style.</remarks>
+public readonly struct TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal) : IEquatable<TitleStyle>
 {
-    /// <summary>Initializes a new <see cref="TitleStyle"/> with the given position, border style, and color style.</summary>
-    public TitleStyle(TitlePos pos = TitlePos.TopLeft, TitleBorderStyle borderStyle = TitleBorderStyle.Double, TitleColorStyle color = TitleColorStyle.Normal)
-    {
-        Pos = pos;
-        BorderStyle = borderStyle;
-        Color = color;
-    }
 
     /// <summary>The title's border and alignment position.</summary>
-    public TitlePos Pos { get; init; }
+    public TitlePos Pos { get; init; } = pos;
 
     /// <summary>How the title is drawn relative to the top border.</summary>
-    public TitleBorderStyle BorderStyle { get; init; }
+    public TitleBorderStyle BorderStyle { get; init; } = borderStyle;
 
     /// <summary>How the title is colored relative to the border color.</summary>
-    public TitleColorStyle Color { get; init; }
+    public TitleColorStyle Color { get; init; } = color;
 
     /// <summary>The default title style (top-left, double border, normal colors), matching the original behavior.</summary>
     public static TitleStyle Default { get; } = new TitleStyle(TitlePos.TopLeft, TitleBorderStyle.Double, TitleColorStyle.Normal);

@@ -1,6 +1,5 @@
 
 using Spectre.Console.Rendering;
-using System;
 using System.Diagnostics;
 using S = Spectre.Console;
 
@@ -62,26 +61,26 @@ public sealed class PerfHud : GlassPanel
         // render cycle (input, dispatcher, other threads) that the per-frame numbers don't.
         // frame/busy show the AVERAGE (the typical frame — low for retained rendering) with the PEAK as a separate
         // row (the worst frame in the window — a resize/paste burst).
-        double renderUs = m.RenderTimeMsAvg * 1000.0;
-        double renderPeakUs = m.RenderTimeMsPeak * 1000.0;
-        double busy = m.BusyPercentAvg;
-        double busyPeak = m.BusyPercentPeak;
+        var renderUs = m.RenderTimeMsAvg * 1000.0;
+        var renderPeakUs = m.RenderTimeMsPeak * 1000.0;
+        var busy = m.BusyPercentAvg;
+        var busyPeak = m.BusyPercentPeak;
         // Fraction of frames that took the full draw path (vs idled) — a retained UI keeps this low.
-        double redraw = m.RedrawPercent;
+        var redraw = m.RedrawPercent;
         // Fraction of the SCREEN re-composited per drawn frame — dirty-rect rendering keeps this tiny (a status-bar
         // tick redraws only its own rows), spiking to 100 only on resize/theme switch.
-        double dirty = m.DirtyAreaPercentAvg;
-        double dirtyPeak = m.DirtyAreaPercentPeak;
-        double cpu = m.CpuUsagePercent;
+        var dirty = m.DirtyAreaPercentAvg;
+        var dirtyPeak = m.DirtyAreaPercentPeak;
+        var cpu = m.CpuUsagePercent;
         // mem is a sticky gauge: the average tracks the current footprint and the peak is the window high-water mark.
-        double memMb = m.WorkingSetBytesAvg / 1048576.0;
-        double memPeakMb = m.WorkingSetBytesPeak / 1048576.0;
+        var memMb = m.WorkingSetBytesAvg / 1048576.0;
+        var memPeakMb = m.WorkingSetBytesPeak / 1048576.0;
         // Average = the steady per-frame allocation (near-zero for retained rendering, even at fullscreen); peak =
         // the worst single frame in the window (a resize/paste burst). Showing both makes "is it flat" obvious.
-        double allocKb = m.AllocatedBytesPerFrame / 1024.0;
-        double allocPeakKb = m.PeakAllocatedBytesPerFrame / 1024.0;
-        double exc = m.ExceptionsPerSecond;
-        long locks = m.LockContentions;
+        var allocKb = m.AllocatedBytesPerFrame / 1024.0;
+        var allocPeakKb = m.PeakAllocatedBytesPerFrame / 1024.0;
+        var exc = m.ExceptionsPerSecond;
+        var locks = m.LockContentions;
 
         var g = new S.Grid();
         g.AddColumn(new S.GridColumn { Padding = new S.Padding(0, 0, 2, 0) });

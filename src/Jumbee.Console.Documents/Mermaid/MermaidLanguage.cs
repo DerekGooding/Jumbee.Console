@@ -51,10 +51,10 @@ public sealed class MermaidLanguage : ILanguage
     public override string ToString() => Name;
 
     /// <summary>The ordered highlighting rules (the first to match a position wins).</summary>
-    public IList<LanguageRule> Rules => new List<LanguageRule>
-    {
+    public IList<LanguageRule> Rules =>
+    [
         // %% line/trailing comment (incl. the %%{init:...}%% directive). Mermaid's only comment form.
-        Rule(@"(%%.*)$", ScopeName.Comment),
+        Rule("(%%.*)$", ScopeName.Comment),
 
         // Quoted string, and [bracket] labels (node text / entity aliases). '[' is never part of an arrow, so a
         // square-bracket label is safe to claim here; '(' and '{' are reused by arrows/cardinality so are left alone.
@@ -79,7 +79,7 @@ public sealed class MermaidLanguage : ILanguage
 
         // Numbers (autonumber start/step, pie/quadrant/radar values).
         Rule(@"\b(\d+(?:\.\d+)?)\b", ScopeName.Number),
-    };
+    ];
 
     #endregion ILanguage
 

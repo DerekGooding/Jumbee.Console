@@ -1,7 +1,5 @@
 ﻿
 using Spectre.Console;
-using System;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>

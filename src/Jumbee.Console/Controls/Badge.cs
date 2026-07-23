@@ -1,7 +1,5 @@
 
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>Preset colour schemes for a <see cref="Badge"/>, resolved from the active theme.</summary>
@@ -49,10 +47,7 @@ public class Badge : RenderableControl
     }
 
     /// <summary>Creates a badge with an explicit style (overrides the themed variant).</summary>
-    public Badge(string text, Style style) : this(text)
-    {
-        Style = style;
-    }
+    public Badge(string text, Style style) : this(text) => Style = style;
 
     #endregion Constructors
 
@@ -68,9 +63,9 @@ public class Badge : RenderableControl
     /// <summary>Spaces added on each side of the text. Defaults to 1.</summary>
     public int Padding
     {
-        get => _padding;
-        set => SetAtomicProperty(ref _padding, Math.Max(0, value), updatesLayout: true, watch: (_, _) => Width = DisplayWidth());
-    }
+        get;
+        set => SetAtomicProperty(ref field, Math.Max(0, value), updatesLayout: true, watch: (_, _) => Width = DisplayWidth());
+    } = 1;
 
     /// <summary>The themed colour scheme; ignored once <see cref="Style"/> is set explicitly.</summary>
     public BadgeVariant Variant
@@ -105,15 +100,15 @@ public class Badge : RenderableControl
     /// <inheritdoc/>
     protected override int IntrinsicWidth() => DisplayWidth();
 
-    private int DisplayWidth() => _text.Length + (2 * _padding);
+    private int DisplayWidth() => _text.Length + (2 * Padding);
 
     /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
         if (maxWidth <= 0) yield break;
-        var pad = new string(' ', _padding);
+        var pad = new string(' ', Padding);
         var display = pad + _text + pad;
-        if (display.Length > maxWidth) display = display.Substring(0, maxWidth);
+        if (display.Length > maxWidth) display = display[..maxWidth];
         yield return new Segment(display, _style.SpectreConsoleStyle);
     }
 
@@ -137,7 +132,6 @@ public class Badge : RenderableControl
     #region Fields
 
     private string _text;
-    private int _padding = 1;
     private BadgeVariant _variant;
     private Style _style;
 

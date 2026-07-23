@@ -109,15 +109,15 @@ public static class ConsoleSnapshot
     // uppercase under Shift, the C0 control char under Ctrl (matches UI.HotKeys.Ctrl). Digits: their glyph.
     private static char KeyChar(ConsoleKey key, bool shift, bool control)
     {
-        if (key >= ConsoleKey.A && key <= ConsoleKey.Z)
+        if (key is >= ConsoleKey.A and <= ConsoleKey.Z)
         {
             if (control) return (char)(key - ConsoleKey.A + 1);   // Ctrl+A..Z -> ..
             var lower = (char)('a' + (key - ConsoleKey.A));
             return shift ? char.ToUpperInvariant(lower) : lower;
         }
-        if (!control && key >= ConsoleKey.D0 && key <= ConsoleKey.D9) return (char)('0' + (key - ConsoleKey.D0));
-        if (!control && key >= ConsoleKey.NumPad0 && key <= ConsoleKey.NumPad9) return (char)('0' + (key - ConsoleKey.NumPad0));
-        return '\0';
+        return !control && key >= ConsoleKey.D0 && key <= ConsoleKey.D9
+            ? (char)('0' + (key - ConsoleKey.D0))
+            : !control && key >= ConsoleKey.NumPad0 && key <= ConsoleKey.NumPad9 ? (char)('0' + (key - ConsoleKey.NumPad0)) : '\0';
     }
 
     private static ConsoleBuffer RenderAfterCore(JControl control, int width, int height, IEnumerable<ConsoleKeyInfo> keys, bool routeGlobal = false)
@@ -399,16 +399,12 @@ public static class ConsoleSnapshot
 
         // Last resort: first installed family (may not be monospace, but avoids a hard failure).
         var any = SystemFonts.Families.FirstOrDefault();
-        if (any == default)
-        {
-            throw new InvalidOperationException("No system fonts are available to render the snapshot image.");
-        }
-        return any;
+        return any == default ? throw new InvalidOperationException("No system fonts are available to render the snapshot image.") : any;
     }
 
     private static bool TryGetFamily(string name, out FontFamily family) => SystemFonts.TryGet(name, out family);
 
-    private static readonly Cell EmptyCell = new Cell(' ');
+    private static readonly Cell EmptyCell = new(' ');
 
     private sealed class NoopListener : IDrawingContextListener
     {

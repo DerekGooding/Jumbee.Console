@@ -3,8 +3,6 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -21,7 +19,7 @@ public class TabHeader : RenderableControl
 
     internal TabHeader(int index, string text)
     {
-        _index = index;
+        Index = index;
         _text = text;
         ApplyTheme();        // capture SelectionStyle + caret first: a caret style reserves a gutter in the width
         Height = 1;
@@ -46,22 +44,18 @@ public class TabHeader : RenderableControl
     #region Properties
 
     /// <summary><see langword="true"/> unless the tab is disabled: an enabled header handles Enter/Space to select.</summary>
-    public override bool HandlesInput => _isEnabled;
+    public override bool HandlesInput => IsEnabled;
 
     /// <summary><see langword="true"/>: the header shows keyboard focus itself by underlining an inactive tab.</summary>
     protected override bool RendersOwnFocus => true;   // underlines an inactive header on focus
 
     /// <summary>This tab's position among all tabs. Kept in sync by the owning <see cref="TabPanel"/>.</summary>
-    public int Index => _index;
+    public int Index { get; private set; }
 
-    internal void SetIndex(int index) => _index = index;
+    internal void SetIndex(int index) => Index = index;
 
     /// <summary><see langword="false"/> for a disabled tab: drawn dimmed, not focusable, ignores clicks/keys.</summary>
-    public bool IsEnabled
-    {
-        get => _isEnabled;
-        set { Focusable = value; SetAtomicProperty(ref _isEnabled, value); }
-    }
+    public bool IsEnabled { get; set { Focusable = value; SetAtomicProperty(ref field, value); } } = true;
 
     /// <summary>The tab label.</summary>
     public string Text
@@ -71,12 +65,12 @@ public class TabHeader : RenderableControl
     }
 
     /// <summary><see langword="true"/> for the currently selected tab (drawn with <see cref="ActiveStyle"/>).</summary>
-    public bool IsActive { get => _isActive; set => SetAtomicProperty(ref _isActive, value); }
+    public bool IsActive { get; set => SetAtomicProperty(ref field, value); }
 
     /// <summary>When <see langword="true"/> the tab reserves a close (✕) slot: the glyph is drawn on the active or
     /// hovered tab (a same-width blank otherwise, so labels don't shift), and clicking it raises
     /// <see cref="CloseRequested"/>. Set by the owning <see cref="TabPanel"/> via <see cref="TabPanel.ClosableTabs"/>.</summary>
-    internal bool Closable { get => _closable; set => SetAtomicProperty(ref _closable, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth()); }
+    internal bool Closable { get; set => SetAtomicProperty(ref field, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth()); }
 
     /// <summary>Style of the active (selected) tab. Defaults to <see cref="IStyleTheme.Selection"/>.</summary>
     public Style ActiveStyle { get => _activeStyle; set => SetAtomicProperty(ref _activeStyle, value, themeOverride: true); }
@@ -89,7 +83,7 @@ public class TabHeader : RenderableControl
 
     /// <summary>How the active tab is indicated — highlight / underline / caret. Set by the owning
     /// <see cref="TabPanel"/>; defaults to the theme's <see cref="IStyleTheme.SelectionStyle"/>.</summary>
-    internal SelectionStyle SelectionStyle { get => _selectionStyle; set => SetAtomicProperty(ref _selectionStyle, value, updatesLayout: true, themeOverride: true, watch: (_, _) => Width = LabelWidth()); }
+    internal SelectionStyle SelectionStyle { get => _selectionStyle; set => SetAtomicProperty(ref _selectionStyle, value, updatesLayout: true, watch: (_, _) => Width = LabelWidth(), themeOverride: true); }
 
     #endregion Properties
 
@@ -114,14 +108,14 @@ public class TabHeader : RenderableControl
         // In Caret mode every header reserves a caret-width gutter (the active one shows the caret, the others blank)
         // so the labels stay aligned and the caret never truncates the text.
         var gutter = _selectionStyle == SelectionStyle.Caret ? new string(' ', _selectionCaret.GetCellWidth()) : "";
-        if (!_isEnabled)
+        if (!IsEnabled)
         {
             // Disabled: dim the inactive style; a disabled tab is never the active one.
             var b = _inactiveStyle.SpectreConsoleStyle;
             style = new Spectre.Console.Style(b.Foreground, b.Background, b.Decoration | Spectre.Console.Decoration.Dim);
             label = $" {gutter}{_text} ";
         }
-        else if (_isActive)
+        else if (IsActive)
         {
             // The active tab is the "selected item": render it per SelectionStyle (highlight / underline / caret).
             style = _selectionStyle.TextStyle(_activeStyle.ForegroundColor, _activeStyle.BackgroundColor);
@@ -138,9 +132,9 @@ public class TabHeader : RenderableControl
         // Closable tabs reserve a close slot after the label. The ✕ shows only on the active or hovered tab; the
         // rest reserve a same-width blank so labels don't shift as selection/hover moves. The base label already
         // ends in a space, so appending "{cell} " yields "…text {cell} " with one space on each side of the glyph.
-        if (_closable)
+        if (Closable)
         {
-            var cell = (_isActive || IsMouseOver) ? _closeGlyph : new string(' ', _closeGlyph.GetCellWidth());
+            var cell = (IsActive || IsMouseOver) ? _closeGlyph : new string(' ', _closeGlyph.GetCellWidth());
             label += $"{cell} ";
         }
 
@@ -153,9 +147,9 @@ public class TabHeader : RenderableControl
     /// <inheritdoc/>
     protected override void OnClick(Position position)
     {
-        if (!_isEnabled) return;
+        if (!IsEnabled) return;
         // A click on the ✕ (only when it is shown) closes rather than selects; anything else selects.
-        if (_closable && (_isActive || IsMouseOver))
+        if (Closable && (IsActive || IsMouseOver))
         {
             var (start, width) = CloseGlyphSpan();
             if (position.X >= start && position.X < start + width)
@@ -178,7 +172,7 @@ public class TabHeader : RenderableControl
     /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
-        if (!_isEnabled) return;
+        if (!IsEnabled) return;
 
         // Enter/Space selects this tab; switching between tabs (Alt+arrows) is handled by the owning TabPanel.
         if (inputEvent.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
@@ -193,17 +187,13 @@ public class TabHeader : RenderableControl
     private int LabelWidth() =>
         _text.Length + 2
         + (_selectionStyle == SelectionStyle.Caret ? _selectionCaret.GetCellWidth() : 0)
-        + (_closable ? _closeGlyph.GetCellWidth() + 1 : 0);
+        + (Closable ? _closeGlyph.GetCellWidth() + 1 : 0);
 
     #endregion Methods
 
     #region Fields
 
-    private int _index;
     private string _text;
-    private bool _isActive;
-    private bool _isEnabled = true;
-    private bool _closable;
     private string _closeGlyph = "";
     private Style _activeStyle;
     private Style _inactiveStyle;

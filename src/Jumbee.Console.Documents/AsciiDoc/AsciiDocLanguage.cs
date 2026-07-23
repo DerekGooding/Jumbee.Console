@@ -51,10 +51,10 @@ public sealed class AsciiDocLanguage : ILanguage
     public override string ToString() => Name;
 
     /// <summary>The ordered highlighting rules (the first to match a position wins).</summary>
-    public IList<LanguageRule> Rules => new List<LanguageRule>
-    {
+    public IList<LanguageRule> Rules =>
+    [
         // // line comment (also colours a //// comment-block fence line; content between fences is not tracked).
-        Rule(@"(^//.*)$", ScopeName.Comment),
+        Rule("(^//.*)$", ScopeName.Comment),
 
         // Section headings: "= Title" through "====== Title" (needs whitespace + text so it doesn't grab a ==== fence).
         Rule(@"(^={1,6}\s+\S.*)$", ScopeName.MarkdownHeader),
@@ -66,7 +66,7 @@ public sealed class AsciiDocLanguage : ILanguage
         Rule(@"(^\[.*\])\s*$", ScopeName.Attribute),
 
         // Admonition lead-ins.
-        Rule(@"(^(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION):)", ScopeName.ControlKeyword),
+        Rule("(^(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION):)", ScopeName.ControlKeyword),
 
         // Attribute entry ":name:" / ":!name:".
         Rule(@"(^:[\w!-][\w-]*:)", ScopeName.Keyword),
@@ -93,7 +93,7 @@ public sealed class AsciiDocLanguage : ILanguage
 
         // Inline italic _text_ / __text__.
         Rule(@"(_{1,2}[^\s_][^_\n]*?_{1,2})", ScopeName.MarkdownEmph),
-    };
+    ];
 
     #endregion ILanguage
 

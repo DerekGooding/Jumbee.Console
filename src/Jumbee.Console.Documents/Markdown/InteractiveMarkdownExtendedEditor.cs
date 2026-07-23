@@ -12,21 +12,15 @@ namespace Jumbee.Console.Documents;
 /// <see cref="MarkdownExtendedViewer"/> that re-renders the document — prose, tables, code and box-drawn mermaid
 /// diagrams — as you type. See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread, coalesced) sync model.
 /// </remarks>
-public class InteractiveMarkdownExtendedEditor : InteractiveSourceEditor
+/// <param name="markdown">Initial document text (both panes start in sync).</param>
+/// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
+/// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
+/// <param name="splitPosition">The editor pane's initial extent in cells. Adjustable at runtime via the divider.</param>
+public class InteractiveMarkdownExtendedEditor(string markdown = "", SplitOrientation orientation = SplitOrientation.Horizontal,
+    int splitPosition = 48) : InteractiveSourceEditor(new CodeEditor(MarkdownWithMermaidLanguage.Instance) { Text = markdown ?? "" },
+        new MarkdownExtendedViewer(markdown ?? ""), " Markdown ", " Preview ", markdown ?? "", orientation, splitPosition)
 {
-    #region Constructors
 
-    /// <param name="markdown">Initial document text (both panes start in sync).</param>
-    /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
-    /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
-    /// <param name="splitPosition">The editor pane's initial extent in cells. Adjustable at runtime via the divider.</param>
-    public InteractiveMarkdownExtendedEditor(string markdown = "", SplitOrientation orientation = SplitOrientation.Horizontal,
-        int splitPosition = 48)
-        : base(new CodeEditor(MarkdownWithMermaidLanguage.Instance) { Text = markdown ?? "" },
-            new MarkdownExtendedViewer(markdown ?? ""), " Markdown ", " Preview ", markdown ?? "", orientation, splitPosition)
-    { }
-
-    #endregion Constructors
 
     #region Properties
 

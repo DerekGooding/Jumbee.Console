@@ -3,8 +3,6 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using NTokenizers.Extensions.Spectre.Console;
 using NTokenizers.Extensions.Spectre.Console.Styles;
-using System;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -18,36 +16,32 @@ namespace Jumbee.Console;
 /// or resizing never blocks the UI thread, and the view fills in when the render completes. Content is re-rendered
 /// only when the text/styles change or the width changes (it reflows to the control width).
 /// </remarks>
-public class MarkdownViewer : Control
+/// <remarks>Initializes a <see cref="MarkdownViewer"/> with the given Markdown source.</remarks>
+public class MarkdownViewer(string markdown = "") : Control
 {
-    #region Constructors
 
-    /// <summary>Initializes a <see cref="MarkdownViewer"/> with the given Markdown source.</summary>
-    public MarkdownViewer(string markdown = "") => _markdown = markdown ?? "";
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>The Markdown source. Setting it re-renders (off the UI thread) and re-lays-out.</summary>
     public string Markdown
     {
-        get => _markdown;
+        get;
         set => UI.Invoke(() =>
         {
             var v = value ?? "";
-            if (v == _markdown) return;
-            _markdown = v;
+            if (v == field) return;
+            field = v;
             _version++;
             Initialize();
         });
-    }
+    } = markdown ?? "";
 
     /// <summary>The render styles (heading / code / table colours, …). Defaults to <see cref="MarkdownStyles.Default"/>.</summary>
     public MarkdownStyles? Styles
     {
-        get => _styles;
-        set => UI.Invoke(() => { _styles = value; _version++; Initialize(); });
+        get;
+        set => UI.Invoke(() => { field = value; _version++; Initialize(); });
     }
 
     /// <inheritdoc/>
@@ -125,7 +119,7 @@ public class MarkdownViewer : Control
             // Headless: render synchronously into the back buffer and publish it, so the MeasureHeight that requested
             // this reads _contentHeight straight back.
             var version = _version;
-            var height = RenderMarkdown(_markdown, _styles ?? MarkdownStyles.Default, width, _back);
+            var height = RenderMarkdown(Markdown, Styles ?? MarkdownStyles.Default, width, _back);
             Publish(height, width, version);
             return;
         }
@@ -137,8 +131,8 @@ public class MarkdownViewer : Control
     private void StartRender(int width, int version)
     {
         _rendering = true;
-        var text = _markdown;
-        var styles = _styles ?? MarkdownStyles.Default;   // shared singleton (see MarkdownStyles.Default — do not mutate)
+        var text = Markdown;
+        var styles = Styles ?? MarkdownStyles.Default;   // shared singleton (see MarkdownStyles.Default — do not mutate)
         var target = _back;   // the spare buffer; never the front (_content) the UI thread blits
         Task.Run(() =>
         {
@@ -187,7 +181,7 @@ public class MarkdownViewer : Control
         // Height budget: paragraphs word-wrap to `width`, so a long paragraph spans several rows — estimate from the
         // text length over the width plus the explicit line count, so wrapped content isn't clipped at the buffer's
         // bottom (capacity-retentive, so an over-estimate costs nothing after the first render).
-        var cap = Math.Clamp(text.Length / Math.Max(1, width) + LineCount(text) * 2 + 40, 8, MaxRows);
+        var cap = Math.Clamp((text.Length / Math.Max(1, width)) + (LineCount(text) * 2) + 40, 8, MaxRows);
         target.Size = new Size(width, cap);   // capacity-retentive: no realloc once the high-water mark is reached
         target.Initialize();
         try
@@ -210,7 +204,7 @@ public class MarkdownViewer : Control
             for (var x = 0; x < buffer.Size.Width; x++)
             {
                 var c = buffer[x, y].Character.Content;
-                if (c is not null && c != ' ' && c != '\0') return y + 1;
+                if (c is not null and not ' ' and not '\0') return y + 1;
             }
         return 1;
     }
@@ -225,7 +219,7 @@ public class MarkdownViewer : Control
                 consoleBuffer.Write(new Position(x, y), src[x, y]);
     }
 
-    private int EstimateHeight() => Math.Clamp(LineCount(_markdown), 1, MaxRows);
+    private int EstimateHeight() => Math.Clamp(LineCount(Markdown), 1, MaxRows);
 
     private static int LineCount(string text)
     {
@@ -243,9 +237,6 @@ public class MarkdownViewer : Control
     // reachable anyway, so a taller document simply clips at the bottom.
     /// <summary>The maximum number of rows the rendered document is capped at.</summary>
     protected const int MaxRows = 1024;
-
-    private string _markdown;
-    private MarkdownStyles? _styles;
     private int _version;                       // bumped when the text/styles change, invalidating a cached render
 
     // Ping-pong pair: _content is the front buffer blitted into consoleBuffer each paint (read on the UI thread);

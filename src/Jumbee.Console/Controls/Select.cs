@@ -3,9 +3,6 @@ using ConsoleGUI;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>Where a <see cref="Select"/>'s dropdown opens relative to the control.</summary>
@@ -38,7 +35,7 @@ public class Select : RenderableControl
     /// <summary>Initializes a new <see cref="Select"/> with the given <paramref name="options"/>.</summary>
     public Select(params string[] options)
     {
-        _options = options.ToList();
+        _options = [.. options];
         Height = 1;
         Width = PreferredWidth();
     }
@@ -72,19 +69,19 @@ public class Select : RenderableControl
     /// <summary>The index of the selected option, or -1 when none is selected. Setting it raises <see cref="SelectionChanged"/>.</summary>
     public int SelectedIndex
     {
-        get => _selectedIndex;
+        get;
         set
         {
             var clamped = _options.Count == 0 ? -1 : Math.Clamp(value, 0, _options.Count - 1);
-            if (clamped == _selectedIndex) return;
-            _selectedIndex = clamped;
+            if (clamped == field) return;
+            field = clamped;
             Invalidate();
             if (SelectedValue is { } v) SelectionChanged?.Invoke(this, v);
         }
-    }
+    } = -1;
 
     /// <summary>The selected option text, or <see langword="null"/> when nothing is selected.</summary>
-    public string? SelectedValue => _selectedIndex >= 0 && _selectedIndex < _options.Count ? _options[_selectedIndex] : null;
+    public string? SelectedValue => SelectedIndex >= 0 && SelectedIndex < _options.Count ? _options[SelectedIndex] : null;
 
     /// <summary>Reports <see langword="true"/> so input routing delivers keys to the control.</summary>
     public override bool HandlesInput => true;
@@ -106,8 +103,8 @@ public class Select : RenderableControl
             SelectedBackgroundColor = new Color(40, 90, 160),
             Width = PreferredWidth(),
             Height = rows,
+            SelectedIndex = Math.Max(0, SelectedIndex)
         };
-        list.SelectedIndex = Math.Max(0, _selectedIndex);
         list.WithRoundedBorder(Color.Grey);
 
         list.Committed += (_, item) =>
@@ -192,7 +189,6 @@ public class Select : RenderableControl
 
     private const int MaxDropdownRows = 8;
     private readonly List<string> _options;
-    private int _selectedIndex = -1;
     private int _controlLeft = -1;
     private int _controlTop = -1;
 

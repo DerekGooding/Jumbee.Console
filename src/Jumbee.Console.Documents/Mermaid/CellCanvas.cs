@@ -51,7 +51,7 @@ internal sealed class CellCanvas
     public void SetChar(int x, int y, char c, CColor? color)
     {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height) return;
-        var i = y * Width + x;
+        var i = (y * Width) + x;
         _chars[i] = c;
         _fg[i] = color;
         _mask[i] = 0;
@@ -61,7 +61,7 @@ internal sealed class CellCanvas
     public void Clear(int x, int y)
     {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height) return;
-        var i = y * Width + x;
+        var i = (y * Width) + x;
         _chars[i] = ' ';
         _fg[i] = null;
         _mask[i] = 0;
@@ -138,17 +138,17 @@ internal sealed class CellCanvas
         {
             if (y == y1) x += sx;
             else if (x == x1) y += sy;
-            else if ((2 * px + 1) * dy <= (2 * py + 1) * dx) { x += sx; px++; }
+            else if (((2 * px) + 1) * dy <= ((2 * py) + 1) * dx) { x += sx; px++; }
             else { y += sy; py++; }
             yield return (x, y);
         }
     }
 
     /// <summary>The glyph at (x, y); a space when out of range.</summary>
-    internal char GlyphAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _chars[y * Width + x] : ' ';
+    internal char GlyphAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _chars[(y * Width) + x] : ' ';
 
     /// <summary>The foreground colour at (x, y), or <see langword="null"/> when unset or out of range.</summary>
-    internal CColor? ColorAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _fg[y * Width + x] : null;
+    internal CColor? ColorAt(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _fg[(y * Width) + x] : null;
 
     /// <summary>Wraps this canvas as a Spectre.Console renderable so a rasterized diagram can compose into a
     /// renderable tree (e.g. an embedded <c>[source,mermaid]</c> block in the AsciiDoc viewer).</summary>
@@ -161,7 +161,7 @@ internal sealed class CellCanvas
         for (var y = 0; y < h; y++)
             for (var x = 0; x < w; x++)
             {
-                var i = y * Width + x;
+                var i = (y * Width) + x;
                 buffer.Write(new Position(x, y), new ConsoleGUI.Data.Character(_chars[i], _fg[i], null, null));
             }
     }
@@ -169,7 +169,7 @@ internal sealed class CellCanvas
     private void AddBit(int x, int y, int bit, CColor? color, LineStyle style)
     {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height) return;
-        var i = y * Width + x;
+        var i = (y * Width) + x;
         _mask[i] |= (byte)bit;
         if (style != LineStyle.Normal) _lineStyle[i] = (byte)style;   // a crossing keeps the more-emphatic style
         _chars[i] = GlyphFor(_mask[i], (LineStyle)_lineStyle[i]);

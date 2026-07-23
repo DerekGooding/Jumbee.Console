@@ -2,7 +2,6 @@
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using System;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -62,15 +61,15 @@ public class TextInput : Control
     /// <summary>When set, each character renders as this glyph (password entry); the real text is still in <see cref="Text"/>.</summary>
     public char? PasswordChar
     {
-        get => _passwordChar;
-        set => SetAtomicProperty(ref _passwordChar, value);
+        get;
+        set => SetAtomicProperty(ref field, value);
     }
 
     /// <summary>When <see langword="true"/>, edits are ignored (caret/selection navigation still works).</summary>
     public bool ReadOnly
     {
-        get => _readOnly;
-        set => SetAtomicProperty(ref _readOnly, value);
+        get;
+        set => SetAtomicProperty(ref field, value);
     }
 
     /// <summary>The caret's index into <see cref="Text"/> (0..length). Setting it clears any selection.</summary>
@@ -81,7 +80,7 @@ public class TextInput : Control
     }
 
     /// <summary>The selected substring, or empty when there is no selection.</summary>
-    public string SelectedText => HasSelection ? _text.Substring(SelStart, SelEnd - SelStart) : string.Empty;
+    public string SelectedText => HasSelection ? _text[SelStart..SelEnd] : string.Empty;
 
     /// <summary>Style of the entered text. Defaults to <see cref="IStyleTheme.Text"/>.</summary>
     public Style TextStyle { get => _textStyle; set => SetAtomicProperty(ref _textStyle, value, themeOverride: true); }
@@ -142,7 +141,7 @@ public class TextInput : Control
             {
                 var idx = _scroll + col;
                 if (idx >= _text.Length) break;
-                var glyph = _passwordChar ?? _text[idx];
+                var glyph = PasswordChar ?? _text[idx];
                 var selected = idx >= selStart && idx < selEnd;
                 consoleBuffer.Write(new Position(col, 0), Glyph(glyph, selected ? _selectionStyle : _textStyle));
             }
@@ -226,7 +225,7 @@ public class TextInput : Control
                 break;
 
             case ConsoleKey.Backspace:
-                if (_readOnly) break;
+                if (ReadOnly) break;
                 if (HasSelection) DeleteSelection();
                 else if (_caret > 0) { _text = _text.Remove(--_caret, 1); }
                 else break;
@@ -234,7 +233,7 @@ public class TextInput : Control
                 break;
 
             case ConsoleKey.Delete:
-                if (_readOnly) break;
+                if (ReadOnly) break;
                 if (HasSelection) DeleteSelection();
                 else if (_caret < _text.Length) { _text = _text.Remove(_caret, 1); }
                 else break;
@@ -251,7 +250,7 @@ public class TextInput : Control
                 break;
 
             default:
-                if (!_readOnly && !char.IsControl(key.KeyChar))
+                if (!ReadOnly && !char.IsControl(key.KeyChar))
                 {
                     if (HasSelection) DeleteSelection();
                     _text = _text.Insert(_caret++, key.KeyChar.ToString());
@@ -271,7 +270,7 @@ public class TextInput : Control
     /// <summary>Inserts pasted <paramref name="text"/> (flattened to a single line) at the caret, replacing any selection.</summary>
     public override void OnPaste(string text)
     {
-        if (_readOnly || string.IsNullOrEmpty(text)) return;
+        if (ReadOnly || string.IsNullOrEmpty(text)) return;
         var body = SingleLine(text);
         if (HasSelection) DeleteSelection();
         _text = _text.Insert(_caret, body);
@@ -337,8 +336,6 @@ public class TextInput : Control
     private int _caret;
     private int _scroll;
     private int _selAnchor = -1;   // -1 = no selection
-    private char? _passwordChar;
-    private bool _readOnly;
     private Style _textStyle;
     private Style _placeholderStyle;
     private Style _selectionStyle;

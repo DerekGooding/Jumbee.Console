@@ -8,13 +8,9 @@ namespace Jumbee.Console.Documents;
 /// groups, then rectilinear edges with arrowheads and labels, then node boxes on top. Coordinates are SVG pixels
 /// scaled to cells via <see cref="MermaidStyles.ScaleX"/>/<see cref="MermaidStyles.ScaleY"/>.
 /// </summary>
-internal sealed class MermaidFlowchartRenderer
+internal sealed class MermaidFlowchartRenderer(MermaidStyles styles)
 {
-    #region Constructors
 
-    public MermaidFlowchartRenderer(MermaidStyles styles) => _s = styles;
-
-    #endregion Constructors
 
     #region Methods
 
@@ -79,13 +75,13 @@ internal sealed class MermaidFlowchartRenderer
         {
             // Back off one cell from the endpoint so the arrowhead sits beside the target node rather than under
             // the box border that gets painted on top.
-            var tip = path.Count >= 3 ? path[^2] : path[^1];
-            canvas.SetChar(tip.x, tip.y, Arrow(Dir(path[^2], path[^1])), _s.Arrow);
+            var (x, y) = path.Count >= 3 ? path[^2] : path[^1];
+            canvas.SetChar(x, y, Arrow(Dir(path[^2], path[^1])), _s.Arrow);
         }
         if (edge.HasArrowStart && path.Count >= 2)
         {
-            var tip = path.Count >= 3 ? path[1] : path[0];
-            canvas.SetChar(tip.x, tip.y, Arrow(Dir(path[1], path[0])), _s.Arrow);
+            var (x, y) = path.Count >= 3 ? path[1] : path[0];
+            canvas.SetChar(x, y, Arrow(Dir(path[1], path[0])), _s.Arrow);
         }
     }
 
@@ -149,7 +145,7 @@ internal sealed class MermaidFlowchartRenderer
     private void DrawCentered(CellCanvas canvas, string text, int cx, int cy, CColor? color)
     {
         var t = text.Replace('\n', ' ');
-        canvas.Text(cx - t.Length / 2, cy, t, color);
+        canvas.Text(cx - (t.Length / 2), cy, t, color);
     }
 
     // Rasterizes the polyline into a contiguous run of cells (one step per cell), de-duplicating repeats.
@@ -172,12 +168,7 @@ internal sealed class MermaidFlowchartRenderer
 
     private static char Arrow(int dir) => dir switch { 8 => '▶', 4 => '◀', 2 => '▼', _ => '▲' };
 
-    private static string Clip(string s, int maxW)
-    {
-        if (maxW <= 0) return string.Empty;
-        if (s.Length <= maxW) return s;
-        return maxW == 1 ? "…" : string.Concat(s.AsSpan(0, maxW - 1), "…");
-    }
+    private static string Clip(string s, int maxW) => maxW <= 0 ? string.Empty : s.Length <= maxW ? s : maxW == 1 ? "…" : $"{s.AsSpan(0, maxW - 1)}…";
 
     private int CX(double px) => (int)Math.Round(px / _xDiv) + 1;
 
@@ -187,7 +178,7 @@ internal sealed class MermaidFlowchartRenderer
 
     #region Fields
 
-    private readonly MermaidStyles _s;
+    private readonly MermaidStyles _s = styles;
     private double _xDiv = 9.0;
     private double _yDiv = 18.0;
 

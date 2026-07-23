@@ -1,7 +1,5 @@
 
 using ConsoleGUI;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>

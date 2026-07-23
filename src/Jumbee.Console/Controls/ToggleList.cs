@@ -2,9 +2,6 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -30,7 +27,7 @@ public abstract class ToggleList : RenderableControl
     /// <summary>Initializes a new <see cref="ToggleList"/> with the given <paramref name="options"/>.</summary>
     protected ToggleList(IEnumerable<string> options)
     {
-        _options = options.ToList();
+        _options = [.. options];
         Height = Math.Max(1, _options.Count);
         // Styles + glyphs are captured by ApplyTheme, which the subclass calls from its constructor (and which
         // re-runs on a runtime theme switch). Width is set there via SetGlyphs.
@@ -49,12 +46,12 @@ public abstract class ToggleList : RenderableControl
     /// <summary>The highlighted row (navigation cursor), clamped to the option range.</summary>
     public int CursorIndex
     {
-        get => _cursor;
+        get;
         set
         {
             var clamped = _options.Count == 0 ? 0 : Math.Clamp(value, 0, _options.Count - 1);
-            if (clamped == _cursor) return;
-            _cursor = clamped;
+            if (clamped == field) return;
+            field = clamped;
             AutoScroll();
             Invalidate();
         }
@@ -120,12 +117,12 @@ public abstract class ToggleList : RenderableControl
         switch (inputEvent.Key.Key)
         {
             case ConsoleKey.UpArrow:
-                CursorIndex = (_cursor - 1 + count) % count;
+                CursorIndex = (CursorIndex - 1 + count) % count;
                 inputEvent.Handled = true;
                 break;
 
             case ConsoleKey.DownArrow:
-                CursorIndex = (_cursor + 1) % count;
+                CursorIndex = (CursorIndex + 1) % count;
                 inputEvent.Handled = true;
                 break;
 
@@ -141,7 +138,7 @@ public abstract class ToggleList : RenderableControl
 
             case ConsoleKey.Enter:
             case ConsoleKey.Spacebar:
-                Activate(_cursor);
+                Activate(CursorIndex);
                 inputEvent.Handled = true;
                 break;
         }
@@ -164,9 +161,9 @@ public abstract class ToggleList : RenderableControl
     /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        for (int i = 0; i < _options.Count; i++)
+        for (var i = 0; i < _options.Count; i++)
         {
-            var highlighted = i == _cursor;
+            var highlighted = i == CursorIndex;
             // The cursor row takes the selection foreground/background for its label and overlays the selection
             // background on the indicator, keeping the indicator's accent/muted hue.
             var indicator = IsChecked(i) ? _accentStyle : _mutedStyle;
@@ -193,7 +190,7 @@ public abstract class ToggleList : RenderableControl
     {
         if (Frame == null) return;
 
-        var y = _cursor;
+        var y = CursorIndex;
         var top = Frame.Top;
         var viewportHeight = Frame.ViewportSize.Height;
         if (viewportHeight <= 0) return;
@@ -207,7 +204,6 @@ public abstract class ToggleList : RenderableControl
     #region Fields
 
     protected readonly List<string> _options;
-    private int _cursor;
     private string _on = "";
     private string _off = "";
     private int _indicatorWidth;

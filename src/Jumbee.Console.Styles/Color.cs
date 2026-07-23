@@ -5,19 +5,10 @@ using SystemDrawingColor = System.Drawing.Color;
 
 namespace Jumbee.Console;
 /// <summary>An RGB colour. Value type: two colours are equal when their channels are.</summary>
-public readonly partial struct Color : System.IEquatable<Color>
+/// <remarks>Initializes a new <see cref="Color"/> from red, green, and blue channel values.</remarks>
+public readonly partial struct Color(byte r, byte g, byte b) : IEquatable<Color>
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="Color"/> from red, green, and blue channel values.</summary>
-    public Color(byte r, byte g, byte b)
-    {
-        R = r;
-        G = g;
-        B = b;
-    }
-
-    #endregion Constructors
 
     #region Properties
 
@@ -31,30 +22,22 @@ public readonly partial struct Color : System.IEquatable<Color>
     #region Methods
 
     /// <summary>Converts this colour to a <see cref="Spectre.Console.Color"/>.</summary>
-    public SpectreColor ToSpectreColor() => new SpectreColor(R, G, B);
+    public SpectreColor ToSpectreColor() => new(R, G, B);
 
     /// <summary>Creates a <see cref="Color"/> from a <see cref="Spectre.Console.Color"/>.</summary>
-    public static Color FromSpectreColor(SpectreColor color) => new Color(color.R, color.G, color.B);
+    public static Color FromSpectreColor(SpectreColor color) => new(color.R, color.G, color.B);
 
     /// <summary>Converts a <see cref="Spectre.Console.Color"/> to a ConsoleGUI colour, or <see langword="null"/> for the default colour.</summary>
-    public static ConsoleGUIColor? ToConsoleGUIColor(SpectreColor color)
-    {
-        if (color == SpectreColor.Default)
-        {
-            return null;
-        }
-
-        return new ConsoleGUIColor(color.R, color.G, color.B);
-    }
+    public static ConsoleGUIColor? ToConsoleGUIColor(SpectreColor color) => color == SpectreColor.Default ? null : new ConsoleGUIColor(color.R, color.G, color.B);
 
     /// <summary>Converts this colour to a ConsoleGUI colour.</summary>
-    public ConsoleGUIColor ToConsoleGUIColor() => new ConsoleGUIColor(R, G, B);
+    public ConsoleGUIColor ToConsoleGUIColor() => new(R, G, B);
 
     /// <summary>Creates a <see cref="Color"/> from a ConsoleGUI colour.</summary>
-    public static Color FromConsoleGUIColor(ConsoleGUIColor color) => new Color(color.Red, color.Green, color.Blue);
+    public static Color FromConsoleGUIColor(ConsoleGUIColor color) => new(color.Red, color.Green, color.Blue);
 
-    /// <summary>Creates a <see cref="Color"/> from a <see cref="System.ConsoleColor"/>.</summary>
-    public static Color FromSystemConsoleColor(System.ConsoleColor color) => SpectreColor.FromConsoleColor(color);
+    /// <summary>Creates a <see cref="Color"/> from a <see cref="ConsoleColor"/>.</summary>
+    public static Color FromSystemConsoleColor(ConsoleColor color) => SpectreColor.FromConsoleColor(color);
 
     /// <summary>Creates a <see cref="Color"/> from a hex string — <c>"#RRGGBB"</c> or <c>"RRGGBB"</c>, and the 3-digit
     /// short form, with or without the leading <c>#</c>. Throws on a malformed string; use
@@ -75,27 +58,27 @@ public readonly partial struct Color : System.IEquatable<Color>
         return false;
     }
 
-    /// <summary>This colour as the nearest <see cref="System.ConsoleColor"/> — a lossy map onto the 16 console
+    /// <summary>This colour as the nearest <see cref="ConsoleColor"/> — a lossy map onto the 16 console
     /// colours, for the few APIs that take one (e.g. a plot's axis/label colours). Prefer the RGB colour elsewhere;
     /// <see cref="FromSystemConsoleColor"/> is the exact inverse.</summary>
     /// <remarks>Allocation-free: a direct nearest-of-16 scan. (Spectre's own <c>Color.ToConsoleColor</c> runs a LINQ
     /// palette query that allocates on every call — measurable when a hot path converts per frame.)</remarks>
-    public System.ConsoleColor ToConsoleColor()
+    public ConsoleColor ToConsoleColor()
     {
         // Nearest of the 16 console colours by squared RGB distance. The palette is Spectre's own RGB for each
         // ConsoleColor, so an exact console colour (the common case) matches at distance 0 — making this the exact
         // inverse of FromSystemConsoleColor, and no worse than Spectre's closest-match for anything else.
-        int best = 0;
-        int bestDist = int.MaxValue;
-        for (int i = 0; i < 16; i++)
+        var best = 0;
+        var bestDist = int.MaxValue;
+        for (var i = 0; i < 16; i++)
         {
             var (pr, pg, pb) = ConsolePalette[i];
             int dr = R - pr, dg = G - pg, db = B - pb;
-            int d = dr * dr + dg * dg + db * db;
+            var d = (dr * dr) + (dg * dg) + (db * db);
             if (d < bestDist) { bestDist = d; best = i; }
         }
 
-        return (System.ConsoleColor)best;
+        return (ConsoleColor)best;
     }
 
     /// <summary>A copy of this colour blended <paramref name="amount"/> (0..1) of the way toward white.</summary>
@@ -108,9 +91,9 @@ public readonly partial struct Color : System.IEquatable<Color>
     {
         t = System.Math.Clamp(t, 0.0, 1.0);
         return new Color(
-            (byte)(a.R + (b.R - a.R) * t),
-            (byte)(a.G + (b.G - a.G) * t),
-            (byte)(a.B + (b.B - a.B) * t));
+            (byte)(a.R + ((b.R - a.R) * t)),
+            (byte)(a.G + ((b.G - a.G) * t)),
+            (byte)(a.B + ((b.B - a.B) * t)));
     }
 
     // Value equality, implemented rather than left to the runtime's default. Without IEquatable<Color> every generic
@@ -158,13 +141,13 @@ public readonly partial struct Color : System.IEquatable<Color>
     #region Fields
 
     /// <summary>The red channel value.</summary>
-    public readonly byte R;
+    public readonly byte R = r;
 
     /// <summary>The green channel value.</summary>
-    public readonly byte G;
+    public readonly byte G = g;
 
     /// <summary>The blue channel value.</summary>
-    public readonly byte B;
+    public readonly byte B = b;
 
     // The 16 console colours' RGB, indexed by ConsoleColor value — Spectre's own mapping, so ToConsoleColor's
     // nearest-match is the exact inverse of FromSystemConsoleColor. Built once (allocation-free lookups thereafter).
@@ -173,9 +156,9 @@ public readonly partial struct Color : System.IEquatable<Color>
     private static (byte, byte, byte)[] BuildConsolePalette()
     {
         var p = new (byte, byte, byte)[16];
-        for (int i = 0; i < 16; i++)
+        for (var i = 0; i < 16; i++)
         {
-            var c = SpectreColor.FromConsoleColor((System.ConsoleColor)i);
+            var c = SpectreColor.FromConsoleColor((ConsoleColor)i);
             p[i] = (c.R, c.G, c.B);
         }
 

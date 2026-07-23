@@ -1,8 +1,6 @@
 ﻿
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 
 namespace Jumbee.Console;
@@ -14,31 +12,26 @@ public partial class BarChart
         /// <summary>Initializes a new <see cref="BarChartItem"/> owned by <paramref name="chart"/> with the given index, label, value and colour.</summary>
         public BarChartItem(BarChart chart, int index, string label, double value, Color color)
         {
-            this.Index = index;
-            this.Label = label;
-            this.Value = value;
-            this.Color = color;
-            this.chart = chart;
+            Index = index;
+            Label = label;
+            Value = value;
+            Color = color;
+            Chart = chart;
         }
 
         /// <summary>The item's stable index within its chart.</summary>
         public readonly int Index;
 
-        private BarChart? chart;
-
         /// <summary>The chart that owns this item, or <see langword="null"/> once detached.</summary>
-        public BarChart? Chart => chart;
+        public BarChart? Chart { get; private set; }
 
         /// <summary>
         /// Gets the item label.
         /// </summary>
         public string Label
         {
-            get => field;
-            set
-            {
-                field = value;
-            }
+            get;
+            set;
         }
 
         /// <summary>
@@ -46,11 +39,11 @@ public partial class BarChart
         /// </summary>
         public double Value
         {
-            get => field;
+            get;
             set
             {
                 field = value;
-                chart?.UpdateItemValue(Index, value);
+                Chart?.UpdateItemValue(Index, value);
             }
         }
 
@@ -59,22 +52,22 @@ public partial class BarChart
         /// </summary>
         public Color Color
         {
-            get => field;
+            get;
             set
             {
                 field = value;
-                chart?.UpdateItemColor(Index, value);
+                Chart?.UpdateItemColor(Index, value);
             }
         }
 
         /// <summary>Detaches this item from its chart so further changes no longer update it.</summary>
-        public void Detach() => chart = null;
+        public void Detach() => Chart = null;
 
         /// <summary>Whether this item has been detached from its chart.</summary>
-        public bool IsDetached => chart is null;
+        public bool IsDetached => Chart is null;
 
         /// <summary>Requests a redraw of the owning chart.</summary>
-        public void UpdateChart() => chart?.Update();
+        public void UpdateChart() => Chart?.Update();
     }
 
     /// <summary>A single bar renderable within a <see cref="BarChart"/>.</summary>
@@ -112,10 +105,7 @@ public partial class BarChart
         public char AsciiBar { get; set; } = '|';
 
         /// <inheritdoc/>
-        protected override Measurement Measure(RenderOptions options, int maxWidth)
-        {
-            return new Measurement(1, maxWidth);
-        }
+        protected override Measurement Measure(RenderOptions options, int maxWidth) => new(1, maxWidth);
 
         /// <inheritdoc/>
         protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
@@ -127,7 +117,7 @@ public partial class BarChart
 
             var style = new Spectre.Console.Style(foreground: Color);
 
-            for (int i = 0; i < emptyHeight; i++)
+            for (var i = 0; i < emptyHeight; i++)
             {
                 yield return new Segment(new string(' ', 1) + "\n"); // Or just " \n"
                                                                      // Actually Segment usually doesn't contain newline for Grid cells?
@@ -138,7 +128,7 @@ public partial class BarChart
                                                                      // Let's try explicit newlines.
             }
 
-            for (int i = 0; i < barHeight; i++)
+            for (var i = 0; i < barHeight; i++)
             {
                 // We render the bar character.
                 // We should probably repeat it for width?
@@ -164,13 +154,13 @@ public partial class BarChart
 
             var w2 = Math.Min(3, maxWidth); // Fixed width of 3 for now
 
-            for (int i = 0; i < emptyHeight; i++)
+            for (var i = 0; i < emptyHeight; i++)
             {
                 yield return new Segment(new string(' ', w2));
                 yield return Segment.LineBreak;
             }
 
-            for (int i = 0; i < barHeight; i++)
+            for (var i = 0; i < barHeight; i++)
             {
                 yield return new Segment(new string(barChar, w2), style);
                 if (i < barHeight - 1) yield return Segment.LineBreak;
@@ -269,7 +259,7 @@ public partial class BarChart
                     }
                 }
 
-                var legacy = options.ColorSystem == ColorSystem.NoColors || options.ColorSystem == ColorSystem.Legacy;
+                var legacy = options.ColorSystem is ColorSystem.NoColors or ColorSystem.Legacy;
                 var remainingToken = ShowRemaining && !legacy ? bar : ' ';
                 yield return new Segment(new string(remainingToken, diff), RemainingStyle);
             }

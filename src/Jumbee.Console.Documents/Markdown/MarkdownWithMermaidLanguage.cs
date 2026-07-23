@@ -61,7 +61,7 @@ public sealed class MarkdownWithMermaidLanguage : ILanguage
                 // grammar), then the closing fence. Placed first so it wins over the generic Markdown code-block rule
                 // (which would otherwise colour the whole block as plain MarkdownCode). Multi-line content is matched
                 // with an explicit (.|\r?\n) since ColorCode compiles each rule without the singleline (?s) flag.
-                new LanguageRule(
+                new(
                     @"(^```+[ \t]*mermaid[ \t]*\r?\n)((?:.|\r?\n)*?)(^```+[ \t]*\r?$)",
                     new Dictionary<int, string>
                     {

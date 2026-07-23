@@ -4,7 +4,6 @@ using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
 
 // The public BorderPlacement type is the Jumbee.Console.Styles enum; internally we keep ConsoleGUI's identically-valued
 // enum (CBorderPlacement) because the border geometry uses its HasBorder/AsOffset extensions. The public property casts
@@ -98,10 +97,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
                     // Otherwise the reserved column is padding; fall through so the control (or empty) shows.
                 }
 
-                if (ControlContext.Contains(position))
-                    return ControlContext[position];
-
-                return Character.Empty;
+                return ControlContext.Contains(position) ? ControlContext[position] : (Cell)Character.Empty;
             }
 
             // 3. Borders & Title (Outside Viewport)
@@ -188,65 +184,49 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// <summary>The border shape drawn around the control.</summary>
     public BorderStyle BorderStyle
     {
-        get => _borderStyle;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                _themeOverrides.Mark(nameof(BorderStyle));
-                if (_borderStyle == value) return;
-                _borderStyle = value;
-                _boxBorder = GetSpectreBoxBorder(_borderStyle);
-                Initialize();
-            });
-        }
+        get => _borderStyle; set => UI.Invoke(() =>
+                                             {
+                                                 _themeOverrides.Mark(nameof(BorderStyle));
+                                                 if (_borderStyle == value) return;
+                                                 _borderStyle = value;
+                                                 _boxBorder = GetSpectreBoxBorder(_borderStyle);
+                                                 Initialize();
+                                             });
     }
 
     /// <summary>The text shown in the frame's title bar, or <see langword="null"/> for no title.</summary>
     public string? Title
     {
-        get => _title;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                if (_title == value) return;
-                _title = value;
-                Initialize();
-            });
-        }
+        get => _title; set => UI.Invoke(() =>
+                                       {
+                                           if (_title == value) return;
+                                           _title = value;
+                                           Initialize();
+                                       });
     }
 
     /// <summary>The title's position, border style, and colour.</summary>
     public TitleStyle TitleStyle
     {
-        get => _titleStyle;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                _themeOverrides.Mark(nameof(TitleStyle));
-                if (_titleStyle.Equals(value)) return;
-                _titleStyle = value;
-                Initialize();
-            });
-        }
+        get => _titleStyle; set => UI.Invoke(() =>
+                                            {
+                                                _themeOverrides.Mark(nameof(TitleStyle));
+                                                if (_titleStyle.Equals(value)) return;
+                                                _titleStyle = value;
+                                                Initialize();
+                                            });
     }
 
     /// <summary>Which edges of the frame draw a border.</summary>
     public BorderPlacement BorderPlacement
     {
-        get => (BorderPlacement)_borderPlacement;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                var placement = (CBorderPlacement)value;
-                if (_borderPlacement == placement) return;
-                _borderPlacement = placement;
-                Initialize();
-            });
-        }
+        get => (BorderPlacement)_borderPlacement; set => UI.Invoke(() =>
+                                                                  {
+                                                                      var placement = (CBorderPlacement)value;
+                                                                      if (_borderPlacement == placement) return;
+                                                                      _borderPlacement = placement;
+                                                                      Initialize();
+                                                                  });
     }
 
     /// <summary>The border shape drawn while the frame is focused (or contains focus), overriding the theme's
@@ -254,33 +234,25 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// border entirely — e.g. when the wrapped control already shows focus another way (a text cursor).</summary>
     public BorderStyle? FocusedBorderStyle
     {
-        get => _focusedBorderStyle;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                _themeOverrides.Mark(nameof(FocusedBorderStyle));
-                if (_focusedBorderStyle == value) return;
-                _focusedBorderStyle = value;
-                _focusedBoxBorder = value is { } style ? GetSpectreBoxBorder(style) : null;
-                Initialize();
-            });
-        }
+        get => _focusedBorderStyle; set => UI.Invoke(() =>
+                                                    {
+                                                        _themeOverrides.Mark(nameof(FocusedBorderStyle));
+                                                        if (_focusedBorderStyle == value) return;
+                                                        _focusedBorderStyle = value;
+                                                        _focusedBoxBorder = value is { } style ? GetSpectreBoxBorder(style) : null;
+                                                        Initialize();
+                                                    });
     }
 
     /// <summary>The margin (empty space) between the border and the wrapped control.</summary>
     public Offset Margin
     {
-        get => _margin;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                if (_margin.Equals(value)) return;
-                _margin = value;
-                Initialize();
-            });
-        }
+        get => _margin; set => UI.Invoke(() =>
+                                        {
+                                            if (_margin.Equals(value)) return;
+                                            _margin = value;
+                                            Initialize();
+                                        });
     }
 
     /// <summary>The foreground colour used for the title text, or <see langword="null"/> for the theme default.</summary>
@@ -336,32 +308,28 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// <summary>The vertical scroll offset (topmost visible row of the wrapped control); clamped to the scrollable range and raises <see cref="Scrolled"/> on change.</summary>
     public int Top
     {
-        get => _top;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                var old = _top;
-                using (Freeze())
-                {
-                    _top = value;
+        get => _top; set => UI.Invoke(() =>
+                                     {
+                                         var old = _top;
+                                         using (Freeze())
+                                         {
+                                             _top = value;
 
-                    var viewportHeight = Math.Max(0, Size.Height - borderOffset.Top - borderOffset.Bottom);
-                    if (ControlContext?.Size.Height > viewportHeight)
-                    {
-                        _top = Math.Min(ControlContext.Size.Height - viewportHeight, Math.Max(0, _top));
-                        ControlContext.SetOffset(new Vector(borderOffset.Left, borderOffset.Top - _top));
-                    }
-                    else
-                    {
-                        _top = 0;
-                        ControlContext?.SetOffset(new Vector(borderOffset.Left, borderOffset.Top));
-                    }
-                }
-                // Let adornments outside the frame (e.g. a line-number gutter docked beside it) follow the scroll.
-                if (_top != old) Scrolled?.Invoke();
-            });
-        }
+                                             var viewportHeight = Math.Max(0, Size.Height - borderOffset.Top - borderOffset.Bottom);
+                                             if (ControlContext?.Size.Height > viewportHeight)
+                                             {
+                                                 _top = Math.Min(ControlContext.Size.Height - viewportHeight, Math.Max(0, _top));
+                                                 ControlContext.SetOffset(new Vector(borderOffset.Left, borderOffset.Top - _top));
+                                             }
+                                             else
+                                             {
+                                                 _top = 0;
+                                                 ControlContext?.SetOffset(new Vector(borderOffset.Left, borderOffset.Top));
+                                             }
+                                         }
+                                         // Let adornments outside the frame (e.g. a line-number gutter docked beside it) follow the scroll.
+                                         if (_top != old) Scrolled?.Invoke();
+                                     });
     }
 
     /// <summary>The glyph/cell drawn for the scrollbar thumb (foreground).</summary>
@@ -391,31 +359,23 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// <summary>The glyph/cell drawn for the scrollbar's up arrow.</summary>
     public Character ScrollBarUpArrow
     {
-        get => _scrollBarUpArrow;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                if (_scrollBarUpArrow.Equals(value)) return;
-                _scrollBarUpArrow = value;
-                Redraw();
-            });
-        }
+        get => _scrollBarUpArrow; set => UI.Invoke(() =>
+                                                  {
+                                                      if (_scrollBarUpArrow.Equals(value)) return;
+                                                      _scrollBarUpArrow = value;
+                                                      Redraw();
+                                                  });
     }
 
     /// <summary>The glyph/cell drawn for the scrollbar's down arrow.</summary>
     public Character ScrollBarDownArrow
     {
-        get => _scrollBarDownArrow;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                if (_scrollBarDownArrow.Equals(value)) return;
-                _scrollBarDownArrow = value;
-                Redraw();
-            });
-        }
+        get => _scrollBarDownArrow; set => UI.Invoke(() =>
+                                                    {
+                                                        if (_scrollBarDownArrow.Equals(value)) return;
+                                                        _scrollBarDownArrow = value;
+                                                        Redraw();
+                                                    });
     }
 
     /// <summary>
@@ -450,7 +410,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     /// <summary>Whether the frame (and its wrapped control) holds focus; setting it raises the focus events and repaints the border cue.</summary>
     public bool IsFocused
     {
-        get => field;
+        get;
         set
         {
             var old = field;
@@ -504,15 +464,15 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     private DrawingContext ControlContext
     {
-        get => _controlContext;
+        get;
         set
         {
-            if (_controlContext == value) return;
-            _controlContext?.Dispose();
-            _controlContext = value;
+            if (field == value) return;
+            field?.Dispose();
+            field = value;
             Initialize();
         }
-    }
+    } = DrawingContext.Dummy;
 
     /// <summary>The size of the visible content area inside the border and margins.</summary>
     public Size ViewportSize => GetViewportSize();
@@ -530,21 +490,15 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     #region Methods
 
     /// <inheritdoc/>
-    void IDrawingContextListener.OnRedraw(DrawingContext drawingContext)
-    {
-        Initialize();
-    }
+    void IDrawingContextListener.OnRedraw(DrawingContext drawingContext) => Initialize();
 
-    void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect)
-    {
-        UI.Invoke(() => Update(rect));
-    }
+    void IDrawingContextListener.OnUpdate(DrawingContext drawingContext, Rect rect) => UI.Invoke(() => Update(rect));
 
     /// <summary>Handles a UI input event: consumes the frame's own scroll keys, then tunnels the rest to the focused descendant (or a composite's navigation).</summary>
     public void OnInput(UI.InputEventArgs inputEventArgs)
     {
         var inputEvent = inputEventArgs.InputEvent!;
-        this.OnInput(inputEvent);
+        OnInput(inputEvent);
         if (!inputEvent.Handled)
         {
             // A framed composite still gets its tunnel: the routing layer hands the key to the frame (the focus
@@ -558,7 +512,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
             // Forward to the focused descendant (the wrapped control itself for a leaf, or the focused child of a
             // composite), not blindly to the wrapped control — so input reaches the right control when nested.
-            (_control.FocusedControl ?? (IFocusable)_control).OnInput(inputEventArgs);
+            (_control.FocusedControl ?? _control).OnInput(inputEventArgs);
         }
     }
 
@@ -566,7 +520,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     // delivers it to the frame (the focus node), not the wrapped control. Without this it hits the IFocusable
     // default no-op and pasted text is silently dropped for any framed control.
     /// <summary>Tunnels a bracketed-paste payload through the frame to the focused descendant.</summary>
-    public void OnPaste(string text) => (_control.FocusedControl ?? (IFocusable)_control).OnPaste(text);
+    public void OnPaste(string text) => (_control.FocusedControl ?? _control).OnPaste(text);
 
     /// <summary>Handles a keyboard input event, scrolling the frame when the scroll key is pressed and the frame can scroll in that direction.</summary>
     public void OnInput(InputEvent inputEvent)
@@ -576,12 +530,12 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         // viewport, e.g. a framed MultiTabCodeEditor) must not swallow the key that a nested scrollable wants.
         if (inputEvent.Key == ScrollUpKey && CanScrollUp)
         {
-            Top -= 1;
+            Top--;
             inputEvent.Handled = true;
         }
         else if (inputEvent.Key == ScrollDownKey && CanScrollDown)
         {
-            Top += 1;
+            Top++;
             inputEvent.Handled = true;
         }
     }
@@ -605,105 +559,102 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     public void Relayout() => Initialize();
 
     /// <summary>Re-lays-out the frame on the UI thread: recomputes the border offset and re-establishes the wrapped control's size limits and scroll position.</summary>
-    protected override void Initialize()
-    {
-        UI.Invoke(() =>
-        {
-            UpdateBorderOffsetField();
-            using (Freeze())
-            {
-                var totalOffset = borderOffset;
+    protected override void Initialize() => UI.Invoke(() =>
+                                                 {
+                                                     UpdateBorderOffsetField();
+                                                     using (Freeze())
+                                                     {
+                                                         var totalOffset = borderOffset;
 
-                // Available space for control (excluding scrollbar for now)
-                // We reserve 1 column for scrollbar at the right of control
-                var controlLimitsMin = MinSize.AsRect().Remove(totalOffset).Size;
-                var controlLimitsMax = MaxSize.AsRect().Remove(totalOffset).Size;
+                                                         // Available space for control (excluding scrollbar for now)
+                                                         // We reserve 1 column for scrollbar at the right of control
+                                                         var controlLimitsMin = MinSize.AsRect().Remove(totalOffset).Size;
+                                                         var controlLimitsMax = MaxSize.AsRect().Remove(totalOffset).Size;
 
-                // Allow infinite height for scrolling, but constrain width to make space for scrollbar
-                // If MaxSize.Width is infinite, we don't constrain width (except by MinSize/Control)
-                // But we generally want to fit in MaxSize.
-                // Reserve a column for the vertical scrollbar — except for a fill-viewport control, which never
-                // shows one, so giving up the column would just leave a blank gutter.
-                var fills = _control.FillsFrameViewport;
-                var limitWidth = Math.Max(0, controlLimitsMax.Width - (fills ? 0 : 1));
+                                                         // Allow infinite height for scrolling, but constrain width to make space for scrollbar
+                                                         // If MaxSize.Width is infinite, we don't constrain width (except by MinSize/Control)
+                                                         // But we generally want to fit in MaxSize.
+                                                         // Reserve a column for the vertical scrollbar — except for a fill-viewport control, which never
+                                                         // shows one, so giving up the column would just leave a blank gutter.
+                                                         var fills = _control.FillsFrameViewport;
+                                                         var limitWidth = Math.Max(0, controlLimitsMax.Width - (fills ? 0 : 1));
 
-                // Normally the child gets unbounded height so it can grow and be scrolled. A control that fills the
-                // viewport itself (e.g. a terminal managing its own scrollback) instead gets the bounded viewport
-                // height, so it sizes to the visible area and the frame never scrolls it.
-                var limitHeight = fills ? Math.Max(0, controlLimitsMax.Height) : int.MaxValue;
+                                                         // Normally the child gets unbounded height so it can grow and be scrolled. A control that fills the
+                                                         // viewport itself (e.g. a terminal managing its own scrollback) instead gets the bounded viewport
+                                                         // height, so it sizes to the visible area and the frame never scrolls it.
+                                                         var limitHeight = fills ? Math.Max(0, controlLimitsMax.Height) : int.MaxValue;
 
-                ControlContext?.SetLimits(
-                    new Size(Math.Max(0, controlLimitsMin.Width - 1), Math.Max(0, controlLimitsMin.Height)),
-                    new Size(limitWidth, limitHeight)
-                );
+                                                         ControlContext?.SetLimits(
+                                                             new Size(Math.Max(0, controlLimitsMin.Width - 1), Math.Max(0, controlLimitsMin.Height)),
+                                                             new Size(limitWidth, limitHeight)
+                                                         );
 
-                // Clamp Top
-                var viewportHeight = Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom);
+                                                         // Clamp Top
+                                                         var viewportHeight = Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom);
 
-                // Note: Size.Height is current size. During Resize sequence, this might be stale?
-                // VerticalScrollPanel uses Size.Height (which is current).
-                // But here we are about to Resize.
-                // If we are about to Resize to MaxSize (if control is large), then viewport will be larger.
-                // Let's rely on Redraw loop?
-                // Actually, we should probably use 'controlLimitsMax.Height' as the viewport constraint if we are expanding?
-                // But MaxSize might be infinite.
-                // Let's stick to simple clamping against current control size vs current viewport estimate?
-                // Or just allow Top to be set, and Resize will clip?
-                if (ControlContext != null)
-                {
-                    var controlHeight = ControlContext.Size.Height;
+                                                         // Note: Size.Height is current size. During Resize sequence, this might be stale?
+                                                         // VerticalScrollPanel uses Size.Height (which is current).
+                                                         // But here we are about to Resize.
+                                                         // If we are about to Resize to MaxSize (if control is large), then viewport will be larger.
+                                                         // Let's rely on Redraw loop?
+                                                         // Actually, we should probably use 'controlLimitsMax.Height' as the viewport constraint if we are expanding?
+                                                         // But MaxSize might be infinite.
+                                                         // Let's stick to simple clamping against current control size vs current viewport estimate?
+                                                         // Or just allow Top to be set, and Resize will clip?
+                                                         if (ControlContext != null)
+                                                         {
+                                                             var controlHeight = ControlContext.Size.Height;
 
-                    // If we expand to MaxSize, the viewport height will be at most MaxSize - Offsets.
-                    var maxViewportHeight = Math.Max(0, MaxSize.Height - totalOffset.Top - totalOffset.Bottom);
+                                                             // If we expand to MaxSize, the viewport height will be at most MaxSize - Offsets.
+                                                             var maxViewportHeight = Math.Max(0, MaxSize.Height - totalOffset.Top - totalOffset.Bottom);
 
-                    // If MaxSize is infinite, maxViewportHeight is infinite?
-                    if (MaxSize.Height == int.MaxValue) maxViewportHeight = int.MaxValue;
+                                                             // If MaxSize is infinite, maxViewportHeight is infinite?
+                                                             if (MaxSize.Height == int.MaxValue) maxViewportHeight = int.MaxValue;
 
-                    // Actual viewport height used for clamping depends on what size we WILL be.
-                    // But we don't know yet.
-                    // However, 'Top' only matters if we are scrolling.
-                    // We scroll if ControlHeight > ViewportHeight.
+                                                             // Actual viewport height used for clamping depends on what size we WILL be.
+                                                             // But we don't know yet.
+                                                             // However, 'Top' only matters if we are scrolling.
+                                                             // We scroll if ControlHeight > ViewportHeight.
 
-                    _top = Math.Max(0, Math.Min(_top, controlHeight - 1)); // Ensure at least within control?
+                                                             _top = Math.Max(0, Math.Min(_top, controlHeight - 1)); // Ensure at least within control?
 
-                    // Better: _top = Math.Max(0, Math.Min(_top, controlHeight - (currentViewportHeight)));
-                    // But we don't know currentViewportHeight easily before Resize.
-                }
+                                                             // Better: _top = Math.Max(0, Math.Min(_top, controlHeight - (currentViewportHeight)));
+                                                             // But we don't know currentViewportHeight easily before Resize.
+                                                         }
 
-                ControlContext?.SetOffset(new Vector(totalOffset.Left, totalOffset.Top - _top));
-                var controlSize = ControlContext?.Size ?? Size.Empty;
+                                                         ControlContext?.SetOffset(new Vector(totalOffset.Left, totalOffset.Top - _top));
+                                                         var controlSize = ControlContext?.Size ?? Size.Empty;
 
-                // Calculate desired size including margins, borders, and (for a scrolling control) the scrollbar
-                // column. A fill-viewport control reserves no scrollbar column (it draws its own within its width, or
-                // has none), so don't widen the frame for it — otherwise it leaves a blank gutter down the right.
-                var desiredControlSize = controlSize.Expand(fills ? 0 : 1, 0);
-                var sizeRect = desiredControlSize.AsRect().Add(totalOffset);
-                Resize(Size.Clip(MinSize, sizeRect.Size, MaxSize));
+                                                         // Calculate desired size including margins, borders, and (for a scrolling control) the scrollbar
+                                                         // column. A fill-viewport control reserves no scrollbar column (it draws its own within its width, or
+                                                         // has none), so don't widen the frame for it — otherwise it leaves a blank gutter down the right.
+                                                         var desiredControlSize = controlSize.Expand(fills ? 0 : 1, 0);
+                                                         var sizeRect = desiredControlSize.AsRect().Add(totalOffset);
+                                                         Resize(Size.Clip(MinSize, sizeRect.Size, MaxSize));
 
-                // Re-clamp Top after resize?
-                // If we resized, Size.Height is now updated (if Resize is immediate? No, Resize schedules/updates Size property).
-                // Actually 'Control.Resize' updates 'Size' immediately in ConsoleGUI?
-                // Checking ConsoleGUI source (mental): Resize usually updates Size.
+                                                         // Re-clamp Top after resize?
+                                                         // If we resized, Size.Height is now updated (if Resize is immediate? No, Resize schedules/updates Size property).
+                                                         // Actually 'Control.Resize' updates 'Size' immediately in ConsoleGUI?
+                                                         // Checking ConsoleGUI source (mental): Resize usually updates Size.
 
-                // Post-Resize Clamping:
-                if (ControlContext != null)
-                {
-                    viewportHeight = Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom);
-                    if (ControlContext.Size.Height > viewportHeight)
-                    {
-                        _top = Math.Min(ControlContext.Size.Height - viewportHeight, Math.Max(0, _top));
-                        // Update offset again with clamped Top?
-                        ControlContext.SetOffset(new Vector(totalOffset.Left, totalOffset.Top - _top));
-                    }
-                    else
-                    {
-                        _top = 0;
-                        ControlContext.SetOffset(new Vector(totalOffset.Left, totalOffset.Top));
-                    }
-                }
-            }
-        });
-    }
+                                                         // Post-Resize Clamping:
+                                                         if (ControlContext != null)
+                                                         {
+                                                             viewportHeight = Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom);
+                                                             if (ControlContext.Size.Height > viewportHeight)
+                                                             {
+                                                                 _top = Math.Min(ControlContext.Size.Height - viewportHeight, Math.Max(0, _top));
+                                                                 // Update offset again with clamped Top?
+                                                                 ControlContext.SetOffset(new Vector(totalOffset.Left, totalOffset.Top - _top));
+                                                             }
+                                                             else
+                                                             {
+                                                                 _top = 0;
+                                                                 ControlContext.SetOffset(new Vector(totalOffset.Left, totalOffset.Top));
+                                                             }
+                                                         }
+                                                     }
+                                                 });
 
     private bool TitleAtTop => _titleStyle.Pos is TitlePos.TopLeft or TitlePos.TopCenter or TitlePos.TopRight;
 
@@ -739,19 +690,16 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             Math.Max(0, Size.Height - totalOffset.Top - totalOffset.Bottom));
     }
 
-    private static SpectreBoxBorder GetSpectreBoxBorder(BorderStyle style)
+    private static SpectreBoxBorder GetSpectreBoxBorder(BorderStyle style) => style switch
     {
-        return style switch
-        {
-            BorderStyle.Ascii => SpectreBoxBorder.Ascii,
-            BorderStyle.Double => SpectreBoxBorder.Double,
-            BorderStyle.Heavy => SpectreBoxBorder.Heavy,
-            BorderStyle.Rounded => SpectreBoxBorder.Rounded,
-            BorderStyle.Square => SpectreBoxBorder.Square,
-            BorderStyle.None => SpectreBoxBorder.None,
-            _ => throw new ArgumentOutOfRangeException(nameof(style), style, null)
-        };
-    }
+        BorderStyle.Ascii => SpectreBoxBorder.Ascii,
+        BorderStyle.Double => SpectreBoxBorder.Double,
+        BorderStyle.Heavy => SpectreBoxBorder.Heavy,
+        BorderStyle.Rounded => SpectreBoxBorder.Rounded,
+        BorderStyle.Square => SpectreBoxBorder.Square,
+        BorderStyle.None => SpectreBoxBorder.None,
+        _ => throw new ArgumentOutOfRangeException(nameof(style), style, null)
+    };
 
     private Cell GetBorderCell(BoxBorderPart part)
     {
@@ -866,11 +814,11 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private Character SmoothScrollBarCell(int relY, int size, int controlHeight, int currentScroll, int maxScroll)
     {
         // Fractional thumb: length proportional to the visible fraction (min one cell), top proportional to scroll.
-        double thumbLen = Math.Clamp((double)size * size / controlHeight, 1.0, size);
-        double top = maxScroll > 0 ? currentScroll / (double)maxScroll * (size - thumbLen) : 0.0;
-        double bottom = top + thumbLen;
+        var thumbLen = Math.Clamp((double)size * size / controlHeight, 1.0, size);
+        var top = maxScroll > 0 ? currentScroll / (double)maxScroll * (size - thumbLen) : 0.0;
+        var bottom = top + thumbLen;
 
-        double covered = Math.Min(relY + 1, bottom) - Math.Max(relY, top);   // thumb coverage of this cell (0..1)
+        var covered = Math.Min(relY + 1, bottom) - Math.Max(relY, top);   // thumb coverage of this cell (0..1)
         if (covered <= 0.0) return _scrollBarTrackFull;
         if (covered >= 1.0) return _scrollBarThumbFull;
 
@@ -919,7 +867,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         var start = _titleStyle.Pos switch
         {
             TitlePos.TopRight or TitlePos.BottomRight => innerRight - length + 1,
-            TitlePos.TopCenter or TitlePos.BottomCenter => innerLeft + (innerWidth - length) / 2,
+            TitlePos.TopCenter or TitlePos.BottomCenter => innerLeft + ((innerWidth - length) / 2),
             _ => innerLeft // TopLeft, BottomLeft
         };
 
@@ -945,13 +893,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
 
     private void _Redraw() => UI.Invoke(Redraw);
 
-    private void BindControl()
-    {
-        if (Control != null)
-            ControlContext = new DrawingContext(this, Control);
-        else
-            ControlContext = DrawingContext.Dummy;
-    }
+    private void BindControl() => ControlContext = Control != null ? new DrawingContext(this, Control) : DrawingContext.Dummy;
 
     // --- Scrollbar mouse interaction: drag the thumb (captures so the drag survives leaving the 1-col bar), click
     // the classic end arrows to step, click the track above/below the thumb to page. ---
@@ -999,7 +941,7 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         var (trackTop, trackLen, _, thumbLen) = ScrollbarGeometry(vh, ch);
         var available = trackLen - thumbLen;
         if (available <= 0) return;
-        var desiredThumbTop = (position.Y - controlTop) - _scrollGrabOffset;
+        var desiredThumbTop = position.Y - controlTop - _scrollGrabOffset;
         Top = (int)Math.Round((desiredThumbTop - trackTop) / available * (ch - vh));
     }
 
@@ -1010,8 +952,8 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
         if (relY < 0 || relY >= vh) return;
 
         // Classic end arrows: single-row step.
-        if (!_scrollBarSmooth && relY == 0) { Top -= 1; return; }
-        if (!_scrollBarSmooth && relY == vh - 1) { Top += 1; return; }
+        if (!_scrollBarSmooth && relY == 0) { Top--; return; }
+        if (!_scrollBarSmooth && relY == vh - 1) { Top++; return; }
 
         var (_, _, thumbTop, thumbLen) = ScrollbarGeometry(vh, ch);
         var thumbFirst = (int)Math.Floor(thumbTop);
@@ -1023,8 +965,14 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
             _scrollGrabOffset = relY - thumbTop;   // grab point within the thumb, so the drag doesn't jump
             ConsoleGUI.ConsoleManager.CaptureMouse(this);
         }
-        else if (relY < thumbFirst) Top -= Math.Max(1, vh - 1);   // page up
-        else Top += Math.Max(1, vh - 1);                          // page down
+        else if (relY < thumbFirst)
+        {
+            Top -= Math.Max(1, vh - 1);   // page up
+        }
+        else
+        {
+            Top += Math.Max(1, vh - 1);                          // page down
+        }
     }
 
     void IMouseListener.OnMouseUp(Position position)
@@ -1081,7 +1029,6 @@ public sealed class ControlFrame : CControl, IFocusable, IDrawingContextListener
     private bool _focusCueVisible;
 
     private Color? _focusedBorderFgColor;
-    private DrawingContext _controlContext = DrawingContext.Dummy;
     private string? _title;
     private TitleStyle _titleStyle = TitleStyle.Default;
     private int _top;

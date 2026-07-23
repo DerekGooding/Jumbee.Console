@@ -2,12 +2,8 @@
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using VtNetCore.VirtualTerminal;
 using VtNetCore.VirtualTerminal.Enums;
 using VtNetCore.XTermParser;
@@ -75,8 +71,8 @@ public class TerminalEmulator : Control
     /// </remarks>
     public Color? DefaultBackground
     {
-        get => _defaultBackground;
-        set => SetAtomicProperty(ref _defaultBackground, value);
+        get;
+        set => SetAtomicProperty(ref field, value);
     }
 
     #endregion Properties
@@ -417,10 +413,9 @@ public class TerminalEmulator : Control
         }
 
         // Ctrl+A..Z → 0x01..0x1A (when it didn't arrive as a control char in KeyChar).
-        if (control && key.KeyChar == '\0' && key.Key is >= ConsoleKey.A and <= ConsoleKey.Z)
-            return [(byte)(key.Key - ConsoleKey.A + 1)];
-
-        return key.KeyChar != '\0' ? Encoding.UTF8.GetBytes([key.KeyChar]) : null;
+        return control && key.KeyChar == '\0' && key.Key is >= ConsoleKey.A and <= ConsoleKey.Z
+            ? [(byte)(key.Key - ConsoleKey.A + 1)]
+            : key.KeyChar != '\0' ? Encoding.UTF8.GetBytes([key.KeyChar]) : null;
     }
 
     // ConsoleKey → the key name VtNetCore's translation table understands (null = not a special key).
@@ -472,7 +467,7 @@ public class TerminalEmulator : Control
         // Resolve the configured default background once (null = no background, i.e. the control's own shows through),
         // and use it for both the blank fill and any cell the program left at the terminal default (see below), so
         // the whole terminal area is consistent instead of default-text cells painting solid black.
-        CColor? defaultBg = _defaultBackground is { } dbg ? dbg.ToConsoleGUIColor() : null;
+        CColor? defaultBg = DefaultBackground is { } dbg ? dbg.ToConsoleGUIColor() : null;
         var blank = defaultBg is null ? Blank : new Character(' ', null, defaultBg, Decoration.None);
 
         // Blank the area first (the emulator only describes occupied spans).
@@ -564,15 +559,13 @@ public class TerminalEmulator : Control
         _ => (int)(s.BlinkingCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock),
     };
 
-    private static CColor? ParseWebColor(string? web)
-    {
-        if (string.IsNullOrEmpty(web) || web[0] != '#' || web.Length < 7) return null;
-        return byte.TryParse(web.AsSpan(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var r)
+    private static CColor? ParseWebColor(string? web) => string.IsNullOrEmpty(web) || web[0] != '#' || web.Length < 7
+            ? null
+            : byte.TryParse(web.AsSpan(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var r)
             && byte.TryParse(web.AsSpan(3, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var g)
             && byte.TryParse(web.AsSpan(5, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
             ? new CColor(r, g, b)
             : null;
-    }
 
     /// <summary>Tears down the child process and PTY, then disposes the base control.</summary>
     public override void Dispose()
@@ -593,7 +586,6 @@ public class TerminalEmulator : Control
     private const string DefaultBgWeb = "#000000";
 
     private static readonly Character Blank = new(' ');
-    private Color? _defaultBackground;
     private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, Decoration.None);
     private static readonly Character ScrollTrack = new('░', new CColor(0x44, 0x44, 0x44), null, Decoration.None);
     private readonly string? _commandLine;
@@ -616,7 +608,7 @@ public class TerminalEmulator : Control
     private const int OutputHighWater = 256 * 1024;   // pending bytes above which the read loop backs off
 
     private const int OutputDrainCap = 16 * 1024;     // max bytes parsed per UI-thread batch (keeps input responsive)
-    private readonly object _outLock = new();
+    private readonly System.Threading.Lock _outLock = new();
     private readonly Queue<byte[]> _outChunks = new();
     private int _outBytes;
     private bool _drainScheduled;

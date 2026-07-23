@@ -3,13 +3,8 @@ using ConsoleGUI;
 using ConsoleGUI.Api;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -37,7 +32,7 @@ public static class UI
     /// <param name="useAlternateScreen">Run on the alternate screen buffer so the user's prior terminal contents are restored on exit.</param>
     public static Task Start(ILayout layout, int width = 110, int height = 25, int fps = 10, bool isAnsiTerminal = true, IConsole? console = null, IInputSource? input = null, bool useAlternateScreen = true)
     {
-        if (isRunning) return runCompletion.Task;
+        if (IsRunning) return runCompletion.Task;
         ProcessMetrics.Start();
         // Self-heal a terminal left in a bad state by a PREVIOUS run that was hard-killed (SIGKILL, Task-Manager "End
         // task", a debugger Stop): no in-process code runs on a hard kill, so that run never disabled mouse/paste/focus
@@ -89,9 +84,9 @@ public static class UI
         // Wrap the app's root in a UI-owned system overlay so global modals (the F1 help dialog, and any future
         // system dialog) always have a layer to show on, whatever the app's root layout is. If the root is already
         // an Overlay, reuse it. The overlay is transparent to navigation/input while no popup is shown.
-        systemOverlay = layout as Overlay ?? new Overlay(layout);
-        ConsoleManager.Content = systemOverlay.CControl;
-        UI.layout = systemOverlay;
+        Overlay = layout as Overlay ?? new Overlay(layout);
+        ConsoleManager.Content = Overlay.CControl;
+        UI.layout = Overlay;
         foreach (var c in layout.Controls.Select(lc => lc.FocusableControl))
         {
             if (!controls.Contains(c))
@@ -103,11 +98,11 @@ public static class UI
         // floor at 1 ms so a very large fps can't collapse to a 0 ms busy-loop (the dispatcher's WaitOne(0) never blocks).
         interval = Math.Max(1, 1000 / Math.Max(1, fps));
         cts = new CancellationTokenSource();
-        cancellationToken = cts.Token;
+        CancellationToken = cts.Token;
         runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        isRunning = true;
+        IsRunning = true;
         // Start the single UI thread (reads the dispatcher queue, then renders each frame).
-        dispatcher.Start(OnFrame, interval);
+        Dispatcher.Start(OnFrame, interval);
         // Start the input thread which blocks on the console and marshals each key onto the UI thread.
         perfHud.RegisterToggle(HotKeys.CtrlF12);
         inputThread = new Thread(InputLoop) { IsBackground = true, Name = "Jumbee.Console.Input" };
@@ -178,7 +173,7 @@ public static class UI
     {
         // Restore the terminal synchronously (best effort) so it happens before the process terminates, then let
         // the signal's default action stop us — we do NOT Cancel, so exit is guaranteed even if the loop is stuck.
-        isRunning = false;
+        IsRunning = false;
         // Drain in-flight frame writes first (short bound — a signal must stay responsive) so the restore sequences
         // aren't corrupted by a frame being written to stdout concurrently. See the note in Stop(). The render loop
         // is not stopped here (we let the signal's default action end us), so this is best-effort on an abrupt exit.
@@ -193,12 +188,12 @@ public static class UI
     /// </summary>
     private static void InputLoop()
     {
-        while (isRunning && !cancellationToken.IsCancellationRequested)
+        while (IsRunning && !CancellationToken.IsCancellationRequested)
         {
             if (inputSource.TryRead(out var evt))
             {
                 var e = evt;
-                dispatcher.Post(() => OnInput(e));
+                Dispatcher.Post(() => OnInput(e));
             }
             else
             {
@@ -218,7 +213,7 @@ public static class UI
         // change. Full-redrawing on discrete input is essentially free at human rates and keeps interaction correct.
         // Autonomous updates (animation, throttled self-refresh) and plain mouse motion are unaffected, so idle
         // rendering keeps the dirty-rectangle perf win.
-        bool actionInput = false;
+        var actionInput = false;
         switch (evt)
         {
             case KeyInputEvent k:
@@ -273,8 +268,8 @@ public static class UI
     /// </summary>
     public static void Stop()
     {
-        if (!isRunning) return;
-        isRunning = false;
+        if (!IsRunning) return;
+        IsRunning = false;
         cts.Cancel();
 
         // Shut down in an order that restores the terminal cleanly. Frames are written to stdout on a thread-pool
@@ -287,7 +282,7 @@ public static class UI
         // keeps reporting mouse/focus after exit — the shell echoes the stray reports as garbage), or a late frame
         // could repaint the primary screen after we've switched back to it. Waits are bounded so a wedged write or a
         // stuck UI thread can never hang exit.
-        dispatcher.Stop();
+        Dispatcher.Stop();
         try { ConsoleManager.OutputIdle.Wait(500); } catch { /* best effort */ }
         (inputSource as IDisposable)?.Dispose();   // mouse/focus/paste off + console-mode restore; unblocks the reader
         altScreen?.Dispose();                      // reset SGR, show cursor, leave the alternate screen (last write)
@@ -313,32 +308,29 @@ public static class UI
     /// <summary>Moves keyboard focus to <paramref name="target"/>, clearing focus on all other registered
     /// controls (single-focus).</summary>
     /// <remarks>Used by click-to-focus; runs on the UI thread.</remarks>
-    public static void SetFocus(IFocusable target)
-    {
-        Invoke(() =>
-        {
-            // Resolve a composite's inner child up to the composite (the navigable focus unit); the composite then
-            // delegates focus back to the appropriate child via Control_OnFocus. Click-to-focus and keyboard
-            // navigation therefore agree on which control is "focused". Tell the owning composite which child was
-            // asked for first, so it delegates back to that one — without this a composite always re-focuses its
-            // first child, and clicking any other field in a form would do nothing.
-            if (target is Control tc)
-            {
-                tc.Owner?.OnChildFocusRequest(tc);
-                target = tc.FocusRoot;
-            }
-            var keep = target.FocusableControl;
-            foreach (var c in controls)
-            {
-                // Don't clear controls in the target's own subtree (a composite keeps its delegated child focused
-                // when it is (re)focused); clear every other focused control for single-focus.
-                if (c.IsFocused && !ReferenceEquals(c, target) && !ReferenceEquals(c, keep)
-                    && !(c is Control cc && ReferenceEquals(cc.FocusRoot, target)))
-                    c.IsFocused = false;
-            }
-            if (target.Focusable) target.IsFocused = true;
-        });
-    }
+    public static void SetFocus(IFocusable target) => Invoke(() =>
+                                                           {
+                                                               // Resolve a composite's inner child up to the composite (the navigable focus unit); the composite then
+                                                               // delegates focus back to the appropriate child via Control_OnFocus. Click-to-focus and keyboard
+                                                               // navigation therefore agree on which control is "focused". Tell the owning composite which child was
+                                                               // asked for first, so it delegates back to that one — without this a composite always re-focuses its
+                                                               // first child, and clicking any other field in a form would do nothing.
+                                                               if (target is Control tc)
+                                                               {
+                                                                   tc.Owner?.OnChildFocusRequest(tc);
+                                                                   target = tc.FocusRoot;
+                                                               }
+                                                               var keep = target.FocusableControl;
+                                                               foreach (var c in controls)
+                                                               {
+                                                                   // Don't clear controls in the target's own subtree (a composite keeps its delegated child focused
+                                                                   // when it is (re)focused); clear every other focused control for single-focus.
+                                                                   if (c.IsFocused && !ReferenceEquals(c, target) && !ReferenceEquals(c, keep)
+                                                                       && !(c is Control cc && ReferenceEquals(cc.FocusRoot, target)))
+                                                                       c.IsFocused = false;
+                                                               }
+                                                               if (target.Focusable) target.IsFocused = true;
+                                                           });
 
     /// <summary>The currently focused registered control, or <see langword="null"/> if none.</summary>
     public static IFocusable? Focused => controls.FirstOrDefault(c => c.IsFocused);
@@ -354,8 +346,8 @@ public static class UI
     /// </remarks>
     public static void ShowHelp() => Invoke(() =>
     {
-        if (systemOverlay is null) return;
-        if (systemOverlay.Top is HelpControl) { systemOverlay.Hide(); return; }   // F1 toggles the dialog
+        if (Overlay is null) return;
+        if (Overlay.Top is HelpControl) { Overlay.Hide(); return; }   // F1 toggles the dialog
 
         var infos = CompileHelp();
         if (infos.Count <= 1) return;   // only the built-in General entry — no control supplied help
@@ -368,7 +360,7 @@ public static class UI
             for (var i = 0; i < infos.Count; i++)
                 if (infos[i].Name == focusName) { start = i; break; }
 
-        systemOverlay.ShowModal(new HelpControl(infos, HideHelp, start));
+        Overlay.ShowModal(new HelpControl(infos, HideHelp, start));
     });
 
     /// <summary>
@@ -396,7 +388,7 @@ public static class UI
     }
 
     /// <summary>Closes the global help dialog if it is open.</summary>
-    public static void HideHelp() => Invoke(() => { if (systemOverlay?.Top is HelpControl) systemOverlay.Hide(); });
+    public static void HideHelp() => Invoke(() => { if (Overlay?.Top is HelpControl) Overlay.Hide(); });
 
     // ---- Focus navigation -------------------------------------------------------------------------------------
     // Two tiers, both on the root layout's 2-D cell grid (Rows/Columns/this[r,c]):
@@ -467,13 +459,13 @@ public static class UI
     public static void MarkDirty() => needsDraw = true;
 
     /// <summary>The UI thread dispatcher.</summary>
-    public static Dispatcher Dispatcher => dispatcher;
+    public static Dispatcher Dispatcher { get; } = new Dispatcher();
 
     /// <summary>Returns <see langword="true"/> when the caller is on the UI thread (or none is running).</summary>
-    public static bool CheckAccess() => dispatcher.CheckAccess();
+    public static bool CheckAccess() => Dispatcher.CheckAccess();
 
     /// <summary>Throws when the caller is not on the UI thread.</summary>
-    public static void VerifyAccess() => dispatcher.VerifyAccess();
+    public static void VerifyAccess() => Dispatcher.VerifyAccess();
 
     /// <summary>
     /// Queues <paramref name="action"/> to run on the UI thread on a later turn of the frame loop, and returns
@@ -489,19 +481,19 @@ public static class UI
     /// it must invalidate itself (or call <see cref="MarkDirty"/>). For "run on the UI thread, now if I already am,"
     /// use <see cref="Invoke"/> instead.</para>
     /// </remarks>
-    public static void Post(Action action) => dispatcher.Post(action);
+    public static void Post(Action action) => Dispatcher.Post(action);
 
     /// <summary>Runs an action on the UI thread and returns a task that completes when it finishes.</summary>
-    public static Task InvokeAsync(Action action) => dispatcher.InvokeAsync(action);
+    public static Task InvokeAsync(Action action) => Dispatcher.InvokeAsync(action);
 
     /// <summary>Runs a function on the UI thread and returns a task with its result.</summary>
-    public static Task<T> InvokeAsync<T>(Func<T> func) => dispatcher.InvokeAsync(func);
+    public static Task<T> InvokeAsync<T>(Func<T> func) => Dispatcher.InvokeAsync(func);
 
     /// <summary>Runs an async delegate on the UI thread and returns a task that completes (unwrapped) when it finishes.</summary>
-    public static Task InvokeAsync(Func<Task> func) => dispatcher.InvokeAsync(func);
+    public static Task InvokeAsync(Func<Task> func) => Dispatcher.InvokeAsync(func);
 
     /// <summary>Runs an async function on the UI thread and returns a task with its (unwrapped) result.</summary>
-    public static Task<T> InvokeAsync<T>(Func<Task<T>> func) => dispatcher.InvokeAsync(func);
+    public static Task<T> InvokeAsync<T>(Func<Task<T>> func) => Dispatcher.InvokeAsync(func);
 
     /// <summary>
     /// Synchronously paints a single frame: fires the <see cref="Paint"/> event so every control renders
@@ -550,13 +542,13 @@ public static class UI
         // Bracket the draw/paint cycle to measure its real cost directly: high-resolution wall time (immune to the
         // ~15 ms coarseness of process CPU time) and the managed-heap allocation it caused. Also track the frame
         // period for UI-thread utilisation. ProcessMetrics reads these as peaks so a burst (e.g. a paste) shows.
-        long frameStart = Stopwatch.GetTimestamp();
-        double periodMs = lastFrameStart != 0 ? (frameStart - lastFrameStart) * 1000.0 / Stopwatch.Frequency : 0;
+        var frameStart = Stopwatch.GetTimestamp();
+        var periodMs = lastFrameStart != 0 ? (frameStart - lastFrameStart) * 1000.0 / Stopwatch.Frequency : 0;
         lastFrameStart = frameStart;
-        long allocBefore = GC.GetTotalAllocatedBytes();
+        var allocBefore = GC.GetTotalAllocatedBytes();
         frameTimer.Restart();
 
-        bool drew = false;
+        var drew = false;
         double dirtyFraction = 0;
         try
         {
@@ -569,7 +561,7 @@ public static class UI
             // the dispatcher queue just now) should be fully satisfied this frame. Captured here so it can be told
             // apart from a redraw requested DURING the paint below — e.g. a control's throttled self-refresh
             // (StatusBar/PerfHud) invalidating from its own paint handler, whose actual repaint bubbles next frame.
-            bool redrawRequestedBeforePaint = needsDraw;
+            var redrawRequestedBeforePaint = needsDraw;
 
             // 2. Paint: controls render into their own buffers and report their damaged screen rects into the
             //    ConsoleManager dirty accumulator. This MUST run before compositing so the composite reads fresh
@@ -598,7 +590,7 @@ public static class UI
                 drew = true;
                 ConsoleManager.Draw();
                 var sz = ConsoleManager.BufferSize;
-                long area = (long)sz.Width * sz.Height;
+                var area = (long)sz.Width * sz.Height;
                 if (area > 0) dirtyFraction = ConsoleManager.LastFrameDirtyCells / (double)area;
             }
             else
@@ -643,7 +635,7 @@ public static class UI
         }
         else
         {
-            dispatcher.Post(action);
+            Dispatcher.Post(action);
         }
         // Invoke is only called when control/layout state actually changes, so request a redraw.
         needsDraw = true;
@@ -672,11 +664,7 @@ public static class UI
     /// tests) that need to designate the overlay pop-ups show into without going through <see cref="Start"/>; the
     /// value must be the overlay that is actually being rendered as the root, or pop-ups won't be visible.</para>
     /// </remarks>
-    public static Overlay? Overlay
-    {
-        get => systemOverlay;
-        set => systemOverlay = value;
-    }
+    public static Overlay? Overlay { get; set; }
 
     /// <summary>The mouse button of the most recent press, latched until the next press.</summary>
     /// <remarks>A control's <c>OnClick</c>/<c>OnDoubleClick</c> reads this to distinguish a right-click (e.g. to open
@@ -692,9 +680,9 @@ public static class UI
     /// </remarks>
     public static IStyleTheme StyleTheme
     {
-        get => _styleTheme;
-        set => Invoke(() => { _styleTheme = value; ThemeChanged?.Invoke(null, EventArgs.Empty); });
-    }
+        get;
+        set => Invoke(() => { field = value; ThemeChanged?.Invoke(null, EventArgs.Empty); });
+    } = new DefaultStyleTheme();
 
     /// <summary>
     /// The active glyph theme. Defaults to <see cref="DefaultGlyphTheme"/>.
@@ -705,9 +693,9 @@ public static class UI
     /// </remarks>
     public static IGlyphTheme GlyphTheme
     {
-        get => _glyphTheme;
-        set => Invoke(() => { _glyphTheme = value; ThemeChanged?.Invoke(null, EventArgs.Empty); });
-    }
+        get;
+        set => Invoke(() => { field = value; ThemeChanged?.Invoke(null, EventArgs.Empty); });
+    } = new DefaultGlyphTheme();
 
     /// <summary>
     /// Convenience to set both themes at once.
@@ -730,7 +718,7 @@ public static class UI
 
     /// <summary>True while the UI loop is running.</summary>
     /// <remarks>Background work (e.g. a Spectre progress/live loop) can poll this to exit when the UI stops.</remarks>
-    public static bool IsRunning => isRunning;
+    public static bool IsRunning { get; private set; }
 
     /// <summary>Whether the terminal window currently has focus (DEC mode 1004). Defaults to <see langword="true"/>.</summary>
     /// <remarks>Updated from <see cref="FocusInputEvent"/>s once focus reporting is enabled by the raw input source.</remarks>
@@ -739,7 +727,7 @@ public static class UI
     /// <summary>A token that is cancelled when the UI stops.</summary>
     /// <remarks>Background work started alongside the UI (e.g. a Spectre progress/live loop) should observe this so
     /// it terminates on shutdown instead of running on.</remarks>
-    public static CancellationToken CancellationToken => cancellationToken;
+    public static CancellationToken CancellationToken { get; private set; } = cts.Token;
 
     /// <summary>Average time (ms) spent firing control <see cref="Paint"/> handlers, over the recent sample window.</summary>
     public static double AveragePaintTime
@@ -747,7 +735,7 @@ public static class UI
         get
         {
             double total = 0;
-            int count = 0;
+            var count = 0;
             foreach (var time in paintTimes)
             {
                 if (time > 0)
@@ -772,7 +760,7 @@ public static class UI
             foreach (var c in controlPaintTimes)
             {
                 double total = 0;
-                int count = 0;
+                var count = 0;
                 foreach (var time in c.Value)
                 {
                     if (time.HasValue)
@@ -836,7 +824,7 @@ public static class UI
             if (value.Target is IFocusable c)
             {
                 // Untrack the control only once none of its Paint handlers remain (a control may have added several).
-                bool stillSubscribed = _Paint is not null && _Paint.GetInvocationList().Any(d => ReferenceEquals(d.Target, c));
+                var stillSubscribed = _Paint?.GetInvocationList().Any(d => ReferenceEquals(d.Target, c)) == true;
                 if (!stillSubscribed)
                 {
                     controls.Remove(c);
@@ -855,13 +843,10 @@ public static class UI
     private const int WheelLines = 3;
 
     /// <summary>Collector for process/frame performance metrics, sampled each frame and surfaced by the perf HUD.</summary>
-    public static readonly ProcessMetrics ProcessMetrics = new ProcessMetrics();
+    public static readonly ProcessMetrics ProcessMetrics = new();
 
-    private static readonly PaintEventArgs paintEventArgs = new PaintEventArgs();
-    private static readonly InputEventArgs inputEventArgs = new InputEventArgs();
-    private static readonly Dispatcher dispatcher = new Dispatcher();
-    private static IStyleTheme _styleTheme = new DefaultStyleTheme();
-    private static IGlyphTheme _glyphTheme = new DefaultGlyphTheme();
+    private static readonly PaintEventArgs paintEventArgs = new();
+    private static readonly InputEventArgs inputEventArgs = new();
     private static IInputSource inputSource = new ConsoleInputSource();
     private static Thread? inputThread;
     private static AlternateScreen? altScreen;   // alternate-screen session (ANSI interactive only), restored on Stop
@@ -872,21 +857,16 @@ public static class UI
         "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1015l\x1b[?1016l\x1b[?2004l\x1b[?1004l\x1b[0m\x1b[?25h";
 
     private static List<PosixSignalRegistration>? signalRegistrations;
-    private static TaskCompletionSource runCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-    private static CancellationTokenSource cts = new CancellationTokenSource();
-    private static CancellationToken cancellationToken = cts.Token;
+    private static TaskCompletionSource runCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private static CancellationTokenSource cts = new();
     private static int interval = 100;
-    private static bool isRunning;
     private static volatile bool needsDraw = true;
     private static ILayout? layout;
 
-    // UI-owned overlay wrapping the app root; hosts global modals (the F1 help dialog). Set in Start.
-    private static Overlay? systemOverlay;
+    private static readonly List<IFocusable> controls = [];
+    private static readonly GlobalInputListener globalInputListener = new();
 
-    private static readonly List<IFocusable> controls = new List<IFocusable>();
-    private static readonly GlobalInputListener globalInputListener = new GlobalInputListener();
-
-    private static readonly Dictionary<ConsoleKeyInfo, Action> GlobalHotKeys = new Dictionary<ConsoleKeyInfo, Action>
+    private static readonly Dictionary<ConsoleKeyInfo, Action> GlobalHotKeys = new()
     {
         { HotKeys.CtrlQ, Stop },
         // Focus navigation (the "Ctrl tier"). Ctrl+arrows move spatially between root-layout regions; Ctrl+N/P
@@ -901,33 +881,31 @@ public static class UI
         { HotKeys.F1, ShowHelp }
     };
 
-    private static readonly int paintTimeSamples = 60;
+    private const int paintTimeSamples = 60;
     private static readonly double[] paintTimes = new double[paintTimeSamples];
-    private static readonly Stopwatch paintTimer = new Stopwatch();
+    private static readonly Stopwatch paintTimer = new();
 
     // Measures the whole draw/paint cycle each frame (fed to ProcessMetrics.RecordFrame); lastFrameStart tracks the
     // frame period for UI-thread utilisation.
-    private static readonly Stopwatch frameTimer = new Stopwatch();
+    private static readonly Stopwatch frameTimer = new();
 
     private static long lastFrameStart;
     internal static int paintTimeIndex = 0;
-    internal static readonly Dictionary<IFocusable, Stopwatch> controlPaintTimers = new();
+    internal static readonly Dictionary<IFocusable, Stopwatch> controlPaintTimers = [];
 
     // Fractional milliseconds per control per frame (null when the control didn't repaint that frame). Fractional,
     // not whole ms — most controls (buttons, tab items, labels) repaint in well under 1 ms and would otherwise all
     // record 0, biasing every per-control average/peak to zero.
-    internal static readonly Dictionary<IFocusable, double?[]> controlPaintTimes = new();
+    internal static readonly Dictionary<IFocusable, double?[]> controlPaintTimes = [];
 
-    private static readonly PerfHud perfHud = new PerfHud();
+    private static readonly PerfHud perfHud = new();
 
     #endregion Fields
 
     #region Types
 
     /// <summary>Arguments for the <see cref="Paint"/> event; carries no data (controls read their own state).</summary>
-    public class PaintEventArgs : EventArgs
-    {
-    }
+    public class PaintEventArgs : EventArgs;
 
     /// <summary>Arguments for control input handling, wrapping the decoded <see cref="InputEvent"/>.</summary>
     public class InputEventArgs : EventArgs
@@ -941,10 +919,7 @@ public static class UI
         }
 
         /// <summary>Initializes a new <see cref="InputEventArgs"/> carrying <paramref name="inputEvent"/>.</summary>
-        public InputEventArgs(InputEvent? inputEvent)
-        {
-            InputEvent = inputEvent;
-        }
+        public InputEventArgs(InputEvent? inputEvent) => InputEvent = inputEvent;
     }
 
     /// <summary>Input listener that dispatches globally-registered hotkeys before any control sees the event.</summary>
@@ -969,7 +944,7 @@ public static class UI
         public static ConsoleKeyInfo Ctrl(ConsoleKey key)
         {
             // For letter keys, a control character is generated. For other keys, the character is '\0'.
-            char keyChar = (key >= ConsoleKey.A && key <= ConsoleKey.Z)
+            var keyChar = (key is >= ConsoleKey.A and <= ConsoleKey.Z)
                 ? (char)(char.ToLower((char)key) - 96)
                 : '\0';
             return new ConsoleKeyInfo(keyChar, key, false, false, true);
@@ -979,7 +954,7 @@ public static class UI
         public static ConsoleKeyInfo Alt(ConsoleKey key)
         {
             // For letter keys, a lowercase character is generated. For other keys, the character is '\0'.
-            char keyChar = (key >= ConsoleKey.A && key <= ConsoleKey.Z)
+            var keyChar = (key is >= ConsoleKey.A and <= ConsoleKey.Z)
                 ? char.ToLower((char)key)
                 : '\0';
             return new ConsoleKeyInfo(keyChar, key, false, true, false);
@@ -995,7 +970,7 @@ public static class UI
         public static ConsoleKeyInfo Shift(ConsoleKey key)
         {
             // Letter keys carry the uppercase char (ConsoleKey.A..Z are 'A'..'Z'); other keys use '\0'.
-            char keyChar = (key >= ConsoleKey.A && key <= ConsoleKey.Z) ? (char)key : '\0';
+            var keyChar = (key is >= ConsoleKey.A and <= ConsoleKey.Z) ? (char)key : '\0';
             return new ConsoleKeyInfo(keyChar, key, true, false, false);
         }
 
@@ -1015,7 +990,7 @@ public static class UI
                 >= 'A' and <= 'Z' => (ConsoleKey.A + (c - 'A'), true),
                 >= '0' and <= '9' => (ConsoleKey.D0 + (c - '0'), false),
                 ' ' => (ConsoleKey.Spacebar, false),
-                _ => ((ConsoleKey)0, false),
+                _ => (ConsoleKey.None, false),
             };
             return new ConsoleKeyInfo(c, key, shift, false, false);
         }

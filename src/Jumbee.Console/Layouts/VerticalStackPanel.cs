@@ -1,7 +1,3 @@
-
-using System;
-using System.Linq;
-
 namespace Jumbee.Console;
 /// <summary>A layout that arranges its child controls in a single vertical column.</summary>
 public class VerticalStackPanel : Layout<ConsoleGUI.Controls.VerticalStackPanel>
@@ -47,10 +43,7 @@ public class VerticalStackPanel : Layout<ConsoleGUI.Controls.VerticalStackPanel>
     {
         get
         {
-            if (column != 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(column));
-            }
+            ArgumentOutOfRangeException.ThrowIfNotEqual(column, 0);
             return (IFocusable)control.Children.ElementAt(row);
         }
     }

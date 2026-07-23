@@ -1,6 +1,3 @@
-
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
@@ -41,7 +38,7 @@ public sealed class AnsiInputDecoder
         // body is diverted into _pasteBuf and scanned incrementally, so _buffer never accumulates the whole paste
         // and this per-Feed ToString stays O(new chars) rather than O(total buffered).
         var s = _buffer.ToString();
-        int i = 0;
+        var i = 0;
         while (i < s.Length)
         {
             if (_inPaste)
@@ -50,10 +47,10 @@ public sealed class AnsiInputDecoder
                 continue;
             }
 
-            char c = s[i];
+            var c = s[i];
             if (c == Esc)
             {
-                int consumed = TryParseEscape(s, i, events);
+                var consumed = TryParseEscape(s, i, events);
                 if (consumed == 0)
                 {
                     if (flush)
@@ -83,7 +80,7 @@ public sealed class AnsiInputDecoder
     private int TryParseEscape(string s, int start, List<TerminalInputEvent> events)
     {
         if (start + 1 >= s.Length) return 0; // lone ESC; resolved by Flush
-        char c1 = s[start + 1];
+        var c1 = s[start + 1];
         if (c1 == '[') return TryParseCsi(s, start, events);
         if (c1 == 'O') return TryParseSs3(s, start, events);
         if (c1 == ']') return TryConsumeOsc(s, start);            // OSC response (e.g. clipboard/colour); swallowed
@@ -94,20 +91,20 @@ public sealed class AnsiInputDecoder
     // CSI: ESC [ <params/intermediates> <final>. final byte is 0x40-0x7E.
     private int TryParseCsi(string s, int start, List<TerminalInputEvent> events)
     {
-        int paramsStart = start + 2;
-        int i = paramsStart;
+        var paramsStart = start + 2;
+        var i = paramsStart;
         while (i < s.Length && s[i] >= (char)0x20 && s[i] <= (char)0x3F) i++; // param + intermediate bytes
         if (i >= s.Length) return 0; // no final byte yet
 
-        char final = s[i];
+        var final = s[i];
         // A valid CSI final byte is 0x40-0x7E. Anything else means the sequence was interrupted or malformed
         // (VT500 ESC/CAN/SUB "abort anywhere" rule): drop it without emitting a bogus key. ESC must be left for
         // the outer loop to reprocess as the start of a fresh sequence rather than be consumed here.
-        if (final < (char)0x40 || final > (char)0x7E)
+        if (final is < ((char)0x40) or > ((char)0x7E))
             return final == Esc ? (i - start) : (i - start + 1);
 
-        string p = s.Substring(paramsStart, i - paramsStart);
-        int seqLen = (i - start) + 1;
+        var p = s[paramsStart..i];
+        var seqLen = (i - start) + 1;
 
         if (final == '~' && p == "200") { _inPaste = true; _pasteBuf.Clear(); _pasteScanFrom = 0; return seqLen; }
         if (final == 'I') { events.Add(new FocusInputEvent(true)); return seqLen; }
@@ -134,7 +131,7 @@ public sealed class AnsiInputDecoder
             'D' => ConsoleKey.LeftArrow,
             'H' => ConsoleKey.Home,
             'F' => ConsoleKey.End,
-            _ => (ConsoleKey)0,
+            _ => ConsoleKey.None,
         };
         events.Add(Key(key, '\0', TerminalModifiers.None));
         return 3;
@@ -145,9 +142,9 @@ public sealed class AnsiInputDecoder
     // TODO: when clipboard-get / colour probes land, surface specific OSC responses as events instead.
     private static int TryConsumeOsc(string s, int start)
     {
-        for (int i = start + 2; i < s.Length; i++)
+        for (var i = start + 2; i < s.Length; i++)
         {
-            char c = s[i];
+            var c = s[i];
             if (c == '\x07') return (i + 1) - start;                      // BEL terminator
             if (c == Esc)
             {
@@ -165,7 +162,7 @@ public sealed class AnsiInputDecoder
     private int ConsumePaste(string s, int from, List<TerminalInputEvent> events)
     {
         _pasteBuf.Append(s, from, s.Length - from);
-        int end = IndexOfPasteTerminator(_pasteBuf, _pasteScanFrom);
+        var end = IndexOfPasteTerminator(_pasteBuf, _pasteScanFrom);
         if (end < 0)
         {
             // Re-scan only the trailing PasteEnd.Length-1 chars next time (catches a split terminator).
@@ -174,7 +171,7 @@ public sealed class AnsiInputDecoder
         }
 
         events.Add(new PasteInputEvent(_pasteBuf.ToString(0, end)));
-        int leftover = _pasteBuf.Length - (end + PasteEnd.Length); // post-terminator chars (all from this Feed)
+        var leftover = _pasteBuf.Length - (end + PasteEnd.Length); // post-terminator chars (all from this Feed)
         _inPaste = false;
         _pasteBuf.Clear();
         _pasteScanFrom = 0;
@@ -183,7 +180,7 @@ public sealed class AnsiInputDecoder
 
     private static int IndexOfPasteTerminator(StringBuilder sb, int from)
     {
-        for (int i = Math.Max(0, from); i + PasteEnd.Length <= sb.Length; i++)
+        for (var i = Math.Max(0, from); i + PasteEnd.Length <= sb.Length; i++)
         {
             if (sb[i] == PasteEnd[0] && sb[i + 1] == PasteEnd[1] && sb[i + 2] == PasteEnd[2]
                 && sb[i + 3] == PasteEnd[3] && sb[i + 4] == PasteEnd[4] && sb[i + 5] == PasteEnd[5])
@@ -195,19 +192,19 @@ public sealed class AnsiInputDecoder
     // SGR 1006 mouse: ESC [ < b ; x ; y (M=press/motion, m=release).
     private static MouseInputEvent DecodeSgrMouse(string p, char final)
     {
-        var parts = p.Substring(1).Split(';');
-        int b = ParseInt(parts[0]);
-        int x = ParseInt(parts[1]) - 1;
-        int y = ParseInt(parts[2]) - 1;
+        var parts = p[1..].Split(';');
+        var b = ParseInt(parts[0]);
+        var x = ParseInt(parts[1]) - 1;
+        var y = ParseInt(parts[2]) - 1;
 
         var mods = TerminalModifiers.None;
         if ((b & 4) != 0) mods |= TerminalModifiers.Shift;
         if ((b & 8) != 0) mods |= TerminalModifiers.Alt;
         if ((b & 16) != 0) mods |= TerminalModifiers.Control;
 
-        bool wheel = (b & 64) != 0;
-        bool motion = (b & 32) != 0;
-        int low = b & 3;
+        var wheel = (b & 64) != 0;
+        var motion = (b & 32) != 0;
+        var low = b & 3;
 
         TerminalMouseButton button;
         TerminalMouseKind kind;
@@ -240,7 +237,7 @@ public sealed class AnsiInputDecoder
 
         if (final == '~')
         {
-            int code = parts.Length > 0 ? ParseInt(parts[0]) : 0;
+            var code = parts.Length > 0 ? ParseInt(parts[0]) : 0;
             var tildeKey = code switch
             {
                 1 or 7 => ConsoleKey.Home,
@@ -261,7 +258,7 @@ public sealed class AnsiInputDecoder
                 21 => ConsoleKey.F10,
                 23 => ConsoleKey.F11,
                 24 => ConsoleKey.F12,
-                _ => (ConsoleKey)0,
+                _ => ConsoleKey.None,
             };
             return Key(tildeKey, '\0', mods);
         }
@@ -279,7 +276,7 @@ public sealed class AnsiInputDecoder
             'R' => ConsoleKey.F3,
             'S' => ConsoleKey.F4,
             'Z' => ConsoleKey.Tab,            // CSI Z = back-tab
-            _ => (ConsoleKey)0,
+            _ => ConsoleKey.None,
         };
         if (final == 'Z') mods |= TerminalModifiers.Shift;
         return Key(key, '\0', mods);
@@ -288,7 +285,7 @@ public sealed class AnsiInputDecoder
     // Terminal modifier param is (bitmask + 1): bit0 Shift, bit1 Alt, bit2 Control.
     private static TerminalModifiers DecodeModParam(string s)
     {
-        int m = ParseInt(s) - 1;
+        var m = ParseInt(s) - 1;
         if (m <= 0) return TerminalModifiers.None;
         var mods = TerminalModifiers.None;
         if ((m & 1) != 0) mods |= TerminalModifiers.Shift;
@@ -310,7 +307,7 @@ public sealed class AnsiInputDecoder
         }
 
         // C0 control: Ctrl+letter (e.g. 0x03 -> Ctrl+C).
-        if (c >= 1 && c <= 26)
+        if (c is >= (char)1 and <= (char)26)
             return Key(ConsoleKey.A + (c - 1), c, mods | TerminalModifiers.Control);
 
         var key = c switch
@@ -319,9 +316,9 @@ public sealed class AnsiInputDecoder
             >= 'A' and <= 'Z' => ConsoleKey.A + (c - 'A'),
             >= '0' and <= '9' => ConsoleKey.D0 + (c - '0'),
             ' ' => ConsoleKey.Spacebar,
-            _ => (ConsoleKey)0,
+            _ => ConsoleKey.None,
         };
-        if (c >= 'A' && c <= 'Z') mods |= TerminalModifiers.Shift;
+        if (c is >= 'A' and <= 'Z') mods |= TerminalModifiers.Shift;
         return Key(key, c, mods);
     }
 

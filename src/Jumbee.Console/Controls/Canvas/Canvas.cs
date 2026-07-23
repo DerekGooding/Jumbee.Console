@@ -4,8 +4,6 @@ using ConsoleGUI.Space;
 using Jumbee.Console.Drawing;
 using Spectre.Console.Interop;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using CColor = ConsoleGUI.Data.Color;
 using Character = ConsoleGUI.Data.Character;
 using Decoration = ConsoleGUI.Data.Decoration;
@@ -54,16 +52,16 @@ public class Canvas : Control
     /// <summary>The marker (and thus sub-cell resolution) shapes are drawn with. Default <see cref="CanvasMarker.Braille"/>.</summary>
     public CanvasMarker Marker
     {
-        get => _marker;
-        set => SetAtomicProperty(ref _marker, value, watch: (_, _) => _dirty = true);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value, watch: (_, _) => _dirty = true);
+    } = CanvasMarker.Braille;
 
     /// <summary>The glyph used when <see cref="Marker"/> is <see cref="CanvasMarker.Custom"/>. Default <c>•</c>.</summary>
     public char CustomMarker
     {
-        get => _customMarker;
-        set => SetAtomicProperty(ref _customMarker, value, watch: (_, _) => _dirty = true);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value, watch: (_, _) => _dirty = true);
+    } = '•';
 
     /// <summary>Background colour painted behind every cell, or <see langword="null"/> (the default) for transparent.</summary>
     public Color? Background
@@ -84,9 +82,9 @@ public class Canvas : Control
     /// </remarks>
     public bool DamageTracking
     {
-        get => _damageTracking;
-        set => SetAtomicProperty(ref _damageTracking, value, watch: (_, _) => _snapshotValid = false);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value, watch: (_, _) => _snapshotValid = false);
+    } = true;
 
     /// <summary>
     /// When <see langword="true"/>, the canvas responds to user input by panning and zooming its
@@ -99,11 +97,11 @@ public class Canvas : Control
     /// </remarks>
     public bool Interactive
     {
-        get => _interactive;
+        get;
         set
         {
-            if (_interactive == value) return;
-            _interactive = value;
+            if (field == value) return;
+            field = value;
             Focusable = value;
             Invalidate();
         }
@@ -192,7 +190,7 @@ public class Canvas : Control
         CColor f = fg ?? Color.White;
         CColor? b = bg;
         var chars = new StyledChar[text?.Length ?? 0];
-        for (int i = 0; i < chars.Length; i++) chars[i] = new StyledChar(text![i], f, b, Decoration.None);
+        for (var i = 0; i < chars.Length; i++) chars[i] = new StyledChar(text![i], f, b, Decoration.None);
         UI.Invoke(() =>
         {
             _labels.Add(new Label(x, y, chars));
@@ -234,12 +232,16 @@ public class Canvas : Control
             {
                 if (segment.IsControlCode) continue;
                 var style = segment.Style;
-                CColor? fg = style.Foreground.ToConsoleGUIColor();
-                CColor? bg = style.Background.ToConsoleGUIColor();
+                var fg = style.Foreground.ToConsoleGUIColor();
+                var bg = style.Background.ToConsoleGUIColor();
                 var deco = (Decoration)style.Decoration;
-                foreach (char c in segment.Text)
+                foreach (var c in segment.Text)
+                {
                     if (c is not '\n' and not '\r')
+                    {
                         result.Add(new StyledChar(c, fg, bg, deco));
+                    }
+                }
             }
             return [.. result];
         }
@@ -247,7 +249,7 @@ public class Canvas : Control
         {
             // Malformed markup: render it as literal white text rather than throwing from a draw call.
             var chars = new StyledChar[markup.Length];
-            for (int i = 0; i < chars.Length; i++) chars[i] = new StyledChar(markup[i], CColor.White, null, Decoration.None);
+            for (var i = 0; i < chars.Length; i++) chars[i] = new StyledChar(markup[i], CColor.White, null, Decoration.None);
             return chars;
         }
     }
@@ -292,16 +294,16 @@ public class Canvas : Control
     #region Input (pan/zoom, active only when Interactive)
 
     /// <summary>Receives mouse events only while <see cref="Interactive"/> (drag-pan / wheel-zoom).</summary>
-    protected override bool WantsMouse => _interactive;
+    protected override bool WantsMouse => Interactive;
 
     // Receive keyboard input (arrows / +-) only when interactive; otherwise keys pass through for navigation.
     /// <summary>Receives keyboard input only while <see cref="Interactive"/>; otherwise keys pass through for navigation.</summary>
-    public override bool HandlesInput => _interactive;
+    public override bool HandlesInput => Interactive;
 
     /// <summary>Begins a drag-pan and captures the mouse when interactive.</summary>
     protected override void OnMousePress(Position position)
     {
-        if (!_interactive) return;
+        if (!Interactive) return;
         _dragging = true;
         _lastDrag = position;
         CaptureMouse();
@@ -326,7 +328,7 @@ public class Canvas : Control
     /// <summary>Zooms the viewport about the cursor when interactive; otherwise defers to the base scroll behavior.</summary>
     protected override void OnMouseWheel(Position position, int delta)
     {
-        if (!_interactive) { base.OnMouseWheel(position, delta); return; }
+        if (!Interactive) { base.OnMouseWheel(position, delta); return; }
         // Wheel up (delta < 0) shrinks the window (zoom in); down grows it. Keep the point under the cursor fixed.
         ZoomAround(position.X, position.Y, Math.Pow(ZoomFactorPerNotch, delta));
     }
@@ -334,9 +336,9 @@ public class Canvas : Control
     /// <summary>Handles arrow-key pan and <c>+</c>/<c>-</c> zoom when interactive.</summary>
     protected override void OnInput(InputEvent inputEvent)
     {
-        if (!_interactive) return;
-        bool shift = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0;
-        double pan = shift ? 0.4 : 0.15;
+        if (!Interactive) return;
+        var shift = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0;
+        var pan = shift ? 0.4 : 0.15;
         switch (inputEvent.Key.Key)
         {
             case ConsoleKey.LeftArrow: PanFraction(-pan, 0); break;
@@ -359,8 +361,8 @@ public class Canvas : Control
         var (yMin, yMax) = _yBounds;
         double spanX = xMax - xMin, spanY = yMax - yMin;
         if (w <= 1 || h <= 1 || spanX <= 0 || spanY <= 0) return;
-        double wx = dxCells * spanX / (w - 1);
-        double wy = dyCells * spanY / (h - 1);
+        var wx = dxCells * spanX / (w - 1);
+        var wy = dyCells * spanY / (h - 1);
         XBounds = (xMin - wx, xMax - wx);
         YBounds = (yMin + wy, yMax + wy);
     }
@@ -386,11 +388,11 @@ public class Canvas : Control
         double spanX = xMax - xMin, spanY = yMax - yMin;
         if (w <= 1 || h <= 1 || spanX <= 0 || spanY <= 0) return;
         double fx = px / (double)(w - 1), fy = py / (double)(h - 1);
-        double curX = xMin + fx * spanX;
-        double curY = yMax - fy * spanY;   // screen y is flipped
+        var curX = xMin + (fx * spanX);
+        var curY = yMax - (fy * spanY);   // screen y is flipped
         double nsx = spanX * scale, nsy = spanY * scale;
-        double nxMin = curX - fx * nsx;
-        double nyMax = curY + fy * nsy;
+        var nxMin = curX - (fx * nsx);
+        var nyMax = curY + (fy * nsy);
         XBounds = (nxMin, nxMin + nsx);
         YBounds = (nyMax - nsy, nyMax);
     }
@@ -437,7 +439,7 @@ public class Canvas : Control
     }
 
     /// <summary>Whether partial-redraw damage tracking is enabled (see <see cref="DamageTracking"/>).</summary>
-    protected override bool TracksDamage => _damageTracking;
+    protected override bool TracksDamage => DamageTracking;
 
     // Damage is reported from the two places that write cells — Blit (layers) and DrawLabels — rather than by
     // re-reading the finished buffer afterwards. An after-the-fact readback of every cell was the obvious way to do
@@ -464,8 +466,8 @@ public class Canvas : Control
 
     private bool BeginDamage(int count, int w)
     {
-        if (!_damageTracking) { _snapshotValid = false; return false; }
-        bool resized = _cells is null || _cells.Length < count || _snapshotWidth != w;
+        if (!DamageTracking) { _snapshotValid = false; return false; }
+        var resized = _cells is null || _cells.Length < count || _snapshotWidth != w;
         if (resized) { _cells = new Cel[count]; _snapshotWidth = w; }
         _canDiff = _snapshotValid && !resized;
         return true;
@@ -473,18 +475,18 @@ public class Canvas : Control
 
     private void FinishDamage(int w, int h)
     {
-        if (!_damageTracking) return;
+        if (!DamageTracking) return;
         if (!_canDiff) { DamageAll(); }   // first render, a resize, or tracking just turned on
         _snapshotValid = true;
     }
 
     private List<Layer> BuildLayers(int width, int height)
     {
-        var context = new CanvasContext(width, height, _xBounds, _yBounds, _marker, _customMarker);
+        var context = new CanvasContext(width, height, _xBounds, _yBounds, Marker, CustomMarker);
         foreach (var op in _ops)
         {
             if (op.Shape is not null) context.Draw(op.Shape);
-            else if (op.NewMarker is CanvasMarker m) context.Marker(m, _customMarker);
+            else if (op.NewMarker is CanvasMarker m) context.Marker(m, CustomMarker);
             else context.Layer();
         }
         context.Finish();
@@ -496,7 +498,7 @@ public class Canvas : Control
     // cells with nothing set fall back to the canvas Background, or stay blank when that is null.
     private void Blit(IReadOnlyList<Layer> layers, int width, int height)
     {
-        int count = width * height;
+        var count = width * height;
         EnsureWorkArrays(count);
         Array.Clear(_sym, 0, count);
         Array.Clear(_fg, 0, count);
@@ -505,8 +507,8 @@ public class Canvas : Control
         foreach (var layer in layers)
         {
             var contents = layer.Contents;
-            int n = Math.Min(count, contents.Length);
-            for (int i = 0; i < n; i++)
+            var n = Math.Min(count, contents.Length);
+            for (var i = 0; i < n; i++)
             {
                 var cell = contents[i];
                 if (cell.Symbol.HasValue) _sym[i] = cell.Symbol;
@@ -515,15 +517,15 @@ public class Canvas : Control
             }
         }
 
-        bool diff = BeginDamage(count, width);
+        var diff = BeginDamage(count, width);
         for (int y = 0, i = 0; y < height; y++)
         {
             int first = -1, last = -1;
-            for (int x = 0; x < width; x++, i++)
+            for (var x = 0; x < width; x++, i++)
             {
-                char? symbol = _sym[i];
-                CColor? fg = _fg[i];
-                CColor? bg = _bg[i] ?? _background;
+                var symbol = _sym[i];
+                var fg = _fg[i];
+                var bg = _bg[i] ?? _background;
 
                 if (diff)
                 {
@@ -559,7 +561,7 @@ public class Canvas : Control
         // blit content that is identical to last frame's, reporting nothing, and the old text would stay on screen.
         // Damage where the labels WERE as well as where they are now — the union-of-old-and-new rule any moving
         // region has to follow here.
-        bool trackLabels = _damageTracking && _canDiff;
+        var trackLabels = DamageTracking && _canDiff;
         if (trackLabels) foreach (var r in _prevLabelRects) Damage(r);
         _prevLabelRects.Clear();
 
@@ -573,8 +575,8 @@ public class Canvas : Control
         foreach (var label in _labels)
         {
             if (label.X < left || label.X > right || label.Y < bottom || label.Y > top) continue;
-            int x = (int)((label.X - left) * resX / spanX);
-            int y = (int)((top - label.Y) * resY / spanY);
+            var x = (int)((label.X - left) * resX / spanX);
+            var y = (int)((top - label.Y) * resY / spanY);
             if (y < 0 || y >= height) continue;
             var chars = label.Chars;
             for (int col = x, k = 0; k < chars.Length; k++, col++)
@@ -585,7 +587,7 @@ public class Canvas : Control
                 consoleBuffer.Write(new Position(col, y), new Character(sc.C, sc.Fg, sc.Bg, sc.Deco));
             }
 
-            if (!_damageTracking) continue;
+            if (!DamageTracking) continue;
             int from = Math.Max(x, 0), to = Math.Min(x + chars.Length - 1, width - 1);
             if (to < from) continue;
             var rect = new Rect(from, y, to - from + 1, 1);
@@ -617,35 +619,20 @@ public class Canvas : Control
     }
 
     // One styled character of a label (a plain label is all one style; a markup label carries per-run styles).
-    private readonly struct StyledChar
+    private readonly struct StyledChar(char c, CColor? fg, CColor? bg, Decoration deco)
     {
-        public StyledChar(char c, CColor? fg, CColor? bg, Decoration deco)
-        {
-            C = c;
-            Fg = fg;
-            Bg = bg;
-            Deco = deco;
-        }
-
-        public char C { get; }
-        public CColor? Fg { get; }
-        public CColor? Bg { get; }
-        public Decoration Deco { get; }
+        public char C { get; } = c;
+        public CColor? Fg { get; } = fg;
+        public CColor? Bg { get; } = bg;
+        public Decoration Deco { get; } = deco;
     }
 
     // A text label anchored at a canvas coordinate, drawn on top of all layers (see DrawLabels).
-    private readonly struct Label
+    private readonly struct Label(double x, double y, Canvas.StyledChar[] chars)
     {
-        public Label(double x, double y, StyledChar[] chars)
-        {
-            X = x;
-            Y = y;
-            Chars = chars;
-        }
-
-        public double X { get; }
-        public double Y { get; }
-        public StyledChar[] Chars { get; }
+        public double X { get; } = x;
+        public double Y { get; } = y;
+        public StyledChar[] Chars { get; } = chars;
     }
 
     #endregion Child types
@@ -661,15 +648,11 @@ public class Canvas : Control
     private List<Layer>? _layers;
     private (double Min, double Max) _xBounds;
     private (double Min, double Max) _yBounds;
-    private CanvasMarker _marker = CanvasMarker.Braille;
-    private char _customMarker = '•';
     private CColor? _background;
     private bool _dirty = true;
 
     // Interactive pan/zoom state. ZoomFactorPerNotch > 1: a wheel-down notch grows the window (zoom out).
     private const double ZoomFactorPerNotch = 1.1;
-
-    private bool _interactive;
     private bool _dragging;
     private Position _lastDrag;
     private int _builtWidth = -1;
@@ -680,7 +663,6 @@ public class Canvas : Control
 
     private CColor?[] _fg = [];
     private CColor?[] _bg = [];
-    private bool _damageTracking = true;
 
     // Last frame's blitted layer content, diffed in Blit to report damage. Invalid until the first full report.
     private Cel[]? _cells;

@@ -1,7 +1,5 @@
 
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -32,12 +30,12 @@ public class LineNumberGutter : RenderableControl
     /// <summary>The total number of lines to number. The control widens as the digit count grows.</summary>
     public int LineCount
     {
-        get => _lineCount;
-        set => SetAtomicProperty(ref _lineCount, Math.Max(1, value), updatesLayout: true, watch: (_, _) => Width = DigitsWidth());
-    }
+        get;
+        set => SetAtomicProperty(ref field, Math.Max(1, value), updatesLayout: true, watch: (_, _) => Width = DigitsWidth());
+    } = 1;
 
     /// <summary>The zero-based active row, drawn in <see cref="ActiveStyle"/> (used when <see cref="RowsProvider"/> is null).</summary>
-    public int ActiveLine { get => _activeLine; set => SetAtomicProperty(ref _activeLine, value); }
+    public int ActiveLine { get; set => SetAtomicProperty(ref field, value); }
 
     /// <summary>
     /// Optional per-render source of wrap-aware labels: returns, for every visual row, the line number to show
@@ -50,8 +48,8 @@ public class LineNumberGutter : RenderableControl
     /// </remarks>
     public Func<(IReadOnlyList<int> labels, int activeRow)>? RowsProvider
     {
-        get => _rowsProvider;
-        set { _rowsProvider = value; Invalidate(); }
+        get;
+        set { field = value; Invalidate(); }
     }
 
     /// <summary>Requests a repaint (e.g. when the paired editor's line count or caret changes).</summary>
@@ -86,7 +84,7 @@ public class LineNumberGutter : RenderableControl
         var digits = Math.Max(1, width - 1);   // reserve one trailing column as a separator
         var rows = Math.Max(1, ActualHeight);
 
-        var provided = _rowsProvider?.Invoke();   // wrap-aware labels, pulled fresh each render
+        var provided = RowsProvider?.Invoke();   // wrap-aware labels, pulled fresh each render
 
         for (var r = 0; r < rows; r++)
         {
@@ -99,8 +97,8 @@ public class LineNumberGutter : RenderableControl
             }
             else
             {
-                label = r < _lineCount ? r + 1 : 0;             // standalone: sequential numbering
-                active = r == _activeLine;
+                label = r < LineCount ? r + 1 : 0;             // standalone: sequential numbering
+                active = r == ActiveLine;
             }
 
             if (label > 0)
@@ -116,16 +114,13 @@ public class LineNumberGutter : RenderableControl
         }
     }
 
-    private int DigitsWidth() => Math.Max(MinDigits, _lineCount.ToString().Length) + 1;
+    private int DigitsWidth() => Math.Max(MinDigits, LineCount.ToString().Length) + 1;
 
     #endregion Methods
 
     #region Fields
 
     private const int MinDigits = 2;
-    private int _lineCount = 1;
-    private int _activeLine;
-    private Func<(IReadOnlyList<int> labels, int activeRow)>? _rowsProvider;
     private Style _numberStyle;
     private Style _activeStyle;
 

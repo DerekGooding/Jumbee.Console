@@ -4,8 +4,6 @@ using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using Spectre.Console.Interop;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>Common interface for Jumbee.Console layout classes: a 2-D grid of focusable cells over a ConsoleGUI control, with focus navigation and input routing.</summary>
@@ -76,8 +74,8 @@ public interface ILayout : IFocusable, IDrawingContextListener
         {
             for (var step = 0; step < rows * cols; step++)   // walk in the given direction, wrapping, until a focusable cell
             {
-                r = ((r + dRow) % rows + rows) % rows;
-                c = ((c + dCol) % cols + cols) % cols;
+                r = (((r + dRow) % rows) + rows) % rows;
+                c = (((c + dCol) % cols) + cols) % cols;
                 if (FirstLeaf(CellAt(r, c)) is { } target) return target;
             }
             return null;
@@ -102,7 +100,7 @@ public interface ILayout : IFocusable, IDrawingContextListener
         var index = ring.FindIndex(f => ReferenceEquals(f, current));
         var next = index < 0
             ? (direction > 0 ? 0 : ring.Count - 1)
-            : ((index + direction) % ring.Count + ring.Count) % ring.Count;
+            : (((index + direction) % ring.Count) + ring.Count) % ring.Count;
         return ring[next];
     }
 
@@ -118,8 +116,12 @@ public interface ILayout : IFocusable, IDrawingContextListener
         if (node is ILayout nested)
         {
             for (var r = 0; r < nested.Rows; r++)
+            {
                 for (var c = 0; c < nested.Columns; c++)
+                {
                     foreach (var f in Leaves(nested.CellAt(r, c))) yield return f;
+                }
+            }
         }
         else if (node is ControlFrame frame)
         {
@@ -133,17 +135,10 @@ public interface ILayout : IFocusable, IDrawingContextListener
 }
 
 /// <summary>Base class for Jumbee.Console layouts wrapping a ConsoleGUI layout control <typeparamref name="T"/> and exposing it through <see cref="ILayout"/>.</summary>
-public abstract class Layout<T> : ILayout where T : CControl, IDrawingContextListener
+/// <remarks>Initializes a new <see cref="Layout{T}"/> wrapping the given ConsoleGUI <paramref name="control"/>.</remarks>
+public abstract class Layout<T>(T control) : ILayout where T : CControl, IDrawingContextListener
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="Layout{T}"/> wrapping the given ConsoleGUI <paramref name="control"/>.</summary>
-    protected Layout(T control)
-    {
-        this.control = control;
-    }
-
-    #endregion Constructors
 
     #region Indexers
 
@@ -181,9 +176,9 @@ public abstract class Layout<T> : ILayout where T : CControl, IDrawingContextLis
     {
         get
         {
-            for (int r = 0; r < Rows; r++)
+            for (var r = 0; r < Rows; r++)
             {
-                for (int c = 0; c < Columns; c++)
+                for (var c = 0; c < Columns; c++)
                 {
                     yield return this[r, c];
                 }
@@ -200,7 +195,7 @@ public abstract class Layout<T> : ILayout where T : CControl, IDrawingContextLis
     /// <summary>Whether this layout holds focus; setting it raises the focus events.</summary>
     public bool IsFocused
     {
-        get => field;
+        get;
         set
         {
             if (field != value)
@@ -313,7 +308,7 @@ public abstract class Layout<T> : ILayout where T : CControl, IDrawingContextLis
     #region Fields
 
     /// <summary>The wrapped ConsoleGUI layout control.</summary>
-    public readonly T control;
+    public readonly T control = control;
 
     #endregion Fields
 }

@@ -1,8 +1,6 @@
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -61,11 +59,7 @@ public class TextPanel : RenderableControl
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
-    {
-        if (string.IsNullOrEmpty(_markup)) return [];
-        return Build().Render(options, maxWidth);
-    }
+    protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth) => string.IsNullOrEmpty(_markup) ? [] : Build().Render(options, maxWidth);
 
     private IRenderable Build() => new Markup(_markup);
 

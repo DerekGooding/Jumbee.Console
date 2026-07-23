@@ -2,10 +2,7 @@
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console;
@@ -54,48 +51,48 @@ public class Globe : Control
     /// <summary>Camera longitude angle (radians) in the equatorial plane — orbits the globe left/right.</summary>
     public double CameraAlpha
     {
-        get => _alpha;
-        set => SetAtomicProperty(ref _alpha, value);
+        get;
+        set => SetAtomicProperty(ref field, value);
     }
 
     /// <summary>Camera latitude angle (radians) — tilts the view up/down towards the poles. Clamped to ±1.5.</summary>
     public double CameraBeta
     {
-        get => _beta;
-        set => SetAtomicProperty(ref _beta, Math.Clamp(value, -1.5, 1.5));
-    }
+        get;
+        set => SetAtomicProperty(ref field, Math.Clamp(value, -1.5, 1.5));
+    } = 0.35;
 
     /// <summary>Your terminal's cell height-to-width ratio, used to keep the disc circular (a monospace cell is
     /// taller than it is wide). Default 2.0 suits most terminals; clamped to ≥ 0.5.</summary>
     /// <remarks>Raise it if the globe looks vertically stretched, lower it if it looks squashed.</remarks>
     public double CellAspect
     {
-        get => _cellAspect;
-        set => SetAtomicProperty(ref _cellAspect, Math.Max(0.5, value));
-    }
+        get;
+        set => SetAtomicProperty(ref field, Math.Max(0.5, value));
+    } = 2.0;
 
     /// <summary>Camera distance from the centre; smaller is closer (a bigger globe). Clamped to ≥ 1.05.</summary>
     public double Zoom
     {
-        get => _zoom;
-        set => SetAtomicProperty(ref _zoom, Math.Max(1.05, value));
-    }
+        get;
+        set => SetAtomicProperty(ref field, Math.Max(1.05, value));
+    } = 1.35;
 
     /// <summary>When <see langword="true"/>, shade the sphere by a fixed light so a day/night terminator is drawn;
     /// otherwise the whole globe is lit evenly. Default <see langword="true"/>.</summary>
     public bool DisplayNight
     {
-        get => _displayNight;
-        set => SetAtomicProperty(ref _displayNight, value);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value);
+    } = true;
 
     /// <summary>When <see langword="true"/> (the default) the surface is coloured from an ocean → land → ice ramp;
     /// when <see langword="false"/> the globe is drawn in a single <see cref="Foreground"/> tone (classic monochrome).</summary>
     public bool Colored
     {
-        get => _colored;
-        set => SetAtomicProperty(ref _colored, value);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value);
+    } = true;
 
     /// <summary>Base colour used when <see cref="Colored"/> is <see langword="false"/> (default a soft cyan).</summary>
     public Color Foreground
@@ -109,9 +106,9 @@ public class Globe : Control
     /// to fall back to reporting the whole control rect — used to A/B the optimization.</summary>
     public bool DamageTracking
     {
-        get => _damageTracking;
-        set => SetAtomicProperty(ref _damageTracking, value);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value);
+    } = true;
 
     /// <summary>
     /// When <see langword="true"/>, the globe responds to user input: <b>drag</b> to rotate/tilt, the <b>mouse wheel</b>
@@ -121,11 +118,11 @@ public class Globe : Control
     /// <remarks>Enabling it makes the globe focusable, so it joins keyboard navigation.</remarks>
     public bool Interactive
     {
-        get => _interactive;
+        get;
         set
         {
-            if (_interactive == value) return;
-            _interactive = value;
+            if (field == value) return;
+            field = value;
             Focusable = value;   // interactive globes take focus for keyboard + wheel; display-only ones stay out of nav
             Invalidate();
         }
@@ -138,20 +135,17 @@ public class Globe : Control
     /// <summary>Spins the globe about its polar axis by <paramref name="delta"/> radians — turning the world under a
     /// fixed camera and light, so the day/night terminator stays put on screen (the natural "rotating earth, fixed
     /// sun" look). One invalidation.</summary>
-    public void Spin(double delta = 0.01)
-    {
-        UI.Invoke(() =>
-        {
-            _angle += delta;
-            Invalidate();
-        });
-    }
+    public void Spin(double delta = 0.01) => UI.Invoke(() =>
+                                                  {
+                                                      _angle += delta;
+                                                      Invalidate();
+                                                  });
 
     /// <summary>Sets the directional light (world space) used for day/night shading and its
     /// <paramref name="softness"/> (terminator sharpness; higher = harder edge). The direction is normalized.</summary>
     public void SetLight(double x, double y, double z, double softness)
     {
-        double len = Math.Sqrt(x * x + y * y + z * z);
+        var len = Math.Sqrt((x * x) + (y * y) + (z * z));
         if (len <= 0) return;
         UI.Invoke(() =>
         {
@@ -163,15 +157,15 @@ public class Globe : Control
     #region Input (active only when Interactive)
 
     /// <summary>Receives mouse events only while <see cref="Interactive"/> (drag-rotate / wheel-zoom).</summary>
-    protected override bool WantsMouse => _interactive;
+    protected override bool WantsMouse => Interactive;
 
     /// <summary>Receives keyboard input only while <see cref="Interactive"/>; otherwise keys pass through for navigation.</summary>
-    public override bool HandlesInput => _interactive;
+    public override bool HandlesInput => Interactive;
 
     /// <summary>Begins a drag and captures the mouse when interactive.</summary>
     protected override void OnMousePress(Position position)
     {
-        if (!_interactive) return;
+        if (!Interactive) return;
         _dragging = true;
         _lastDrag = position;
         CaptureMouse();   // keep receiving move/up even when the pointer leaves the disc
@@ -181,8 +175,8 @@ public class Globe : Control
     protected override void OnMouseMove(Position position)
     {
         if (!_dragging) return;
-        int dx = position.X - _lastDrag.X;
-        int dy = position.Y - _lastDrag.Y;
+        var dx = position.X - _lastDrag.X;
+        var dy = position.Y - _lastDrag.Y;
         _lastDrag = position;
         // Horizontal drag spins the globe about its pole; vertical drag tilts the camera (CameraBeta clamps itself).
         RotationAngle += dx * DragSpinPerCell;
@@ -200,7 +194,7 @@ public class Globe : Control
     /// <summary>Zooms the camera when interactive; otherwise defers to the base scroll behavior.</summary>
     protected override void OnMouseWheel(Position position, int delta)
     {
-        if (!_interactive) { base.OnMouseWheel(position, delta); return; }
+        if (!Interactive) { base.OnMouseWheel(position, delta); return; }
         // Wheel up (delta < 0) decreases Zoom → closer/bigger globe; down zooms out. Zoom clamps to >= 1.05.
         Zoom += delta * ZoomPerNotch;
     }
@@ -208,11 +202,11 @@ public class Globe : Control
     /// <summary>Handles arrow-key spin/tilt and <c>+</c>/<c>-</c> zoom when interactive.</summary>
     protected override void OnInput(InputEvent inputEvent)
     {
-        if (!_interactive) return;
-        bool shift = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0;
-        double spin = shift ? 0.5 : 0.15;
-        double tilt = shift ? 0.3 : 0.1;
-        double zoom = shift ? 0.3 : 0.1;
+        if (!Interactive) return;
+        var shift = (inputEvent.Key.Modifiers & ConsoleModifiers.Shift) != 0;
+        var spin = shift ? 0.5 : 0.15;
+        var tilt = shift ? 0.3 : 0.1;
+        var zoom = shift ? 0.3 : 0.1;
         switch (inputEvent.Key.Key)
         {
             case ConsoleKey.LeftArrow: RotationAngle -= spin; break;
@@ -236,7 +230,7 @@ public class Globe : Control
     // Opt into partial redraw: the disc is inscribed in (and usually narrower than) the pane, so reporting just the
     // drawn disc lets the compositor skip the blank margins.
     /// <summary>Whether partial-redraw damage tracking is enabled (see <see cref="DamageTracking"/>).</summary>
-    protected override bool TracksDamage => _damageTracking;
+    protected override bool TracksDamage => DamageTracking;
 
     /// <summary>Ray-traces the sphere and writes the shaded half-block cells to the buffer.</summary>
     protected override void Render()
@@ -249,71 +243,77 @@ public class Globe : Control
 
         int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
         // Prefer the natural-colour texture; only bake the procedural mask when it (or colour) is unavailable.
-        var tex = _colored ? EarthTexture.Instance : null;
-        var mask = (_colored && tex is null) ? EarthMask.Instance : null;
+        var tex = Colored ? EarthTexture.Instance : null;
+        var mask = (Colored && tex is null) ? EarthMask.Instance : null;
 
         // Orthographic camera: a unit sphere viewed from azimuth `alpha` / elevation `beta`. `forward` looks at the
         // origin; `right`/`up` are the screen axes in world space. Zoom scales the image extent (smaller = bigger disc).
-        double sinA = Math.Sin(_alpha), cosA = Math.Cos(_alpha), sinB = Math.Sin(_beta), cosB = Math.Cos(_beta);
+        double sinA = Math.Sin(CameraAlpha), cosA = Math.Cos(CameraAlpha), sinB = Math.Sin(CameraBeta), cosB = Math.Cos(CameraBeta);
         double fx = -cosB * sinA, fy = -sinB, fz = -cosB * cosA;              // forward = -cameraDir
         // right = normalize(forward × worldUp), NOT worldUp × forward: that yields the left-handed basis which
         // mirrors the globe east-west (screen +x would sample decreasing longitude, putting the Americas the wrong
         // way round and reversing the drag direction).
         double rx = -fz, ry = 0, rz = fx;
-        double rl = Math.Sqrt(rx * rx + rz * rz); if (rl < 1e-9) { rx = 1; rz = 0; rl = 1; }
+        var rl = Math.Sqrt((rx * rx) + (rz * rz)); if (rl < 1e-9) { rx = 1; rz = 0; rl = 1; }
         rx /= rl; rz /= rl;
-        double ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx;   // up = right × forward
+        double ux = (ry * fz) - (rz * fy), uy = (rz * fx) - (rx * fz), uz = (rx * fy) - (ry * fx);   // up = right × forward
 
         // Screen half-extents keep the disc circular for cells that are `CellAspect`× taller than wide (denomY is the
         // vertical radius in rows, denomX the horizontal radius in cells). At the default zoom the disc just fills the
         // limiting dimension; larger zoom shrinks it, smaller enlarges it.
-        double aspect = _cellAspect;
-        double unit = Math.Min(w / 2.0, h * aspect / 2.0);
-        double zoomScale = _zoom / FitZoom;
+        var aspect = CellAspect;
+        var unit = Math.Min(w / 2.0, h * aspect / 2.0);
+        var zoomScale = Zoom / FitZoom;
         double denomX = unit, denomY = unit / aspect, halfW = w / 2.0, halfH = h / 2.0;
 
         // Samples one sub-cell ray; returns whether it hit the sphere and the shaded surface colour.
         (bool hit, CColor c) Sample(double sxw, double syw)
         {
-            double r2 = sxw * sxw + syw * syw;
+            var r2 = (sxw * sxw) + (syw * syw);
             if (r2 > 1.0) return (false, default);
-            double z = Math.Sqrt(1.0 - r2);
-            double px = sxw * rx + syw * ux - z * fx;        // surface point on the unit sphere (world space)
-            double py = sxw * ry + syw * uy - z * fy;
-            double pz = sxw * rz + syw * uz - z * fz;
+            var z = Math.Sqrt(1.0 - r2);
+            var px = (sxw * rx) + (syw * ux) - (z * fx);        // surface point on the unit sphere (world space)
+            var py = (sxw * ry) + (syw * uy) - (z * fy);
+            var pz = (sxw * rz) + (syw * uz) - (z * fz);
 
-            double lat = Math.Asin(Math.Clamp(py, -1.0, 1.0)) * (180.0 / Math.PI);
-            double lon = (Math.Atan2(px, pz) - _angle) * (180.0 / Math.PI);
+            var lat = Math.Asin(Math.Clamp(py, -1.0, 1.0)) * (180.0 / Math.PI);
+            var lon = (Math.Atan2(px, pz) - _angle) * (180.0 / Math.PI);
 
-            double bright = 1.0;
-            if (_displayNight)
+            var bright = 1.0;
+            if (DisplayNight)
             {
-                double lum = _softness * (px * _lx + py * _ly + pz * _lz) + 0.5;
-                bright = 0.15 + 0.85 * (lum < 0 ? 0 : lum > 1 ? 1 : lum);
+                var lum = (_softness * ((px * _lx) + (py * _ly) + (pz * _lz))) + 0.5;
+                bright = 0.15 + (0.85 * (lum < 0 ? 0 : lum > 1 ? 1 : lum));
             }
 
             // Natural-colour texture (from-space look) when available; else the procedural distance-to-coast ramp.
             CColor baseC;
-            if (!_colored) baseC = _foreground;
-            else if (tex is not null) baseC = tex.Sample(lat, lon);
-            else { mask!.Sample(lat, lon, out bool land, out int elev, out int depth); baseC = Surface(lat, land, elev, depth); }
+            if (!Colored)
+            {
+                baseC = _foreground;
+            }
+            else if (tex is not null)
+            {
+                baseC = tex.Sample(lat, lon);
+            }
+            else { mask!.Sample(lat, lon, out var land, out var elev, out var depth); baseC = Surface(lat, land, elev, depth); }
             return (true, Shade(baseC, bright));
         }
 
-        for (int yi = 0; yi < h; yi++)
+        for (var yi = 0; yi < h; yi++)
         {
-            for (int xi = 0; xi < w; xi++)
+            for (var xi = 0; xi < w; xi++)
             {
-                double sxw = ((xi + 0.5 - halfW) / denomX) * zoomScale;
+                var sxw = ((xi + 0.5 - halfW) / denomX) * zoomScale;
                 // Screen y grows downward, but +up (north) is toward the top, so negate: the row's upper half-cell
                 // (higher on screen) must map to the higher latitude.
-                var top = Sample(sxw, ((halfH - (yi + 0.25)) / denomY) * zoomScale);
+                var (hit, c) = Sample(sxw, ((halfH - (yi + 0.25)) / denomY) * zoomScale);
                 var bot = Sample(sxw, ((halfH - (yi + 0.75)) / denomY) * zoomScale);
-                if (!top.hit && !bot.hit) continue;
+                if (!hit && !bot.hit) continue;
 
                 // ▀ paints the fg in the top half and the bg in the bottom; ▄ paints fg in the bottom half.
-                Character ch = top.hit && bot.hit ? new('▀', top.c, bot.c)
-                    : top.hit ? new('▀', top.c, null)
+                Character ch = hit && bot.hit ? new('▀', c, bot.c)
+                    : hit ? new('▀', c, null)
                     : new('▄', bot.c, null);
                 consoleBuffer.Write(new Position(xi, yi), ch);
 
@@ -324,7 +324,7 @@ public class Globe : Control
             }
         }
 
-        if (_damageTracking)
+        if (DamageTracking)
         {
             var cur = maxX >= 0 ? new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1) : Rect.Empty;
             Damage(Rect.Surround(_prevDisc, cur));
@@ -336,7 +336,7 @@ public class Globe : Control
     private static CColor Surface(double latDeg, bool land, int elev, int depth)
     {
         var c = land ? Ramp(LandStops, Math.Clamp(elev / BrownDepth, 0, 1)) : Ramp(OceanStops, Math.Clamp(depth / 10.0, 0, 1));
-        double ice = Math.Clamp((Math.Abs(latDeg) - 66.0) / 14.0, 0, 1);   // sea-ice / ice-sheet toward the poles
+        var ice = Math.Clamp((Math.Abs(latDeg) - 66.0) / 14.0, 0, 1);   // sea-ice / ice-sheet toward the poles
         return ice <= 0 ? c : Mix(c, Ice, ice);
     }
 
@@ -344,17 +344,16 @@ public class Globe : Control
         new((byte)(c.Red * f), (byte)(c.Green * f), (byte)(c.Blue * f));
 
     private static CColor Mix(CColor a, CColor b, double t) => new(
-        (byte)(a.Red + (b.Red - a.Red) * t),
-        (byte)(a.Green + (b.Green - a.Green) * t),
-        (byte)(a.Blue + (b.Blue - a.Blue) * t));
+        (byte)(a.Red + ((b.Red - a.Red) * t)),
+        (byte)(a.Green + ((b.Green - a.Green) * t)),
+        (byte)(a.Blue + ((b.Blue - a.Blue) * t)));
 
     private static CColor Ramp(CColor[] stops, double t)
     {
         t = t < 0 ? 0 : t > 1 ? 1 : t;
-        double scaled = t * (stops.Length - 1);
-        int i = (int)Math.Floor(scaled);
-        if (i >= stops.Length - 1) return stops[^1];
-        return Mix(stops[i], stops[i + 1], scaled - i);
+        var scaled = t * (stops.Length - 1);
+        var i = (int)Math.Floor(scaled);
+        return i >= stops.Length - 1 ? stops[^1] : Mix(stops[i], stops[i + 1], scaled - i);
     }
 
     #endregion Methods
@@ -365,8 +364,6 @@ public class Globe : Control
     private const double DragTiltPerCell = 0.03;
     private const double ZoomPerNotch = 0.1;
     private const double FitZoom = 1.35;   // the zoom at which the disc just fills the limiting screen dimension
-
-    private bool _interactive;
     private bool _dragging;
     private Position _lastDrag;
 
@@ -385,14 +382,7 @@ public class Globe : Control
     private static readonly CColor Ice = new(232, 238, 245);
 
     private double _angle;
-    private double _alpha;
-    private double _beta = 0.35;
-    private double _zoom = 1.35;
-    private double _cellAspect = 2.0;   // terminal cell height:width; keeps the disc circular
-    private bool _displayNight = true;
-    private bool _colored = true;
     private CColor _foreground = new(120, 210, 230);
-    private bool _damageTracking = true;
     private Rect _prevDisc = Rect.Empty;   // last frame's drawn disc, unioned with this frame's to avoid ghosting
 
     // Light mostly overhead (+y) and north (+z) with a little toward the camera (+x), giving a diagonal terminator.
@@ -416,7 +406,7 @@ internal sealed class EarthTexture
 
     public static EarthTexture? Instance
     {
-        get { if (!_loaded) { _instance = Load(); _loaded = true; } return _instance; }
+        get { if (!_loaded) { field = Load(); _loaded = true; } return field; }
     }
 
     #endregion Properties
@@ -425,10 +415,10 @@ internal sealed class EarthTexture
 
     public CColor Sample(double latDeg, double lonDeg)
     {
-        double u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);   // wrap longitude into [0,1)
-        double v = Math.Clamp((90.0 - latDeg) / 180.0, 0, 0.999999);
+        var u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);   // wrap longitude into [0,1)
+        var v = Math.Clamp((90.0 - latDeg) / 180.0, 0, 0.999999);
         int x = Math.Clamp((int)(u * _w), 0, _w - 1), y = Math.Clamp((int)(v * _h), 0, _h - 1);
-        int i = (y * _w + x) * 3;
+        var i = ((y * _w) + x) * 3;
         return new CColor(_rgb[i], _rgb[i + 1], _rgb[i + 2]);
     }
 
@@ -470,7 +460,6 @@ internal sealed class EarthTexture
     private EarthTexture(byte[] rgb, int w, int h)
     { _rgb = rgb; _w = w; _h = h; }
 
-    private static EarthTexture? _instance;
     private static bool _loaded;
 
     #endregion Fields
@@ -551,30 +540,30 @@ internal sealed class EarthMask
         // Even-odd scanline fill. For each row's centre latitude, collect where the rings cross it, sort, and fill
         // between alternate pairs — which also punches out holes (an inland sea's ring simply flips parity back).
         var xs = new List<double>();
-        for (int y = 0; y < H; y++)
+        for (var y = 0; y < H; y++)
         {
-            double lat = 90.0 - (y + 0.5) / H * 180.0;
+            var lat = 90.0 - ((y + 0.5) / H * 180.0);
             xs.Clear();
             foreach (var ring in rings)
-                for (int i = 1; i < ring.Count; i++)
+                for (var i = 1; i < ring.Count; i++)
                 {
                     var (aLon, aLat) = ring[i - 1];
                     var (bLon, bLat) = ring[i];
                     // Half-open test: a vertex exactly on the row counts once, so parity can't be corrupted.
                     if (aLat > lat == bLat > lat) continue;
-                    xs.Add(aLon + (lat - aLat) / (bLat - aLat) * (bLon - aLon));
+                    xs.Add(aLon + ((lat - aLat) / (bLat - aLat) * (bLon - aLon)));
                 }
             xs.Sort();
-            for (int i = 0; i + 1 < xs.Count; i += 2)
+            for (var i = 0; i + 1 < xs.Count; i += 2)
             {
-                int x0 = (int)Math.Ceiling((xs[i] + 180.0) / 360.0 * W - 0.5);
-                int x1 = (int)Math.Floor((xs[i + 1] + 180.0) / 360.0 * W - 0.5);
-                for (int x = Math.Max(x0, 0); x <= Math.Min(x1, W - 1); x++) _ocean[y, x] = true;   // inside a ring = land
+                var x0 = (int)Math.Ceiling(((xs[i] + 180.0) / 360.0 * W) - 0.5);
+                var x1 = (int)Math.Floor(((xs[i + 1] + 180.0) / 360.0 * W) - 0.5);
+                for (var x = Math.Max(x0, 0); x <= Math.Min(x1, W - 1); x++) _ocean[y, x] = true;   // inside a ring = land
             }
         }
         // The scan marked the INSIDE of the rings; invert so the field means what it says (ocean = outside all land).
-        for (int y = 0; y < H; y++)
-            for (int x = 0; x < W; x++)
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
                 _ocean[y, x] = !_ocean[y, x];
 
         // Distance transforms: elevation = steps inland from ocean; depth = steps offshore from land.
@@ -586,7 +575,7 @@ internal sealed class EarthMask
 
     #region Properties
 
-    public static EarthMask Instance => _instance ??= new EarthMask();
+    public static EarthMask Instance => field ??= new EarthMask();
 
     #endregion Properties
 
@@ -594,8 +583,8 @@ internal sealed class EarthMask
 
     public void Sample(double latDeg, double lonDeg, out bool land, out int elev, out int depth)
     {
-        double u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);
-        double v = Math.Clamp((90.0 - latDeg) / 180.0, 0, 0.999999);
+        var u = (lonDeg + 180.0) / 360.0; u -= Math.Floor(u);
+        var v = Math.Clamp((90.0 - latDeg) / 180.0, 0, 0.999999);
         int x = Math.Clamp((int)(u * W), 0, W - 1), y = Math.Clamp((int)(v * H), 0, H - 1);
         land = !_ocean[y, x];
         elev = _elev[y, x];
@@ -609,16 +598,16 @@ internal sealed class EarthMask
         var dist = new int[H, W];
         var seen = new bool[H, W];
         var q = new Queue<(int y, int x)>();
-        for (int y = 0; y < H; y++)
-            for (int x = 0; x < W; x++)
+        for (var y = 0; y < H; y++)
+            for (var x = 0; x < W; x++)
                 if (!_ocean[y, x] != land) { seen[y, x] = true; q.Enqueue((y, x)); }
         while (q.Count > 0)
         {
             var (y, x) = q.Dequeue();
             foreach (var (dy, dx) in Neighbors4)   // static array — avoids allocating a (int,int)[4] per visited cell
             {
-                int ny = y + dy; if (ny < 0 || ny >= H) continue;
-                int nx = ((x + dx) % W + W) % W;
+                var ny = y + dy; if (ny is < 0 or >= H) continue;
+                var nx = (((x + dx) % W) + W) % W;
                 if (!seen[ny, nx] && !_ocean[ny, nx] == land) { seen[ny, nx] = true; dist[ny, nx] = dist[y, x] + 1; q.Enqueue((ny, nx)); }
             }
         }
@@ -636,10 +625,10 @@ internal sealed class EarthMask
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
-            int c = line.IndexOf(',');
+            var c = line.IndexOf(',');
             if (c > 0
-                && double.TryParse(line.AsSpan(0, c), CultureInfo.InvariantCulture, out double lon)
-                && double.TryParse(line.AsSpan(c + 1), CultureInfo.InvariantCulture, out double lat))
+                && double.TryParse(line.AsSpan(0, c), CultureInfo.InvariantCulture, out var lon)
+                && double.TryParse(line.AsSpan(c + 1), CultureInfo.InvariantCulture, out var lat))
             {
                 ring.Add((lon, lat));
             }
@@ -659,7 +648,6 @@ internal sealed class EarthMask
 
     private const int W = 400, H = 200;
     private static readonly (int dy, int dx)[] Neighbors4 = [(-1, 0), (1, 0), (0, -1), (0, 1)];   // BFS 4-neighbourhood
-    private static EarthMask? _instance;
     private readonly bool[,] _ocean;
     private readonly int[,] _elev;
     private readonly int[,] _depth;

@@ -40,16 +40,16 @@ public sealed class TabItem
     /// <remarks>Hiding the selected tab moves selection to the nearest visible, enabled tab.</remarks>
     public bool IsHidden
     {
-        get => _hidden;
-        set { if (_hidden == value) return; _hidden = value; _owner.OnTabVisibilityChanged(this); }
+        get;
+        set { if (field == value) return; field = value; _owner.OnTabVisibilityChanged(this); }
     }
 
     /// <summary>When <see langword="true"/> the tab is shown greyed-out and can't be selected or focused.</summary>
     /// <remarks>Disabling the selected tab moves selection to the nearest selectable tab.</remarks>
     public bool IsDisabled
     {
-        get => _disabled;
-        set { if (_disabled == value) return; _disabled = value; _owner.OnTabEnabledChanged(this); }
+        get;
+        set { if (field == value) return; field = value; _owner.OnTabEnabledChanged(this); }
     }
 
     /// <summary>Whether this is the currently selected tab.</summary>
@@ -70,8 +70,6 @@ public sealed class TabItem
 
     private readonly TabPanel _owner;
     private string _name;
-    private bool _hidden;
-    private bool _disabled;
 
     #endregion Fields
 }

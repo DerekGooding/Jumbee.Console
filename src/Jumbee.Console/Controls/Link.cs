@@ -2,8 +2,6 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Jumbee.Console;

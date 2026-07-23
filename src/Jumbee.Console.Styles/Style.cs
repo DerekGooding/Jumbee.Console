@@ -60,15 +60,11 @@ public enum CursorStyle
 /// named colour palette (<see cref="Red1"/>, <see cref="Cyan1"/>, …) and decoration presets (<see cref="Bold"/>,
 /// <see cref="Italic"/>, …) as ready-made tokens; combine them with <c>|</c>.
 /// </summary>
-public readonly partial struct Style : System.IEquatable<Style>
+/// <remarks>Wraps an existing Spectre.Console <see cref="SCStyle"/>.</remarks>
+public readonly struct Style(SCStyle spectreConsoleStyle) : IEquatable<Style>
 {
-    #region Constructors
 
-    /// <summary>Wraps an existing Spectre.Console <see cref="SCStyle"/>.</summary>
-    public Style(SCStyle spectreConsoleStyle)
-    {
-        SpectreConsoleStyle = spectreConsoleStyle;
-    }
+    #region Constructors
 
     /// <summary>Parses a style from a Spectre markup style string (e.g. <c>"bold red on blue"</c>).</summary>
     public Style(string style) : this(SCStyle.Parse(style)) { }
@@ -81,7 +77,7 @@ public readonly partial struct Style : System.IEquatable<Style>
 
     /// <summary>Wraps <paramref name="text"/> in this style's markup, producing a Spectre <see cref="Spectre.Console.Markup"/>
     /// renderable (the text is markup-escaped first).</summary>
-    public Spectre.Console.Markup this[string text] => new Spectre.Console.Markup($"[{this.ToMarkup()}]{EscapeMarkup(text)}[/]");
+    public Spectre.Console.Markup this[string text] => new($"[{ToMarkup()}]{EscapeMarkup(text)}[/]");
 
     #endregion Indexers
 
@@ -92,7 +88,7 @@ public readonly partial struct Style : System.IEquatable<Style>
 
     /// <summary>A style carrying only a background colour, for composing with a foreground via <c>|</c>
     /// (e.g. <c>Style.White | Style.Bg(color)</c>).</summary>
-    public static Style Bg(Color background) => new Style(new SCStyle(background: background));
+    public static Style Bg(Color background) => new(new SCStyle(background: background));
 
     /// <summary>The foreground colour, or <see langword="null"/> when the style leaves it as the terminal default.</summary>
     public Color? ForegroundColor => ColorOrNull(SpectreConsoleStyle?.Foreground);
@@ -131,19 +127,19 @@ public readonly partial struct Style : System.IEquatable<Style>
     public static implicit operator SCStyle(Style style) => style.SpectreConsoleStyle;
 
     /// <summary>Wraps a Spectre.Console <see cref="SCStyle"/> as a <see cref="Style"/>.</summary>
-    public static implicit operator Style(SCStyle spectreConsoleStyle) => new Style(spectreConsoleStyle);
+    public static implicit operator Style(SCStyle spectreConsoleStyle) => new(spectreConsoleStyle);
 
     /// <summary>Converts the style to its Spectre markup string (see <see cref="ToMarkup"/>).</summary>
     public static implicit operator string(Style style) => style.ToMarkup();
 
     /// <summary>Builds a foreground-only style from a <see cref="Color"/>.</summary>
-    public static implicit operator Style(Color color) => new Style(new SCStyle(color));
+    public static implicit operator Style(Color color) => new(new SCStyle(color));
 
     /// <summary>Extracts the style's foreground <see cref="Color"/>.</summary>
     public static implicit operator Color(Style style) => style.SpectreConsoleStyle.Foreground;
 
     /// <summary>Combines two styles; properties set on the right operand override the left.</summary>
-    public static Style operator |(Style a, Style b) => new Style(a.SpectreConsoleStyle.Combine(b.SpectreConsoleStyle));
+    public static Style operator |(Style a, Style b) => new(a.SpectreConsoleStyle.Combine(b.SpectreConsoleStyle));
 
     /// <summary>Converts the style's foreground colour to a <see cref="System.Drawing.Color"/>.</summary>
     public static implicit operator SystemDrawingColor(Style style)
@@ -157,7 +153,7 @@ public readonly partial struct Style : System.IEquatable<Style>
     #region Fields
 
     /// <summary>The wrapped Spectre.Console style this <see cref="Style"/> delegates to.</summary>
-    public readonly SCStyle SpectreConsoleStyle;
+    public readonly SCStyle SpectreConsoleStyle = spectreConsoleStyle;
 
     #region Text decorations
 

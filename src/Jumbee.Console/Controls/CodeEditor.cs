@@ -1,6 +1,5 @@
 
 using ColorCode;
-using System;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -29,24 +28,24 @@ public class CodeEditor : CompositeControl
 
     private CodeEditor(TextEditor editor)
     {
-        _editor = editor;
-        _gutter = new LineNumberGutter
+        Editor = editor;
+        Gutter = new LineNumberGutter
         {
             // Pulled each render: wrap-aware labels (0 = a soft-wrapped continuation row) + the caret's visual row.
             // The gutter is content-tall like the editor, so the surrounding frame scrolls them together aligned.
-            RowsProvider = () => (_editor.VisualLineNumbers(), _editor.CaretVisualRow),
+            RowsProvider = () => (Editor.VisualLineNumbers(), Editor.CaretVisualRow),
         };
 
         // Inter-child wiring: the gutter follows the editor, and the composite re-measures + scrolls to the caret.
-        _editor.Changed += (_, _) => OnEditorChanged();
+        Editor.Changed += (_, _) => OnEditorChanged();
 
         // A wheel notch over the editor scrolls OUR frame — the same scroll target AutoScroll drives. The editor
         // isn't framed itself (its own OnMouseWheel is a no-op), so we bubble its MouseWheeled event up to the
         // composite. This is the "composite owns its children and wires their events itself" pattern.
-        _editor.MouseWheeled += (_, delta) => Frame?.Scroll(delta);
+        Editor.MouseWheeled += (_, delta) => Frame?.Scroll(delta);
 
-        SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _editor));
-        _gutter.LineCount = _editor.LineCount;   // initial sync; thereafter OnEditorChanged keeps it in step
+        SetContent(new DockPanel(DockedControlPlacement.Left, Gutter, Editor));
+        Gutter.LineCount = Editor.LineCount;   // initial sync; thereafter OnEditorChanged keeps it in step
     }
 
     #endregion Constructors
@@ -54,27 +53,27 @@ public class CodeEditor : CompositeControl
     #region Properties
 
     /// <summary>The wrapped text editor (focus this to type; e.g. <c>UI.SetFocus(codeEditor.Editor)</c>).</summary>
-    public TextEditor Editor => _editor;
+    public TextEditor Editor { get; }
 
     /// <summary>The line-number gutter.</summary>
-    public LineNumberGutter Gutter => _gutter;
+    public LineNumberGutter Gutter { get; }
 
     /// <summary>When <see langword="true"/>, the editor ignores edits (typing/Backspace/Delete/Enter/Tab/paste) but
     /// still navigates and scrolls — a read-only code viewer. Passthrough to <see cref="TextEditor.ReadOnly"/>.</summary>
     public bool ReadOnly
     {
-        get => _editor.ReadOnly;
-        set => _editor.ReadOnly = value;
+        get => Editor.ReadOnly;
+        set => Editor.ReadOnly = value;
     }
 
     /// <summary>The editor's text. Setting it loads the document with the caret at the start (top of the file).</summary>
     public string Text
     {
-        get => _editor.Text;
+        get => Editor.Text;
         set
         {
-            _editor.Text = value;       // raises Changed -> OnEditorChanged
-            _editor.CaretIndex = 0;     // open at the top, like a file editor, not at the end of the text
+            Editor.Text = value;       // raises Changed -> OnEditorChanged
+            Editor.CaretIndex = 0;     // open at the top, like a file editor, not at the end of the text
         }
     }
 
@@ -86,7 +85,7 @@ public class CodeEditor : CompositeControl
     // surrounding frame sizes us to content and its scrollbar/scroll-range are accurate.
     /// <inheritdoc/>
     protected override int MeasureHeight(int width) =>
-        Math.Max(1, _editor.VisualRowCount(Math.Max(1, width - _gutter.Width)));
+        Math.Max(1, Editor.VisualRowCount(Math.Max(1, width - Gutter.Width)));
 
     // Named "Editor" so it shares the editor tab (and the focused composite opens it). Describes the code editor.
     /// <inheritdoc/>
@@ -104,22 +103,22 @@ public class CodeEditor : CompositeControl
     {
         base.Control_OnInitialization();
         _lastRowCount = EditorRowCount();
-        _lastActiveRow = _editor.CaretVisualRow;
+        _lastActiveRow = Editor.CaretVisualRow;
     }
 
     private void OnEditorChanged()
     {
         // Sync the gutter's logical line count (its own setter is already a no-op when the count is unchanged).
-        _gutter.LineCount = _editor.LineCount;
+        Gutter.LineCount = Editor.LineCount;
 
         var rows = EditorRowCount();
-        var activeRow = _editor.CaretVisualRow;
+        var activeRow = Editor.CaretVisualRow;
 
         // Only repaint the gutter when something it actually draws moved: the active-row highlight, or the row
         // labels (which track the wrapped row count). Typing within a line changes neither, so the gutter stays
         // valid and is not re-rendered — the per-control invalidation is preserved instead of being defeated by a
         // blanket refresh on every keystroke.
-        if (activeRow != _lastActiveRow || rows != _lastRowCount) _gutter.Refresh();
+        if (activeRow != _lastActiveRow || rows != _lastRowCount) Gutter.Refresh();
 
         // Re-measure our content height for the frame's scroll range only when the wrapped row count changed; an
         // in-line edit that adds/removes no row needs no re-layout (Initialize would otherwise run every keystroke).
@@ -131,13 +130,13 @@ public class CodeEditor : CompositeControl
 
     // The editor's wrapped row count at its current width — our content height, and the value that decides whether a
     // re-layout / gutter relabel is needed.
-    private int EditorRowCount() => _editor.VisualRowCount(Math.Max(1, _editor.ActualWidth));
+    private int EditorRowCount() => Editor.VisualRowCount(Math.Max(1, Editor.ActualWidth));
 
     // The editor itself isn't framed, so scroll OUR ControlFrame to keep the editor's caret row within the viewport.
     private void AutoScroll()
     {
         if (Frame is null) return;
-        var caretRow = _editor.CaretVisualRow;
+        var caretRow = Editor.CaretVisualRow;
         var top = Frame.Top;
         var viewport = Frame.ViewportSize.Height;
         if (viewport <= 0) return;
@@ -147,11 +146,7 @@ public class CodeEditor : CompositeControl
     }
 
     #endregion Methods
-
     #region Fields
-
-    private readonly TextEditor _editor;
-    private readonly LineNumberGutter _gutter;
 
     // Cached snapshot of what the gutter currently reflects (wrapped row count + caret's visual row), so
     // OnEditorChanged can skip the gutter repaint and the content re-measure when an edit changes neither — e.g.

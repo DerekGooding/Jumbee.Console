@@ -1,8 +1,4 @@
-
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 
 using CColor = ConsoleGUI.Data.Color;
 
@@ -23,21 +19,16 @@ public enum MapResolution
 /// sub-region zooms in).
 /// </summary>
 /// <remarks>Ported from Ratatui's <c>Map</c>; the point data is Natural Earth coastline data.</remarks>
-public sealed class WorldMap : IShape
+/// <param name="color">Colour of the map points.</param>
+/// <param name="resolution">Point density (see <see cref="MapResolution"/>). Default <see cref="MapResolution.Low"/>.</param>
+public sealed class WorldMap(Color color, MapResolution resolution = MapResolution.Low) : IShape
 {
-    /// <param name="color">Colour of the map points.</param>
-    /// <param name="resolution">Point density (see <see cref="MapResolution"/>). Default <see cref="MapResolution.Low"/>.</param>
-    public WorldMap(Color color, MapResolution resolution = MapResolution.Low)
-    {
-        Color = color;
-        Resolution = resolution;
-    }
 
     /// <summary>Colour of the map points.</summary>
-    public Color Color { get; }
+    public Color Color { get; } = color;
 
     /// <summary>Point density of the coastline sampling.</summary>
-    public MapResolution Resolution { get; }
+    public MapResolution Resolution { get; } = resolution;
 
     void IShape.Draw(Painter painter)
     {
@@ -66,11 +57,11 @@ internal static class WorldMapData
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
-            int comma = line.IndexOf(',');
+            var comma = line.IndexOf(',');
             if (comma < 0) continue;
             // Invariant culture: the data uses '.' as the decimal separator regardless of the current locale.
-            double x = double.Parse(line.AsSpan(0, comma), CultureInfo.InvariantCulture);
-            double y = double.Parse(line.AsSpan(comma + 1), CultureInfo.InvariantCulture);
+            var x = double.Parse(line.AsSpan(0, comma), CultureInfo.InvariantCulture);
+            var y = double.Parse(line.AsSpan(comma + 1), CultureInfo.InvariantCulture);
             points.Add((x, y));
         }
         return [.. points];

@@ -20,36 +20,32 @@ namespace Jumbee.Console.Documents;
 /// when the text/styles change or the width changes (it reflows to the control width).
 /// </para>
 /// </remarks>
-public class AsciiDocViewer : Control
+/// <remarks>Initializes a new <see cref="AsciiDocViewer"/> showing <paramref name="asciiDoc"/>.</remarks>
+public class AsciiDocViewer(string asciiDoc = "") : Control
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="AsciiDocViewer"/> showing <paramref name="asciiDoc"/>.</summary>
-    public AsciiDocViewer(string asciiDoc = "") => _asciiDoc = asciiDoc ?? "";
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>The AsciiDoc source. Setting it re-renders (off the UI thread) and re-lays-out.</summary>
     public string AsciiDoc
     {
-        get => _asciiDoc;
+        get;
         set => UI.Invoke(() =>
         {
             var v = value ?? "";
-            if (v == _asciiDoc) return;
-            _asciiDoc = v;
+            if (v == field) return;
+            field = v;
             _version++;
             Initialize();
         });
-    }
+    } = asciiDoc ?? "";
 
     /// <summary>The render styles (heading / code / admonition colours, …). Defaults to <see cref="AsciiDocStyles.Default"/>.</summary>
     public AsciiDocStyles? Styles
     {
-        get => _styles;
-        set => UI.Invoke(() => { _styles = value; _version++; Initialize(); });
+        get;
+        set => UI.Invoke(() => { field = value; _version++; Initialize(); });
     }
 
     /// <summary>Always <see langword="true"/> — the viewer handles scroll keys.</summary>
@@ -117,8 +113,8 @@ public class AsciiDocViewer : Control
         if (_renderingWidth == width && _renderingVersion == _version) return; // already in flight for this
 
         var version = _version;
-        var text = _asciiDoc;
-        var styles = _styles ?? AsciiDocStyles.Default;
+        var text = AsciiDoc;
+        var styles = Styles ?? AsciiDocStyles.Default;
         _renderingWidth = width;
         _renderingVersion = version;
 
@@ -155,7 +151,7 @@ public class AsciiDocViewer : Control
     // content height. Resilient: any failure in the parser/renderer yields a blank buffer rather than throwing.
     private static (ConsoleBuffer buffer, int height) RenderAsciiDoc(string text, AsciiDocStyles styles, int width)
     {
-        var cap = Math.Clamp(LineCount(text) * 3 + 40, 8, MaxRows);
+        var cap = Math.Clamp((LineCount(text) * 3) + 40, 8, MaxRows);
         var buffer = new ConsoleBuffer { Size = new Size(width, cap) };
         buffer.Initialize();
         try
@@ -177,11 +173,14 @@ public class AsciiDocViewer : Control
     private static int MeasureRenderedHeight(ConsoleBuffer buffer)
     {
         for (var y = buffer.Size.Height - 1; y >= 0; y--)
+        {
             for (var x = 0; x < buffer.Size.Width; x++)
             {
                 var c = buffer[x, y].Character.Content;
-                if (c is not null && c != ' ' && c != '\0') return y + 1;
+                if (c is not null and not ' ' and not '\0') return y + 1;
             }
+        }
+
         return 1;
     }
 
@@ -195,7 +194,7 @@ public class AsciiDocViewer : Control
                 consoleBuffer.Write(new Position(x, y), src[x, y]);
     }
 
-    private int EstimateHeight() => Math.Clamp(LineCount(_asciiDoc), 1, MaxRows);
+    private int EstimateHeight() => Math.Clamp(LineCount(AsciiDoc), 1, MaxRows);
 
     private static int LineCount(string text)
     {
@@ -212,9 +211,6 @@ public class AsciiDocViewer : Control
     // The rendered content is capped at this many rows — beyond the control's own ~1000-row size clamp nothing is
     // reachable anyway, so a taller document simply clips at the bottom.
     private const int MaxRows = 1024;
-
-    private string _asciiDoc;
-    private AsciiDocStyles? _styles;
     private int _version;                       // bumped when the text/styles change, invalidating a cached render
 
     private ConsoleBuffer _content = new();     // the last completed render, blitted into consoleBuffer each paint

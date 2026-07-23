@@ -1,12 +1,7 @@
 
 using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -87,7 +82,7 @@ public sealed class VtInputSource : IInputSource, IDisposable
                 loggedEof = false;
                 if (LogPath is not null) Log($"read {n} bytes: {Convert.ToHexString(bytes, 0, Math.Min(n, 16))}");
 
-                int charCount = utf8.GetChars(bytes, 0, n, chars, 0);
+                var charCount = utf8.GetChars(bytes, 0, n, chars, 0);
                 if (charCount > 0)
                 {
                     Enqueue(_decoder.Feed(chars.AsSpan(0, charCount)));
@@ -188,18 +183,18 @@ internal sealed class TerminalInputMode : IDisposable
             // Resolve the controlling terminal: use stdin when it's a tty, else open /dev/tty so the app still
             // gets raw keyboard input when stdin is redirected (`myapp < file`, `echo x | myapp`) — the same trick
             // fzf/gum use to keep working in a pipeline. _inputFd < 0 (no controlling terminal, e.g. CI) → skip.
-            _inputFd = isatty(STDIN_FILENO) == 1 ? STDIN_FILENO : open(DevTty, O_RDWR);
-            if (_inputFd >= 0)
+            InputFd = isatty(STDIN_FILENO) == 1 ? STDIN_FILENO : open(DevTty, O_RDWR);
+            if (InputFd >= 0)
             {
-                _ownsInputFd = _inputFd != STDIN_FILENO; // opened /dev/tty ourselves → must close it on dispose
+                OwnsInputFd = InputFd != STDIN_FILENO; // opened /dev/tty ourselves → must close it on dispose
                 // Save current settings, then switch to raw mode. cfmakeraw also sets VMIN=1/VTIME=0, which is
                 // exactly what the byte-at-a-time ReaderLoop wants.
                 _savedTermios = new byte[TermiosSize];
-                if (tcgetattr(_inputFd, _savedTermios) == 0)
+                if (tcgetattr(InputFd, _savedTermios) == 0)
                 {
                     var raw = (byte[])_savedTermios.Clone();
                     cfmakeraw(raw);
-                    _termiosChanged = tcsetattr(_inputFd, TCSANOW, raw) == 0;
+                    _termiosChanged = tcsetattr(InputFd, TCSANOW, raw) == 0;
                 }
             }
         }
@@ -224,15 +219,15 @@ internal sealed class TerminalInputMode : IDisposable
         catch { /* best effort */ }
 
         if (_modeChanged) SetConsoleMode(_stdinHandle, _originalMode);
-        if (_termiosChanged) tcsetattr(_inputFd, TCSANOW, _savedTermios!);
-        if (_ownsInputFd) close(_inputFd);
+        if (_termiosChanged) tcsetattr(InputFd, TCSANOW, _savedTermios!);
+        if (OwnsInputFd) close(InputFd);
     }
 
     /// <summary>The terminal input fd raw mode was applied to — stdin, or a /dev/tty we opened; -1 if none.</summary>
-    public int InputFd => _inputFd;
+    public int InputFd { get; } = -1;
 
     /// <summary><see langword="true"/> when <see cref="InputFd"/> is a /dev/tty we opened (read from it, not stdin).</summary>
-    public bool OwnsInputFd => _ownsInputFd;
+    public bool OwnsInputFd { get; }
 
     /// <summary><see langword="true"/> when raw/VT input mode was successfully applied (Unix termios or Win console mode).</summary>
     public bool RawModeApplied => _termiosChanged || _modeChanged;
@@ -277,8 +272,6 @@ internal sealed class TerminalInputMode : IDisposable
 
     private readonly byte[]? _savedTermios;
     private readonly bool _termiosChanged;
-    private readonly int _inputFd = -1;     // stdin or an opened /dev/tty; -1 = not resolved (Windows / no tty)
-    private readonly bool _ownsInputFd;     // we opened /dev/tty and must close it
 
     [DllImport("libc", SetLastError = true)]
     private static extern int isatty(int fd);

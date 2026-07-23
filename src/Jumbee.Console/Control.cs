@@ -2,11 +2,7 @@
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -59,7 +55,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     // indication, and no frame is already showing the cue — either there's no frame, or the frame is borderless (a
     // visible-border frame recolours its border on focus, so we defer to it).
     private bool ShowsDefaultFocusCue =>
-        IsFocused && !RendersOwnFocus && (Frame is null || !Frame.ShowsFocusCue);
+        IsFocused && !RendersOwnFocus && (Frame?.ShowsFocusCue != true);
 
     // Applies the themed focus cue to a cell, per the captured FocusStyle: Tint fills every unpainted cell, Ring
     // fills only the outer-edge cells, Underline underlines the bottom row. Tint/Ring need a focus colour; Underline
@@ -94,15 +90,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>The requested width in cells; setting it resizes the control. 0 (the default) fills the space the parent offers.</summary>
     public virtual int Width
     {
-        get => field;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                field = value;
-                Resize(new Size(value, Height));
-            });
-        }
+        get; set => UI.Invoke(() =>
+                             {
+                                 field = value;
+                                 Resize(new Size(value, Height));
+                             });
     }
 
     /// <summary>The control's actual laid-out width in cells.</summary>
@@ -111,15 +103,11 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>The requested height in cells; setting it resizes the control. 0 (the default) fills the space the parent offers.</summary>
     public virtual int Height
     {
-        get => field;
-        set
-        {
-            UI.Invoke(() =>
-            {
-                field = value;
-                Resize(new Size(Width, value));
-            });
-        }
+        get; set => UI.Invoke(() =>
+                             {
+                                 field = value;
+                                 Resize(new Size(Width, value));
+                             });
     }
 
     /// <summary>The control's actual laid-out height in cells.</summary>
@@ -131,7 +119,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>The optional <see cref="ControlFrame"/> drawing borders, margins, scrollbars, and a titlebar around this control, or <see langword="null"/>.</summary>
     public ControlFrame? Frame
     {
-        get => field;
+        get;
         set
         {
             if (ReferenceEquals(field, value)) return;
@@ -161,7 +149,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     /// <summary>Whether this control currently holds keyboard focus; setting it raises the focus events and repaints so the terminal cursor moves.</summary>
     public bool IsFocused
     {
-        get => field;
+        get;
         set
         {
             if (field != value)
@@ -184,7 +172,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     }
 
     /// <summary>The focus target the UI registers for this control — its <see cref="Frame"/> when framed (so the frame handles input routing), otherwise the control itself.</summary>
-    public IFocusable FocusableControl => this.Frame is not null ? this.Frame : this;
+    public IFocusable FocusableControl => (IFocusable?)Frame ?? this;
 
     /// <summary>
     /// The focused control within this one — itself (<em>not</em> its <see cref="FocusableControl"/>/frame, so a
@@ -205,7 +193,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         // Input is dispatched on the UI thread (the input reader posts it there), so no lock is needed.
         if (HandlesInput)
         {
-            this.OnInput(inputEventArgs.InputEvent!);
+            OnInput(inputEventArgs.InputEvent!);
         }
     }
 
@@ -327,7 +315,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
         IsMousePressed = false;
 
         var now = Environment.TickCount64;
-        bool isDouble = now - _lastClickMs <= DoubleClickMs
+        var isDouble = now - _lastClickMs <= DoubleClickMs
             && _lastClickPos.X == position.X && _lastClickPos.Y == position.Y;
         _lastClickMs = isDouble ? 0 : now;   // reset so a triple-click isn't read as a second double
         _lastClickPos = position;
@@ -368,7 +356,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     {
         if (!HandlesInput) return;
         foreach (var c in text)
-            OnInput(new InputEvent(new ConsoleKeyInfo(c, (ConsoleKey)0, shift: false, alt: false, control: false)));
+            OnInput(new InputEvent(new ConsoleKeyInfo(c, 0, shift: false, alt: false, control: false)));
     }
 
     #endregion Properties
@@ -479,18 +467,15 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected abstract void Render();
 
     /// <summary>Lays the control out on the UI thread: computes and applies its size, sizes the buffer, invalidates, and raises <see cref="OnInitialization"/>.</summary>
-    protected override void Initialize()
-    {
-        UI.Invoke((() =>
-        {
-            var (width, height) = CalculateSize();
-            var size = new Size(width, height);
-            Resize(size);
-            consoleBuffer.Size = Size;
-            Invalidate();
-            OnInitialization?.Invoke();
-        }));
-    }
+    protected override void Initialize() => UI.Invoke(() =>
+                                                 {
+                                                     var (width, height) = CalculateSize();
+                                                     var size = new Size(width, height);
+                                                     Resize(size);
+                                                     consoleBuffer.Size = Size;
+                                                     Invalidate();
+                                                     OnInitialization?.Invoke();
+                                                 });
 
     /// <summary>
     /// Invoked in the control's OnPaint event handler.
@@ -736,10 +721,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected (int, int) CalculateSize()
     {
         // Handle the case when negative or overflow sizes may get passed down by parent containers
-        int maxWidth = Math.Clamp(MaxSize.Width, 0, 1000);
-        int maxHeight = Math.Clamp(MaxSize.Height, 0, 1000);
-        int minWidth = Math.Clamp(MinSize.Width, 0, 1000);
-        int minHeight = Math.Clamp(MinSize.Height, 0, 1000);
+        var maxWidth = Math.Clamp(MaxSize.Width, 0, 1000);
+        var maxHeight = Math.Clamp(MaxSize.Height, 0, 1000);
+        var minWidth = Math.Clamp(MinSize.Width, 0, 1000);
+        var minHeight = Math.Clamp(MinSize.Height, 0, 1000);
 
         // Width first (an intrinsic height may depend on it, e.g. wrapped text). An intrinsic width — a genuine
         // fixed extent reported by an adornment control (e.g. a vertical TextLabel that is one column wide) — is
@@ -847,7 +832,7 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
             if (TracksDamage)
             {
                 // Opt-in: composite only the sub-rects this paint reported (possibly none → nothing to composite).
-                for (int i = 0; i < _damage.Count; i++) Update(_damage[i]);
+                for (var i = 0; i < _damage.Count; i++) Update(_damage[i]);
                 _damage.Clear();
             }
             else if (Size.Width > 0 && Size.Height > 0)
@@ -908,10 +893,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     #region Fields
 
     /// <summary>A shared empty <see cref="Character"/>.</summary>
-    public static Character emptyChar = new Character();
+    public static Character emptyChar = new();
 
     /// <summary>A shared empty <see cref="Cell"/>, returned for positions outside the control's size.</summary>
-    protected static readonly Cell emptyCell = new Cell(Character.Empty);
+    protected static readonly Cell emptyCell = new(Character.Empty);
 
     /// <summary>Count of pending paint requests; a non-zero value triggers a repaint on the next paint tick.</summary>
     protected internal uint paintRequests;
@@ -923,10 +908,10 @@ public abstract class Control : CControl, IFocusable, IDisposable, IMouseListene
     protected readonly AnsiConsoleBuffer ansiConsole;
 
     // Damaged sub-rects reported during the current paint by a TracksDamage control; drained in OnPaint. UI-thread only.
-    private readonly List<Rect> _damage = new();
+    private readonly List<Rect> _damage = [];
 
     // Live background feeds (see Feed); cancelled en masse on Dispose. Guarded by its own lock (cross-thread registry).
-    private readonly List<CancellationTokenSource> _feeds = new();
+    private readonly List<CancellationTokenSource> _feeds = [];
 
     // The themed default focus cue (IStyleTheme.Focus background + IStyleTheme.FocusStyle mode), captured off the
     // render path; applied to a focused control that shows focus no other way. Tint null = theme sets no focus bg.

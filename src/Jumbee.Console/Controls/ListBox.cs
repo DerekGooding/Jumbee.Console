@@ -4,10 +4,6 @@ using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Interop;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -62,8 +58,8 @@ public partial class ListBox : RenderableControl
     /// row).</remarks>
     public bool HighlightFullWidth
     {
-        get => _highlightFullWidth;
-        set => SetAtomicProperty(ref _highlightFullWidth, value);
+        get;
+        set => SetAtomicProperty(ref field, value);
     }
 
     /// <summary>The index of the highlighted item (in item order), clamped to the item range.</summary>
@@ -205,15 +201,12 @@ public partial class ListBox : RenderableControl
     }
 
     /// <summary>Removes all items from the list.</summary>
-    public void Clear()
-    {
-        UI.Invoke(() =>
-        {
-            foreach (var item in _items.Values) item.Detach();
-            _items.Clear();
-            InvalidateLayout();
-        });
-    }
+    public void Clear() => UI.Invoke(() =>
+                                {
+                                    foreach (var item in _items.Values) item.Detach();
+                                    _items.Clear();
+                                    InvalidateLayout();
+                                });
 
     /// <summary>Requests a redraw of the list.</summary>
     public void Update() => Invalidate();
@@ -393,7 +386,7 @@ public partial class ListBox : RenderableControl
         else ContextMenu.Show(0, row);
     }
 
-    private ListBoxItem[] OrderedItems() => _items.Values.OrderBy(i => i.Index).ToArray();
+    private ListBoxItem[] OrderedItems() => [.. _items.Values.OrderBy(i => i.Index)];
 
     /// <summary>
     /// Scrolls the containing <see cref="ControlFrame"/> (if any) so the selected item stays within the viewport.
@@ -435,7 +428,7 @@ public partial class ListBox : RenderableControl
         var gutter = caret ? new string(' ', _selectionCaret.GetCellWidth()) : "";
         var selStyle = _selectionStyle.TextStyle(_selectedForegroundColor, _selectedBackgroundColor);
 
-        for (int i = 0; i < items.Length; i++)
+        for (var i = 0; i < items.Length; i++)
         {
             var item = items[i];
             var selected = i == _selectionIndex;
@@ -463,13 +456,13 @@ public partial class ListBox : RenderableControl
                 // colourful label stays colourful under the highlight (the same approach Tree uses for IRenderable
                 // nodes). The caret gutter (Caret mode) is reserved on every row so labels stay aligned as the
                 // selection moves.
-                var overlay = selected ? selStyle : (Spectre.Console.Style?)null;
+                var overlay = selected ? selStyle : null;
                 renderables[i] = new HighlightedRenderable(item.Content, overlay, caret ? _selectionCaret : null, selected);
             }
 
             // Extend the selection across the whole row: pad the selected row to the full width in the selection
             // style so it reads as a full-width bar rather than stopping at the item's own width.
-            if (selected && _highlightFullWidth)
+            if (selected && HighlightFullWidth)
                 renderables[i] = new FullWidthRow(renderables[i], selStyle);
         }
 
@@ -564,14 +557,13 @@ public partial class ListBox : RenderableControl
 
     #region Fields
 
-    private readonly Dictionary<int, ListBoxItem> _items = new();
+    private readonly Dictionary<int, ListBoxItem> _items = [];
     private int _itemIndex = 0;
     private int _selectionIndex = 0;
     private Color? _selectedBackgroundColor;
     private Color? _selectedForegroundColor;
     private SelectionStyle _selectionStyle;
     private string _selectionCaret = "";
-    private bool _highlightFullWidth;
 
     // Cached per-item row layout (see EnsureLayout): cumulative row offsets, recomputed when the item set/content
     // (_itemsVersion) changes. Item heights are width-independent, so the layout doesn't depend on the control width.

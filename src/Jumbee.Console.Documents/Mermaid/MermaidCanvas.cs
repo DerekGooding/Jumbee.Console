@@ -49,6 +49,6 @@ internal static class MermaidCanvas
             var t = r.Trim();
             if (t.Length > 0 && !t.StartsWith("%%", StringComparison.Ordinal)) list.Add(t);
         }
-        return list.ToArray();
+        return [.. list];
     }
 }

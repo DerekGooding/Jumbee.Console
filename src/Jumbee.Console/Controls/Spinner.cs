@@ -1,6 +1,5 @@
 ﻿
 using Spectre.Console;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>An animated spinner glyph with an optional label, cycling through a <see cref="Spectre.Console.Spinner"/>'s frames.</summary>
@@ -18,39 +17,39 @@ public class Spinner : AnimatedControl
     /// <summary>The spinner animation (frame set and interval) to cycle through.</summary>
     public Spectre.Console.Spinner SpinnerType
     {
-        get => _spinner;
+        get;
         set
         {
-            _spinner = value;
-            frameCount = _spinner.Frames.Count;
-            interval = _spinner.Interval.Ticks;
-            spinnerFrames = _spinner.Frames.Select(Style.EscapeMarkup).ToArray();
-            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
+            field = value;
+            frameCount = field.Frames.Count;
+            interval = field.Interval.Ticks;
+            spinnerFrames = [.. field.Frames.Select(Style.EscapeMarkup)];
+            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(Text) ? "" : " " + Text));
         }
-    }
+    } = Spectre.Console.Spinner.Known.Default;
 
     /// <summary>The style applied to the spinner glyph and label.</summary>
     public Style Style
     {
-        get => _style;
+        get;
         set
         {
-            _style = value;
-            styleMarkup = _style;
-            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
+            field = value;
+            styleMarkup = field;
+            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(Text) ? "" : " " + Text));
         }
-    }
+    } = Style.Plain;
 
     /// <summary>An optional label drawn after the spinner glyph.</summary>
     public string Text
     {
-        get => _text;
+        get;
         set
         {
-            _text = Markup.Escape(value);
-            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(_text) ? "" : " " + _text));
+            field = Markup.Escape(value);
+            spinnerFramesMarkup = spinnerFrames.Map(f => $"[{styleMarkup}]{f}[/]" + (string.IsNullOrEmpty(field) ? "" : " " + field));
         }
-    }
+    } = string.Empty;
 
     #endregion Properties
 
@@ -67,12 +66,9 @@ public class Spinner : AnimatedControl
 
     #region Fields
 
-    private Spectre.Console.Spinner _spinner = Spectre.Console.Spinner.Known.Default;
-    private Style _style = Style.Plain;
     private string styleMarkup = Style.Plain;
-    private string[] spinnerFrames = Spectre.Console.Spinner.Known.Default.Frames.Select(Markup.Escape).ToArray();
-    private string[] spinnerFramesMarkup = Spectre.Console.Spinner.Known.Default.Frames.Select(f => $"[{Style.Plain}]{f}[/]").ToArray();
-    private string _text = string.Empty;
+    private string[] spinnerFrames = [.. Spectre.Console.Spinner.Known.Default.Frames.Select(Markup.Escape)];
+    private string[] spinnerFramesMarkup = [.. Spectre.Console.Spinner.Known.Default.Frames.Select(f => $"[{Style.Plain}]{f}[/]")];
 
     #endregion Fields
 }

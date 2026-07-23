@@ -1,7 +1,3 @@
-
-using System;
-using System.Linq;
-
 namespace Jumbee.Console;
 /// <summary>A layout that arranges its child controls in a single horizontal row.</summary>
 public class HorizontalStackPanel : Layout<ConsoleGUI.Controls.HorizontalStackPanel>
@@ -47,10 +43,7 @@ public class HorizontalStackPanel : Layout<ConsoleGUI.Controls.HorizontalStackPa
     {
         get
         {
-            if (row != 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(row));
-            }
+            ArgumentOutOfRangeException.ThrowIfNotEqual(row, 0);
             return (IFocusable)control.Children.ElementAt(column);
         }
     }

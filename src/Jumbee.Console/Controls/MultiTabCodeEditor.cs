@@ -1,8 +1,3 @@
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Jumbee.Console;
 /// <summary>
 /// A tabbed group of <see cref="CodeEditor"/>s — a VS-Code-style editor area. Each open document is a closable tab
@@ -20,12 +15,12 @@ public class MultiTabCodeEditor : CompositeControl
     public MultiTabCodeEditor(Language defaultLanguage = Language.None)
     {
         _defaultLanguage = defaultLanguage;
-        _panel = new TabPanel(TabBarDock.Top) { ClosableTabs = true, ShowAddButton = true };
-        _panel.NewTabRequested += () => NewDocument();
-        _panel.TabCloseRequested += OnTabCloseRequested;   // route the ✕ through the cancelable DocumentClosing
-        _panel.TabRemoved += OnTabRemoved;
-        _panel.SelectionChanged += _ => ActiveDocumentChanged?.Invoke(ActiveEditor);
-        SetContent(_panel);
+        Tabs = new TabPanel(TabBarDock.Top) { ClosableTabs = true, ShowAddButton = true };
+        Tabs.NewTabRequested += () => NewDocument();
+        Tabs.TabCloseRequested += OnTabCloseRequested;   // route the ✕ through the cancelable DocumentClosing
+        Tabs.TabRemoved += OnTabRemoved;
+        Tabs.SelectionChanged += _ => ActiveDocumentChanged?.Invoke(ActiveEditor);
+        SetContent(Tabs);
     }
 
     #endregion Constructors
@@ -50,19 +45,19 @@ public class MultiTabCodeEditor : CompositeControl
     #region Properties
 
     /// <summary>The underlying tab panel (for styling or advanced tab operations).</summary>
-    public TabPanel Tabs => _panel;
+    public TabPanel Tabs { get; }
 
     /// <summary>The selected document's editor, or <see langword="null"/> when none are open.</summary>
-    public CodeEditor? ActiveEditor => _panel.ActiveTab?.Content as CodeEditor;
+    public CodeEditor? ActiveEditor => Tabs.ActiveTab?.Content as CodeEditor;
 
     /// <summary>The selected document's name (tab label), or <see langword="null"/> when none are open.</summary>
-    public string? ActiveDocumentName => _panel.ActiveTabName;
+    public string? ActiveDocumentName => Tabs.ActiveTabName;
 
     /// <summary>All open editors, in tab order.</summary>
-    public IReadOnlyList<CodeEditor> Editors => _panel.Tabs.Select(t => (CodeEditor)t.Content).ToList();
+    public IReadOnlyList<CodeEditor> Editors => Tabs.Tabs.Select(t => (CodeEditor)t.Content).ToList();
 
     /// <summary>The number of open documents.</summary>
-    public int DocumentCount => _panel.TabCount;
+    public int DocumentCount => Tabs.TabCount;
 
     /// <summary>When <see langword="true"/>, closing a document with unsaved changes (see <see cref="IsDirty"/>)
     /// first shows a modal "Discard changes?" confirmation and only closes on confirm. Default
@@ -88,11 +83,11 @@ public class MultiTabCodeEditor : CompositeControl
         {
             editor = new CodeEditor(language ?? _defaultLanguage) { Text = text };
             editor.WithFrame(borderStyle: BorderStyle.None);   // each editor gets its own scroll viewport
-            var tab = _panel.AddTab(name, editor);
+            var tab = Tabs.AddTab(name, editor);
             if (!closable) tab.Closable = false;
             _baseline[editor] = editor.Text;                          // the "saved" baseline for dirty tracking
             editor.Editor.Changed += (_, _) => OnDocEdited(editor);   // auto-dirty once the text diverges
-            _panel.SelectTab(tab);
+            Tabs.SelectTab(tab);
         });
         DocumentOpened?.Invoke(editor);
         return editor;
@@ -117,7 +112,7 @@ public class MultiTabCodeEditor : CompositeControl
     /// <remarks>For resetting the group — e.g. reloading a different set of files.</remarks>
     public void Clear() => UI.Invoke(() =>
     {
-        foreach (var tab in _panel.Tabs.ToList()) _panel.RemoveTab(tab);
+        foreach (var tab in Tabs.Tabs.ToList()) Tabs.RemoveTab(tab);
     });
 
     /// <summary>Whether a document has unsaved changes (its text differs from when it was opened or last marked
@@ -157,11 +152,11 @@ public class MultiTabCodeEditor : CompositeControl
         if (ConfirmOnClose && IsDirty(editor) && (DialogOverlay ?? UI.Overlay) is { } overlay)
         {
             var dialog = new Dialog("Unsaved changes", $"Discard changes to {NameWithoutMarker(tab)}?", DialogButtons.YesNo);
-            dialog.Completed += (_, r) => { if (r == DialogResult.Yes) _panel.RemoveTab(tab); };
+            dialog.Completed += (_, r) => { if (r == DialogResult.Yes) Tabs.RemoveTab(tab); };
             dialog.Show(overlay);
             return;
         }
-        _panel.RemoveTab(tab);
+        Tabs.RemoveTab(tab);
     }
 
     // The panel's ✕ asks to close: always cancel its built-in removal and route through BeginClose (which removes
@@ -193,7 +188,7 @@ public class MultiTabCodeEditor : CompositeControl
 
     private TabItem? TabOf(CodeEditor editor)
     {
-        foreach (var t in _panel.Tabs) if (ReferenceEquals(t.Content, editor)) return t;
+        foreach (var t in Tabs.Tabs) if (ReferenceEquals(t.Content, editor)) return t;
         return null;
     }
 
@@ -211,18 +206,15 @@ public class MultiTabCodeEditor : CompositeControl
         .WithKey("Click +", "New tab");
 
     #endregion Methods
-
     #region Fields
-
-    private readonly TabPanel _panel;
     private readonly Language _defaultLanguage;
     private int _untitled;
 
     // Dirty tracking: the set of editors whose text differs from their baseline, and the baseline ("saved") text
     // per editor. Auto-updated on edit; cleared when a tab is removed.
-    private readonly HashSet<CodeEditor> _dirty = new();
+    private readonly HashSet<CodeEditor> _dirty = [];
 
-    private readonly Dictionary<CodeEditor, string> _baseline = new();
+    private readonly Dictionary<CodeEditor, string> _baseline = [];
     private const string DirtyMark = "● ";
 
     #endregion Fields

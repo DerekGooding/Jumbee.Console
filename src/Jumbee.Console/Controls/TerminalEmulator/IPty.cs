@@ -1,7 +1,3 @@
-
-using System;
-using System.IO;
-
 namespace Jumbee.Console;
 /// <summary>
 /// A pseudo-terminal session: a child process attached to a PTY, exposing its stdin/stdout as streams.

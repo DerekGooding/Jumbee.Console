@@ -1,8 +1,5 @@
 
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -48,8 +45,8 @@ public class Sparkline : RenderableControl
     /// <summary>The value mapped to a full-height bar. When <see langword="null"/> (default) the series maximum is used.</summary>
     public double? Max
     {
-        get => _max;
-        set => SetAtomicProperty(ref _max, value);
+        get;
+        set => SetAtomicProperty(ref field, value);
     }
 
     /// <summary>The bar style. Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
@@ -63,9 +60,9 @@ public class Sparkline : RenderableControl
     /// console (cmd.exe with a raster font) set this to <see cref="AsciiBars"/>.</remarks>
     public string Bars
     {
-        get => _bars;
-        set => SetAtomicProperty(ref _bars, string.IsNullOrEmpty(value) ? BlockBars : value);
-    }
+        get;
+        set => SetAtomicProperty(ref field, string.IsNullOrEmpty(value) ? BlockBars : value);
+    } = BlockBars;
 
     #endregion Properties
 
@@ -93,7 +90,7 @@ public class Sparkline : RenderableControl
     {
         if (_values.Length == 0) yield break;
 
-        var max = _max ?? _values.DefaultIfEmpty(0).Max();
+        var max = Max ?? _values.DefaultIfEmpty(0).Max();
         var width = Math.Min(_values.Length, maxWidth);
         var sb = new System.Text.StringBuilder(width);
         for (var i = 0; i < width; i++)
@@ -106,10 +103,10 @@ public class Sparkline : RenderableControl
     // Maps a value to a glyph in the ramp (or a space when there is nothing to draw).
     private char BarFor(double value, double max)
     {
-        if (max <= 0 || value <= 0) return value > 0 ? _bars[0] : ' ';
-        var level = (int)Math.Ceiling(value / max * _bars.Length);
-        level = Math.Clamp(level, 1, _bars.Length);
-        return _bars[level - 1];
+        if (max <= 0 || value <= 0) return value > 0 ? Bars[0] : ' ';
+        var level = (int)Math.Ceiling(value / max * Bars.Length);
+        level = Math.Clamp(level, 1, Bars.Length);
+        return Bars[level - 1];
     }
 
     #endregion Methods
@@ -123,9 +120,7 @@ public class Sparkline : RenderableControl
     public const string AsciiBars = ".:-=+*#@";
 
     private double[] _values;
-    private double? _max;
     private Style _barStyle;
-    private string _bars = BlockBars;
 
     #endregion Fields
 }

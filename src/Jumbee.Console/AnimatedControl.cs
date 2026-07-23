@@ -1,17 +1,11 @@
-﻿
-using System;
-
-namespace Jumbee.Console;
+﻿namespace Jumbee.Console;
 /// <summary>Base class for a control that advances through frames on a timer, repainting each frame while running.</summary>
 public abstract class AnimatedControl : Control
 {
     #region Constructors
 
     /// <summary>Initializes a new <see cref="AnimatedControl"/> and requests an initial paint.</summary>
-    public AnimatedControl() : base()
-    {
-        Invalidate();
-    }
+    protected AnimatedControl() => Invalidate();
 
     #endregion Constructors
 

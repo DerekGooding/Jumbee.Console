@@ -6,34 +6,24 @@ namespace Jumbee.Console;
 /// </summary>
 /// <remarks>The glyphs come separately from <see cref="ScrollBarGlyphs"/> (via
 /// <see cref="IGlyphTheme.ScrollBar"/>); a control frame composes the two into its scrollbar cells.</remarks>
-public readonly struct ScrollBarStyle : System.IEquatable<ScrollBarStyle>
+/// <remarks>Initializes a new <see cref="ScrollBarStyle"/> from the thumb, track, and end-arrow styles.</remarks>
+public readonly struct ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow) : IEquatable<ScrollBarStyle>
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="ScrollBarStyle"/> from the thumb, track, and end-arrow styles.</summary>
-    public ScrollBarStyle(Style thumb, Style track, Style upArrow, Style downArrow)
-    {
-        Thumb = thumb;
-        Track = track;
-        UpArrow = upArrow;
-        DownArrow = downArrow;
-    }
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>Style for the thumb (the draggable handle).</summary>
-    public Style Thumb { get; init; }
+    public Style Thumb { get; init; } = thumb;
 
     /// <summary>Style for the track behind the thumb.</summary>
-    public Style Track { get; init; }
+    public Style Track { get; init; } = track;
 
     /// <summary>Style for the top end arrow.</summary>
-    public Style UpArrow { get; init; }
+    public Style UpArrow { get; init; } = upArrow;
 
     /// <summary>Style for the bottom end arrow.</summary>
-    public Style DownArrow { get; init; }
+    public Style DownArrow { get; init; } = downArrow;
 
     #endregion Properties
 

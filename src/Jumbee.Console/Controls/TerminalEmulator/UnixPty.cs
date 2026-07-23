@@ -1,12 +1,8 @@
 
 using Microsoft.Win32.SafeHandles;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -128,8 +124,8 @@ public sealed class UnixPty : IPty
         // The controller fd is bidirectional; use a duplicate so the read loop and input writes don't contend on
         // one FileStream. Each FileStream owns its fd and closes it on Dispose.
         var writeFd = dup(controller);
-        var output = new FileStream(new SafeFileHandle((nint)controller, ownsHandle: true), FileAccess.Read);
-        var input = new FileStream(new SafeFileHandle((nint)writeFd, ownsHandle: true), FileAccess.Write);
+        var output = new FileStream(new SafeFileHandle(controller, ownsHandle: true), FileAccess.Read);
+        var input = new FileStream(new SafeFileHandle(writeFd, ownsHandle: true), FileAccess.Write);
 
         var pty = new UnixPty(controller, pid, input, output);
         pty.WatchForExit();
@@ -256,12 +252,9 @@ public sealed class UnixPty : IPty
     [DllImport("libc", SetLastError = true)] private static extern int kill(int pid, int sig);
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct WinSize
+    private struct WinSize(ushort row, ushort col)
     {
-        public ushort Row, Col, XPixel, YPixel;
-
-        public WinSize(ushort row, ushort col)
-        { Row = row; Col = col; XPixel = 0; YPixel = 0; }
+        public ushort Row = row, Col = col, XPixel = 0, YPixel = 0;
     }
 
     #endregion Native  (all in libc; on macOS "libc" resolves to libSystem)

@@ -2,8 +2,6 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 // The button styles its label with the text Style type while exposing a themeable ButtonStyle named `Style`; alias
 // the text type so the property name doesn't shadow it inside this file.
@@ -105,9 +103,7 @@ public class Button : RenderableControl
         var label = _style.Bold ? fill | TextStyle.Bold : fill;
 
         var outer = Math.Clamp(OuterWidth(), 0, maxWidth);
-        if (outer <= 0) return [];
-
-        return _style.IsModern ? RenderBevel(fill, label, outer) : RenderFlat(label, outer);
+        return outer <= 0 ? [] : _style.IsModern ? RenderBevel(fill, label, outer) : RenderFlat(label, outer);
     }
 
     // A single-row text button (no border). Focus shows by reversing the label.

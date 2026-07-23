@@ -18,37 +18,33 @@ namespace Jumbee.Console.Documents;
 /// short message. The diagram is drawn at its intrinsic size and clips horizontally if wider than the control.
 /// </para>
 /// </remarks>
-public class MermaidViewer : Control
+/// <remarks>Initializes a new <see cref="MermaidViewer"/> showing <paramref name="mermaid"/>.</remarks>
+public class MermaidViewer(string mermaid = "") : Control
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="MermaidViewer"/> showing <paramref name="mermaid"/>.</summary>
-    public MermaidViewer(string mermaid = "") => _mermaid = mermaid ?? "";
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>The Mermaid source. Setting it re-parses/re-renders (off the UI thread) and re-lays-out.</summary>
     public string Mermaid
     {
-        get => _mermaid;
+        get;
         set => UI.Invoke(() =>
         {
             var v = value ?? "";
-            if (v == _mermaid) return;
-            _mermaid = v;
+            if (v == field) return;
+            field = v;
             _version++;
             _hscroll.Reset();   // a new diagram starts scrolled to the left edge
             Initialize();
         });
-    }
+    } = mermaid ?? "";
 
     /// <summary>The render colours / scale. Defaults to <see cref="MermaidStyles.Default"/>.</summary>
     public MermaidStyles? Styles
     {
-        get => _styles;
-        set => UI.Invoke(() => { _styles = value; _version++; _hscroll.Reset(); Initialize(); });
+        get;
+        set => UI.Invoke(() => { field = value; _version++; _hscroll.Reset(); Initialize(); });
     }
 
     /// <summary>Always <see langword="true"/> — the viewer handles scroll/pan keys.</summary>
@@ -120,8 +116,8 @@ public class MermaidViewer : Control
         if (_renderingVersion == _version) return;
 
         var version = _version;
-        var text = _mermaid;
-        var styles = _styles ?? MermaidStyles.Default;
+        var text = Mermaid;
+        var styles = Styles ?? MermaidStyles.Default;
         _renderingVersion = version;
 
         if (!UI.IsRunning)
@@ -201,7 +197,7 @@ public class MermaidViewer : Control
     private int EstimateHeight()
     {
         var n = 1;
-        foreach (var c in _mermaid) if (c == '\n') n++;
+        foreach (var c in Mermaid) if (c == '\n') n++;
         return Math.Clamp(n * 3, 3, MaxRows);
     }
 
@@ -211,9 +207,6 @@ public class MermaidViewer : Control
 
     private const int MaxRows = 1024;
     private const int HScrollStep = 3;   // columns panned per ← / → press
-
-    private string _mermaid;
-    private MermaidStyles? _styles;
     private int _version;
     private HScroll _hscroll;   // horizontal pan offset (the frame only scrolls vertically)
 

@@ -15,19 +15,19 @@ public partial class ListBox
         /// <summary>Initializes an item with the given renderable content at <paramref name="index"/> in <paramref name="listBox"/>.</summary>
         public ListBoxItem(ListBox listBox, int index, IRenderable content)
         {
-            this.ListBox = listBox;
-            this.Index = index;
-            this._content = content;
+            ListBox = listBox;
+            Index = index;
+            _content = content;
         }
 
         /// <summary>Initializes a text item with optional foreground/background colours at <paramref name="index"/> in <paramref name="listBox"/>.</summary>
         public ListBoxItem(ListBox listBox, int index, string text, Color? foreground = null, Color? background = null)
         {
-            this.ListBox = listBox;
-            this.Index = index;
-            this._text = text;
-            this._foregroundColor = foreground;
-            this._backgroundColor = background;
+            ListBox = listBox;
+            Index = index;
+            _text = text;
+            _foregroundColor = foreground;
+            _backgroundColor = background;
             UpdateTextContent();
         }
 

@@ -10,13 +10,9 @@ namespace Jumbee.Console;
 /// <see cref="ConsoleBuffer"/> instead of writing ANSI to <see cref="System.Console"/>, so the Jumbee
 /// <see cref="Plot"/> control can draw it. Used internally by <see cref="Plot"/>.
 /// </summary>
-internal sealed class PlotImage : CPlot
+internal sealed class PlotImage(int width, int height, ConsoleBuffer buffer) : CPlot(width, height)
 {
-    #region Constructors
 
-    public PlotImage(int width, int height, ConsoleBuffer buffer) : base(width, height) => _buffer = buffer;
-
-    #endregion Constructors
 
     #region Properties
 
@@ -34,10 +30,10 @@ internal sealed class PlotImage : CPlot
     public override void Render()
     {
         var image = GetImage();
-        for (int row = 0; row < image.Height; row++)
+        for (var row = 0; row < image.Height; row++)
         {
-            int y = image.Height - 1 - row;
-            for (int x = 0; x < image.Width; x++)
+            var y = image.Height - 1 - row;
+            for (var x = 0; x < image.Width; x++)
             {
                 var pixel = image.buffer[y, x];
                 var ch = pixel.Character == '\0' ? ' ' : pixel.Character;
@@ -52,7 +48,7 @@ internal sealed class PlotImage : CPlot
 
     #region Fields
 
-    private readonly ConsoleBuffer _buffer;
+    private readonly ConsoleBuffer _buffer = buffer;
 
     #endregion Fields
 }

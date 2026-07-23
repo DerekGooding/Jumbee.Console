@@ -4,8 +4,6 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -29,9 +27,9 @@ public class Log : Control
     /// <summary>The maximum number of entries retained; older entries are discarded. Defaults to 1000.</summary>
     public int MaxEntries
     {
-        get => _maxEntries;
-        set => UI.Invoke(() => { _maxEntries = Math.Max(1, value); Trim(); Invalidate(); });
-    }
+        get;
+        set => UI.Invoke(() => { field = Math.Max(1, value); Trim(); Invalidate(); });
+    } = 1000;
 
     #endregion Properties
 
@@ -41,21 +39,18 @@ public class Log : Control
     public void Write(string markup) => Write(new Markup(markup ?? ""));
 
     /// <summary>Appends a renderable entry. Safe to call from any thread.</summary>
-    public void Write(IRenderable renderable)
-    {
-        UI.Invoke(() =>
-        {
-            _entries.Add(renderable);
-            // Render the new entry to its visual lines immediately (O(entry), not O(all entries)). If the control
-            // isn't laid out yet (width unknown, e.g. seeded in a ctor) defer to the next Render's full rebuild.
-            if (ContentWidth > 0 && ContentWidth == _renderedWidth)
-                AppendLines(renderable, ContentWidth);
-            else
-                _needsRebuild = true;
-            Trim();
-            Invalidate();   // content-only repaint; no Initialize/relayout — the log fills a fixed viewport
-        });
-    }
+    public void Write(IRenderable renderable) => UI.Invoke(() =>
+                                                      {
+                                                          _entries.Add(renderable);
+                                                          // Render the new entry to its visual lines immediately (O(entry), not O(all entries)). If the control
+                                                          // isn't laid out yet (width unknown, e.g. seeded in a ctor) defer to the next Render's full rebuild.
+                                                          if (ContentWidth > 0 && ContentWidth == _renderedWidth)
+                                                              AppendLines(renderable, ContentWidth);
+                                                          else
+                                                              _needsRebuild = true;
+                                                          Trim();
+                                                          Invalidate();   // content-only repaint; no Initialize/relayout — the log fills a fixed viewport
+                                                      });
 
     /// <summary>Removes all entries.</summary>
     public void Clear() => UI.Invoke(() =>
@@ -95,17 +90,17 @@ public class Log : Control
     {
         int width = ActualWidth, height = ActualHeight;
         if (width <= 0 || height <= 0) return;
-        int cw = ContentWidth;
+        var cw = ContentWidth;
 
         if (_needsRebuild || cw != _renderedWidth) RebuildLines(cw);
 
         consoleBuffer.Initialize();   // blank the viewport (lines may be shorter than it / fewer than its rows)
         if (cw <= 0) return;
 
-        int total = _lines.Count;
-        int top = ViewTop(total, height);
+        var total = _lines.Count;
+        var top = ViewTop(total, height);
 
-        for (int row = 0; row < height && top + row < total; row++)
+        for (var row = 0; row < height && top + row < total; row++)
         {
             ansiConsole.SetCursorPosition(0, row);
             ansiConsole.Write(_lines[top + row]);
@@ -117,7 +112,7 @@ public class Log : Control
     // The absolute top line to show: pinned to the last page when following, else the clamped saved position.
     private int ViewTop(int total, int height)
     {
-        int max = Math.Max(0, total - height);
+        var max = Math.Max(0, total - height);
         return _follow ? max : Math.Clamp(_viewTop, 0, max);
     }
 
@@ -126,12 +121,12 @@ public class Log : Control
     {
         if (col < 0 || total <= height) return;   // everything fits → no scrollbar
 
-        int thumbSize = Math.Clamp((int)((long)height * height / total), 1, height);
-        int maxTop = total - height;
-        int thumbStart = maxTop > 0 ? (int)((long)(height - thumbSize) * top / maxTop) : 0;
-        for (int y = 0; y < height; y++)
+        var thumbSize = Math.Clamp((int)((long)height * height / total), 1, height);
+        var maxTop = total - height;
+        var thumbStart = maxTop > 0 ? (int)((long)(height - thumbSize) * top / maxTop) : 0;
+        for (var y = 0; y < height; y++)
         {
-            bool isThumb = y >= thumbStart && y < thumbStart + thumbSize;
+            var isThumb = y >= thumbStart && y < thumbStart + thumbSize;
             consoleBuffer.Write(new Position(col, y), isThumb ? ScrollThumb : ScrollTrack);
         }
     }
@@ -142,7 +137,7 @@ public class Log : Control
     /// <inheritdoc/>
     protected override void OnInput(InputEvent inputEvent)
     {
-        int height = Math.Max(1, ActualHeight);
+        var height = Math.Max(1, ActualHeight);
         switch (inputEvent.Key.Key)
         {
             case ConsoleKey.UpArrow: ScrollByLines(-1); break;
@@ -165,11 +160,11 @@ public class Log : Control
     // Scrolls by a signed line count; reaching the bottom re-engages tailing, scrolling up pins the absolute line.
     private void ScrollByLines(int lines) => UI.Invoke(() =>
     {
-        int height = Math.Max(1, ActualHeight);
-        int total = _lines.Count;
-        int max = Math.Max(0, total - height);
-        int current = _follow ? max : Math.Clamp(_viewTop, 0, max);
-        int next = Math.Clamp(current + lines, 0, max);
+        var height = Math.Max(1, ActualHeight);
+        var total = _lines.Count;
+        var max = Math.Max(0, total - height);
+        var current = _follow ? max : Math.Clamp(_viewTop, 0, max);
+        var next = Math.Clamp(current + lines, 0, max);
         _follow = next >= max;   // back at the bottom → follow again
         _viewTop = next;
         Invalidate();
@@ -179,7 +174,7 @@ public class Log : Control
     private void AppendLines(IRenderable entry, int width)
     {
         var lines = RenderEntry(entry, width);
-        foreach (var line in lines) _lines.Add(line);
+        _lines.AddRange(lines);
         _entryLineCounts.Add(lines.Count);
     }
 
@@ -207,12 +202,12 @@ public class Log : Control
     // with the content that shifted up under it.
     private void Trim()
     {
-        while (_entries.Count > _maxEntries)
+        while (_entries.Count > MaxEntries)
         {
             _entries.RemoveAt(0);
             if (_entryLineCounts.Count > 0)
             {
-                int removed = _entryLineCounts[0];
+                var removed = _entryLineCounts[0];
                 _entryLineCounts.RemoveAt(0);
                 if (removed > 0 && _lines.Count >= removed) _lines.RemoveRange(0, removed);
                 if (!_follow) _viewTop = Math.Max(0, _viewTop - removed);
@@ -228,15 +223,14 @@ public class Log : Control
     private static readonly Character ScrollThumb = new('█', new Color(0x9e, 0x9e, 0x9e), null, ConsoleGUI.Data.Decoration.None);
     private static readonly Character ScrollTrack = new('░', new Color(0x44, 0x44, 0x44), null, ConsoleGUI.Data.Decoration.None);
 
-    private readonly List<IRenderable> _entries = new();
+    private readonly List<IRenderable> _entries = [];
 
     // Pre-rendered visual lines (flat) at _renderedWidth, and the line count each entry contributed (for trimming).
-    private readonly List<SegmentLine> _lines = new();
+    private readonly List<SegmentLine> _lines = [];
 
-    private readonly List<int> _entryLineCounts = new();
+    private readonly List<int> _entryLineCounts = [];
     private int _renderedWidth = -1;
     private bool _needsRebuild;
-    private int _maxEntries = 1000;
 
     // Scroll view state: _follow pins the view to the newest line; when false, _viewTop is the absolute top line.
     private bool _follow = true;

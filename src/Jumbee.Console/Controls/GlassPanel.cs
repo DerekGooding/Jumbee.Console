@@ -3,7 +3,6 @@ using ConsoleGUI;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console;
@@ -63,7 +62,7 @@ public class GlassPanel : Control
 
             var backdrop = Backdrop(position);
             var content = consoleBuffer[position].Character;
-            bool ink = (content.Content is char c && c != ' ') || content.Background.HasValue;
+            var ink = (content.Content is char c && c != ' ') || content.Background.HasValue;
             if (!ink) return backdrop;
 
             var fg = content.Foreground ?? _textColor;
@@ -80,8 +79,8 @@ public class GlassPanel : Control
     /// or <see langword="null"/> for a bare glass pane.</summary>
     public IRenderable? Content
     {
-        get => _content;
-        set { _content = value; Invalidate(); }
+        get;
+        set { field = value; Invalidate(); }
     }
 
     /// <summary>Colour the layer beneath is blended toward.</summary>
@@ -152,7 +151,7 @@ public class GlassPanel : Control
     protected override void Render()
     {
         ansiConsole.Clear(true);
-        if (_content is not null) ansiConsole.Write(_content);
+        if (Content is not null) ansiConsole.Write(Content);
     }
 
     /// <summary>The panel's fixed width in cells.</summary>
@@ -179,7 +178,7 @@ public class GlassPanel : Control
 
         // See-through: keep the glyph beneath, blend its colours toward the tint (like the modal scrim).
         CColor? fg = ch.Foreground is { } f ? GlassBlend.Blend(f, _tint, _factor, _gammaCorrect) : null;
-        CColor bg2 = ch.Background is { } b ? GlassBlend.Blend(b, _tint, _factor, _gammaCorrect) : _tint;
+        var bg2 = ch.Background is { } b ? GlassBlend.Blend(b, _tint, _factor, _gammaCorrect) : _tint;
         return new Cell(new Character(ch.Content, fg, bg2, ch.Decoration), below.MouseListener);
     }
 
@@ -215,7 +214,6 @@ public class GlassPanel : Control
     private readonly bool _frosted;
     private readonly bool _gammaCorrect;
     private CColor _textColor = CColor.White;
-    private IRenderable? _content;
     private IControl? _below;
     private Position _anchor;
     private Overlay? _overlay;
@@ -234,15 +232,15 @@ public static class GlassBlend
 
     static GlassBlend()
     {
-        for (int i = 0; i < 256; i++)
+        for (var i = 0; i < 256; i++)
         {
-            float s = i / 255f;
+            var s = i / 255f;
             _srgbToLinear[i] = s <= 0.04045f ? s / 12.92f : MathF.Pow((s + 0.055f) / 1.055f, 2.4f);
         }
-        for (int i = 0; i <= LinearSteps; i++)
+        for (var i = 0; i <= LinearSteps; i++)
         {
-            float l = i / (float)LinearSteps;
-            float s = l <= 0.0031308f ? l * 12.92f : 1.055f * MathF.Pow(l, 1f / 2.4f) - 0.055f;
+            var l = i / (float)LinearSteps;
+            var s = l <= 0.0031308f ? l * 12.92f : (1.055f * MathF.Pow(l, 1f / 2.4f)) - 0.055f;
             _linearToSrgb[i] = (byte)Math.Clamp((int)MathF.Round(s * 255f), 0, 255);
         }
     }
@@ -256,8 +254,9 @@ public static class GlassBlend
     public static CColor Blend(in CColor from, in CColor to, float factor, bool gammaCorrect)
     {
         if (factor <= 0f) return from;
-        if (factor >= 1f) return to;
-        return gammaCorrect
+        return factor >= 1f
+            ? to
+            : gammaCorrect
             ? new CColor(Channel(from.Red, to.Red, factor), Channel(from.Green, to.Green, factor), Channel(from.Blue, to.Blue, factor))
             : from.Mix(to, factor);
     }
@@ -265,8 +264,8 @@ public static class GlassBlend
     // Blend one channel in linear light: sRGB -> linear (fwd LUT), lerp, linear -> sRGB (rev LUT).
     private static byte Channel(byte from, byte to, float factor)
     {
-        float lin = _srgbToLinear[from] * (1f - factor) + _srgbToLinear[to] * factor;
-        int idx = (int)(lin * LinearSteps + 0.5f);
+        var lin = (_srgbToLinear[from] * (1f - factor)) + (_srgbToLinear[to] * factor);
+        var idx = (int)((lin * LinearSteps) + 0.5f);
         return _linearToSrgb[idx < 0 ? 0 : idx > LinearSteps ? LinearSteps : idx];
     }
 

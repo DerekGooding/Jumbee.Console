@@ -1,7 +1,6 @@
 ﻿
 using ConsoleGUI.Common;
 using ConsoleGUI.Space;
-using System;
 
 namespace Jumbee.Console;
 /// <summary>Fluent extension helpers for configuring controls, frames, and geometry values.</summary>
@@ -48,10 +47,10 @@ public static class ControlExtensions
     }
 
     /// <summary>Returns <paramref name="position"/> offset by <paramref name="x"/> columns and <paramref name="y"/> rows.</summary>
-    public static Position Add(this Position position, int x, int y) => new Position(position.X + x, position.Y + y);
+    public static Position Add(this Position position, int x, int y) => new(position.X + x, position.Y + y);
 
     /// <summary>Returns <paramref name="size"/> with its width reduced by <paramref name="width"/>.</summary>
-    public static CSize SubtractWidth(this CSize size, int width) => new CSize(size.Width - width, size.Height);
+    public static CSize SubtractWidth(this CSize size, int width) => new(size.Width - width, size.Height);
 
     /// <summary>Sets the control's <see cref="Control.Width"/> and returns it.</summary>
     public static T WithWidth<T>(this T control, int width) where T : Control

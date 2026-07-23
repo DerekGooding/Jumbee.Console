@@ -10,21 +10,15 @@ namespace Jumbee.Console.Documents;
 /// <see cref="SplitPanel"/> divider sits between them. See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread,
 /// coalesced) sync model.
 /// </remarks>
-public class InteractiveAsciiDocEditor : InteractiveSourceEditor
+/// <param name="asciiDoc">Initial document source (both panes start in sync).</param>
+/// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
+/// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
+/// <param name="splitPosition">The editor pane's initial extent in cells. Adjustable at runtime via the divider.</param>
+public class InteractiveAsciiDocEditor(string asciiDoc = "", SplitOrientation orientation = SplitOrientation.Horizontal,
+    int splitPosition = 48) : InteractiveSourceEditor(new CodeEditor(AsciiDocLanguage.Instance) { Text = asciiDoc ?? "" }, new AsciiDocViewer(asciiDoc ?? ""),
+        " AsciiDoc ", " Preview ", asciiDoc ?? "", orientation, splitPosition)
 {
-    #region Constructors
 
-    /// <param name="asciiDoc">Initial document source (both panes start in sync).</param>
-    /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
-    /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
-    /// <param name="splitPosition">The editor pane's initial extent in cells. Adjustable at runtime via the divider.</param>
-    public InteractiveAsciiDocEditor(string asciiDoc = "", SplitOrientation orientation = SplitOrientation.Horizontal,
-        int splitPosition = 48)
-        : base(new CodeEditor(AsciiDocLanguage.Instance) { Text = asciiDoc ?? "" }, new AsciiDocViewer(asciiDoc ?? ""),
-            " AsciiDoc ", " Preview ", asciiDoc ?? "", orientation, splitPosition)
-    { }
-
-    #endregion Constructors
 
     #region Properties
 

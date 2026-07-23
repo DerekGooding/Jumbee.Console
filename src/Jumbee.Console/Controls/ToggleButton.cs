@@ -2,8 +2,6 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -54,8 +52,8 @@ public abstract class ToggleButton : RenderableControl
     /// <summary>Whether the toggle is in its on state. Setting it raises <see cref="Changed"/> when it flips.</summary>
     public bool IsChecked
     {
-        get => _isChecked;
-        set => SetAtomicProperty(ref _isChecked, value, watch: (_, v) => Changed?.Invoke(this, v));
+        get;
+        set => SetAtomicProperty(ref field, value, watch: (_, v) => Changed?.Invoke(this, v));
     }
 
     /// <summary>The label drawn after the state indicator. Setting it re-sizes the control.</summary>
@@ -101,24 +99,24 @@ public abstract class ToggleButton : RenderableControl
     {
         _on = on;
         _off = off;
-        _indicatorWidth = IGlyphTheme.CellWidth(on, off);
+        IndicatorWidth = IGlyphTheme.CellWidth(on, off);
         RefreshWidth();
     }
 
     /// <summary>The width in cells of the state indicator glyph.</summary>
-    protected int IndicatorWidth => _indicatorWidth;
+    protected int IndicatorWidth { get; private set; }
 
     /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var indicator = _isChecked ? _accentStyle : _mutedStyle;
+        var indicator = IsChecked ? _accentStyle : _mutedStyle;
         var label = _labelStyle;
         if (IsMouseOver) { indicator |= _hoverStyle; label |= _hoverStyle; }
 
-        yield return new Segment(_isChecked ? _on : _off, indicator);
+        yield return new Segment(IsChecked ? _on : _off, indicator);
 
         var text = _text.Length > 0 ? " " + _text : string.Empty;
-        var fill = Math.Max(0, maxWidth - _indicatorWidth);
+        var fill = Math.Max(0, maxWidth - IndicatorWidth);
         text = text.Length > fill ? text[..fill] : text.PadRight(fill);
         yield return new Segment(text, label);
     }
@@ -140,17 +138,15 @@ public abstract class ToggleButton : RenderableControl
         }
     }
 
-    private void RefreshWidth() => Width = _indicatorWidth + (_text.Length > 0 ? _text.Length + 1 : 0);
+    private void RefreshWidth() => Width = IndicatorWidth + (_text.Length > 0 ? _text.Length + 1 : 0);
 
     #endregion Methods
 
     #region Fields
 
-    private bool _isChecked;
     private string _text;
     private string _on = "";
     private string _off = "";
-    private int _indicatorWidth;
     private Style _labelStyle;
     private Style _accentStyle;
     private Style _mutedStyle;

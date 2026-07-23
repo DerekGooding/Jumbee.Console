@@ -1,6 +1,3 @@
-
-using System.Collections.Generic;
-
 namespace Jumbee.Console;
 /// <summary>One keystroke (or chord) and what it does, listed in a control's <see cref="HelpInfo"/>.</summary>
 /// <param name="Keys">The key(s) as displayed, e.g. <c>"Ctrl+N"</c> or <c>"↑/↓"</c>.</param>
@@ -16,35 +13,26 @@ public sealed record KeyHelp(string Keys, string Description);
 /// <see cref="Name"/> — one tab per distinct name (e.g. all buttons share a "Button" tab), and the focused
 /// control's tab is shown first.
 /// </remarks>
-public sealed class HelpInfo
+/// <remarks>Initializes a new <see cref="HelpInfo"/> with the given <paramref name="name"/>, and optional
+/// <paramref name="title"/> (defaults to the name) and <paramref name="text"/>.</remarks>
+public sealed class HelpInfo(string name, string? title = null, string? text = null)
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="HelpInfo"/> with the given <paramref name="name"/>, and optional
-    /// <paramref name="title"/> (defaults to the name) and <paramref name="text"/>.</summary>
-    public HelpInfo(string name, string? title = null, string? text = null)
-    {
-        Name = name;
-        Title = title ?? name;
-        Text = text ?? "";
-    }
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>Identity for deduplication and for matching the focused control's tab. Required, non-empty.</summary>
-    public string Name { get; set; }
+    public string Name { get; set; } = name;
 
     /// <summary>The tab header label. Defaults to <see cref="Name"/>.</summary>
-    public string Title { get; set; }
+    public string Title { get; set; } = title ?? name;
 
     /// <summary>Spectre markup shown in the panel (e.g. <c>"[bold]Save[/] the file"</c>).</summary>
-    public string Text { get; set; }
+    public string Text { get; set; } = text ?? "";
 
     /// <summary>Key bindings shown either inline in <see cref="Text"/> or as a separate section (see
     /// <see cref="KeysInline"/>). Mutable so handlers can add entries.</summary>
-    public IList<KeyHelp> Keys { get; } = new List<KeyHelp>();
+    public IList<KeyHelp> Keys { get; } = [];
 
     /// <summary>When <see langword="true"/>, the author has already woven the keys into <see cref="Text"/>, so the
     /// dialog does not append a separate "Keys" section. Defaults to <see langword="false"/> (separate section).</summary>

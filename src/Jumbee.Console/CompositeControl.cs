@@ -2,9 +2,6 @@
 using ConsoleGUI.Common;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -41,12 +38,12 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     #region Properties
 
     /// <summary>The internal layout arranging the child controls (set via <see cref="SetContent"/>).</summary>
-    protected ILayout? Content => _content;
+    protected ILayout? Content => ContentLayout;
 
     /// <summary>The internal layout, exposed so the parent's input routing can deliver keys through it — running any
     /// nested layout tunnels (e.g. a <see cref="TabPanel"/>'s Alt+arrow tab switching) on the way to the focused
     /// child, which a direct <see cref="FocusedControl"/> dispatch would skip.</summary>
-    internal ILayout? ContentLayout => _content;
+    internal ILayout? ContentLayout { get; private set; }
 
     /// <summary>
     /// Returns the focused descendant so keyboard input routed by the parent layout reaches the right child;
@@ -56,9 +53,9 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     {
         get
         {
-            if (_content is not null)
+            if (ContentLayout is not null)
             {
-                foreach (var c in _content.Controls)
+                foreach (var c in ContentLayout.Controls)
                 {
                     if (c?.FocusedControl is { } focused) return focused;
                 }
@@ -122,7 +119,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     /// </remarks>
     protected void SetContent(ILayout content)
     {
-        _content = content;
+        ContentLayout = content;
         if (!ReferenceEquals(_contentContext, DrawingContext.Dummy)) _contentContext.Dispose();
         _contentContext = new DrawingContext(this, content.CControl);
         foreach (var f in content.Controls) SetOwnership(f);
@@ -154,12 +151,8 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     /// Return <see langword="true"/> to consume the key. The base handles Tab / Shift+Tab when
     /// <see cref="TabNavigatesChildren"/> is set.
     /// </remarks>
-    protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs)
-    {
-        if (!TabNavigatesChildren || inputEventArgs.InputEvent is not { Key: var key } || key.Key != ConsoleKey.Tab)
-            return false;
-        return MoveFocusToChild((key.Modifiers & ConsoleModifiers.Shift) != 0 ? -1 : +1);
-    }
+    protected virtual bool InterceptInput(UI.InputEventArgs inputEventArgs) => TabNavigatesChildren && inputEventArgs.InputEvent is { Key: var key } && key.Key == ConsoleKey.Tab
+            && MoveFocusToChild((key.Modifiers & ConsoleModifiers.Shift) != 0 ? -1 : +1);
 
     /// <summary>Moves focus to the next (<c>+1</c>) or previous (<c>-1</c>) focusable child, wrapping. Returns
     /// <see langword="false"/> when there are fewer than two to move between.</summary>
@@ -167,7 +160,7 @@ public abstract class CompositeControl : Control, IDrawingContextListener
     {
         if (_focusables.Count < 2) return false;
         var from = _focusables.FindIndex(c => c.IsFocused);
-        var to = ((Math.Max(from, 0) + direction) % _focusables.Count + _focusables.Count) % _focusables.Count;
+        var to = (((Math.Max(from, 0) + direction) % _focusables.Count) + _focusables.Count) % _focusables.Count;
         if (from >= 0) _focusables[from].IsFocused = false;
         _focusables[to].IsFocused = true;
         _focusChild = _focusables[to];
@@ -244,7 +237,6 @@ public abstract class CompositeControl : Control, IDrawingContextListener
 
     #region Fields
 
-    private ILayout? _content;
     private DrawingContext _contentContext = DrawingContext.Dummy;
 
     // The focusable descendants claimed in SetContent, in layout order — the focus stops. The first is the default

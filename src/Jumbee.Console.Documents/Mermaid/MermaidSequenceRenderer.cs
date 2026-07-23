@@ -9,13 +9,9 @@ namespace Jumbee.Console.Documents;
 /// messages stacked top-to-bottom as horizontal arrows, plus block frames (loop/alt/…), notes, activation bars,
 /// participant boxes (actor grouping) and create/destroy markers.
 /// </summary>
-internal sealed class MermaidSequenceRenderer
+internal sealed class MermaidSequenceRenderer(MermaidStyles styles)
 {
-    #region Constructors
 
-    public MermaidSequenceRenderer(MermaidStyles styles) => _s = styles;
-
-    #endregion Constructors
 
     #region Methods
 
@@ -47,7 +43,7 @@ internal sealed class MermaidSequenceRenderer
         for (var i = 0; i < actors.Count; i++)
         {
             left[i] = x;
-            _cx[i] = x + boxW[i] / 2;
+            _cx[i] = x + (boxW[i] / 2);
             x += boxW[i] + (i < gap.Length ? gap[i] : 0);
         }
         var width = left[^1] + boxW[^1] + RightMargin + SelfLoopWidth;   // room for a self-loop off the last actor
@@ -75,15 +71,19 @@ internal sealed class MermaidSequenceRenderer
         {
             foreach (var b in startsAt(i)) { blockTop[b] = y; y += 2; }
             foreach (var b in diagram.Blocks)
+            {
                 foreach (var d in b.Dividers)
-                    if (d.Index == i) { dividerY.Add((y, d.Label, b)); y += 1; }
+                {
+                    if (d.Index == i) { dividerY.Add((y, d.Label, b)); y++; }
+                }
+            }
 
             var self = msgs[i].From == msgs[i].To;
             msgY[i] = y + 1;                         // arrow row (label sits on the row above)
             y += self ? 4 : 2;
 
             foreach (var n in notesAt(i)) { noteY[n] = y; y += NoteHeight; }
-            foreach (var b in endsAt(i)) { blockBot[b] = y; y += 1; }
+            foreach (var b in endsAt(i)) { blockBot[b] = y; y++; }
         }
         var lifelineBottom = y;
         var height = y + 1;
@@ -191,7 +191,7 @@ internal sealed class MermaidSequenceRenderer
             canvas.Link((r, y + 1), (r, y + 2), _s.Edge, style);
             for (var xx = r; xx > x0; xx--) canvas.Link((xx, y + 2), (xx - 1, y + 2), _s.Edge, style);
             canvas.SetChar(x0, y + 2, filled ? '◀' : '◁', _s.Arrow);
-            Centered(canvas, m.Label, x0 + SelfLoopWidth / 2 + 1, y - 1, _s.EdgeLabel);
+            Centered(canvas, m.Label, x0 + (SelfLoopWidth / 2) + 1, y - 1, _s.EdgeLabel);
             return;
         }
 
@@ -216,8 +216,7 @@ internal sealed class MermaidSequenceRenderer
             lo = Math.Min(lo, x0);
             hi = Math.Max(hi, x1);
         }
-        if (lo == int.MaxValue) return _cx[actor];
-        return fromX <= _cx[actor] ? lo : hi;
+        return lo == int.MaxValue ? _cx[actor] : fromX <= _cx[actor] ? lo : hi;
     }
 
     // A bar is a 3-cell-wide box centred on the lifeline, shifted right by its nesting depth so nested bars overlap
@@ -234,9 +233,9 @@ internal sealed class MermaidSequenceRenderer
         var idx = box.ActorIds.Where(col.ContainsKey).Select(id => col[id]).ToList();
         if (idx.Count == 0) return;
         int lo = idx.Min(), hi = idx.Max();
-        int x0 = Math.Max(0, left[lo] - 1);
-        int x1 = Math.Min(width - 1, left[hi] + boxW[hi]);
-        int y1 = actorTop + ActorBoxH - 1;
+        var x0 = Math.Max(0, left[lo] - 1);
+        var x1 = Math.Min(width - 1, left[hi] + boxW[hi]);
+        var y1 = actorTop + ActorBoxH - 1;
         canvas.LinkRect(x0, 0, x1, y1, _s.GroupBorder);
         // The parser splits `box <color> <title>` greedily, so a title-only `box Frontend` lands in Color; fall back
         // to it when Title is empty.
@@ -277,12 +276,12 @@ internal sealed class MermaidSequenceRenderer
     {
         var centres = note.ActorIds.Where(col.ContainsKey).Select(id => _cx[col[id]]).DefaultIfEmpty(_cx[0]).ToList();
         int lo = centres.Min(), hi = centres.Max();
-        int w = Math.Max(note.Text.Length + 2, 6);
-        int x0 = note.Position switch
+        var w = Math.Max(note.Text.Length + 2, 6);
+        var x0 = note.Position switch
         {
             SequenceNotePosition.Left => Math.Max(0, lo - 2 - w),
             SequenceNotePosition.Right => hi + 2,
-            _ => (lo + hi) / 2 - w / 2,   // Over: centred across the actor span
+            _ => ((lo + hi) / 2) - (w / 2),   // Over: centred across the actor span
         };
         x0 = Math.Max(0, x0);
         return (x0, x0 + w);
@@ -298,15 +297,10 @@ internal sealed class MermaidSequenceRenderer
     private static void Centered(CellCanvas canvas, string text, int cx, int cy, CColor? color)
     {
         var t = text.Replace('\n', ' ');
-        canvas.Text(cx - t.Length / 2, cy, t, color);
+        canvas.Text(cx - (t.Length / 2), cy, t, color);
     }
 
-    private static string Clip(string s, int maxW)
-    {
-        if (maxW <= 0) return string.Empty;
-        if (s.Length <= maxW) return s;
-        return maxW == 1 ? "…" : string.Concat(s.AsSpan(0, maxW - 1), "…");
-    }
+    private static string Clip(string s, int maxW) => maxW <= 0 ? string.Empty : s.Length <= maxW ? s : maxW == 1 ? "…" : $"{s.AsSpan(0, maxW - 1)}…";
 
     #endregion Methods
 
@@ -320,7 +314,7 @@ internal sealed class MermaidSequenceRenderer
     private const int SelfLoopWidth = 5;
     private const int NoteHeight = 3;
 
-    private readonly MermaidStyles _s;
+    private readonly MermaidStyles _s = styles;
     private int[] _cx = null!;         // per-render actor centre X (assigned at the top of Render)
     private List<Bar> _bars = null!;   // per-render activation bars (assigned at the top of Render)
 

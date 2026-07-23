@@ -4,9 +4,6 @@ using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using CColor = ConsoleGUI.Data.Color;
 
 namespace Jumbee.Console;
@@ -20,17 +17,10 @@ namespace Jumbee.Console;
 /// click-to-select, and <see cref="SelectionChanged"/>/<see cref="RowActivated"/> events. The header stays fixed
 /// while the rows scroll. (Inline cell editing is not supported yet.)
 /// </remarks>
-public class DataTable : Control
+/// <remarks>Initializes a new <see cref="DataTable"/> with the given column headers.</remarks>
+public class DataTable(params string[] columns) : Control
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="DataTable"/> with the given column headers.</summary>
-    public DataTable(params string[] columns)
-    {
-        _columns = columns?.ToList() ?? new List<string>();
-    }
-
-    #endregion Constructors
 
     #region Events
 
@@ -185,7 +175,7 @@ public class DataTable : Control
         var thumb = Math.Clamp((int)((long)visible * visible / _rows.Count), 1, visible);
         var available = visible - thumb;
         if (available <= 0) return;
-        var desiredThumbPos = (position.Y - ChromeTop()) - _scrollGrabOffset;
+        var desiredThumbPos = position.Y - ChromeTop() - _scrollGrabOffset;
         SetScroll((int)Math.Round((double)desiredThumbPos / available * (_rows.Count - visible)));
     }
 
@@ -357,8 +347,8 @@ public class DataTable : Control
     private const int ScrollbarWidth = 1;
     private static readonly Character ScrollThumb = new('█', new CColor(0x9e, 0x9e, 0x9e), null, ConsoleGUI.Data.Decoration.None);
     private static readonly Character ScrollTrack = new('░', new CColor(0x44, 0x44, 0x44), null, ConsoleGUI.Data.Decoration.None);
-    private readonly List<string> _columns;
-    private readonly List<string[]> _rows = new();
+    private readonly List<string> _columns = columns?.ToList() ?? [];
+    private readonly List<string[]> _rows = [];
     private int _selected;
     private int _scroll;
     private bool _scrollDragging;

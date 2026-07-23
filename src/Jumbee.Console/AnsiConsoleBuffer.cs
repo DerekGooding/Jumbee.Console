@@ -4,12 +4,7 @@ using ConsoleGUI.Space;
 using Spectre.Console;
 using Spectre.Console.Interop;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -25,23 +20,23 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     {
         _console = console;
         _cursor = new AnsiConsoleBufferCursor(this);
-        _input = this;
-        _exclusivityMode = this;
-        _pipeline = new RenderPipeline();
-        _profile = new Profile(this, Encoding.UTF8);
+        Input = this;
+        ExclusivityMode = this;
+        Pipeline = new RenderPipeline();
+        Profile = new Profile(this, Encoding.UTF8);
         // This profile describes THIS BUFFER, not the process's stdout, so Ansi/Interactive are intrinsic rather
         // than detected: a buffer always accepts styled segments, and Jumbee re-composites it every frame, so live
         // widgets work regardless of what the host's stdout is. Inheriting the ambient detection meant that whenever
         // output was redirected (a pipe, CI, a debugger, any headless test) Spectre saw a non-interactive console and
         // silently swapped Progress's live renderer for FallbackProgressRenderer — which draws nothing at all.
-        _profile.Capabilities.Ansi = true;
-        _profile.Capabilities.Interactive = true;
+        Profile.Capabilities.Ansi = true;
+        Profile.Capabilities.Interactive = true;
         // Colour depth and glyph coverage DO describe the eventual output device, so those stay detected: they decide
         // how Spectre downsamples colours and picks glyphs, and that has to match the real terminal.
-        _profile.Capabilities.ColorSystem = AnsiConsole.Profile.Capabilities.ColorSystem;
-        _profile.Capabilities.Unicode = AnsiConsole.Profile.Capabilities.Unicode;
-        _cursorX = 0;
-        _cursorY = 0;
+        Profile.Capabilities.ColorSystem = AnsiConsole.Profile.Capabilities.ColorSystem;
+        Profile.Capabilities.Unicode = AnsiConsole.Profile.Capabilities.Unicode;
+        CursorX = 0;
+        CursorY = 0;
     }
 
     #endregion Constructors
@@ -49,7 +44,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     #region Properties
 
     /// <summary>The Spectre.Console profile describing this buffer's capabilities.</summary>
-    public Profile Profile => _profile;
+    public Profile Profile { get; }
 
     /// <summary>The cursor for this buffer.</summary>
     public IAnsiConsoleCursor Cursor => _cursor;
@@ -58,16 +53,16 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     internal AnsiConsoleBufferCursor BufferCursor => _cursor;
 
     /// <summary>The input source for this console (throws on read; input is handled elsewhere).</summary>
-    public IAnsiConsoleInput Input => _input;
+    public IAnsiConsoleInput Input { get; }
 
     /// <summary>The exclusivity mode guarding concurrent Spectre live/exclusive operations.</summary>
-    public IExclusivityMode ExclusivityMode => _exclusivityMode;
+    public IExclusivityMode ExclusivityMode { get; }
 
     /// <summary>The Spectre.Console render pipeline for this console.</summary>
-    public RenderPipeline Pipeline => _pipeline;
+    public RenderPipeline Pipeline { get; }
 
-    internal int CursorX => _cursorX;
-    internal int CursorY => _cursorY;
+    internal int CursorX { get; private set; }
+    internal int CursorY { get; private set; }
 
     #endregion Properties
 
@@ -88,13 +83,13 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
 
     private void _Clear(bool home)
     {
-        bool wasVisible = _cursor.IsVisible;
+        var wasVisible = _cursor.IsVisible;
         _cursor.Forget();
         _console.Initialize();
         if (home)
         {
-            _cursorX = 0;
-            _cursorY = 0;
+            CursorX = 0;
+            CursorY = 0;
         }
 
         if (wasVisible)
@@ -150,7 +145,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
         var size = _console.Size;
         if (_renderOptions is null || _renderOptionsWidth != size.Width || _renderOptionsHeight != size.Height)
         {
-            _renderOptions = RenderOptions.Create(this, _profile.Capabilities);
+            _renderOptions = RenderOptions.Create(this, Profile.Capabilities);
             _renderOptionsWidth = size.Width;
             _renderOptionsHeight = size.Height;
         }
@@ -160,7 +155,7 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
 
     private void _Write(IReadOnlyList<Segment> segments)
     {
-        bool wasVisible = _cursor.Hide();
+        var wasVisible = _cursor.Hide();
 
         foreach (var segment in segments)
         {
@@ -170,18 +165,18 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                 // (Split/Truncate, Paragraph word slices), and reading .Text would materialize a substring here.
                 foreach (var c in segment.TextSpan)
                 {
-                    var position = new Position(_cursorX, _cursorY);
+                    var position = new Position(CursorX, CursorY);
                     if (IsValidPosition(position))
                     {
                         if (c == '\r')
                         {
-                            _cursorX = 0;
+                            CursorX = 0;
                             continue;
                         }
                         else if (c == '\n')
                         {
-                            _cursorX = 0;
-                            _cursorY++;
+                            CursorX = 0;
+                            CursorY++;
                             continue;
                         }
                         else
@@ -199,18 +194,18 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                 var bg = style.Background.ToConsoleGUIColor();
                 var decoration = (ConsoleGUI.Data.Decoration)style.Decoration;
                 var text = segment.Text;
-                for (int i = 0; i < text.Length; i++)
+                for (var i = 0; i < text.Length; i++)
                 {
-                    char c = text[i];
+                    var c = text[i];
                     if (c == '\n')
                     {
-                        _cursorY++;
-                        _cursorX = 0;
+                        CursorY++;
+                        CursorX = 0;
                         continue;
                     }
                     else if (c == '\r')
                     {
-                        _cursorX = 0;
+                        CursorX = 0;
                         continue;
                     }
                     else
@@ -222,26 +217,26 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
                         // stay intact instead of splitting mid-glyph. An over-long word (wider than the row) still
                         // falls through to the character-level wrap below. Word width is measured within the current
                         // segment; a word split across styled segments degrades gracefully to the char-level wrap.
-                        if (wrapWords && c != ' ' && _cursorX > 0 && (i == 0 || text[i - 1] == ' '))
+                        if (wrapWords && c != ' ' && CursorX > 0 && (i == 0 || text[i - 1] == ' '))
                         {
                             var wordWidth = 0;
-                            for (int j = i; j < text.Length && text[j] is not (' ' or '\n' or '\r'); j++)
+                            for (var j = i; j < text.Length && text[j] is not (' ' or '\n' or '\r'); j++)
                                 wordWidth += text[j].GetCellWidth();
-                            if (_cursorX + wordWidth > _console.Size.Width) { _cursorX = 0; _cursorY++; }
+                            if (CursorX + wordWidth > _console.Size.Width) { CursorX = 0; CursorY++; }
                         }
                         // Character-level soft wrap: when the glyph won't fit on the current row, drop to the next
                         // row instead of clipping it. Opt-in (used by TextEditor, which disables Spectre's own
                         // word-wrap so this is the single, deterministic wrap the caret math can mirror exactly).
-                        if ((wrap || wrapWords) && _cursorX > 0 && _cursorX + width > _console.Size.Width)
+                        if ((wrap || wrapWords) && CursorX > 0 && CursorX + width > _console.Size.Width)
                         {
-                            _cursorX = 0;
-                            _cursorY++;
+                            CursorX = 0;
+                            CursorY++;
                         }
-                        var position = new Position(_cursorX, _cursorY);
+                        var position = new Position(CursorX, CursorY);
                         if (IsValidPosition(position))
                         {
                             _console.Write(position, new Character(c, fg, bg, decoration));
-                            _cursorX += width;
+                            CursorX += width;
                         }
                     }
                 }
@@ -262,26 +257,26 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
     /// <summary>The cursor position expressed as a linear (row-major) cell distance from the buffer origin.</summary>
     public int CursorDistance
     {
-        get => _cursorY * _console.Size.Width + _cursorX;
+        get => (CursorY * _console.Size.Width) + CursorX;
         set => SetCursorPosition(_console.GetPosition(value));
     }
 
     internal void SetCursorPosition(int x, int y)
     {
-        _cursorX = x;
-        _cursorY = y;
+        CursorX = x;
+        CursorY = y;
     }
 
     internal void SetCursorPosition(Position position)
     {
-        _cursorX = position.X;
-        _cursorY = position.Y;
+        CursorX = position.X;
+        CursorY = position.Y;
     }
 
     internal void MoveCursor(int dx, int dy)
     {
-        _cursorX += dx;
-        _cursorY += dy;
+        CursorX += dx;
+        CursorY += dy;
     }
 
     private bool IsValidPosition(Position position) =>
@@ -379,59 +374,41 @@ public class AnsiConsoleBuffer : IAnsiConsole, IAnsiConsoleInput, IAnsiConsoleOu
 
     internal readonly ConsoleBuffer _console;
     internal readonly AnsiConsoleBufferCursor _cursor;
-    private readonly IAnsiConsoleInput _input;
-    private readonly IExclusivityMode _exclusivityMode;
-    private readonly RenderPipeline _pipeline;
     private RenderOptions? _renderOptions;
     private int _renderOptionsWidth = -1;
     private int _renderOptionsHeight = -1;
-    private readonly Profile _profile;
-    private int _cursorX;
-    private int _cursorY;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     #endregion Fields
 }
 
-internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
+internal class AnsiConsoleBufferCursor(AnsiConsoleBuffer parent) : IAnsiConsoleCursor
 {
-    #region Constructors
 
-    public AnsiConsoleBufferCursor(AnsiConsoleBuffer parent) => _parent = parent;
-
-    #endregion Constructors
 
     #region Properties
 
-    internal bool IsVisible => _isVisible;
+    internal bool IsVisible { get; private set; }
 
     /// <summary>The cursor shape/blink, emitted by the renderer as DECSCUSR. Re-applies live if visible.</summary>
-    public CursorStyle Style
-    {
-        get => _style;
-        set
+    public CursorStyle Style { get; set
         {
-            if (_style != value)
+            if (field != value)
             {
-                _style = value;
-                if (_isVisible) { HideCursor(); ShowCursor(); }
+                field = value;
+                if (IsVisible) { HideCursor(); ShowCursor(); }
             }
-        }
-    }
+        } } = CursorStyle.Default;
 
     /// <summary>Cursor colour (OSC 12), or <see langword="null"/> for the terminal default. Re-applies live if visible.</summary>
-    public Color? Color
-    {
-        get => _color;
-        set
+    public Color? Color { get; set
         {
-            if (!Nullable.Equals(_color, value))
+            if (!Nullable.Equals(field, value))
             {
-                _color = value;
-                if (_isVisible) { HideCursor(); ShowCursor(); }
+                field = value;
+                if (IsVisible) { HideCursor(); ShowCursor(); }
             }
-        }
-    }
+        } }
 
     #endregion Properties
 
@@ -441,7 +418,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
     {
         if (show)
         {
-            if (_isVisible)
+            if (IsVisible)
             {
                 if (_savedPosition.HasValue && _savedPosition.Value.X == _parent.CursorX && _savedPosition.Value.Y == _parent.CursorY)
                 {
@@ -456,7 +433,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
         }
         else
         {
-            if (_isVisible)
+            if (IsVisible)
             {
                 HideCursor();
             }
@@ -465,7 +442,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
     internal bool Hide()
     {
-        if (_isVisible)
+        if (IsVisible)
         {
             HideCursor();
             return true;
@@ -475,7 +452,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
     internal void Forget()
     {
-        _isVisible = false;
+        IsVisible = false;
         _savedPosition = null;
         _savedCell = default;
     }
@@ -497,11 +474,11 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
         var c = cell.Character;
         var decoration = CursorEncoding.WithColorFlag(
-            CursorEncoding.EncodeStyle(c.Decoration ?? ConsoleGUI.Data.Decoration.None, (int)_style),
-            _color.HasValue);
-        var cursorChar = new Character(c.Content, _color ?? c.Foreground, c.Background, decoration, isCursor: true);
+            CursorEncoding.EncodeStyle(c.Decoration ?? ConsoleGUI.Data.Decoration.None, (int)Style),
+            Color.HasValue);
+        var cursorChar = new Character(c.Content, Color ?? c.Foreground, c.Background, decoration, isCursor: true);
         _parent._console.Write(x, y, new Cell(cursorChar, cell.MouseListener));
-        _isVisible = true;
+        IsVisible = true;
     }
 
     private void HideCursor()
@@ -514,7 +491,7 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
                 _parent._console.Write(pos, _savedCell);
             }
         }
-        _isVisible = false;
+        IsVisible = false;
         _savedPosition = null;
     }
 
@@ -553,12 +530,9 @@ internal class AnsiConsoleBufferCursor : IAnsiConsoleCursor
 
     #region Fields
 
-    private readonly AnsiConsoleBuffer _parent;
+    private readonly AnsiConsoleBuffer _parent = parent;
     private Position? _savedPosition;
     private Cell _savedCell;
-    private bool _isVisible;
-    private CursorStyle _style = CursorStyle.Default;
-    private Color? _color;
 
     #endregion Fields
 }

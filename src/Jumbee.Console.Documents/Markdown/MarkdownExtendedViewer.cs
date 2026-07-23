@@ -17,23 +17,19 @@ namespace Jumbee.Console.Documents;
 /// Diagrams wider than the control clip on the right (this viewer, like the base, scrolls only vertically).
 /// </para>
 /// </remarks>
-public class MarkdownExtendedViewer : MarkdownViewer
+/// <remarks>Initializes a new <see cref="MarkdownExtendedViewer"/> showing <paramref name="markdown"/>.</remarks>
+public class MarkdownExtendedViewer(string markdown = "") : MarkdownViewer(markdown)
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="MarkdownExtendedViewer"/> showing <paramref name="markdown"/>.</summary>
-    public MarkdownExtendedViewer(string markdown = "") : base(markdown) { }
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>Colours / scale for embedded mermaid diagrams. Defaults to <see cref="MermaidStyles.Default"/>.</summary>
     public MermaidStyles DiagramStyles
     {
-        get => _mermaid;
-        set => UI.Invoke(() => { _mermaid = value ?? MermaidStyles.Default; InvalidateContent(); });
-    }
+        get;
+        set => UI.Invoke(() => { field = value ?? MermaidStyles.Default; InvalidateContent(); });
+    } = MermaidStyles.Default;
 
     #endregion Properties
 
@@ -75,7 +71,7 @@ public class MarkdownExtendedViewer : MarkdownViewer
     {
         try
         {
-            var canvas = MermaidCanvas.Build(code, _mermaid);
+            var canvas = MermaidCanvas.Build(code, DiagramStyles);
             var h = Math.Clamp(canvas.Height, 1, MaxRows);
             var buffer = new ConsoleBuffer { Size = new Size(Math.Max(1, width), h) };
             buffer.Initialize();
@@ -146,9 +142,9 @@ public class MarkdownExtendedViewer : MarkdownViewer
     private static string? FenceInfo(string line)
     {
         var t = line.TrimStart();
-        if (t.StartsWith("```", StringComparison.Ordinal)) return t[3..].Trim();
-        if (t.StartsWith("~~~", StringComparison.Ordinal)) return t[3..].Trim();
-        return null;
+        return t.StartsWith("```", StringComparison.Ordinal)
+            ? t[3..].Trim()
+            : t.StartsWith("~~~", StringComparison.Ordinal) ? t[3..].Trim() : null;
     }
 
     private static bool IsFenceClose(string line)
@@ -163,9 +159,4 @@ public class MarkdownExtendedViewer : MarkdownViewer
 
     #endregion Methods
 
-    #region Fields
-
-    private MermaidStyles _mermaid = MermaidStyles.Default;
-
-    #endregion Fields
 }

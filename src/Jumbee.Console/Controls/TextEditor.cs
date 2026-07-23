@@ -5,8 +5,6 @@ using NTokenizers.Extensions.Spectre.Console;
 using RazorConsole.Core.Rendering.Syntax;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -83,10 +81,10 @@ public class TextEditor : Control
     /// <summary>Initializes a new <see cref="TextEditor"/> highlighted for the given <paramref name="language"/>, with optional caret display and blink.</summary>
     public TextEditor(Language language = Language.None, bool showCursor = true, bool blinkCursor = false) : base()
     {
-        this._language = language;
-        this._showCursor = showCursor;
-        this._blinkCursor = blinkCursor;
-        this._ccLang = ColorCodeLanguage(language);
+        _language = language;
+        _showCursor = showCursor;
+        _blinkCursor = blinkCursor;
+        _ccLang = ColorCodeLanguage(language);
         ansiConsole.wrap = true;   // character-level soft wrap at the buffer's right edge
         ApplyTheme();
     }
@@ -201,7 +199,7 @@ public class TextEditor : Control
     }
 
     /// <summary>The selected text, or empty when there is no selection.</summary>
-    public string SelectedText => HasSelection ? input.Substring(SelStart, SelEnd - SelStart) : string.Empty;
+    public string SelectedText => HasSelection ? input[SelStart..SelEnd] : string.Empty;
 
     /// <summary>Selects the whole document (the same as Ctrl+A).</summary>
     public void SelectAll()
@@ -218,8 +216,8 @@ public class TextEditor : Control
     {
         get
         {
-            int line = 0;
-            for (int i = 0; i < caretPosition && i < input.Length; i++)
+            var line = 0;
+            for (var i = 0; i < caretPosition && i < input.Length; i++)
                 if (input[i] == '\n') line++;
             return line;
         }
@@ -237,11 +235,11 @@ public class TextEditor : Control
     {
         var rows = BuildVisualRows();
         var labels = new List<int>(rows.Count);
-        int logicalLine = 1;
-        for (int r = 0; r < rows.Count; r++)
+        var logicalLine = 1;
+        for (var r = 0; r < rows.Count; r++)
         {
             var start = rows[r].start;
-            bool firstOfLine = start == 0 || input[start - 1] == '\n';
+            var firstOfLine = start == 0 || input[start - 1] == '\n';
             if (r > 0 && firstOfLine) logicalLine++;
             labels.Add(firstOfLine ? logicalLine : 0);
         }
@@ -306,19 +304,19 @@ public class TextEditor : Control
         int s = SelStart, e = SelEnd;
         var rows = BuildVisualRows();
         int h = consoleBuffer.Size.Height, w = consoleBuffer.Size.Width;
-        for (int r = 0; r < rows.Count && r < h; r++)
+        for (var r = 0; r < rows.Count && r < h; r++)
         {
             var (start, end) = rows[r];
-            int a = Math.Max(s, start);
-            int b = Math.Min(e, end);
+            var a = Math.Max(s, start);
+            var b = Math.Min(e, end);
             // A selected line break extends the highlight one cell past the row's last glyph (a visual cue that the
             // newline is included), so an empty selected line still shows a mark.
-            bool newlineSelected = end < input.Length && input[end] == '\n' && s <= end && e > end;
+            var newlineSelected = end < input.Length && input[end] == '\n' && s <= end && e > end;
             if (a >= b && !newlineSelected) continue;
-            int colStart = ColumnOf(start, a);
-            int colEnd = ColumnOf(start, Math.Max(a, b));
+            var colStart = ColumnOf(start, a);
+            var colEnd = ColumnOf(start, Math.Max(a, b));
             if (newlineSelected) colEnd = Math.Min(w, colEnd + 1);
-            for (int x = colStart; x < colEnd && x < w; x++)
+            for (var x = colStart; x < colEnd && x < w; x++)
             {
                 var ch = consoleBuffer[x, r].Character;
                 consoleBuffer.Write(new ConsoleGUI.Space.Position(x, r), ch.WithBackground(bg));
@@ -506,8 +504,8 @@ public class TextEditor : Control
     /// <summary>Positions and shows or hides the terminal caret according to the current focus and cursor settings.</summary>
     protected void RenderCursor()
     {
-        var pos = GetCursorPositionFromCaret(caretPosition);
-        ansiConsole.SetCursorPosition(pos.x, pos.y);
+        var (x, y) = GetCursorPositionFromCaret(caretPosition);
+        ansiConsole.SetCursorPosition(x, y);
         if (IsFocused && _showCursor)
         {
             ansiConsole.BufferCursor.Style = _blinkCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock;
@@ -545,7 +543,7 @@ public class TextEditor : Control
     // width defaults to the current buffer width, but can be supplied (e.g. while measuring at a new layout width).
     private List<(int start, int end)> BuildVisualRows(int? wrapWidth = null)
     {
-        int width = Math.Max(1, wrapWidth ?? WrapWidth);
+        var width = Math.Max(1, wrapWidth ?? WrapWidth);
         // Memoize on (text, width): the wrap is a pure function of those. A framed control's content height depends on
         // its width, which drives the surrounding layout to converge — re-measuring the whole document many times for
         // one layout pass. Caching collapses those repeats to O(1). All callers read the returned list, never mutate
@@ -556,11 +554,11 @@ public class TextEditor : Control
 
         visualRowsBuilt++;   // instrumentation: counts actual (uncached) wrap computations
         var rows = new List<(int, int)>();
-        int n = input.Length;
+        var n = input.Length;
         int rowStart = 0, col = 0, i = 0;
         while (i < n)
         {
-            char c = input[i];
+            var c = input[i];
             if (c == '\n')
             {
                 rows.Add((rowStart, i));
@@ -570,7 +568,7 @@ public class TextEditor : Control
             }
             else
             {
-                int w = c.GetCellWidth();
+                var w = c.GetCellWidth();
                 if (w <= 0) { i++; continue; }                 // zero-width: renderer skips it too
                 if (col > 0 && col + w > width)                // glyph won't fit -> wrap before it
                 {
@@ -593,12 +591,12 @@ public class TextEditor : Control
     // Visual column of an index within its row (sum of cell widths from the row start).
     private int ColumnOf(int start, int caret)
     {
-        int col = 0;
-        for (int i = start; i < caret && i < input.Length; i++)
+        var col = 0;
+        for (var i = start; i < caret && i < input.Length; i++)
         {
-            char c = input[i];
-            if (c == '\n' || c == '\r') continue;
-            int w = c.GetCellWidth();
+            var c = input[i];
+            if (c is '\n' or '\r') continue;
+            var w = c.GetCellWidth();
             if (w > 0) col += w;
         }
         return col;
@@ -608,16 +606,16 @@ public class TextEditor : Control
     {
         caret = Math.Clamp(caret, 0, input.Length);
         var rows = BuildVisualRows();
-        for (int r = 0; r < rows.Count; r++)
+        for (var r = 0; r < rows.Count; r++)
         {
             var (start, end) = rows[r];
             // The caret is on row r when strictly inside it, or at its end only if that end is a hard break (a
             // newline or the document end). At a wrap point the caret belongs to the next row's start, so we fall
             // through to the next iteration (whose start == caret).
-            bool atHardEnd = caret == end && (r == rows.Count - 1 || input[end] == '\n');
+            var atHardEnd = caret == end && (r == rows.Count - 1 || input[end] == '\n');
             if (caret < end || atHardEnd)
             {
-                int x = ColumnOf(start, caret);
+                var x = ColumnOf(start, caret);
                 // A caret past the last cell of a completely full row shows at the start of the next visual row.
                 if (x >= WrapWidth) return (x - WrapWidth, r + 1);
                 return (x, r);
@@ -636,7 +634,7 @@ public class TextEditor : Control
         int i = start, col = 0;
         while (i < end && col < targetColumn)
         {
-            int w = input[i].GetCellWidth();
+            var w = input[i].GetCellWidth();
             if (w <= 0) { i++; continue; }
             if (col + w > targetColumn) break;
             col += w;
@@ -655,7 +653,7 @@ public class TextEditor : Control
 
     private void MoveCaretHome()
     {
-        int i = caretPosition;
+        var i = caretPosition;
         while (i > 0 && input[i - 1] != '\n')
         {
             i--;
@@ -677,8 +675,8 @@ public class TextEditor : Control
         {
             var (x, y) = GetCursorPositionFromCaret(caretPosition);
 
-            int top = Frame.Top;
-            int viewportHeight = Frame.ViewportSize.Height;
+            var top = Frame.Top;
+            var viewportHeight = Frame.ViewportSize.Height;
 
             if (y < top)
             {
@@ -707,7 +705,10 @@ public class TextEditor : Control
         foreach (var c in text)
         {
             if (c == '\n') { if (col > max) max = col; col = 0; }
-            else if (c != '\r') col += c.GetCellWidth();
+            else if (c != '\r')
+            {
+                col += c.GetCellWidth();
+            }
         }
         return Math.Max(max, col);
     }
@@ -766,7 +767,7 @@ public class TextEditor : Control
         if (_cachedSegments is not null && ReferenceEquals(text, _cachedText))
             return _cachedSegments;
 
-        _cachedSegments = new List<Segment>(ccFormatter.Format(text, ccLang, ccSyntaxTheme, ccSyntaxOptions));
+        _cachedSegments = [with(ccFormatter.Format(text, ccLang, ccSyntaxTheme, ccSyntaxOptions))];
         _cachedText = text;
         return _cachedSegments;
     }
@@ -806,9 +807,9 @@ public class TextEditor : Control
     private string? _cachedRowsText;
     private int _cachedRowsWidth = -1;
 
-    private SpectreSegmentFormatter ccFormatter = new SpectreSegmentFormatter();
+    private SpectreSegmentFormatter ccFormatter = new();
     private SyntaxTheme ccSyntaxTheme = SyntaxTheme.CreateDefault();
-    private SyntaxOptions ccSyntaxOptions = new SyntaxOptions() { TabWidth = 0, };
+    private SyntaxOptions ccSyntaxOptions = new() { TabWidth = 0, };
 
     // The resolved ColorCode grammar for this editor (a built-in mapped from _language, or a custom ILanguage passed
     // to the constructor), or null for languages that use a non-ColorCode writer or render plain. Fixed at construction.

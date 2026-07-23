@@ -1,6 +1,3 @@
-
-using System.Collections.Generic;
-
 namespace Jumbee.Console;
 /// <summary>
 /// Tracks which theme-derived properties a caller has explicitly overridden, keyed by property name, so a
@@ -10,7 +7,7 @@ namespace Jumbee.Console;
 /// </summary>
 internal sealed class ThemeOverrides
 {
-    private readonly Dictionary<string, bool> _overridden = new();
+    private readonly Dictionary<string, bool> _overridden = [];
 
     /// <summary>Records that <paramref name="property"/> was explicitly set by the caller.</summary>
     public void Mark(string property) => _overridden[property] = true;

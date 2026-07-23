@@ -1,7 +1,3 @@
-
-using System;
-using System.Collections.Generic;
-
 using CPlot = ConsolePlot.Plot;
 
 namespace Jumbee.Console;
@@ -41,35 +37,29 @@ public sealed class PlotSeries
         {
             _xs.Clear();
             _ys.Clear();
-            for (int i = 0; i < xs.Count; i++) { _xs.Add(xs[i]); _ys.Add(ys[i]); }
+            for (var i = 0; i < xs.Count; i++) { _xs.Add(xs[i]); _ys.Add(ys[i]); }
         });
     }
 
     /// <summary>Replaces the series with <paramref name="values"/> at implicit x positions 1, 2, 3, … — for bars.</summary>
-    public void SetValues(IReadOnlyList<double> values)
-    {
-        _plot.UpdateSeries(() =>
-        {
-            _xs.Clear();
-            _ys.Clear();
-            for (int i = 0; i < values.Count; i++) { _xs.Add(i + 1); _ys.Add(values[i]); }
-        });
-    }
+    public void SetValues(IReadOnlyList<double> values) => _plot.UpdateSeries(() =>
+                                                                {
+                                                                    _xs.Clear();
+                                                                    _ys.Clear();
+                                                                    for (var i = 0; i < values.Count; i++) { _xs.Add(i + 1); _ys.Add(values[i]); }
+                                                                });
 
     /// <summary>
     /// Appends a point, keeping at most <paramref name="maxPoints"/> (0 = unbounded) by dropping the oldest — a
     /// rolling window for streaming time-series.
     /// </summary>
-    public void Push(double x, double y, int maxPoints = 0)
-    {
-        _plot.UpdateSeries(() =>
-        {
-            _xs.Add(x);
-            _ys.Add(y);
-            if (maxPoints > 0)
-                while (_xs.Count > maxPoints) { _xs.RemoveAt(0); _ys.RemoveAt(0); }
-        });
-    }
+    public void Push(double x, double y, int maxPoints = 0) => _plot.UpdateSeries(() =>
+                                                                    {
+                                                                        _xs.Add(x);
+                                                                        _ys.Add(y);
+                                                                        if (maxPoints > 0)
+                                                                            while (_xs.Count > maxPoints) { _xs.RemoveAt(0); _ys.RemoveAt(0); }
+                                                                    });
 
     /// <summary>
     /// Scrolls a new value into a fixed-width strip chart: the series keeps the last <paramref name="window"/> values
@@ -78,17 +68,14 @@ public sealed class PlotSeries
     /// <remarks>
     /// Unlike <see cref="Push"/> there is no ever-growing x — pair with <c>SetXRange(0, window − 1)</c> to pin the axis.
     /// </remarks>
-    public void Scroll(double value, int window)
-    {
-        _plot.UpdateSeries(() =>
-        {
-            _ys.Add(value);
-            while (_ys.Count > window) _ys.RemoveAt(0);
-            // Keep x = 0, 1, …, count−1 (fixed positions; once the window is full this never changes).
-            while (_xs.Count < _ys.Count) _xs.Add(_xs.Count);
-            while (_xs.Count > _ys.Count) _xs.RemoveAt(_xs.Count - 1);
-        });
-    }
+    public void Scroll(double value, int window) => _plot.UpdateSeries(() =>
+                                                         {
+                                                             _ys.Add(value);
+                                                             while (_ys.Count > window) _ys.RemoveAt(0);
+                                                             // Keep x = 0, 1, …, count−1 (fixed positions; once the window is full this never changes).
+                                                             while (_xs.Count < _ys.Count) _xs.Add(_xs.Count);
+                                                             while (_xs.Count > _ys.Count) _xs.RemoveAt(_xs.Count - 1);
+                                                         });
 
     /// <summary>Removes all points from the series.</summary>
     public void Clear() => _plot.UpdateSeries(() => { _xs.Clear(); _ys.Clear(); });

@@ -1,7 +1,3 @@
-
-using System;
-using System.Collections.Generic;
-
 namespace Jumbee.Console;
 /// <summary>Which edge a <see cref="TabPanel"/> docks its tab bar on.</summary>
 public enum TabBarDock
@@ -85,7 +81,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
     public IReadOnlyList<TabHeader> Headers => _tabs.ConvertAll(t => t.Header);
 
     /// <summary>The selected tab handle, or <see langword="null"/> when no tab is selectable.</summary>
-    public TabItem? ActiveTab => _selected;
+    public TabItem? ActiveTab { get; private set; }
 
     /// <summary>How the active tab is indicated — highlight / underline / caret.</summary>
     /// <remarks>Defaults to the theme's <see cref="IStyleTheme.SelectionStyle"/>; setting it applies to every tab
@@ -99,31 +95,23 @@ public class TabPanel : Layout<TabPanelDockPanel>
     /// <summary>When <see langword="true"/>, every tab shows a clickable close (✕) glyph (on the active/hovered
     /// tab) and clicking it raises the cancelable <see cref="TabCloseRequested"/>. Default <see langword="false"/>.</summary>
     /// <remarks>Applies to existing and future tabs.</remarks>
-    public bool ClosableTabs
-    {
-        get => _closableTabs;
-        set { _closableTabs = value; foreach (var t in _tabs) t.Header.Closable = value; }
-    }
+    public bool ClosableTabs { get; set { field = value; foreach (var t in _tabs) t.Header.Closable = value; } }
 
     /// <summary>When <see langword="true"/>, a "+" button is shown at the end of the bar; clicking it raises
     /// <see cref="NewTabRequested"/>. Default <see langword="false"/>.</summary>
     /// <remarks>The button is mouse-only (not part of keyboard tab traversal).</remarks>
-    public bool ShowAddButton
-    {
-        get => _showAddButton;
-        set { if (_showAddButton == value) return; _showAddButton = value; UI.Invoke(RebuildBar); }
-    }
+    public bool ShowAddButton { get; set { if (field == value) return; field = value; UI.Invoke(RebuildBar); } }
 
     /// <summary>The "+" button instance once <see cref="ShowAddButton"/> has built it, else <see langword="null"/>.
     /// Exposed for testing (click it to exercise <see cref="NewTabRequested"/>).</summary>
-    internal TabAddButton? AddButton => _addButton;
+    internal TabAddButton? AddButton { get; private set; }
 
     /// <summary>The zero-based selected tab, or -1 when no tab is selected.</summary>
     /// <remarks>Setting it activates that tab (clamped to range) if it is selectable (not hidden or disabled); raises
     /// <see cref="SelectionChanged"/> when it actually changes.</remarks>
     public int SelectedIndex
     {
-        get => _selected is null ? -1 : _tabs.IndexOf(_selected);
+        get => ActiveTab is null ? -1 : _tabs.IndexOf(ActiveTab);
         set
         {
             if (_tabs.Count == 0) return;
@@ -137,10 +125,10 @@ public class TabPanel : Layout<TabPanelDockPanel>
     }
 
     /// <summary>The selected tab's content, or <see langword="null"/> when no tab is selected.</summary>
-    public IFocusable? ActiveContent => _selected?.Content;
+    public IFocusable? ActiveContent => ActiveTab?.Content;
 
     /// <summary>The selected tab's name, or <see langword="null"/> when no tab is selected.</summary>
-    public string? ActiveTabName => _selected?.Name;
+    public string? ActiveTabName => ActiveTab?.Name;
 
     // Logical children, flattened so input routing reaches them whether this panel is the root layout (its own
     // OnInput walks Controls) or nested in another layout (the parent routes through FocusedControl below): the
@@ -153,7 +141,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
         {
             var n = 0;
             foreach (var t in _tabs) if (IsSelectable(t)) n++;
-            return n + (_selected is not null ? 1 : 0);
+            return n + (ActiveTab is not null ? 1 : 0);
         }
     }
 
@@ -165,7 +153,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
     {
         get
         {
-            if (column != 0) throw new ArgumentOutOfRangeException(nameof(column));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(column, 0);
             if (row < 0 || row >= Rows) throw new ArgumentOutOfRangeException(nameof(row));
             var i = 0;
             foreach (var t in _tabs)
@@ -175,7 +163,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
                 i++;
             }
 
-            return _selected!.Content;   // row == number of headers -> the active content
+            return ActiveTab!.Content;   // row == number of headers -> the active content
         }
     }
 
@@ -188,8 +176,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
         {
             foreach (var t in _tabs)
                 if (t.Header.FocusedControl is { } focusedHeader) return focusedHeader;
-            if (_addButton?.FocusedControl is { } addBtn) return addBtn;
-            return _selected?.Content.FocusedControl;
+            return AddButton?.FocusedControl is { } addBtn ? addBtn : (ActiveTab?.Content.FocusedControl);
         }
     }
 
@@ -241,7 +228,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
 
         // The "+" button isn't in the panel's logical rows, so Layout routing never dispatches keys to it — the
         // tunnel drives it while it's focused: Enter/Space activates, and the "back" arrow returns to the last tab.
-        if (_showAddButton && _addButton is { IsFocused: true } add)
+        if (ShowAddButton && AddButton is { IsFocused: true } add)
         {
             if (e.Key.Key is ConsoleKey.Enter or ConsoleKey.Spacebar) { add.Activate(); return true; }
             var back = _horizontal ? ConsoleKey.LeftArrow : ConsoleKey.UpArrow;
@@ -264,10 +251,10 @@ public class TabPanel : Layout<TabPanelDockPanel>
                 : (e.Key.Key == ConsoleKey.UpArrow ? -1 : e.Key.Key == ConsoleKey.DownArrow ? +1 : 0);
             if (delta != 0)
             {
-                var from = _selected is null ? -1 : _tabs.IndexOf(_selected);
+                var from = ActiveTab is null ? -1 : _tabs.IndexOf(ActiveTab);
                 var target = NextSelectableIndex(from, delta);
                 if (target >= 0) { SelectItemCore(_tabs[target], followFocus: false); UI.SetFocus(_tabs[target].Header); }
-                else if (delta > 0 && _showAddButton && _addButton is not null) UI.SetFocus(_addButton);
+                else if (delta > 0 && ShowAddButton && AddButton is not null) UI.SetFocus(AddButton);
                 return true;
             }
         }
@@ -315,7 +302,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
 
     private TabItem AddTabCore(string name, IFocusable content, int index)
     {
-        var header = new TabHeader(_tabs.Count, name) { SelectionStyle = _selectionStyle, Closable = _closableTabs };
+        var header = new TabHeader(_tabs.Count, name) { SelectionStyle = _selectionStyle, Closable = ClosableTabs };
         var item = new TabItem(this, name, content, header);
         header.Activated += (_, _) => { if (IsSelectable(item)) SelectItemCore(item, followFocus: FocusedControl is not null); };
         header.CloseRequested += (_, _) => RequestClose(item);
@@ -323,7 +310,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
         var at = index < 0 || index > _tabs.Count ? _tabs.Count : index;
         _tabs.Insert(at, item);
         RebuildBar();
-        if (_selected is null && IsSelectable(item)) SelectItemCore(item, followFocus: false);
+        if (ActiveTab is null && IsSelectable(item)) SelectItemCore(item, followFocus: false);
         return item;
     }
 
@@ -341,7 +328,7 @@ public class TabPanel : Layout<TabPanelDockPanel>
     {
         var idx = _tabs.IndexOf(item);
         if (idx < 0) return;
-        var wasSelected = ReferenceEquals(item, _selected);
+        var wasSelected = ReferenceEquals(item, ActiveTab);
         _tabs.RemoveAt(idx);
         RebuildBar();
         if (wasSelected)
@@ -361,49 +348,40 @@ public class TabPanel : Layout<TabPanelDockPanel>
         RebuildBar();
     });
 
-    internal void RelabelTab(TabItem item)
-    {
-        UI.Invoke(() =>
-        {
-            item.Header.Text = item.Name;
-            RebuildBar();   // reflow the bar (and a vertical bar's width) for the new label length
-        });
-    }
+    internal void RelabelTab(TabItem item) => UI.Invoke(() =>
+                                                   {
+                                                       item.Header.Text = item.Name;
+                                                       RebuildBar();   // reflow the bar (and a vertical bar's width) for the new label length
+                                                   });
 
-    internal void OnTabVisibilityChanged(TabItem item)
-    {
-        UI.Invoke(() =>
-        {
-            RebuildBar();   // the bar shows only non-hidden headers
-            if (item.IsHidden)
-            {
-                if (ReferenceEquals(item, _selected))
-                    SelectItemCore(NearestSelectable(_tabs.IndexOf(item)), followFocus: false);
-            }
-            else if (_selected is null && IsSelectable(item))
-            {
-                SelectItemCore(item, followFocus: false);   // un-hiding into an empty panel selects it
-            }
-        });
-    }
+    internal void OnTabVisibilityChanged(TabItem item) => UI.Invoke(() =>
+                                                               {
+                                                                   RebuildBar();   // the bar shows only non-hidden headers
+                                                                   if (item.IsHidden)
+                                                                   {
+                                                                       if (ReferenceEquals(item, ActiveTab))
+                                                                           SelectItemCore(NearestSelectable(_tabs.IndexOf(item)), followFocus: false);
+                                                                   }
+                                                                   else if (ActiveTab is null && IsSelectable(item))
+                                                                   {
+                                                                       SelectItemCore(item, followFocus: false);   // un-hiding into an empty panel selects it
+                                                                   }
+                                                               });
 
-    internal void OnTabEnabledChanged(TabItem item)
-    {
-        UI.Invoke(() =>
-        {
-            item.Header.IsEnabled = !item.IsDisabled;   // dims the header and drops it from focus traversal
-            if (item.IsDisabled && ReferenceEquals(item, _selected))
-                SelectItemCore(NearestSelectable(_tabs.IndexOf(item)), followFocus: false);
-        });
-    }
+    internal void OnTabEnabledChanged(TabItem item) => UI.Invoke(() =>
+                                                            {
+                                                                item.Header.IsEnabled = !item.IsDisabled;   // dims the header and drops it from focus traversal
+                                                                if (item.IsDisabled && ReferenceEquals(item, ActiveTab))
+                                                                    SelectItemCore(NearestSelectable(_tabs.IndexOf(item)), followFocus: false);
+                                                            });
 
     // Move the selection by one selectable step; the setter follows focus into the new tab. Reached from the
     // Alt-arrow tunnel, so the panel always has focus here.
     private void MoveSelection(int delta, bool followFocus)
     {
         if (_tabs.Count == 0) return;
-        if (_selected is null) { var first = _tabs.Find(IsSelectable); if (first is not null) SelectItemCore(first, followFocus); return; }
-        var target = NextSelectableIndex(_tabs.IndexOf(_selected), delta);
+        if (ActiveTab is null) { var first = _tabs.Find(IsSelectable); if (first is not null) SelectItemCore(first, followFocus); return; }
+        var target = NextSelectableIndex(_tabs.IndexOf(ActiveTab), delta);
         if (target >= 0) SelectItemCore(_tabs[target], followFocus);
     }
 
@@ -412,10 +390,10 @@ public class TabPanel : Layout<TabPanelDockPanel>
     // and raises SelectionChanged with the new index.
     private void SelectItemCore(TabItem? item, bool followFocus)
     {
-        if (ReferenceEquals(item, _selected)) return;
+        if (ReferenceEquals(item, ActiveTab)) return;
 
-        if (_selected is not null) _selected.Header.IsActive = false;
-        _selected = item;
+        ActiveTab?.Header.IsActive = false;
+        ActiveTab = item;
 
         if (item is not null)
         {
@@ -445,11 +423,11 @@ public class TabPanel : Layout<TabPanelDockPanel>
             thickness = Math.Max(thickness, _tabs[i].Header.Width);
         }
 
-        if (_showAddButton)
+        if (ShowAddButton)
         {
-            _addButton ??= CreateAddButton();
-            visible.Add(_addButton);
-            thickness = Math.Max(thickness, _addButton.Width);
+            AddButton ??= CreateAddButton();
+            visible.Add(AddButton);
+            thickness = Math.Max(thickness, AddButton.Width);
         }
 
         control.SetHeaders(visible);
@@ -468,10 +446,10 @@ public class TabPanel : Layout<TabPanelDockPanel>
     // Ctrl+N — since "first interactive descendant" isn't resolved here.
     private void FocusActiveTab()
     {
-        if (_selected is null) return;
-        var content = _selected.Content;
+        if (ActiveTab is null) return;
+        var content = ActiveTab.Content;
         if (content is Control { Focusable: true, HandlesInput: true } interactive) UI.SetFocus(interactive);
-        else UI.SetFocus(_selected.Header);
+        else UI.SetFocus(ActiveTab.Header);
     }
 
     #endregion Methods
@@ -479,12 +457,8 @@ public class TabPanel : Layout<TabPanelDockPanel>
     #region Fields
 
     private readonly bool _horizontal;
-    private readonly List<TabItem> _tabs = new();
-    private TabItem? _selected;
+    private readonly List<TabItem> _tabs = [];
     private SelectionStyle _selectionStyle;
-    private bool _closableTabs;
-    private bool _showAddButton;
-    private TabAddButton? _addButton;
 
     #endregion Fields
 }

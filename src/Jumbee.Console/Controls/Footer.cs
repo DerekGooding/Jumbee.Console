@@ -1,7 +1,5 @@
 
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>A single key-binding hint shown in a <see cref="Footer"/>: the key chord and what it does.</summary>
@@ -33,9 +31,9 @@ public class Footer : RenderableControl
     /// <summary>Spaces between adjacent hints. Defaults to 2.</summary>
     public int Gap
     {
-        get => _gap;
-        set => SetAtomicProperty(ref _gap, Math.Max(1, value));
-    }
+        get;
+        set => SetAtomicProperty(ref field, Math.Max(1, value));
+    } = 2;
 
     /// <summary>Style of the key chord (e.g. <c>^j</c>). Defaults to <see cref="IStyleTheme.TextAccent"/>.</summary>
     public Style KeyStyle { get => _keyStyle; set => SetAtomicProperty(ref _keyStyle, value, themeOverride: true); }
@@ -84,14 +82,14 @@ public class Footer : RenderableControl
         if (maxWidth <= 0) yield break;
         var key = _keyStyle.SpectreConsoleStyle;
         var label = _labelStyle.SpectreConsoleStyle;
-        var gap = new string(' ', _gap);
+        var gap = new string(' ', Gap);
 
         var used = 0;
         for (var i = 0; i < _hints.Count; i++)
         {
             var h = _hints[i];
             // width this hint contributes: leading gap (except first) + key + space + label
-            var sep = i == 0 ? 0 : _gap;
+            var sep = i == 0 ? 0 : Gap;
             var cost = sep + h.Key.Length + 1 + h.Label.Length;
             if (used + cost > maxWidth) break;   // stop cleanly rather than clip mid-hint
 
@@ -107,8 +105,7 @@ public class Footer : RenderableControl
 
     #region Fields
 
-    private readonly List<FooterHint> _hints = new();
-    private int _gap = 2;
+    private readonly List<FooterHint> _hints = [];
     private Style _keyStyle;
     private Style _labelStyle;
 

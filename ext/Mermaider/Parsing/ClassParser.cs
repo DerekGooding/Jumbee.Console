@@ -311,10 +311,7 @@ internal static class ClassParser
         var label = match.Groups[6].Success ? MultilineUtils.NormalizeBrTags(match.Groups[6].Value.Trim()) : null;
 
         var parsed = ParseArrow(arrow);
-        if (parsed == null)
-            return null;
-
-        return new ClassRelationship(from, to, parsed.Value.Type, parsed.Value.MarkerAt, label, fromCard, toCard);
+        return parsed == null ? null : new ClassRelationship(from, to, parsed.Value.Type, parsed.Value.MarkerAt, label, fromCard, toCard);
     }
 
     private static (ClassRelationType Type, ClassMarkerAt MarkerAt)? ParseArrow(string arrow) =>

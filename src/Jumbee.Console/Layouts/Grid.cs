@@ -1,8 +1,4 @@
-﻿
-using System;
-using System.Linq;
-
-namespace Jumbee.Console;
+﻿namespace Jumbee.Console;
 /// <summary>
 ///  A grid layout with controls arranged in rows and columns.
 /// </summary>
@@ -28,8 +24,8 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
     /// <paramref name="rowHeights"/>/<paramref name="columnWidths"/>.</exception>
     public Grid(int[] rowHeights, int[] columnWidths, params IFocusable[][] controls) : base(new ConsoleGUI.Controls.Grid())
     {
-        control.Rows = rowHeights.Select(h => new ConsoleGUI.Controls.Grid.RowDefinition(h)).ToArray();
-        control.Columns = columnWidths.Select(w => new ConsoleGUI.Controls.Grid.ColumnDefinition(w)).ToArray();
+        control.Rows = [.. rowHeights.Select(h => new ConsoleGUI.Controls.Grid.RowDefinition(h))];
+        control.Columns = [.. columnWidths.Select(w => new ConsoleGUI.Controls.Grid.ColumnDefinition(w))];
 
         if (controls.Length != rowHeights.Length)
         {
@@ -41,9 +37,9 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
             var index = Array.IndexOf(controls, c);
             throw new ArgumentException($"The number of control columns in row {index}: {c.Length} must match the number of column widths: {columnWidths.Length}.");
         }
-        for (int r = 0; r < controls.Length; r++)
+        for (var r = 0; r < controls.Length; r++)
         {
-            for (int c = 0; c < controls[r].Length; c++)
+            for (var c = 0; c < controls[r].Length; c++)
             {
                 control.AddChild(c, r, controls[r][c].FocusableControl);
             }
@@ -55,10 +51,7 @@ public class Grid : Layout<ConsoleGUI.Controls.Grid>
     #region Methods
 
     /// <summary>Places <paramref name="child"/> in the cell at the given <paramref name="row"/> and <paramref name="column"/>.</summary>
-    public void SetChild(int row, int column, IFocusable child)
-    {
-        control.AddChild(column, row, child.FocusableControl);
-    }
+    public void SetChild(int row, int column, IFocusable child) => control.AddChild(column, row, child.FocusableControl);
 
     /// <summary>Number of rows in the grid.</summary>
     public override int Rows => control.Rows.Length;

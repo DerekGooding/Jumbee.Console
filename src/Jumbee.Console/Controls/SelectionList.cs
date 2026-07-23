@@ -1,8 +1,3 @@
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Jumbee.Console;
 /// <summary>
 /// A vertical list of independently-checkable options (multi-select).
@@ -30,7 +25,7 @@ public class SelectionList : ToggleList
     #region Properties
 
     /// <summary>The indices of the checked options, in ascending order.</summary>
-    public IReadOnlyList<int> SelectedIndices => _checked.OrderBy(i => i).ToList();
+    public IReadOnlyList<int> SelectedIndices => _checked.Order().ToList();
 
     /// <summary>The text of the checked options, in option order.</summary>
     public IReadOnlyList<string> SelectedValues =>
@@ -70,7 +65,7 @@ public class SelectionList : ToggleList
 
     #region Fields
 
-    private readonly HashSet<int> _checked = new();
+    private readonly HashSet<int> _checked = [];
 
     #endregion Fields
 }

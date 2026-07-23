@@ -2,7 +2,6 @@
 using ConsoleGUI.Api;
 using ConsoleGUI.Data;
 using ConsoleGUI.Space;
-using System;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -15,7 +14,7 @@ public class ConsoleBuffer : IConsole
     /// <summary>The logical size of the buffer; setting it resizes the backing cell arrays.</summary>
     public Size Size
     {
-        get => field;
+        get;
         set
         {
             if (field == value) return;   // no size change -> the backing arrays already fit; skip the row scan/realloc
@@ -46,7 +45,7 @@ public class ConsoleBuffer : IConsole
     /// </summary>
     public void Initialize()
     {
-        for (int y = 0; y < Size.Height; y++)
+        for (var y = 0; y < Size.Height; y++)
         {
             // Rows may be wider than the logical width (capacity is retained across shrinks — see Resize), so blank
             // only the live columns; the rest are never read.
@@ -88,8 +87,8 @@ public class ConsoleBuffer : IConsole
         {
             return new Position(0, 0);
         }
-        int x = distance % Size.Width;
-        int y = distance / Size.Width;
+        var x = distance % Size.Width;
+        var y = distance / Size.Width;
         return new Position(x, y);
     }
 
@@ -101,8 +100,8 @@ public class ConsoleBuffer : IConsole
             return new Position(0, 0);
         }
 
-        int linear_pos1 = pos1.Y * Size.Width + pos1.X;
-        int total_linear_distance = linear_pos1 + x;
+        var linear_pos1 = (pos1.Y * Size.Width) + pos1.X;
+        var total_linear_distance = linear_pos1 + x;
 
         return GetPosition(total_linear_distance);
     }
@@ -130,10 +129,10 @@ public class ConsoleBuffer : IConsole
         // overshoot in memory. Height is content-driven (a divider drag changes it only slightly), so the 2x slack
         // never churns during normal resizing. Row WIDTH keeps pure retention below — a divider drag sweeps the width
         // across a wide range, and each row is cheap to hold.
-        int capHeight = RoundUpCapacity(size.Height);
+        var capHeight = RoundUpCapacity(size.Height);
         if (buffer.Length < size.Height || buffer.Length > capHeight * 2)
             Array.Resize(ref buffer, capHeight);
-        for (int i = 0; i < size.Height; i++)
+        for (var i = 0; i < size.Height; i++)
         {
             if (buffer[i] is null || buffer[i].Length < size.Width)
                 Array.Resize(ref buffer[i], RoundUpCapacity(size.Width));
@@ -143,9 +142,9 @@ public class ConsoleBuffer : IConsole
         // existing rows, and every column of newly live rows. Without this, a grow-back into retained capacity would
         // expose stale glyphs from when the buffer was last that large (a fresh Array.Resize used to zero them). The
         // overlap with the old bounds is left intact, matching the previous copy-on-resize behaviour.
-        for (int y = 0; y < size.Height; y++)
+        for (var y = 0; y < size.Height; y++)
         {
-            int clearFrom = y < oldH ? oldW : 0;
+            var clearFrom = y < oldH ? oldW : 0;
             if (clearFrom < size.Width)
                 Array.Fill(buffer[y], emptyCell, clearFrom, size.Width - clearFrom);
         }
@@ -162,7 +161,7 @@ public class ConsoleBuffer : IConsole
 
     #region Fields
 
-    private static readonly Cell emptyCell = new Cell(' ');
+    private static readonly Cell emptyCell = new(' ');
     private Cell[][] buffer = [];
 
     #endregion Fields

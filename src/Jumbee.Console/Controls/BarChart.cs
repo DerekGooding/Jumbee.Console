@@ -1,11 +1,7 @@
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Threading;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -21,10 +17,10 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     {
         Focusable = false;   // a passive display control: never a focus/tab target
         Orientation = orientation;
-        foreach (var item in items)
+        foreach (var (label, value, color) in items)
         {
             var index = Interlocked.Increment(ref itemIndex);
-            data[index] = new BarChartItem(this, index, item.label, item.value, item.color);
+            data[index] = new BarChartItem(this, index, label, value, color);
         }
         // Defer the first build to the next render on the UI thread.
         _structureDirty = true;
@@ -45,7 +41,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     /// </summary>
     public ChartOrientation Orientation
     {
-        get => field;
+        get;
         set
         {
             if (field != value)
@@ -61,7 +57,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     /// </summary>
     public string? Label
     {
-        get => field;
+        get;
         set
         {
             if (field != value)
@@ -77,7 +73,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     /// </summary>
     public Justify? LabelAlignment
     {
-        get => field;
+        get;
         set
         {
             if (field != value)
@@ -88,32 +84,28 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
         }
     }
 
-    private bool _showValues = true;
-
     /// <summary>Whether each bar's value is shown alongside it. Defaults to <see langword="true"/>.</summary>
     public bool ShowValues
     {
-        get => _showValues;
+        get;
         set
         {
-            if (_showValues != value)
+            if (field != value)
             {
-                _showValues = value;
+                field = value;
                 MarkStructureDirty();
             }
         }
-    }
+    } = true;
 
     /// <summary>The culture used to format values, or <see langword="null"/> for the invariant culture.</summary>
     public CultureInfo? Culture { get; set; }
 
-    private double? _maxValue;
-
     /// <summary>The axis maximum, or <see langword="null"/> to derive it from the largest item value. Never negative.</summary>
     public double? MaxValue
     {
-        get => _maxValue;
-        set => SetAtomicProperty(ref _maxValue, value,
+        get;
+        set => SetAtomicProperty(ref field, value,
             validate: v => v < 0d ? 0d : v,                // a chart axis max can't be negative
             watch: (_, _) => UI.Invoke(UpdateAllBars));
     }
@@ -249,51 +241,45 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     private int GetListIndex(int id)
     {
         // Data keys are sorted in CreateChartElements to populate the lists; match that order.
-        var sortedKeys = data.Keys.OrderBy(k => k).ToList();
+        var sortedKeys = data.Keys.Order().ToList();
         return sortedKeys.IndexOf(id);
     }
 
-    internal void UpdateItemValue(int id, double value)
-    {
-        UI.Invoke(() =>
-        {
-            int i = GetListIndex(id);
-            if (i >= 0 && i < _bars.Count)
-            {
-                var bar = _bars[i];
-                if (bar is VerticalBar vb)
-                {
-                    vb.Value = value;
-                    int itemLabelHeight = 1;
-                    int itemValueHeight = ShowValues ? 1 : 0;
-                    int effectiveHeight = Height > 0 ? Height : (10 + itemLabelHeight + itemValueHeight + (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
-                    vb.Height = Math.Max(1, effectiveHeight - itemLabelHeight - itemValueHeight - (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
-                }
-                else if (bar is HorizontalBar pb)
-                {
-                    pb.Value = value;
-                    int itemLabelWidth = 1;
-                    int itemValueWidth = ShowValues ? 1 : 0;
-                    int effectiveWidth = Width > 0 ? Width : (10 + itemLabelWidth + itemValueWidth);
-                    pb.Width = Math.Max(1, effectiveWidth - itemLabelWidth - itemValueWidth);
-                }
-                Invalidate();
-            }
-        });
-    }
+    internal void UpdateItemValue(int id, double value) => UI.Invoke(() =>
+                                                                {
+                                                                    var i = GetListIndex(id);
+                                                                    if (i >= 0 && i < _bars.Count)
+                                                                    {
+                                                                        var bar = _bars[i];
+                                                                        if (bar is VerticalBar vb)
+                                                                        {
+                                                                            vb.Value = value;
+                                                                            var itemLabelHeight = 1;
+                                                                            var itemValueHeight = ShowValues ? 1 : 0;
+                                                                            var effectiveHeight = Height > 0 ? Height : (10 + itemLabelHeight + itemValueHeight + (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
+                                                                            vb.Height = Math.Max(1, effectiveHeight - itemLabelHeight - itemValueHeight - (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
+                                                                        }
+                                                                        else if (bar is HorizontalBar pb)
+                                                                        {
+                                                                            pb.Value = value;
+                                                                            var itemLabelWidth = 1;
+                                                                            var itemValueWidth = ShowValues ? 1 : 0;
+                                                                            var effectiveWidth = Width > 0 ? Width : (10 + itemLabelWidth + itemValueWidth);
+                                                                            pb.Width = Math.Max(1, effectiveWidth - itemLabelWidth - itemValueWidth);
+                                                                        }
+                                                                        Invalidate();
+                                                                    }
+                                                                });
 
-    internal void UpdateItemColor(int id, Color color)
-    {
-        UI.Invoke(() =>
-        {
-            int i = GetListIndex(id);
-            if (i >= 0)
-            {
-                if (i < _bars.Count) _bars[i].Color = color;
-                Invalidate();
-            }
-        });
-    }
+    internal void UpdateItemColor(int id, Color color) => UI.Invoke(() =>
+                                                               {
+                                                                   var i = GetListIndex(id);
+                                                                   if (i >= 0)
+                                                                   {
+                                                                       if (i < _bars.Count) _bars[i].Color = color;
+                                                                       Invalidate();
+                                                                   }
+                                                               });
 
     /// <summary>Recomputes every bar's max value and size to match the current data and control dimensions.</summary>
     protected void UpdateAllBars()
@@ -308,9 +294,9 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
             }
             else if (bar is VerticalBar vb)
             {
-                int itemLabelHeight = 1;
-                int itemValueHeight = ShowValues ? 1 : 0;
-                int effectiveHeight = Height > 0 ? Height : (10 + itemLabelHeight + itemValueHeight + (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
+                var itemLabelHeight = 1;
+                var itemValueHeight = ShowValues ? 1 : 0;
+                var effectiveHeight = Height > 0 ? Height : (10 + itemLabelHeight + itemValueHeight + (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
                 vb.Height = Math.Max(1, effectiveHeight - itemLabelHeight - itemValueHeight - (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
             }
         }
@@ -350,10 +336,10 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
                 _grid.AddColumn(new GridColumn().Centered());
             }
 
-            int itemLabelHeight = 1;
-            int itemValueHeight = ShowValues ? 1 : 0;
-            int effectiveHeight = Height > 0 ? Height : (10 + itemLabelHeight + itemValueHeight + (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
-            int barHeight = Math.Max(1, effectiveHeight - itemLabelHeight - itemValueHeight - (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
+            var itemLabelHeight = 1;
+            var itemValueHeight = ShowValues ? 1 : 0;
+            var effectiveHeight = Height > 0 ? Height : (10 + itemLabelHeight + itemValueHeight + (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
+            var barHeight = Math.Max(1, effectiveHeight - itemLabelHeight - itemValueHeight - (string.IsNullOrWhiteSpace(Label) ? 0 : 1));
 
             var barRenderables = new List<IRenderable>();
             foreach (var item in sortedData)
@@ -370,7 +356,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
                 _bars.Add(bar);
                 barRenderables.Add(bar);
             }
-            _grid.AddRow(barRenderables.ToArray());
+            _grid.AddRow([.. barRenderables]);
 
             if (ShowValues)
             {
@@ -383,7 +369,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
                     var mk = new Markup(valStr, new Spectre.Console.Style(foreground: item.Color));
                     valueRenderables.Add(mk);
                 }
-                _grid.AddRow(valueRenderables.ToArray());
+                _grid.AddRow([.. valueRenderables]);
             }
 
             var labelRenderables = new List<IRenderable>();
@@ -392,7 +378,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
                 var mk = new Markup(item.Label, new Spectre.Console.Style(foreground: item.Color));
                 labelRenderables.Add(mk);
             }
-            _grid.AddRow(labelRenderables.ToArray());
+            _grid.AddRow([.. labelRenderables]);
         }
         else // Horizontal
         {
@@ -471,7 +457,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     protected static char HorizontalUnicodeBar { get; set; } = '█';
 
     /// <summary>The chart items keyed by their index.</summary>
-    protected readonly Dictionary<int, BarChartItem> data = new();
+    protected readonly Dictionary<int, BarChartItem> data = [];
 
     /// <summary>The grid holding the bar renderables.</summary>
     protected Spectre.Console.Grid _grid = new();
@@ -480,7 +466,7 @@ public partial class BarChart : RenderableControl, Spectre.Console.IHasCulture
     protected Spectre.Console.Grid? _containerGrid = new();
 
     /// <summary>The bar renderables in render order.</summary>
-    protected List<IBarControl> _bars = new();
+    protected List<IBarControl> _bars = [];
 
     // Set when a structural change (items, orientation, value display, label) needs the grid rebuilt; consumed
     // on the UI thread in Render. Volatile so a write from a background-thread setter is seen by the UI thread.

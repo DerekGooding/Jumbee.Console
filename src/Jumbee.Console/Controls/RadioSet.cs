@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console;
 /// <summary>
 /// A vertical group of mutually-exclusive radio options, exactly one selected at a time.
@@ -30,28 +27,28 @@ public class RadioSet : ToggleList
     /// <summary>The index of the selected option, or -1 when nothing is selected. Setting it raises <see cref="SelectionChanged"/>.</summary>
     public int SelectedIndex
     {
-        get => _selectedIndex;
+        get;
         set
         {
             var clamped = value < 0 || _options.Count == 0 ? -1 : Math.Clamp(value, 0, _options.Count - 1);
-            if (clamped == _selectedIndex) return;
-            _selectedIndex = clamped;
+            if (clamped == field) return;
+            field = clamped;
             if (clamped >= 0) CursorIndex = clamped;
             Invalidate();
-            SelectionChanged?.Invoke(this, _selectedIndex);
+            SelectionChanged?.Invoke(this, field);
         }
-    }
+    } = -1;
 
     /// <summary>The selected option text, or <see langword="null"/> when nothing is selected.</summary>
     public string? SelectedValue =>
-        _selectedIndex >= 0 && _selectedIndex < _options.Count ? _options[_selectedIndex] : null;
+        SelectedIndex >= 0 && SelectedIndex < _options.Count ? _options[SelectedIndex] : null;
 
     #endregion Properties
 
     #region Methods
 
     /// <inheritdoc/>
-    protected override bool IsChecked(int index) => index == _selectedIndex;
+    protected override bool IsChecked(int index) => index == SelectedIndex;
 
     /// <inheritdoc/>
     protected override void Activate(int index) => SelectedIndex = index;
@@ -65,9 +62,4 @@ public class RadioSet : ToggleList
 
     #endregion Methods
 
-    #region Fields
-
-    private int _selectedIndex = -1;
-
-    #endregion Fields
 }

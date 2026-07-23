@@ -30,39 +30,28 @@ public enum ScrollBarMode
 /// <para><see cref="Mode"/> selects the rendering: <see cref="ScrollBarMode.Smooth"/> (the default) ignores the
 /// glyph strings and draws a sub-cell block bar; <see cref="ScrollBarMode.Classic"/> uses the four glyphs below.</para>
 /// </remarks>
-public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
+/// <remarks>Builds a <see cref="ScrollBarMode.Classic"/> glyph set (explicit glyphs imply the classic bar).</remarks>
+public readonly struct ScrollBarGlyphs(string thumb, string track, string upArrow, string downArrow) : IEquatable<ScrollBarGlyphs>
 {
-    #region Constructors
 
-    /// <summary>Builds a <see cref="ScrollBarMode.Classic"/> glyph set (explicit glyphs imply the classic bar).</summary>
-    public ScrollBarGlyphs(string thumb, string track, string upArrow, string downArrow)
-    {
-        Thumb = thumb;
-        Track = track;
-        UpArrow = upArrow;
-        DownArrow = downArrow;
-        Mode = ScrollBarMode.Classic;
-    }
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>Which bar to render (smooth sub-cell block bar, or the classic three-part bar). Defaults to
     /// <see cref="ScrollBarMode.Smooth"/> for a default-constructed value and for the <see cref="Smooth"/> preset.</summary>
-    public ScrollBarMode Mode { get; init; }
+    public ScrollBarMode Mode { get; init; } = ScrollBarMode.Classic;
 
     /// <summary>The glyph for the part of the track currently in view (the draggable handle). Classic mode only.</summary>
-    public string Thumb { get; init; }
+    public string Thumb { get; init; } = thumb;
 
     /// <summary>The glyph for the track behind the thumb. Classic mode only.</summary>
-    public string Track { get; init; }
+    public string Track { get; init; } = track;
 
     /// <summary>The glyph at the top end of the scrollbar. Classic mode only.</summary>
-    public string UpArrow { get; init; }
+    public string UpArrow { get; init; } = upArrow;
 
     /// <summary>The glyph at the bottom end of the scrollbar. Classic mode only.</summary>
-    public string DownArrow { get; init; }
+    public string DownArrow { get; init; } = downArrow;
 
     #endregion Properties
 
@@ -110,7 +99,7 @@ public readonly struct ScrollBarGlyphs : System.IEquatable<ScrollBarGlyphs>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        var hash = new System.HashCode();
+        var hash = new HashCode();
         hash.Add(Mode);
         hash.Add(Thumb, System.StringComparer.Ordinal);
         hash.Add(Track, System.StringComparer.Ordinal);

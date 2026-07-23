@@ -1,7 +1,5 @@
 
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using SColor = Spectre.Console.Color;
 using SStyle = Spectre.Console.Style;
 
@@ -40,13 +38,13 @@ public class Gauge : RenderableControl
     public double Max { get => _max; set => SetAtomicProperty(ref _max, value, validate: v => v <= 0 ? 1 : v); }
 
     /// <summary>An optional label drawn before the bar (e.g. a metric name). Null/empty draws none.</summary>
-    public string? Label { get => _label; set => SetAtomicProperty(ref _label, value); }
+    public string? Label { get; set => SetAtomicProperty(ref field, value); }
 
     /// <summary>Whether to draw the percentage (<c>34.5%</c>) after the bar. Default <see langword="true"/>.</summary>
-    public bool ShowPercent { get => _showPercent; set => SetAtomicProperty(ref _showPercent, value); }
+    public bool ShowPercent { get; set => SetAtomicProperty(ref field, value); } = true;
 
     /// <summary>Whether to draw the raw value in parentheses (<c>(126)</c>) after the bar. Default <see langword="false"/>.</summary>
-    public bool ShowValue { get => _showValue; set => SetAtomicProperty(ref _showValue, value); }
+    public bool ShowValue { get; set => SetAtomicProperty(ref field, value); }
 
     /// <summary>The fill/track/text colours. Defaults to <see cref="IStyleTheme.Gauge"/>.</summary>
     public GaugeStyle Style { get => _style; set => SetAtomicProperty(ref _style, value, themeOverride: true); }
@@ -76,15 +74,15 @@ public class Gauge : RenderableControl
     /// <inheritdoc/>
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        int width = Math.Max(1, maxWidth);
-        double fraction = Math.Clamp(_max <= 0 ? 0 : _value / _max, 0, 1);
+        var width = Math.Max(1, maxWidth);
+        var fraction = Math.Clamp(_max <= 0 ? 0 : _value / _max, 0, 1);
 
-        var left = string.IsNullOrEmpty(_label) ? "" : _label + " ";
+        var left = string.IsNullOrEmpty(Label) ? "" : Label + " ";
         var right = "";
-        if (_showPercent) right += $" {fraction * 100:0.0}%";
-        if (_showValue) right += $" ({FormatValue(_value)})";
+        if (ShowPercent) right += $" {fraction * 100:0.0}%";
+        if (ShowValue) right += $" ({FormatValue(_value)})";
 
-        int barWidth = Math.Max(1, width - left.Length - right.Length);
+        var barWidth = Math.Max(1, width - left.Length - right.Length);
 
         var textStyle = _style.Text.SpectreConsoleStyle;
         var fillColor = _style.Fill.SpectreConsoleStyle?.Foreground ?? SColor.Blue;
@@ -94,13 +92,13 @@ public class Gauge : RenderableControl
 
         // Split the bar into full fill cells, a fractional edge cell (an eighth-block: fill on the left, track on the
         // right), and the remaining track cells.
-        double exact = fraction * barWidth;
-        int full = (int)Math.Floor(exact);
-        int eighths = (int)Math.Round((exact - full) * 8);
+        var exact = fraction * barWidth;
+        var full = (int)Math.Floor(exact);
+        var eighths = (int)Math.Round((exact - full) * 8);
         if (eighths >= 8) { full++; eighths = 0; }
         full = Math.Min(full, barWidth);
-        bool hasEdge = eighths > 0 && full < barWidth;
-        int trackCells = barWidth - full - (hasEdge ? 1 : 0);
+        var hasEdge = eighths > 0 && full < barWidth;
+        var trackCells = barWidth - full - (hasEdge ? 1 : 0);
 
         if (left.Length > 0) yield return new Segment(left, textStyle);
         if (full > 0) yield return new Segment(new string(' ', full), fillBand);
@@ -118,9 +116,6 @@ public class Gauge : RenderableControl
 
     private double _value;
     private double _max;
-    private string? _label;
-    private bool _showPercent = true;
-    private bool _showValue;
     private GaugeStyle _style;
 
     // Left-anchored eighth blocks for the fractional fill edge (index = eighths filled, 0 = empty .. 8 = full).

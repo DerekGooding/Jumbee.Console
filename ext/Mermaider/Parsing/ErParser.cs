@@ -170,16 +170,15 @@ internal static class ErParser
 
         var cardinality1 = ParseCardinality(leftStr);
         var cardinality2 = ParseCardinality(rightStr);
-        if (cardinality1 == null || cardinality2 == null)
-            return null;
-
-        return new ErRelationship(entity1, entity2, cardinality1.Value, cardinality2.Value, label, lineStyle == "--");
+        return cardinality1 == null || cardinality2 == null
+            ? null
+            : new ErRelationship(entity1, entity2, cardinality1.Value, cardinality2.Value, label, lineStyle == "--");
     }
 
     private static ErCardinality? ParseCardinality(string str)
     {
         var normalized = str.Replace('}', '{');
-        var sorted = new string(normalized.OrderBy(c => c).ToArray());
+        var sorted = new string([.. normalized.Order()]);
 
         return sorted switch
         {

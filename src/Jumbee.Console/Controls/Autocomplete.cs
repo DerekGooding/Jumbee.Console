@@ -2,9 +2,6 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -42,7 +39,7 @@ public sealed class Autocomplete
     #region Properties
 
     /// <summary>Maximum suggestions shown at once. Defaults to 8.</summary>
-    public int MaxRows { get => _maxRows; set => _maxRows = Math.Max(1, value); }
+    public int MaxRows { get; set => field = Math.Max(1, value); } = 8;
 
     #endregion Properties
 
@@ -68,7 +65,7 @@ public sealed class Autocomplete
         if (_accepting) return;   // re-entrancy from setting Text during Accept
 
         var text = _input.Text;
-        var matches = string.IsNullOrEmpty(text) ? [] : _suggest(text).Take(_maxRows).ToList();
+        var matches = string.IsNullOrEmpty(text) ? [] : _suggest(text).Take(MaxRows).ToList();
 
         // Nothing useful to offer (or the only match is exactly what's typed) -> hide.
         if (matches.Count == 0 || (matches.Count == 1 && string.Equals(matches[0], text, StringComparison.Ordinal)))
@@ -126,7 +123,6 @@ public sealed class Autocomplete
     private readonly SuggestionList _list = new();
     private bool _open;
     private bool _accepting;
-    private int _maxRows = 8;
 
     #endregion Fields
 }
@@ -196,6 +192,6 @@ internal sealed class SuggestionList : RenderableControl
         return w + 2;
     }
 
-    private readonly List<string> _items = new();
+    private readonly List<string> _items = [];
     private int _highlighted;
 }

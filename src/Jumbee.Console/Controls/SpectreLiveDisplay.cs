@@ -1,8 +1,6 @@
 ﻿
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>

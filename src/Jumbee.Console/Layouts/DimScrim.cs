@@ -74,7 +74,7 @@ internal sealed class DimScrim : ConsoleGUI.Common.Control, IDrawingContextListe
         // A cell with no background becomes solid tint (empty areas stay fully obscured, as the old scrim did); a
         // real cell's background blends toward the tint so the content shows through, dimmed. The cursor is dropped
         // (the focused popup owns it now), and no listener is attached.
-        Color bg = _tint;
+        var bg = _tint;
         if (ch.Background.HasValue) bg = ch.Background.Value.Mix(_tint, _factor);
         return new Cell(new Character(ch.Content, fg, bg, ch.Decoration));
     }

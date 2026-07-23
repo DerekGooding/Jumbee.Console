@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console;
 /// <summary>
 /// A single-child layout that pins its child's size.
@@ -20,7 +17,7 @@ public class Boundary : Layout<ConsoleGUI.Controls.Boundary>
     /// <param name="height">Fixed height in cells, or <see langword="null"/> to size freely.</param>
     public Boundary(IFocusable content, int? width = null, int? height = null) : base(new ConsoleGUI.Controls.Boundary())
     {
-        _content = content;
+        Content = content;
         control.Content = content.RenderNode();
         if (width is not null) control.Width = width;
         if (height is not null) control.Height = height;
@@ -31,7 +28,7 @@ public class Boundary : Layout<ConsoleGUI.Controls.Boundary>
     #region Properties
 
     /// <summary>The bounded child.</summary>
-    public IFocusable Content => _content;
+    public IFocusable Content { get; }
 
     /// <summary>Fixed width in cells (sets min = max = value), or <see langword="null"/> to size freely.</summary>
     public int? Width { set => control.Width = value; }
@@ -63,14 +60,8 @@ public class Boundary : Layout<ConsoleGUI.Controls.Boundary>
 
     /// <summary>Gets the bounded child at cell (0, 0).</summary>
     public override IFocusable this[int row, int column] => row == 0 && column == 0
-        ? _content
+        ? Content
         : throw new ArgumentOutOfRangeException(row != 0 ? nameof(row) : nameof(column));
 
     #endregion Indexers
-
-    #region Fields
-
-    private readonly IFocusable _content;
-
-    #endregion Fields
 }

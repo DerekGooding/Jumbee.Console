@@ -20,63 +20,48 @@ public enum ButtonShape
 /// <see cref="IStyleTheme.SecondaryButton"/>; <see cref="Primary"/>/<see cref="Secondary"/> here are the
 /// theme-independent fallbacks those tokens default to.
 /// </remarks>
-public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
+/// <remarks>Initializes a new <see cref="ButtonStyle"/> from the per-state fills, shape, bevel colours, bold flag, and width constraints.</remarks>
+public readonly struct ButtonStyle(Style normal, Style hover, Style press,
+    ButtonShape shape = ButtonShape.Flat,
+    Color? bevelLight = null,
+    Color? bevelDark = null,
+    bool bold = true,
+    int width = 0,
+    int minWidth = 0) : IEquatable<ButtonStyle>
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="ButtonStyle"/> from the per-state fills, shape, bevel colours, bold flag, and width constraints.</summary>
-    public ButtonStyle(Style normal, Style hover, Style press,
-        ButtonShape shape = ButtonShape.Flat,
-        Color? bevelLight = null,
-        Color? bevelDark = null,
-        bool bold = true,
-        int width = 0,
-        int minWidth = 0)
-    {
-        Normal = normal;
-        Hover = hover;
-        Press = press;
-        Shape = shape;
-        BevelLight = bevelLight;
-        BevelDark = bevelDark;
-        Bold = bold;
-        Width = width;
-        MinWidth = minWidth;
-    }
-
-    #endregion Constructors
 
     #region Properties
 
     /// <summary>Fill (foreground text colour + background) at rest.</summary>
-    public Style Normal { get; init; }
+    public Style Normal { get; init; } = normal;
 
     /// <summary>Fill while the pointer is over the button.</summary>
-    public Style Hover { get; init; }
+    public Style Hover { get; init; } = hover;
 
     /// <summary>Fill while the button is pressed/activated.</summary>
-    public Style Press { get; init; }
+    public Style Press { get; init; } = press;
 
     /// <summary>The button's shape. Defaults to <see cref="ButtonShape.Flat"/> (a simple single-row button);
     /// use <see cref="ButtonShape.Modern"/> for the raised 3-row look. Changing it re-lays the button out.</summary>
-    public ButtonShape Shape { get; init; }
+    public ButtonShape Shape { get; init; } = shape;
 
     /// <summary>The bevel's top-edge highlight (<see cref="ButtonShape.Modern"/>), or <see langword="null"/> to
     /// derive it by lightening the fill background.</summary>
-    public Color? BevelLight { get; init; }
+    public Color? BevelLight { get; init; } = bevelLight;
 
     /// <summary>The bevel's bottom-edge shadow (<see cref="ButtonShape.Modern"/>), or <see langword="null"/> to
     /// derive it by darkening the fill background.</summary>
-    public Color? BevelDark { get; init; }
+    public Color? BevelDark { get; init; } = bevelDark;
 
     /// <summary>Whether the label is drawn bold. Defaults to <see langword="true"/>.</summary>
-    public bool Bold { get; init; }
+    public bool Bold { get; init; } = bold;
 
     /// <summary>A fixed outer width in cells, or 0 to size to the label (subject to <see cref="MinWidth"/>).</summary>
-    public int Width { get; init; }
+    public int Width { get; init; } = width;
 
     /// <summary>A minimum outer width in cells (so short labels still read as buttons), or 0 for none.</summary>
-    public int MinWidth { get; init; }
+    public int MinWidth { get; init; } = minWidth;
 
     /// <summary><see langword="true"/> for the 3-row raised <see cref="ButtonShape.Modern"/> shape.</summary>
     public bool IsModern => Shape == ButtonShape.Modern;
@@ -114,7 +99,7 @@ public readonly struct ButtonStyle : System.IEquatable<ButtonStyle>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        var hash = new System.HashCode();
+        var hash = new HashCode();
         hash.Add(Normal);
         hash.Add(Hover);
         hash.Add(Press);

@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console;
 /// <summary>
 /// Base for live, split-pane source editors: a <see cref="CodeEditor"/> in one pane and a read-only preview control in
@@ -30,32 +27,32 @@ public abstract class InteractiveSourceEditor : CompositeControl
     {
         _lastSynced = initialText ?? "";
 
-        _editor = editor;
+        Editor = editor;
         // A title bar with no box: BorderStyle.None draws no border glyphs, but the title only renders when its edge
         // is a placed border — so keep BorderPlacement.Top (BorderPlacement.None would drop the title entirely).
         // focusedBorderStyle: None suppresses the theme's focus border too — each pane already shows focus its own way
         // (the editor's text cursor), so a focus box would just be redundant chrome.
-        _editor.WithFrame(title: editorTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.Top,
+        Editor.WithFrame(borderStyle: BorderStyle.None, title: editorTitle, borderPlacement: BorderPlacement.Top,
             focusedBorderStyle: BorderStyle.None);
 
-        _previewControl = preview;
-        preview.WithFrame(title: previewTitle, borderStyle: BorderStyle.None, borderPlacement: BorderPlacement.Top,
+        PreviewControl = preview;
+        preview.WithFrame(borderStyle: BorderStyle.None, title: previewTitle, borderPlacement: BorderPlacement.Top,
             focusedBorderStyle: BorderStyle.None);
 
-        _split = new SplitPanel(orientation, _editor, preview, splitPosition);
+        Split = new SplitPanel(orientation, Editor, preview, splitPosition);
 
         // Live preview: an edit schedules a single coalesced sync (see ScheduleSync). The editor raises Changed on
         // caret moves too, so Sync compares against the last-synced text and skips navigation-only events.
-        _editor.Editor.Changed += (_, _) => ScheduleSync();
+        Editor.Editor.Changed += (_, _) => ScheduleSync();
 
         // Dragging the divider resizes the framed panes but leaves this composite's own size unchanged, so the layout
         // only ever reports a partial OnUpdate rect — and that rect starts at the divider's *new* position, missing the
         // growing pane's old border cell just behind it. The result is a smear of stale border glyphs trailing the
         // divider until the drag ends. Force a full recomposite on each split change so the whole pane area repaints
         // from the panes' live buffers. SplitChanged fires only on a drag/nudge, so typing keeps the fast partial path.
-        _split.SplitChanged += _ => Invalidate();
+        Split.SplitChanged += _ => Invalidate();
 
-        SetContent(_split);
+        SetContent(Split);
     }
 
     #endregion Constructors
@@ -71,19 +68,19 @@ public abstract class InteractiveSourceEditor : CompositeControl
     #region Properties
 
     /// <summary>The editor pane (focus <c>Editor.Editor</c> to type; wrapped in its own titled frame).</summary>
-    public CodeEditor Editor => _editor;
+    public CodeEditor Editor { get; }
 
     /// <summary>The split container hosting the two panes (for resizing, theming the divider, or changing minimums).</summary>
-    public SplitPanel Split => _split;
+    public SplitPanel Split { get; }
 
     /// <summary>The preview control, for a subclass to expose as its concrete type.</summary>
-    protected Control PreviewControl => _previewControl;
+    protected Control PreviewControl { get; }
 
     /// <summary>The document text. Setting it loads the editor (caret at the top) and refreshes the preview.</summary>
     public string Text
     {
-        get => _editor.Text;
-        set => UI.Invoke(() => { _editor.Text = value; });   // raises Changed -> ScheduleSync -> preview
+        get => Editor.Text;
+        set => UI.Invoke(() => Editor.Text = value);   // raises Changed -> ScheduleSync -> preview
     }
 
     #endregion Properties
@@ -107,7 +104,7 @@ public abstract class InteractiveSourceEditor : CompositeControl
 
     private void Sync()
     {
-        var text = _editor.Text;
+        var text = Editor.Text;
         if (text == _lastSynced) return;   // caret-only Changed (navigation) — no text change, no re-render
         _lastSynced = text;
         ApplyPreviewText(text);            // subclass pushes text to the preview (de-dupes / renders off-thread)
@@ -117,7 +114,7 @@ public abstract class InteractiveSourceEditor : CompositeControl
     // Keyboard focus lands in the editor pane by default (SetContent skips nested composites, so it can't be picked
     // up as the automatic first-focusable).
     /// <inheritdoc/>
-    protected override Control? FocusChild => _editor;
+    protected override Control? FocusChild => Editor;
 
     // Both panes scroll inside their own frames, so this editor fills a surrounding frame's viewport rather than
     // ballooning to content height (which would make that outer frame a second, conflicting scroller).
@@ -133,12 +130,7 @@ public abstract class InteractiveSourceEditor : CompositeControl
         .WithKey("↑ / ↓, PgUp / PgDn", "Scroll the focused pane");
 
     #endregion Methods
-
     #region Fields
-
-    private readonly CodeEditor _editor;
-    private readonly Control _previewControl;
-    private readonly SplitPanel _split;
     private string _lastSynced;
     private bool _syncQueued;   // a coalesced preview sync is posted for the next frame (see ScheduleSync)
 

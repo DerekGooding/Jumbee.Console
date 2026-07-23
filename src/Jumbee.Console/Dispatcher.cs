@@ -1,9 +1,5 @@
-
-using System;
 using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -189,14 +185,20 @@ public sealed class Dispatcher
     /// Runs an async delegate on the UI thread and returns a task that completes when the delegate's task
     /// completes (unwrapped), so awaiting it waits for the whole operation and propagates its exceptions.
     /// </summary>
-    public Task InvokeAsync(Func<Task> func)
+    public async Task InvokeAsync(Func<Task> func)
     {
         ArgumentNullException.ThrowIfNull(func);
 
         if (CheckAccess())
         {
-            try { return func(); }
-            catch (Exception ex) { return Task.FromException(ex); }
+            try {
+                await func();
+                return;
+            }
+            catch (Exception ex) {
+                await Task.FromException(ex);
+                return;
+            }
         }
 
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -207,20 +209,20 @@ public sealed class Dispatcher
             catch (Exception ex) { tcs.TrySetException(ex); }
             finally { reg.Dispose(); }
         });
-        return tcs.Task;
+        await tcs.Task;
     }
 
     /// <summary>
     /// Runs an async function on the UI thread and returns a task with its (unwrapped) result.
     /// </summary>
-    public Task<T> InvokeAsync<T>(Func<Task<T>> func)
+    public async Task<T> InvokeAsync<T>(Func<Task<T>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
 
         if (CheckAccess())
         {
-            try { return func(); }
-            catch (Exception ex) { return Task.FromException<T>(ex); }
+            try { return await func(); }
+            catch (Exception ex) { return await Task.FromException<T>(ex); }
         }
 
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -231,7 +233,7 @@ public sealed class Dispatcher
             catch (Exception ex) { tcs.TrySetException(ex); }
             finally { reg.Dispose(); }
         });
-        return tcs.Task;
+        return await tcs.Task;
     }
 
     private void UIFrameLoop()
@@ -297,11 +299,9 @@ public sealed class Dispatcher
 /// A <see cref="SynchronizationContext"/> that marshals continuations onto a <see cref="Dispatcher"/>'s UI
 /// thread, so <c>await</c> in code running on the UI thread resumes on the UI thread (the WPF/Avalonia model).
 /// </summary>
-internal sealed class DispatcherSynchronizationContext : SynchronizationContext
+internal sealed class DispatcherSynchronizationContext(Dispatcher dispatcher) : SynchronizationContext
 {
-    private readonly Dispatcher _dispatcher;
-
-    public DispatcherSynchronizationContext(Dispatcher dispatcher) => _dispatcher = dispatcher;
+    private readonly Dispatcher _dispatcher = dispatcher;
 
     public override void Post(SendOrPostCallback d, object? state) => _dispatcher.Post(() => d(state));
 

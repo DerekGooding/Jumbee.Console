@@ -8,13 +8,9 @@ namespace Jumbee.Console.Documents;
 /// dashed when non-identifying, with cardinality labels at each end) first, then entity tables (name header + typed
 /// attribute rows with PK/FK/UK keys) on top. Coordinates are SVG pixels scaled to cells like the other renderers.
 /// </summary>
-internal sealed class MermaidErRenderer
+internal sealed class MermaidErRenderer(MermaidStyles styles)
 {
-    #region Constructors
 
-    public MermaidErRenderer(MermaidStyles styles) => _s = styles;
-
-    #endregion Constructors
 
     #region Methods
 
@@ -80,9 +76,9 @@ internal sealed class MermaidErRenderer
 
         // Compact crow's-foot cardinality glyphs sit right beside each entity; the verb label rides the midpoint, so
         // all three fit on a short relationship line without colliding.
-        var e1 = path[Math.Min(1, path.Count - 1)];
+        var (x, y) = path[Math.Min(1, path.Count - 1)];
         var e2 = path[Math.Max(0, path.Count - 2)];
-        Centered(canvas, Cardinality(rel.Cardinality1), e1.x, e1.y, _s.EdgeLabel);
+        Centered(canvas, Cardinality(rel.Cardinality1), x, y, _s.EdgeLabel);
         Centered(canvas, Cardinality(rel.Cardinality2), e2.x, e2.y, _s.EdgeLabel);
         if (!string.IsNullOrEmpty(rel.Label))
         {
@@ -111,7 +107,7 @@ internal sealed class MermaidErRenderer
     private static void Centered(CellCanvas canvas, string text, int cx, int cy, CColor? color)
     {
         var t = text.Replace('\n', ' ');
-        canvas.Text(cx - t.Length / 2, cy, t, color);
+        canvas.Text(cx - (t.Length / 2), cy, t, color);
     }
 
     private List<(int x, int y)> BuildPath(IReadOnlyList<Point> points)
@@ -128,12 +124,7 @@ internal sealed class MermaidErRenderer
         return path;
     }
 
-    private static string Clip(string s, int maxW)
-    {
-        if (maxW <= 0) return string.Empty;
-        if (s.Length <= maxW) return s;
-        return maxW == 1 ? "…" : string.Concat(s.AsSpan(0, maxW - 1), "…");
-    }
+    private static string Clip(string s, int maxW) => maxW <= 0 ? string.Empty : s.Length <= maxW ? s : maxW == 1 ? "…" : $"{s.AsSpan(0, maxW - 1)}…";
 
     private int CX(double px) => (int)Math.Round(px / _xDiv) + 1;
 
@@ -143,7 +134,7 @@ internal sealed class MermaidErRenderer
 
     #region Fields
 
-    private readonly MermaidStyles _s;
+    private readonly MermaidStyles _s = styles;
     private double _xDiv = 9.0;
     private double _yDiv = 14.0;
 

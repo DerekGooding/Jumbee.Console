@@ -22,9 +22,9 @@ internal sealed class AnsiTerminalConsole : IConsole
     public Size Size
     {
         // Live terminal size; falls back to the last requested size if the terminal can't be queried (e.g. redirected).
-        get { try { return _inner.Size; } catch { return _requested; } }
-        set => _requested = value;   // remember it as the fallback; never resize the physical terminal
-    }
+        get { try { return _inner.Size; } catch { return field; } }
+        set;   // remember it as the fallback; never resize the physical terminal
+    } = new Size(80, 25);
 
     public bool KeyAvailable => false;   // input arrives via the VT input source, not Console.ReadKey
 
@@ -57,8 +57,7 @@ internal sealed class AnsiTerminalConsole : IConsole
 
     #region Fields
 
-    private readonly StandardConsole _inner = new StandardConsole();
-    private Size _requested = new Size(80, 25);
+    private readonly StandardConsole _inner = new();
 
     #endregion Fields
 }

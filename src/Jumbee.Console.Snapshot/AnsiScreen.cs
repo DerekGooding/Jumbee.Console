@@ -85,7 +85,7 @@ public sealed class AnsiScreen
         var start = i;
         while (i < s.Length && (s[i] < '\x40' || s[i] > '\x7e')) i++;
         if (i >= s.Length) return i;
-        ApplyCsi(s.Substring(start, i - start), s[i]);
+        ApplyCsi(s[start..i], s[i]);
         return i + 1;
     }
 

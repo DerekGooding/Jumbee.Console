@@ -2,9 +2,6 @@
 using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -44,7 +41,7 @@ public sealed class MenuItem
 
     /// <summary>A parent item that opens <paramref name="submenu"/> when chosen (Right/Enter, or hover).</summary>
     public MenuItem(string text, IEnumerable<MenuItem> submenu)
-    { Text = text; Submenu = submenu.ToList(); }
+    { Text = text; Submenu = [.. submenu]; }
 
     /// <summary>A non-selectable divider row.</summary>
     public static readonly MenuItem Separator = new() { IsSeparator = true, Enabled = false };
@@ -121,9 +118,7 @@ public class ContextMenu : Control
         get
         {
             var size = consoleBuffer.Size;
-            if (position.X < 0 || position.Y < 0 || position.X >= size.Width || position.Y >= size.Height)
-                return emptyCell;
-            return base[position];
+            return position.X < 0 || position.Y < 0 || position.X >= size.Width || position.Y >= size.Height ? emptyCell : base[position];
         }
     }
 
@@ -198,8 +193,7 @@ public class ContextMenu : Control
     }
 
     /// <inheritdoc/>
-    protected override void OnMouseLeave()
-    { _lastHoverLevel = _lastHoverItem = -1; }
+    protected override void OnMouseLeave() => _lastHoverLevel = _lastHoverItem = -1;
 
     // Click a leaf to choose it; click a submenu parent to open it.
     /// <inheritdoc/>
@@ -379,9 +373,9 @@ public class ContextMenu : Control
     {
         var left = " " + item.Text;
         var right = item.HasSubmenu ? "► " : (string.IsNullOrEmpty(item.Shortcut) ? "" : item.Shortcut + " ");
-        if (left.Length + right.Length > cw)
-            return left.Length > cw ? left[..cw] : left.PadRight(cw);
-        return left + new string(' ', cw - left.Length - right.Length) + right;
+        return left.Length + right.Length > cw
+            ? left.Length > cw ? left[..cw] : left.PadRight(cw)
+            : left + new string(' ', cw - left.Length - right.Length) + right;
     }
 
     private void Put(int x, int y, char c, Style style)
@@ -431,13 +425,11 @@ public class ContextMenu : Control
     #region Child types
 
     // One open level of the menu chain: its items, the highlighted index, and its box rect in the control's buffer.
-    private sealed class Level
+    private sealed class Level(IReadOnlyList<MenuItem> items)
     {
-        public readonly IReadOnlyList<MenuItem> Items;
+        public readonly IReadOnlyList<MenuItem> Items = items;
         public int Highlighted;
         public int OriginX, OriginY, Width, Height;
-
-        public Level(IReadOnlyList<MenuItem> items) => Items = items;
     }
 
     #endregion Child types
@@ -445,7 +437,7 @@ public class ContextMenu : Control
     #region Fields
 
     private readonly List<MenuItem> _root;
-    private readonly List<Level> _levels = new();   // _levels[0] = root; deeper entries = open submenus
+    private readonly List<Level> _levels = [];   // _levels[0] = root; deeper entries = open submenus
     private int _lastHoverLevel = -1;
     private int _lastHoverItem = -1;
     private int _chainWidth;

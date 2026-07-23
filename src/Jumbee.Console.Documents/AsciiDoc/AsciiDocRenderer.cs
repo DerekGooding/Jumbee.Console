@@ -13,13 +13,9 @@ namespace Jumbee.Console.Documents;
 /// Spectre tables, inline markup as styled <see cref="Markup"/>). The whole document is written to an
 /// <see cref="IAnsiConsole"/> in a single <c>AnsiConsoleExtensions.Write(IAnsiConsole, IRenderable)</c> call.
 /// </summary>
-internal sealed class AsciiDocRenderer
+internal sealed class AsciiDocRenderer(AsciiDocStyles styles)
 {
-    #region Constructors
 
-    public AsciiDocRenderer(AsciiDocStyles styles) => _s = styles;
-
-    #endregion Constructors
 
     #region Methods
 
@@ -83,7 +79,7 @@ internal sealed class AsciiDocRenderer
         var index = list.Start ?? 1;
         foreach (var item in list.Children.OfType<ListItemNode>())
         {
-            string marker =
+            var marker =
                 item.Checked is bool chk ? (chk ? "☑" : "☐")          // ☑ / ☐
                 : list.ListKind == ListKind.Ordered ? $"{index++}."
                 : "•";                                                      // •
@@ -137,7 +133,7 @@ internal sealed class AsciiDocRenderer
         return table;
 
         List<string> Cells(TableRowNode row) =>
-            row.Children.OfType<TableCellNode>().Select(c => InlineMarkup(c.Inlines, c.Text)).ToList();
+            [.. row.Children.OfType<TableCellNode>().Select(c => InlineMarkup(c.Inlines, c.Text))];
     }
 
     private IRenderable RenderDelimitedBlock(DelimitedBlockNode block)
@@ -374,7 +370,7 @@ internal sealed class AsciiDocRenderer
     {
         if (blocks.Count == 0) return Blank;
         if (!spaced || blocks.Count == 1) return new Rows(blocks);
-        var joined = new List<IRenderable>(blocks.Count * 2 - 1);
+        var joined = new List<IRenderable>((blocks.Count * 2) - 1);
         for (var i = 0; i < blocks.Count; i++)
         {
             if (i > 0) joined.Add(Blank);
@@ -390,7 +386,7 @@ internal sealed class AsciiDocRenderer
     // A one-cell renderable that occupies a single (visually blank) row — Rows drops zero-segment children.
     private static readonly IRenderable Blank = new Text(" ");
 
-    private readonly AsciiDocStyles _s;
+    private readonly AsciiDocStyles _s = styles;
 
     // Syntax highlighter for source blocks, created lazily (only if the document has a recognised code block). Each
     // AsciiDocRenderer is single-use on one thread, so the non-thread-safe formatter/theme are safe as instance state.

@@ -1,7 +1,5 @@
 
 using Spectre.Console;
-using System;
-using System.Collections.Generic;
 using System.Text;
 using CColor = ConsoleGUI.Data.Color;
 
@@ -24,7 +22,7 @@ public class RunChart : CompositeControl
     public RunChart()
     {
         _plot = new Plot();
-        _plot.SetXRange(0, _window - 1);           // stationary strip axis; data scrolls through it
+        _plot.SetXRange(0, Window - 1);           // stationary strip axis; data scrolls through it
         _legend = new TextPanel { Width = LegendWidth };
         // Plot fills the left; the fixed-width legend docks on the right.
         SetContent(new DockPanel(DockedControlPlacement.Right, _legend, _plot));
@@ -37,15 +35,15 @@ public class RunChart : CompositeControl
     /// <summary>Numeric format for the legend's stat values (default <c>"0.##"</c>).</summary>
     public string ValueFormat
     {
-        get => _format;
-        set => UI.Invoke(() => { _format = string.IsNullOrEmpty(value) ? "0.##" : value; RefreshLegend(); });
-    }
+        get;
+        set => UI.Invoke(() => { field = string.IsNullOrEmpty(value) ? "0.##" : value; RefreshLegend(); });
+    } = "0.##";
 
     /// <summary>Reports <see langword="true"/> so the chart fills its framing viewport rather than ballooning (it owns its own scrolling via the strip axis).</summary>
     // The chart owns its scrolling via the strip axis, so it fills the framing viewport rather than ballooning.
     protected internal override bool FillsFrameViewport => true;
 
-    internal int Window => _window;
+    internal int Window { get; private set; } = 60;
 
     #endregion Properties
 
@@ -70,7 +68,7 @@ public class RunChart : CompositeControl
     /// <summary>Sets the strip width — how many recent points are shown before the oldest scrolls off (default 60).</summary>
     public RunChart SetXWindow(int points)
     {
-        UI.Invoke(() => { _window = Math.Max(2, points); _plot.SetXRange(0, _window - 1); });
+        UI.Invoke(() => { Window = Math.Max(2, points); _plot.SetXRange(0, Window - 1); });
         return this;
     }
 
@@ -92,7 +90,7 @@ public class RunChart : CompositeControl
     {
         var sb = _legendBuilder;
         sb.Clear();
-        bool first = true;
+        var first = true;
         foreach (var s in _series)
         {
             if (!first) sb.Append('\n');   // separate entries without a trailing newline to trim off the end
@@ -117,10 +115,10 @@ public class RunChart : CompositeControl
     {
         if (!double.IsFinite(v)) { sb.Append('-'); return; }
         Span<char> buf = stackalloc char[32];
-        if (v.TryFormat(buf, out int n, _format))   // null provider = current culture, matching double.ToString(format)
+        if (v.TryFormat(buf, out var n, ValueFormat))   // null provider = current culture, matching double.ToString(format)
             sb.Append(buf[..n]);
         else
-            sb.Append(v.ToString(_format));
+            sb.Append(v.ToString(ValueFormat));
     }
 
     #endregion Methods
@@ -130,11 +128,9 @@ public class RunChart : CompositeControl
     private const int LegendWidth = 22;
     private readonly Plot _plot;
     private readonly TextPanel _legend;
-    private readonly List<RunSeries> _series = new();
+    private readonly List<RunSeries> _series = [];
     private readonly StringBuilder _legendBuilder = new();
     private bool _legendDirty;
-    private int _window = 60;
-    private string _format = "0.##";
 
     #endregion Fields
 }

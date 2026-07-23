@@ -99,25 +99,11 @@ public class TextLabel : Control
             }
             else if (_orientation == TextLabelOrientation.Horizontal)
             {
-                if (position.Y >= 1 || position.X >= Text.Length)
-                {
-                    return emptyCell;
-                }
-                else
-                {
-                    return chars[position.X];
-                }
+                return position.Y >= 1 || position.X >= Text.Length ? emptyCell : chars[position.X];
             }
             else
             {
-                if (position.X >= 1 || position.Y >= Text.Length)
-                {
-                    return emptyCell;
-                }
-                else
-                {
-                    return chars[position.Y];
-                }
+                return position.X >= 1 || position.Y >= Text.Length ? emptyCell : chars[position.Y];
             }
         }
     }
@@ -132,7 +118,7 @@ public class TextLabel : Control
     {
         // Spectre and ConsoleGUI Decoration share flag values; map None to null (no decoration) like the other controls.
         Decoration? deco = _decoration == SCDecoration.None ? null : (Decoration)_decoration;
-        for (int i = 0; i < _text.Length; i++)
+        for (var i = 0; i < _text.Length; i++)
         {
             chars[i] = (Cell)new Character(_text[i], foreground: _fgcolor, background: _bgcolor, decoration: deco);
         }

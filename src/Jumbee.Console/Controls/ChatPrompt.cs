@@ -1,7 +1,5 @@
 
 using Spectre.Console;
-using System;
-using System.Collections.Generic;
 
 namespace Jumbee.Console;
 /// <summary>
@@ -22,14 +20,14 @@ public class ChatPrompt : CompositeControl
     /// <summary>Initializes a new <see cref="ChatPrompt"/> with an optional <paramref name="placeholder"/> hint.</summary>
     public ChatPrompt(string placeholder = "")
     {
-        _input = new TextInput(placeholder: placeholder);
+        Input = new TextInput(placeholder: placeholder);
         _gutter = new PromptGutter();
 
         // Inter-child wiring: relay the field's events out under the composite's identity.
-        _input.Submitted += (_, _) => Submitted?.Invoke(this, _input.Text);
-        _input.Changed += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
+        Input.Submitted += (_, _) => Submitted?.Invoke(this, Input.Text);
+        Input.Changed += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
 
-        SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, _input));
+        SetContent(new DockPanel(DockedControlPlacement.Left, _gutter, Input));
     }
 
     #endregion Constructors
@@ -37,28 +35,28 @@ public class ChatPrompt : CompositeControl
     #region Properties
 
     /// <summary>The wrapped text field (focus it to type; the composite delegates focus here).</summary>
-    public TextInput Input => _input;
+    public TextInput Input { get; }
 
     /// <summary>The entered text. Setting it moves the caret to the end and raises <see cref="Changed"/>.</summary>
     public string Text
     {
-        get => _input.Text;
-        set => _input.Text = value;
+        get => Input.Text;
+        set => Input.Text = value;
     }
 
     /// <summary>Muted hint shown while the field is empty.</summary>
     public string Placeholder
     {
-        get => _input.Placeholder;
-        set => _input.Placeholder = value;
+        get => Input.Placeholder;
+        set => Input.Placeholder = value;
     }
 
     /// <summary>When <see langword="true"/>, edits are ignored (caret navigation still works). Set this while an
     /// operation runs if the field should not accept input.</summary>
     public bool ReadOnly
     {
-        get => _input.ReadOnly;
-        set => _input.ReadOnly = value;
+        get => Input.ReadOnly;
+        set => Input.ReadOnly = value;
     }
 
     /// <summary>The prompt glyph shown left of the input when idle (default <c>❯</c>). A trailing space separates it
@@ -109,10 +107,10 @@ public class ChatPrompt : CompositeControl
 
     /// <summary>Attaches type-ahead suggestions from a fixed candidate list (returns the <see cref="Autocomplete"/>
     /// for further tuning, e.g. <see cref="Autocomplete.MaxRows"/>).</summary>
-    public Autocomplete WithSuggestions(params string[] candidates) => new(_input, candidates);
+    public Autocomplete WithSuggestions(params string[] candidates) => new(Input, candidates);
 
     /// <summary>Attaches type-ahead suggestions from a provider called with the current text.</summary>
-    public Autocomplete WithSuggestions(Func<string, IEnumerable<string>> suggest) => new(_input, suggest);
+    public Autocomplete WithSuggestions(Func<string, IEnumerable<string>> suggest) => new(Input, suggest);
 
     // A single input row; a surrounding frame sizes us to one row (plus its border) instead of the 1000-row fill.
     /// <inheritdoc/>
@@ -125,10 +123,7 @@ public class ChatPrompt : CompositeControl
         .WithKey("Enter", "Submit");
 
     #endregion Methods
-
     #region Fields
-
-    private readonly TextInput _input;
     private readonly PromptGutter _gutter;
 
     #endregion Fields
@@ -148,9 +143,9 @@ internal sealed class PromptGutter : Control
     public PromptGutter()
     {
         Focusable = false;
-        _frames = _spinner.Frames;
-        _interval = _spinner.Interval.Ticks;
-        _width = _prompt.Length + 1;
+        _frames = Spinner.Frames;
+        _interval = Spinner.Interval.Ticks;
+        _width = Prompt.Length + 1;
         ApplyTheme();
     }
 
@@ -160,37 +155,37 @@ internal sealed class PromptGutter : Control
 
     public string Prompt
     {
-        get => _prompt;
-        set => SetAtomicProperty(ref _prompt, value ?? string.Empty, updatesLayout: true,
-            watch: (_, _) => _width = _prompt.Length + 1);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value ?? string.Empty, updatesLayout: true,
+            watch: (_, _) => _width = field.Length + 1);
+    } = "❯";
 
     public Spectre.Console.Spinner Spinner
     {
-        get => _spinner;
+        get;
         set
         {
-            _spinner = value;
+            field = value;
             _frames = value.Frames;
             _interval = value.Interval.Ticks;
             _frameIndex = 0;
             Invalidate();
         }
-    }
+    } = Spectre.Console.Spinner.Known.Dots;
 
     public Style Style
     {
         get => _style;
-        set => SetAtomicProperty(ref _style, value, themeOverride: true, watch: (_, _) => _styleMarkup = _style);
+        set => SetAtomicProperty(ref _style, value, watch: (_, _) => _styleMarkup = _style, themeOverride: true);
     }
 
     public bool Busy
     {
-        get => _busy;
+        get;
         set
         {
-            if (_busy == value) return;
-            _busy = value;
+            if (field == value) return;
+            field = value;
             _lastTick = DateTime.Now.Ticks;
             _accumulated = 0L;
             _frameIndex = 0;
@@ -215,7 +210,7 @@ internal sealed class PromptGutter : Control
     // Advance the spinner (time-based) while busy, then draw. When idle this runs once per Invalidate (see Validate).
     protected override void Paint()
     {
-        if (_busy && _frames.Count > 0)
+        if (Busy && _frames.Count > 0)
         {
             var now = DateTime.Now.Ticks;
             _accumulated += now - _lastTick;
@@ -232,14 +227,14 @@ internal sealed class PromptGutter : Control
     // Keep repainting every frame while busy so the spinner animates; settle after a single paint when idle.
     protected override void Validate()
     {
-        if (_busy) return;
+        if (Busy) return;
         base.Validate();
     }
 
     protected override void Render()
     {
         ansiConsole.Clear(true);
-        var glyph = _busy && _frames.Count > 0 ? _frames[_frameIndex % _frames.Count] : _prompt;
+        var glyph = Busy && _frames.Count > 0 ? _frames[_frameIndex % _frames.Count] : Prompt;
         if (glyph.Length == 0) return;
         ansiConsole.Markup($"[{_styleMarkup}]{Markup.Escape(glyph)}[/]");
     }
@@ -248,13 +243,10 @@ internal sealed class PromptGutter : Control
 
     #region Fields
 
-    private string _prompt = "❯";
     private int _width;
-    private Spectre.Console.Spinner _spinner = Spectre.Console.Spinner.Known.Dots;
     private IReadOnlyList<string> _frames;
     private long _interval;
     private int _frameIndex;
-    private bool _busy;
     private long _lastTick;
     private long _accumulated;
     private Style _style;

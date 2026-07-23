@@ -2,23 +2,13 @@
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console;
-using System;
 
 namespace Jumbee.Console;
 /// <summary>A single-line text input that shows a prompt label and edits an inline entry with a terminal cursor.</summary>
-public class TextPrompt : Prompt
+/// <remarks>Initializes a new <see cref="TextPrompt"/> with the given <paramref name="prompt"/> label; <paramref name="showCursor"/> and <paramref name="blinkCursor"/> control the terminal cursor.</remarks>
+public class TextPrompt(string prompt, bool showCursor = true, bool blinkCursor = false) : Prompt()
 {
-    #region Constructors
 
-    /// <summary>Initializes a new <see cref="TextPrompt"/> with the given <paramref name="prompt"/> label; <paramref name="showCursor"/> and <paramref name="blinkCursor"/> control the terminal cursor.</summary>
-    public TextPrompt(string prompt, bool showCursor = true, bool blinkCursor = false) : base()
-    {
-        this._prompt = prompt;
-        this._showCursor = showCursor;
-        this._blinkCursor = blinkCursor;
-    }
-
-    #endregion Constructors
 
     #region Events
 
@@ -35,27 +25,27 @@ public class TextPrompt : Prompt
     /// <summary>The prompt label shown before the entry (a trailing space is appended).</summary>
     public string Prompt
     {
-        get => _prompt;
+        get;
         set
         {
-            _prompt = string.IsNullOrEmpty(value) ? "" : value + " ";
+            field = string.IsNullOrEmpty(value) ? "" : value + " ";
             Invalidate();
         }
-    }
+    } = prompt;
 
     /// <summary>When <see langword="true"/>, the terminal cursor is shown at the caret while focused.</summary>
     public bool ShowCursor
     {
-        get => _showCursor;
-        set => SetAtomicProperty(ref _showCursor, value);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value);
+    } = showCursor;
 
     /// <summary>When <see langword="true"/>, the shown cursor blinks (DECSCUSR blinking block).</summary>
     public bool BlinkCursor
     {
-        get => _blinkCursor;
-        set => SetAtomicProperty(ref _blinkCursor, value);
-    }
+        get;
+        set => SetAtomicProperty(ref field, value);
+    } = blinkCursor;
 
     /// <summary>The caret's index within the input text.</summary>
     public int CaretPosition
@@ -97,10 +87,7 @@ public class TextPrompt : Prompt
     #region Methods
 
     /// <inheritdoc/>
-    protected override void Control_OnInitialization()
-    {
-        RenderPrompt();
-    }
+    protected override void Control_OnInitialization() => RenderPrompt();
 
     /// <inheritdoc/>
     protected override void Render()
@@ -118,7 +105,7 @@ public class TextPrompt : Prompt
     protected void RenderPrompt()
     {
         ansiConsole.Clear(true);
-        ansiConsole.Markup(_prompt);
+        ansiConsole.Markup(Prompt);
         inputStart = new Position(ansiConsole.CursorX, ansiConsole.CursorY);
     }
 
@@ -126,10 +113,10 @@ public class TextPrompt : Prompt
     protected void RenderCursor()
     {
         // Only the focused control may own the terminal cursor; otherwise clear it so it doesn't linger.
-        if (IsValidCursorPosition && IsFocused && _showCursor)
+        if (IsValidCursorPosition && IsFocused && ShowCursor)
         {
             // Blinking is now the terminal's job (DECSCUSR), not a forced repaint.
-            ansiConsole.BufferCursor.Style = _blinkCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock;
+            ansiConsole.BufferCursor.Style = BlinkCursor ? CursorStyle.BlinkingBlock : CursorStyle.SteadyBlock;
             ansiConsole.Cursor.Show(true);
         }
         else
@@ -212,18 +199,12 @@ public class TextPrompt : Prompt
     /// <summary><see langword="true"/> when the cursor position lies within the control's bounds.</summary>
     protected bool IsValidCursorPosition => CursorX < Size.Width && CursorY < Size.Height;
 
-    private void AttemptCommit()
-    {
-        Committed?.Invoke(this, input);
-    }
+    private void AttemptCommit() => Committed?.Invoke(this, input);
 
     #endregion Methods
 
     #region Fields
 
-    private string _prompt;
-    private bool _showCursor;
-    private bool _blinkCursor;
     private string input = string.Empty;
     private bool newInput;
     private int _caretPosition = 0;

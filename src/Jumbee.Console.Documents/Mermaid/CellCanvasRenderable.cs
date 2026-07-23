@@ -12,13 +12,9 @@ namespace Jumbee.Console.Documents;
 /// stacked document — so viewers built on renderable composition can embed cell-grid graphics. The canvas is treated
 /// as opaque foreground-only: cell backgrounds are the terminal default.
 /// </summary>
-internal sealed class CellCanvasRenderable : IRenderable
+internal sealed class CellCanvasRenderable(CellCanvas canvas) : IRenderable
 {
-    #region Constructors
 
-    public CellCanvasRenderable(CellCanvas canvas) => _canvas = canvas;
-
-    #endregion Constructors
 
     #region Methods
 
@@ -53,17 +49,13 @@ internal sealed class CellCanvasRenderable : IRenderable
     private static Style StyleFor(CColor? color) =>
         color is { } c ? new Style(new Spectre.Console.Color(c.Red, c.Green, c.Blue)) : Style.Plain;
 
-    private static bool SameColor(CColor? a, CColor? b)
-    {
-        if (a is { } ca && b is { } cb) return ca.Red == cb.Red && ca.Green == cb.Green && ca.Blue == cb.Blue;
-        return !a.HasValue && !b.HasValue;
-    }
+    private static bool SameColor(CColor? a, CColor? b) => a is { } ca && b is { } cb ? ca.Red == cb.Red && ca.Green == cb.Green && ca.Blue == cb.Blue : !a.HasValue && !b.HasValue;
 
     #endregion Methods
 
     #region Fields
 
-    private readonly CellCanvas _canvas;
+    private readonly CellCanvas _canvas = canvas;
 
     #endregion Fields
 }

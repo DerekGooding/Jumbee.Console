@@ -9,21 +9,15 @@ namespace Jumbee.Console.Documents;
 /// A draggable <see cref="SplitPanel"/> divider sits between them (drag it, or focus it and
 /// press the arrows). See <see cref="InteractiveSourceEditor"/> for the (off-UI-thread, coalesced) sync model.
 /// </remarks>
-public class InteractiveMermaidEditor : InteractiveSourceEditor
+/// <param name="mermaid">Initial diagram source (both panes start in sync).</param>
+/// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
+/// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
+/// <param name="splitPosition">The editor pane's initial extent in cells. Adjustable at runtime via the divider.</param>
+public class InteractiveMermaidEditor(string mermaid = "", SplitOrientation orientation = SplitOrientation.Horizontal,
+    int splitPosition = 40) : InteractiveSourceEditor(new CodeEditor(MermaidLanguage.Instance) { Text = mermaid ?? "" }, new MermaidViewer(mermaid ?? ""),
+        " Mermaid ", " Diagram ", mermaid ?? "", orientation, splitPosition)
 {
-    #region Constructors
 
-    /// <param name="mermaid">Initial diagram source (both panes start in sync).</param>
-    /// <param name="orientation">Side-by-side (<see cref="SplitOrientation.Horizontal"/>, editor left) or stacked
-    /// (<see cref="SplitOrientation.Vertical"/>, editor on top).</param>
-    /// <param name="splitPosition">The editor pane's initial extent in cells. Adjustable at runtime via the divider.</param>
-    public InteractiveMermaidEditor(string mermaid = "", SplitOrientation orientation = SplitOrientation.Horizontal,
-        int splitPosition = 40)
-        : base(new CodeEditor(MermaidLanguage.Instance) { Text = mermaid ?? "" }, new MermaidViewer(mermaid ?? ""),
-            " Mermaid ", " Diagram ", mermaid ?? "", orientation, splitPosition)
-    { }
-
-    #endregion Constructors
 
     #region Properties
 

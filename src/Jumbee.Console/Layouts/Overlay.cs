@@ -1,7 +1,6 @@
 
 using ConsoleGUI;
 using ConsoleGUI.Space;
-using System;
 using CBox = ConsoleGUI.Controls.Box;
 using CMargin = ConsoleGUI.Controls.Margin;
 using COverlay = ConsoleGUI.Controls.Overlay;
@@ -24,7 +23,7 @@ public class Overlay : Layout<COverlay>
     /// <summary>Initializes a new <see cref="Overlay"/> with <paramref name="bottom"/> as its persistent base layer.</summary>
     public Overlay(ILayout bottom) : base(new COverlay())
     {
-        _bottom = bottom;
+        Bottom = bottom;
         control.BottomContent = bottom.CControl;
     }
 
@@ -33,16 +32,16 @@ public class Overlay : Layout<COverlay>
     #region Properties
 
     /// <summary>The persistent base layer.</summary>
-    public ILayout Bottom => _bottom;
+    public ILayout Bottom { get; }
 
     /// <summary>The popup currently shown, or <see langword="null"/>.</summary>
-    public Control? Top => _top;
+    public Control? Top { get; private set; }
 
     /// <summary><see langword="true"/> when a popup is currently shown.</summary>
-    public bool IsShowing => _top is not null;
+    public bool IsShowing => Top is not null;
 
     /// <summary><see langword="true"/> when the current popup is modal (shown over a click-blocking scrim).</summary>
-    public bool IsModal => _modal;
+    public bool IsModal { get; private set; }
 
     /// <summary>When <see langword="true"/> (default), a non-modal popup closes when it loses focus (e.g. a click outside).</summary>
     public bool CloseOnFocusLost { get; set; } = true;
@@ -95,7 +94,7 @@ public class Overlay : Layout<COverlay>
     /// calls this so the overlay re-measures and re-lays-out the popup at its new size.</remarks>
     public void Reanchor(int x, int y) => UI.Invoke(() =>
     {
-        if (_top is { } t && !_passive) control.TopContent = AnchorAt(t, x, y);
+        if (Top is { } t && !_passive) control.TopContent = AnchorAt(t, x, y);
     });
 
     /// <summary>
@@ -109,9 +108,9 @@ public class Overlay : Layout<COverlay>
     /// </remarks>
     public void ShowPassive(Control popup, int x, int y) => UI.Invoke(() =>
     {
-        if (_top is not null) Detach(_top);
-        _top = popup;
-        _modal = false;
+        if (Top is not null) Detach(Top);
+        Top = popup;
+        IsModal = false;
         _passive = true;
         control.TopContent = AnchorAt(popup, x, y);
         // No focus change, no OnLostFocus wiring: a non-capturing visual layer; the caller manages dismissal.
@@ -120,10 +119,10 @@ public class Overlay : Layout<COverlay>
     private void Show(Control popup, IControl positioned, bool modal) => UI.Invoke(() =>
     {
         _passive = false;
-        if (_top is not null) Detach(_top);
+        if (Top is not null) Detach(Top);
         _previousFocus = UI.Focused;
-        _top = popup;
-        _modal = modal;
+        Top = popup;
+        IsModal = modal;
         control.TopContent = positioned;
         // A modal popup keeps focus (the scrim swallows outside clicks), so only non-modal popups close on focus loss.
         if (!modal && CloseOnFocusLost) popup.OnLostFocus += OnTopLostFocus;
@@ -132,10 +131,10 @@ public class Overlay : Layout<COverlay>
 
     private void Close(bool restoreFocus) => UI.Invoke(() =>
     {
-        if (_top is null) return;
-        Detach(_top);
-        _top = null;
-        _modal = false;
+        if (Top is null) return;
+        Detach(Top);
+        Top = null;
+        IsModal = false;
         _passive = false;
         control.TopContent = null;   // empty top -> bottom shows through (DrawingContext treats null as transparent)
         if (restoreFocus && _previousFocus is not null) UI.SetFocus(_previousFocus);
@@ -147,7 +146,7 @@ public class Overlay : Layout<COverlay>
     // The popup lost focus (e.g. a click landed on the bottom layer) -> close without stealing the new focus.
     private void OnTopLostFocus()
     {
-        if (_top is not null && !_top.IsFocused) Close(restoreFocus: false);
+        if (Top?.IsFocused == false) Close(restoreFocus: false);
     }
 
     private static IControl CenterIn(Control popup) => new CBox
@@ -175,7 +174,7 @@ public class Overlay : Layout<COverlay>
     // cells carry no mouse listener, so clicks over them are swallowed (the layer beneath is never hit) — that is
     // what makes the popup modal. ModalDim controls how see-through it is.
     private IControl ScrimAround(Control popup) =>
-        new DimScrim(_bottom.CControl, CenterIn(popup), ModalScrim, ModalDim);
+        new DimScrim(Bottom.CControl, CenterIn(popup), ModalScrim, ModalDim);
 
     // Tunnel phase (see Layout.OnInput): close any open popup on CloseKey before the popup itself sees the key.
     /// <summary>Closes any open popup when <see cref="CloseKey"/> is pressed, before the popup sees the key.</summary>
@@ -198,22 +197,19 @@ public class Overlay : Layout<COverlay>
     // shown it presents ONLY the popup (a single cell), so focus/input/nav are exclusive to it until it closes.
     // A passive top is drawn but never captures routing/nav, so the bottom layer stays addressable beneath it.
     /// <summary>Number of rows in the layout grid (1 while a capturing popup is shown, otherwise the bottom layer's rows).</summary>
-    public override int Rows => _top is not null && !_passive ? 1 : _bottom.Rows;
+    public override int Rows => Top is not null && !_passive ? 1 : Bottom.Rows;
 
     /// <summary>Number of columns in the layout grid (1 while a capturing popup is shown, otherwise the bottom layer's columns).</summary>
-    public override int Columns => _top is not null && !_passive ? 1 : _bottom.Columns;
+    public override int Columns => Top is not null && !_passive ? 1 : Bottom.Columns;
 
     /// <summary>Gets the control at the given <paramref name="row"/> and <paramref name="column"/> (the popup while one is shown, otherwise the bottom layer's cell).</summary>
-    public override IFocusable this[int row, int column] => _top is not null && !_passive ? _top : _bottom[row, column];
+    public override IFocusable this[int row, int column] => Top is not null && !_passive ? Top : Bottom[row, column];
 
     #endregion Layout overrides
 
     #region Fields
 
     private static readonly Color DefaultScrim = new(10, 10, 15);   // fallback when the theme leaves Scrim without a bg
-    private readonly ILayout _bottom;
-    private Control? _top;
-    private bool _modal;
     private bool _passive;   // a non-capturing visual layer (e.g. an autocomplete popup); see ShowPassive
     private IFocusable? _previousFocus;
     private Color? _modalScrim;   // null = use the theme's Scrim colour

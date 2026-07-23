@@ -1,6 +1,3 @@
-
-using System;
-
 namespace Jumbee.Console.Drawing;
 /// <summary>
 /// Selects the glyph set (and thus the sub-cell resolution) a <see cref="Jumbee.Console.Canvas"/> draws its shapes
@@ -87,10 +84,10 @@ internal static class CanvasSymbols
         // 4:(c0,r2)=dot3(0x04) 5:(c1,r2)=dot6(0x20) 6:(c0,r3)=dot7(0x40) 7:(c1,r3)=dot8(0x80)
         ReadOnlySpan<int> dotBit = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
         var table = new char[256];
-        for (int pattern = 0; pattern < 256; pattern++)
+        for (var pattern = 0; pattern < 256; pattern++)
         {
-            int code = 0x2800;
-            for (int bit = 0; bit < 8; bit++)
+            var code = 0x2800;
+            for (var bit = 0; bit < 8; bit++)
                 if ((pattern & (1 << bit)) != 0)
                     code |= dotBit[bit];
             table[pattern] = (char)code;

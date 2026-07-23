@@ -1,7 +1,5 @@
 ﻿
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Jumbee.Console;
@@ -15,16 +13,16 @@ public abstract class RenderableControl : Control, IRenderable
 
     #region Methods
 
-    Measurement IRenderable.Measure(RenderOptions options, int maxWidth) => this.Measure(options, Math.Min(maxWidth, ActualWidth));
+    Measurement IRenderable.Measure(RenderOptions options, int maxWidth) => Measure(options, Math.Min(maxWidth, ActualWidth));
 
-    IEnumerable<Segment> IRenderable.Render(RenderOptions options, int maxWidth) => this.Render(options, maxWidth);
+    IEnumerable<Segment> IRenderable.Render(RenderOptions options, int maxWidth) => Render(options, maxWidth);
 
     /// <summary>Produces the Spectre.Console <see cref="Segment"/>s for the control's content within <paramref name="maxWidth"/>.</summary>
     protected abstract IEnumerable<Segment> Render(RenderOptions options, int maxWidth);
 
     /// <summary>Measures the control's desired width; the default reports <paramref name="maxWidth"/> as both minimum and maximum. Override for intrinsic sizing.</summary>
     [DebuggerStepThrough]
-    protected virtual Measurement Measure(RenderOptions options, int maxWidth) => new Measurement(maxWidth, maxWidth);
+    protected virtual Measurement Measure(RenderOptions options, int maxWidth) => new(maxWidth, maxWidth);
 
     /// <summary>
     /// Whether this control's rendered output depends on interactive state (focus / mouse hover / press) — i.e.
@@ -63,34 +61,31 @@ public abstract class RenderableControl : Control, IRenderable
     }
 
     /// <summary>Lays the control out on the UI thread: measures the renderable, resizes the control and buffer when the size changed, and invalidates.</summary>
-    protected override void Initialize()
-    {
-        UI.Invoke(() =>
-        {
-            var (width, height) = CalculateSize();
+    protected override void Initialize() => UI.Invoke(() =>
+                                                 {
+                                                     var (width, height) = CalculateSize();
 
-            // Create RenderOptions based on the virtual console and max width and height
-            var options = new RenderOptions(ansiConsole.Profile.Capabilities, new Spectre.Console.Size(width, height));
+                                                     // Create RenderOptions based on the virtual console and max width and height
+                                                     var options = new RenderOptions(ansiConsole.Profile.Capabilities, new Spectre.Console.Size(width, height));
 
-            // Determine Spectre.Console control measurement
-            var measurement = this.Measure(options, width);
+                                                     // Determine Spectre.Console control measurement
+                                                     var measurement = Measure(options, width);
 
-            // Resize the ConsoleGUI control — but only when the size actually changed. Initialize is re-run for every
-            // control on any size-limit change (and repeatedly during layout convergence); ConsoleGUI's Resize
-            // unconditionally sets a full dirty rect and propagates an Update to the parent, so an unguarded call
-            // cascades a re-layout up the tree on every pass even when nothing moved. CalculateSize already clamps to
-            // Min/MaxSize, so an unchanged computed size means a genuine no-op. The Invalidate below still requests the
-            // control's own repaint.
-            var size = new ConsoleGUI.Space.Size(width, height);
-            if (size != Size)
-                Resize(size);
+                                                     // Resize the ConsoleGUI control — but only when the size actually changed. Initialize is re-run for every
+                                                     // control on any size-limit change (and repeatedly during layout convergence); ConsoleGUI's Resize
+                                                     // unconditionally sets a full dirty rect and propagates an Update to the parent, so an unguarded call
+                                                     // cascades a re-layout up the tree on every pass even when nothing moved. CalculateSize already clamps to
+                                                     // Min/MaxSize, so an unchanged computed size means a genuine no-op. The Invalidate below still requests the
+                                                     // control's own repaint.
+                                                     var size = new ConsoleGUI.Space.Size(width, height);
+                                                     if (size != Size)
+                                                         Resize(size);
 
-            // Update buffer size
-            consoleBuffer.Size = Size;
+                                                     // Update buffer size
+                                                     consoleBuffer.Size = Size;
 
-            Invalidate();
-        });
-    }
+                                                     Invalidate();
+                                                 });
 
     /// <summary>Renders the control's content to the console buffer.</summary>
     protected override sealed void Render()

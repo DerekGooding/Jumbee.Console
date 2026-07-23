@@ -9,13 +9,9 @@ namespace Jumbee.Console.Documents;
 /// association/dependency arrows, lollipop circles) first, then three-compartment class boxes (header + annotation,
 /// attributes, methods) on top. Coordinates are SVG pixels scaled to cells like the flowchart renderer.
 /// </summary>
-internal sealed class MermaidClassRenderer
+internal sealed class MermaidClassRenderer(MermaidStyles styles)
 {
-    #region Constructors
 
-    public MermaidClassRenderer(MermaidStyles styles) => _s = styles;
-
-    #endregion Constructors
 
     #region Methods
 
@@ -119,13 +115,13 @@ internal sealed class MermaidClassRenderer
         // Cardinalities sit a couple of cells in from each end, clear of the end-marker (which is at index 1 / ^2).
         if (rel.FromCardinality is { Length: > 0 } fc)
         {
-            var p = path[Math.Min(2, path.Count - 1)];
-            Centered(canvas, fc, p.x, p.y, _s.EdgeLabel);
+            var (x, y) = path[Math.Min(2, path.Count - 1)];
+            Centered(canvas, fc, x, y, _s.EdgeLabel);
         }
         if (rel.ToCardinality is { Length: > 0 } tc)
         {
-            var p = path[Math.Max(0, path.Count - 3)];
-            Centered(canvas, tc, p.x, p.y, _s.EdgeLabel);
+            var (x, y) = path[Math.Max(0, path.Count - 3)];
+            Centered(canvas, tc, x, y, _s.EdgeLabel);
         }
     }
 
@@ -149,7 +145,7 @@ internal sealed class MermaidClassRenderer
     private static void Centered(CellCanvas canvas, string text, int cx, int cy, CColor? color)
     {
         var t = text.Replace('\n', ' ');
-        canvas.Text(cx - t.Length / 2, cy, t, color);
+        canvas.Text(cx - (t.Length / 2), cy, t, color);
     }
 
     private List<(int x, int y)> BuildPath(IReadOnlyList<Point> points)
@@ -169,12 +165,7 @@ internal sealed class MermaidClassRenderer
     private static int Dir((int x, int y) a, (int x, int y) b) =>
         b.x > a.x ? 8 : b.x < a.x ? 4 : b.y > a.y ? 2 : 1;
 
-    private static string Clip(string s, int maxW)
-    {
-        if (maxW <= 0) return string.Empty;
-        if (s.Length <= maxW) return s;
-        return maxW == 1 ? "…" : string.Concat(s.AsSpan(0, maxW - 1), "…");
-    }
+    private static string Clip(string s, int maxW) => maxW <= 0 ? string.Empty : s.Length <= maxW ? s : maxW == 1 ? "…" : $"{s.AsSpan(0, maxW - 1)}…";
 
     private int CX(double px) => (int)Math.Round(px / _xDiv) + 1;
 
@@ -184,7 +175,7 @@ internal sealed class MermaidClassRenderer
 
     #region Fields
 
-    private readonly MermaidStyles _s;
+    private readonly MermaidStyles _s = styles;
     private double _xDiv = 9.0;
     private double _yDiv = 18.0;
 

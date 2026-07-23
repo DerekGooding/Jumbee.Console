@@ -3,9 +3,6 @@ using ConsoleGUI.Data;
 using ConsoleGUI.Input;
 using ConsoleGUI.Space;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace Jumbee.Console;
@@ -138,8 +135,9 @@ public class Dialog : CompositeControl
         get
         {
             var cell = base[position];
-            if (_surfaceBg is not { } bg || cell.Character.Background is not null) return cell;
-            return new Cell(cell.Character.WithBackground(bg), cell.MouseListener);
+            return _surfaceBg is not { } bg || cell.Character.Background is not null
+                ? cell
+                : new Cell(cell.Character.WithBackground(bg), cell.MouseListener);
         }
     }
 
@@ -250,7 +248,7 @@ public class Dialog : CompositeControl
         if (_completed) return;
         _completed = true;
         Result = result;
-        if (_overlay is not null) _overlay.CloseKey = _prevCloseKey;   // restore the overlay's own close handling
+        _overlay?.CloseKey = _prevCloseKey;   // restore the overlay's own close handling
         if (hide) _overlay?.Hide();
         Completed?.Invoke(this, result);
     }
@@ -274,7 +272,7 @@ public class Dialog : CompositeControl
     {
         var i = _stops.FindIndex(s => s.IsFocused);
         if (i < 0) i = 0;
-        var j = ((i + dir) % _stops.Count + _stops.Count) % _stops.Count;
+        var j = (((i + dir) % _stops.Count) + _stops.Count) % _stops.Count;
         if (j == i) return;
         _stops[i].IsFocused = false;
         _stops[j].IsFocused = true;
@@ -334,7 +332,7 @@ internal sealed class DialogText : RenderableControl
     {
         Focusable = false;
         ApplyTheme();
-        _lines = Wrap(message ?? string.Empty, Math.Max(1, width - 2)).ToArray();
+        _lines = [.. Wrap(message ?? string.Empty, Math.Max(1, width - 2))];
         Width = width;
         Height = PreferredHeight;
     }
@@ -475,7 +473,7 @@ internal sealed class DialogButtonBar : RenderableControl
 
     private void Move(int dir)
     {
-        _focused = ((_focused + dir) % _spec.Length + _spec.Length) % _spec.Length;
+        _focused = (((_focused + dir) % _spec.Length) + _spec.Length) % _spec.Length;
         Invalidate();
     }
 
@@ -508,7 +506,7 @@ internal sealed class DialogButtonBar : RenderableControl
             col += labels[i].Length;
             if (i < labels.Length - 1) { yield return new Segment(" ", surface); col++; }
         }
-        if (width - col > 0) yield return new Segment(new string(' ', width - col), surface);
+        if (width > col) yield return new Segment(new string(' ', width - col), surface);
         _bounds = bounds;
     }
 
@@ -528,12 +526,8 @@ internal sealed class DialogButtonBar : RenderableControl
 
 /// <summary>A <see cref="VerticalStackPanel"/> that lets its owner tunnel input (e.g. a <see cref="Dialog"/>'s
 /// Tab focus-cycling) before it routes to the focused child.</summary>
-internal sealed class InterceptStack : VerticalStackPanel
+internal sealed class InterceptStack(params IFocusable[] children) : VerticalStackPanel(children)
 {
-    public InterceptStack(params IFocusable[] children) : base(children)
-    {
-    }
-
     public Func<UI.InputEventArgs, bool>? Interceptor { get; set; }
 
     protected override bool InterceptInput(UI.InputEventArgs inputEventArgs) => Interceptor?.Invoke(inputEventArgs) ?? false;

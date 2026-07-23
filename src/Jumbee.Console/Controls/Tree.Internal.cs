@@ -1,8 +1,6 @@
 
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace Jumbee.Console;
 public partial class Tree
@@ -59,7 +57,7 @@ public partial class Tree
         /// <summary>The renderable drawn as the node's label.</summary>
         public IRenderable Label
         {
-            get => field;
+            get;
             set
             {
                 field = value;
@@ -74,7 +72,7 @@ public partial class Tree
         /// stay aligned. Has no effect while the node has children (it then shows the disclosure glyph).</remarks>
         public string? LeafGlyph
         {
-            get => field;
+            get;
             set { field = value; UpdateTree(); }
         }
 
@@ -83,7 +81,7 @@ public partial class Tree
         /// <remarks>Ignored while the node is selected (the glyph highlights together with the label).</remarks>
         public Color? LeafGlyphColor
         {
-            get => field;
+            get;
             set { field = value; UpdateTree(); }
         }
 
@@ -94,7 +92,7 @@ public partial class Tree
         /// stay aligned. Dormant while the node is a leaf (it then shows the leaf glyph).</remarks>
         public string? ExpandedGlyph
         {
-            get => field;
+            get;
             set { field = value; UpdateTree(); }
         }
 
@@ -103,7 +101,7 @@ public partial class Tree
         /// tree-wide glyph.</summary>
         public string? CollapsedGlyph
         {
-            get => field;
+            get;
             set { field = value; UpdateTree(); }
         }
 
@@ -112,7 +110,7 @@ public partial class Tree
         /// <remarks>Ignored while the node is selected.</remarks>
         public Color? DisclosureGlyphColor
         {
-            get => field;
+            get;
             set { field = value; UpdateTree(); }
         }
 
@@ -128,16 +126,16 @@ public partial class Tree
         /// expanding shows them again. Toggling redraws the tree.</remarks>
         public bool Expanded
         {
-            get => _expanded;
+            get;
             set
             {
-                if (_expanded != value)
+                if (field != value)
                 {
-                    _expanded = value;
+                    field = value;
                     UpdateTree();
                 }
             }
-        }
+        } = true;
 
         /// <summary>Whether this node has been removed from the tree.</summary>
         public bool IsRemoved { get; internal set; } = false;
@@ -147,12 +145,12 @@ public partial class Tree
         /// </summary>
         public bool Selected
         {
-            get => _selected;
+            get;
             set
             {
-                if (_selected != value)
+                if (field != value)
                 {
-                    _selected = value;
+                    field = value;
                     UpdateTree();
                 }
             }
@@ -178,7 +176,7 @@ public partial class Tree
         {
             // Create the node (with an atomic index) on the calling thread so we can return it immediately;
             // marshal the dictionary mutation onto the UI thread.
-            var c = new TreeNode(this.Tree, Interlocked.Increment(ref childIndex), label, this, text);
+            var c = new TreeNode(Tree, Interlocked.Increment(ref childIndex), label, this, text);
             UI.Invoke(() =>
             {
                 _children[c.Index] = c;
@@ -193,7 +191,7 @@ public partial class Tree
         /// <summary>Adds several child nodes from the given renderable labels.</summary>
         public void AddChildren(params IRenderable[] children)
         {
-            foreach (IRenderable child in children)
+            foreach (var child in children)
             {
                 AddChild(child);
             }
@@ -238,10 +236,8 @@ public partial class Tree
 
         #region Fields
 
-        private Dictionary<uint, TreeNode> _children = new();
+        private Dictionary<uint, TreeNode> _children = [];
         private uint childIndex = 0;
-        private bool _selected;
-        private bool _expanded = true;
 
         // Cached result of Segment.SplitLines(Label.Render(options, width)) for the node's UNFOLDED render, reused
         // across selection/hover/navigation repaints (which re-render the whole tree but don't change this node's
